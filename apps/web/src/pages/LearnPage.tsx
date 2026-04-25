@@ -1,47 +1,100 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useReveal } from '../hooks/useReveal';
+
+type Filter = 'all' | 'pub';
+
 function LearnPage() {
-  // Empty state - no articles yet
-  const articles: any[] = [];
+  const [activeFilter, setActiveFilter] = useState<Filter>('all');
+  useReveal();
 
   return (
     <div className="min-h-screen">
-      <section className="bg-gradient-to-br from-purple-dark via-ink to-purple-dark py-32">
-        <div className="max-w-[1160px] mx-auto px-7 text-center">
-          <div className="inline-block px-4 py-1.5 rounded-full bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-6">
-            INSIGHTS & KNOWLEDGE
+
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+64px)] pb-16 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-teal/8 blur-[70px]" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-purple/6 blur-[70px]" />
+        </div>
+        <div className="relative max-w-[1160px] mx-auto px-7">
+          <div className="rv inline-flex items-center gap-2 px-4 py-1.5 rounded-chip bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-5 tracking-wider">
+            Insights & Knowledge
           </div>
-          <h1 className="text-5xl md:text-6xl font-serif font-semibold text-white mb-6">
-            Learn
+          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.4rem,4.5vw,3.6rem)' }}>
+            Learn from <em className="not-italic text-teal">practitioners</em>
           </h1>
-          <p className="text-xl text-sub max-w-2xl mx-auto">
-            Articles, guides, and insights on commercial real estate
+          <p className="rv d2 text-white/60 leading-[1.7] max-w-[500px]" style={{ fontSize: '1rem' }}>
+            Articles, guides, and papers written by Zachary and Ethaniel on commercial real estate strategy, asset management, and the Texas market.
           </p>
         </div>
       </section>
 
-      <section className="py-24 bg-card">
+      {/* ── Filter Bar ───────────────────────────────────── */}
+      <div className="sticky z-40 bg-card border-b border-border" style={{ top: 68 }}>
         <div className="max-w-[1160px] mx-auto px-7">
-          {articles.length === 0 ? (
-            /* Empty State */
-            <div className="text-center py-24">
-              <h2 className="text-3xl font-serif mb-4">Articles coming soon</h2>
-              <p className="text-sub mb-8">
-                Subscribe to be notified when we publish new content.
-              </p>
-              <a
-                href="/contact"
-                className="inline-block px-8 py-4 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all"
+          <div className="flex gap-0">
+            {([['all', 'All'], ['pub', 'Publications']] as [Filter, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setActiveFilter(id)}
+                className={`flex-none px-5 py-4 text-sm border-b-2 transition-colors whitespace-nowrap -mb-px ${
+                  activeFilter === id
+                    ? 'border-purple text-purple font-semibold'
+                    : 'border-transparent text-hint hover:text-sub font-medium'
+                }`}
               >
-                Subscribe
-              </a>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Content ──────────────────────────────────────── */}
+      <section className="py-24 bg-body">
+        <div className="max-w-[1160px] mx-auto px-7">
+
+          {/* Empty state */}
+          <div className="text-center py-24">
+            <div className="w-14 h-14 rounded-full bg-teal/10 border border-teal/20 flex items-center justify-center mx-auto mb-6">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#24a5bc" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
             </div>
-          ) : (
-            /* Article grid will go here */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Articles will be dynamically loaded */}
-            </div>
-          )}
+            <h2 className="rv font-serif font-semibold text-ink mb-4" style={{ fontSize: '1.8rem' }}>Articles coming soon</h2>
+            <p className="rv d1 text-sub leading-[1.7] mb-8 max-w-md mx-auto" style={{ fontSize: '1rem' }}>
+              We're writing guides and insights based on what we see in the field. Subscribe to be notified when we publish.
+            </p>
+            <Link
+              to="/contact"
+              className="rv d2 inline-block px-7 py-3.5 rounded-button bg-purple text-white font-semibold hover:brightness-110 transition-all"
+            >
+              Subscribe for Updates
+            </Link>
+          </div>
+
         </div>
       </section>
+
+      {/* ── Subscribe bar ────────────────────────────────── */}
+      <section className="py-14 bg-card border-t border-border">
+        <div className="max-w-[1160px] mx-auto px-7">
+          <div className="rv flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <h3 className="font-serif font-semibold text-ink mb-1" style={{ fontSize: '1.1rem' }}>Stay in the loop</h3>
+              <p className="text-sub" style={{ fontSize: '0.875rem' }}>We'll notify you when we publish new content. No spam.</p>
+            </div>
+            <Link
+              to="/contact"
+              className="flex-none px-6 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all"
+            >
+              Subscribe
+            </Link>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

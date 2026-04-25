@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
+import Logo from './Logo';
 
 function Nav() {
   return (
@@ -6,9 +7,7 @@ function Nav() {
       <div className="max-w-[1160px] mx-auto px-7 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <div className="text-2xl font-serif font-semibold text-ink">
-            AxisPoint
-          </div>
+          <Logo height={36} />
         </Link>
 
         {/* Navigation Links */}

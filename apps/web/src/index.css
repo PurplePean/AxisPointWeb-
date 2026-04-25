@@ -28,6 +28,22 @@
 }
 
 @layer utilities {
+  /* Reveal animation */
+  .rv {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .rv.in {
+    opacity: 1;
+    transform: none;
+  }
+  .d1 { transition-delay: 0.07s; }
+  .d2 { transition-delay: 0.14s; }
+  .d3 { transition-delay: 0.21s; }
+  .d4 { transition-delay: 0.28s; }
+  .d5 { transition-delay: 0.35s; }
+
   /* Custom scrollbar styling */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
