@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { team } from '@brand/team';
 import { useReveal } from '../hooks/useReveal';
 
+const FORM_ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT as string | undefined;
+
 type Role = 'investor' | 'referral' | 'pro' | 'curious' | 'refer';
 type Step = 'role' | 'context' | 'prefs' | 'contact' | 'comms' | 'booking' | 'success';
 type MeetType = 'meet' | 'phone' | null;
@@ -225,6 +227,8 @@ function ContactPage() {
   const [sourceSel,    setSourceSel]    = useState<string | null>(null);
   const [prefsSel,     setPrefsSel]     = useState<Set<string>>(new Set());
 
+  const [submitting, setSubmitting] = useState(false);
+
   const stepOrder = role === 'investor' ? STEP_ORDER_INVESTOR : STEP_ORDER_OTHER;
 
   function goNext() {
@@ -269,6 +273,74 @@ function ContactPage() {
   function s2Next() {
     if (role === 'investor') setStep('prefs');
     else setStep('contact');
+  }
+
+  async function submitForm() {
+    if (!bookChoice) return;
+    setSubmitting(true);
+    const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
+      date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
+      slot: selSlot,
+      meetType,
+      phone: (document.getElementById('cal-phone') as HTMLInputElement | null)?.value.trim() ?? '',
+    } : null;
+    const payload = {
+      role,
+      qualData: {
+        experience: [...expSel],
+        aum: aumSel,
+        profession: profSel,
+        clients: [...clientsSel],
+        referralIntent: refIntentSel,
+        proRole: proRoleSel,
+        markets: [...marketSel],
+        proIntent: proIntentSel,
+        curious: [...curiousSel],
+        journey: journeySel,
+        relationship: relSel,
+        fit: [...fitSel],
+        assetClasses: [...assetSel],
+        timeline: timelineSel,
+        awareness: awareSel,
+      },
+      person: {
+        firstName: (document.getElementById('c-fn') as HTMLInputElement | null)?.value.trim() ?? '',
+        lastName:  (document.getElementById('c-ln') as HTMLInputElement | null)?.value.trim() ?? '',
+        email:     (document.getElementById('c-em') as HTMLInputElement | null)?.value.trim() ?? '',
+        phone:     (document.getElementById('c-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+        company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
+      },
+      preferences: [...prefsSel],
+      booking,
+      message: (document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+      source: sourceSel ?? '',
+      timestamp: new Date().toISOString(),
+      page: 'axispoint.llc',
+      ...(role === 'refer' ? {
+        referred: {
+          name: [
+            (document.getElementById('r-fn') as HTMLInputElement | null)?.value.trim(),
+            (document.getElementById('r-ln') as HTMLInputElement | null)?.value.trim(),
+          ].filter(Boolean).join(' '),
+          email: (document.getElementById('r-em') as HTMLInputElement | null)?.value.trim() ?? '',
+          phone: (document.getElementById('r-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+          notes: (document.getElementById('r-notes') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+        },
+      } : {}),
+    };
+    try {
+      if (FORM_ENDPOINT) {
+        await fetch(FORM_ENDPOINT, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
+    } catch {
+      // fail silently — show success regardless so leads are not blocked
+    } finally {
+      setSubmitting(false);
+      setStep('success');
+    }
   }
 
   const { zach, ethaniel } = team;
@@ -807,12 +879,12 @@ function ContactPage() {
                 <NavBack onClick={goBack} />
                 <button
                   type="button"
-                  onClick={() => setStep('success')}
-                  disabled={!bookChoice}
+                  onClick={submitForm}
+                  disabled={!bookChoice || submitting}
                   className="flex-1 py-3 px-4 rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 text-sm font-semibold text-white transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
                   style={{ background: '#9F328C' }}
                 >
-                  Send to AxisPoint
+                  {submitting ? 'Sending…' : 'Send to AxisPoint'}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>

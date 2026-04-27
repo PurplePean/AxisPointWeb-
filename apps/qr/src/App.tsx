@@ -19,6 +19,7 @@ const SLOTS  = ['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','1
 const TAKEN  = new Set(['9:00 AM','11:00 AM','2:00 PM','3:30 PM']);
 
 const QR_URL = 'https://qr.axispoint.llc';
+const FORM_ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT as string | undefined;
 
 function buildCalendar(year: number, month: number): (number | null)[] {
   const first = new Date(year, month, 1).getDay();
@@ -230,6 +231,8 @@ export default function App() {
   const [sourceSel, setSourceSel]     = useState<string | null>(null);
   const [prefsSel, setPrefsSel]       = useState<Set<string>>(new Set());
 
+  const [submitting, setSubmitting] = useState(false);
+
   const stepOrder = role === 'investor' ? STEP_ORDER_INVESTOR : STEP_ORDER_OTHER;
 
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -269,6 +272,64 @@ export default function App() {
   }
   function s2Next() {
     if (role === 'investor') setStep('prefs'); else setStep('contact');
+  }
+
+  async function submitForm() {
+    if (!bookChoice) return;
+    setSubmitting(true);
+    const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
+      date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
+      slot: selSlot,
+      meetType,
+      phone: (document.getElementById('cal-phone') as HTMLInputElement | null)?.value.trim() ?? '',
+    } : null;
+    const payload = {
+      role,
+      qualData: {
+        experience: [...expSel],
+        aum: aumSel,
+        profession: profSel,
+        clients: [...clientsSel],
+        referralIntent: refIntentSel,
+        proRole: proRoleSel,
+        markets: [...marketSel],
+        proIntent: proIntentSel,
+        curious: [...curiousSel],
+        journey: journeySel,
+        relationship: relSel,
+        fit: [...fitSel],
+        assetClasses: [...assetSel],
+        checkSize: capSel,
+        timeline: timelineSel,
+        awareness: awareSel,
+      },
+      person: {
+        firstName: (document.getElementById('c-fn') as HTMLInputElement | null)?.value.trim() ?? '',
+        lastName:  (document.getElementById('c-ln') as HTMLInputElement | null)?.value.trim() ?? '',
+        email:     (document.getElementById('c-em') as HTMLInputElement | null)?.value.trim() ?? '',
+        phone:     (document.getElementById('c-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+        company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
+      },
+      preferences: [...prefsSel],
+      booking,
+      message: (document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+      source: sourceSel ?? '',
+      timestamp: new Date().toISOString(),
+      page: 'qr.axispoint.llc',
+    };
+    try {
+      if (FORM_ENDPOINT) {
+        await fetch(FORM_ENDPOINT, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
+    } catch {
+      // fail silently
+    } finally {
+      setSubmitting(false);
+      setStep('success');
+    }
   }
 
   const today = new Date();
@@ -735,11 +796,11 @@ export default function App() {
               )}
               <div className="flex gap-2">
                 <NavBack onClick={goBack}/>
-                <button type="button" disabled={!bookChoice} onClick={()=>setStep('success')}
+                <button type="button" disabled={!bookChoice || submitting} onClick={submitForm}
                   className="flex-1 py-3 px-4 rounded-[9px] border-none text-white text-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
                   style={{background:'#9F328C'}}
                 >
-                  Submit
+                  {submitting ? 'Sending…' : 'Submit'}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </div>
