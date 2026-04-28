@@ -1,0 +1,39 @@
+name: Deploy — qr.axispoint.llc
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build & deploy QR app
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @axispoint/qr run build
+        env:
+          VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER_QR }}
+          username: ${{ secrets.FTP_USERNAME_QR }}
+          password: ${{ secrets.FTP_PASSWORD_QR }}
+          local-dir: ./apps/qr/dist/
+          server-dir: ./qr.axispoint.llc/
