@@ -32,7 +32,7 @@ function SidePanel({ color, btnColor, title, body, note, ctaText, ctaTo }: {
     <div className="rounded-[16px] bg-ink text-white p-7 border border-white/8 sticky" style={{ top: 'calc(68px + 56px + 24px)' }}>
       <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${color}`} style={{ letterSpacing: '0.1em' }}>Who this is for</div>
       <div className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.1rem' }}>{title}</div>
-      <p className="text-sub leading-[1.7] mb-4" style={{ fontSize: '0.875rem' }}>{body}</p>
+      <p className="text-white/75 leading-[1.7] mb-4" style={{ fontSize: '0.875rem' }}>{body}</p>
       {note && (
         <>
           <div className="h-px bg-white/10 mb-4" />
@@ -105,8 +105,9 @@ function ServicesPage() {
             <div className="max-w-[1160px] mx-auto px-7">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
                 <div className="rv">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-chip bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-5 tracking-wider">
-                    Asset Management
+                  <div className="flex items-center gap-2.5 mb-3.5">
+                    <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
+                    <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Asset Management</span>
                   </div>
                   <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                     Day-to-day oversight. Defined outcomes.
@@ -165,8 +166,9 @@ function ServicesPage() {
           {/* Underwriting section */}
           <section className="py-20 bg-body">
             <div className="max-w-[1160px] mx-auto px-7 rv">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-chip bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-5 tracking-wider">
-                Our Underwriting Standard
+              <div className="flex items-center gap-2.5 mb-3.5">
+                <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
+                <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Our Underwriting Standard</span>
               </div>
               <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                 We underwrite to what we can defend
@@ -198,8 +200,9 @@ function ServicesPage() {
           <div className="max-w-[1160px] mx-auto px-7">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
               <div className="rv">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-chip bg-purple/10 border border-purple/20 text-purple text-eyebrow font-semibold mb-5 tracking-wider">
-                  Advisory and Acquisitions
+                <div className="flex items-center gap-2.5 mb-3.5">
+                  <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
+                  <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Advisory and Acquisitions</span>
                 </div>
                 <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                   Clear scenarios before you commit capital.
@@ -262,8 +265,9 @@ function ServicesPage() {
           <div className="max-w-[1160px] mx-auto px-7">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
               <div className="rv">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-chip bg-magenta/10 border border-magenta/20 text-magenta text-eyebrow font-semibold mb-5 tracking-wider">
-                  Asset Takeover
+                <div className="flex items-center gap-2.5 mb-3.5">
+                  <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
+                  <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Asset Takeover</span>
                 </div>
                 <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                   It is never too late to put a real structure in place.
@@ -319,8 +323,9 @@ function ServicesPage() {
         <section className="py-20 bg-card">
           <div className="max-w-[1160px] mx-auto px-7">
             <div className="rv mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-chip bg-purple/10 border border-purple/20 text-purple text-eyebrow font-semibold mb-5 tracking-wider">
-                Referral Partner Program
+              <div className="flex items-center gap-2.5 mb-3.5">
+                <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
+                <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Referral Partner Program</span>
               </div>
               <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                 Your clients have real estate. We help them manage it well.
@@ -362,7 +367,7 @@ function ServicesPage() {
             <div className="rv d2 rounded-card bg-ink text-white p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <h3 className="font-serif font-semibold text-white mb-2" style={{ fontSize: '1.2rem' }}>How to refer a client</h3>
-                <p className="text-sub leading-[1.7] max-w-lg" style={{ fontSize: '0.875rem' }}>
+                <p className="text-white/75 leading-[1.7] max-w-lg" style={{ fontSize: '0.875rem' }}>
                   Send us an introduction and we take it from there. We handle the client conversation, provide a clear summary of what we discussed, and loop you back in so you are never out of the picture. Your client relationship stays yours.
                 </p>
               </div>
@@ -387,7 +392,7 @@ function ServicesPage() {
             <h2 className="font-serif font-semibold text-white mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
               Not sure which service fits?
             </h2>
-            <p className="text-sub leading-[1.7] mb-8" style={{ fontSize: '1rem' }}>
+            <p className="text-white/75 leading-[1.7] mb-8" style={{ fontSize: '1rem' }}>
               That is what the first call is for. Tell us about your situation and we will tell you honestly whether there is a fit and what it looks like.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">

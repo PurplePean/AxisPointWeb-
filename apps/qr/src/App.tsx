@@ -8,10 +8,10 @@ type Role = 'investor' | 'referral' | 'pro' | 'curious' | 'refer';
 type FormStep = 'role' | 'context' | 'prefs' | 'contact' | 'comms' | 'booking' | 'success';
 type MeetType = 'meet' | 'phone' | null;
 
-const STEP_ORDER_INVESTOR: FormStep[] = ['role', 'context', 'prefs', 'contact', 'comms', 'booking'];
-const STEP_ORDER_OTHER: FormStep[]    = ['role', 'context',          'contact', 'comms', 'booking'];
-const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Preferences', 'Your info', 'Updates', 'Book'];
-const STEP_LABELS_OTHER    = ['Who you are', 'Background', 'Your info', 'Updates', 'Book'];
+const STEP_ORDER_INVESTOR: FormStep[] = ['role', 'context', 'prefs', 'contact', 'booking', 'comms'];
+const STEP_ORDER_OTHER: FormStep[]    = ['role', 'context',          'contact', 'booking', 'comms'];
+const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Preferences', 'Your info', 'Book', 'Updates'];
+const STEP_LABELS_OTHER    = ['Who you are', 'Background', 'Your info', 'Book', 'Updates'];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];

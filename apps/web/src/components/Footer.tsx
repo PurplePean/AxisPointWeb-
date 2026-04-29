@@ -65,18 +65,6 @@ function Footer() {
           <div>
             <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Contact</h5>
             <div className="flex flex-col gap-2.5">
-              <a
-                href="mailto:info@axispoint.llc"
-                className="text-sm text-sub hover:text-teal transition-colors"
-              >
-                info@axispoint.llc
-              </a>
-              <a
-                href="tel:+18323516501"
-                className="text-sm text-sub hover:text-teal transition-colors"
-              >
-                (832) 351-6501
-              </a>
               <span className="text-sm text-hint">Houston, TX</span>
             </div>
           </div>
