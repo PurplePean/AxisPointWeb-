@@ -8,22 +8,25 @@ function HomePage() {
     <div className="min-h-screen">
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative flex items-center bg-gradient-to-br from-[#2d1f50] to-ink overflow-hidden" style={{ minHeight: '100vh' }}>
+      <section
+        className="relative flex items-center overflow-hidden"
+        style={{ minHeight: '72vh', background: 'linear-gradient(135deg,#2A1E47 0%,#1C1628 55%,#0D1829 100%)' }}
+      >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-[-80px] left-[-80px] w-[500px] h-[500px] rounded-full bg-teal/10 blur-[120px]" />
-          <div className="absolute bottom-[-80px] right-[-60px] w-[420px] h-[420px] rounded-full bg-magenta/8 blur-[100px]" />
-          <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] rounded-full bg-purple/8 blur-[80px]" />
+          <div className="absolute rounded-full" style={{ width: 700, height: 700, background: 'rgba(36,165,188,.09)', top: -150, right: -150, filter: 'blur(110px)' }} />
+          <div className="absolute rounded-full" style={{ width: 500, height: 500, background: 'rgba(159,50,140,.07)', bottom: -100, left: '5%', filter: 'blur(110px)' }} />
+          <div className="absolute rounded-full" style={{ width: 380, height: 380, background: 'rgba(56,40,93,.25)', top: '25%', left: -120, filter: 'blur(110px)' }} />
         </div>
 
-        <div className="relative max-w-[1160px] mx-auto px-7 pt-[calc(68px+64px)] pb-24 w-full max-w-[720px]">
-          <h1 className="rv font-serif font-semibold text-white leading-[1.08] mb-5" style={{ fontSize: 'clamp(2.6rem,5vw,4rem)' }}>
-            Commercial real estate,<br />
+        <div className="relative max-w-[1160px] mx-auto px-7 w-full" style={{ paddingTop: 'calc(68px + 60px)', paddingBottom: 80 }}>
+          <h1 className="rv font-serif font-semibold text-white mb-2" style={{ fontSize: 'clamp(2.8rem,5vw,4.2rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
+            <span className="block whitespace-nowrap">Commercial real estate,</span>
             <em className="not-italic text-teal">done right.</em>
           </h1>
-          <p className="rv d2 text-white/80 leading-relaxed italic mb-4" style={{ fontSize: '1.05rem' }}>
+          <p className="rv d2 font-serif italic text-white/70 mb-7" style={{ fontSize: 'clamp(1.3rem,2.5vw,1.7rem)', lineHeight: 1.35 }}>
             Most people never invest in CRE because they do not have the right team behind them. That is the problem AxisPoint solves.
           </p>
-          <p className="rv d2 text-white/65 leading-relaxed mb-10" style={{ fontSize: '0.95rem' }}>
+          <p className="rv d2 text-white/65 mb-10 max-w-[480px]" style={{ fontSize: '1rem', lineHeight: 1.75 }}>
             We manage commercial real estate on behalf of investors across Texas. We find the deals, run the numbers, execute the business plan, and manage the asset from day one through exit.{' '}
             <strong className="text-white/90 font-semibold">You own the investment. We do the work.</strong>
           </p>
@@ -63,14 +66,14 @@ function HomePage() {
 
           <div className="rv d1 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* New to CRE */}
-            <div className="rounded-card bg-ink text-white p-9 flex flex-col" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="rounded-card text-white p-9 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
               <div className="inline-flex self-start px-3 py-1 rounded-chip text-xs font-semibold uppercase tracking-wider mb-5" style={{ background: 'rgba(36,165,188,0.15)', border: '1px solid rgba(36,165,188,0.3)', color: '#24a5bc' }}>
                 New to CRE
               </div>
               <h3 className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>
                 We'll walk you through every step of the process
               </h3>
-              <p className="text-white/75 leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
+              <p className="text-white/90 leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
                 If you've never invested in commercial real estate, you're not behind. You just haven't had the right team in your corner. We act as your asset manager from day one, handling everything from deal sourcing to ongoing operations.
               </p>
               <div className="flex flex-col gap-2.5 mb-7 flex-1">
@@ -80,7 +83,7 @@ function HomePage() {
                   'Property management supervision and accountability',
                   'Monthly reporting and investor communication',
                 ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-white/75" style={{ fontSize: '0.88rem' }}>
+                  <div key={item} className="flex items-start gap-3 text-white/90" style={{ fontSize: '0.88rem' }}>
                     <span className="mt-0.5 w-5 h-5 rounded flex items-center justify-center flex-none text-teal font-bold text-xs bg-teal/15 border border-teal/30">✓</span>
                     {item}
                   </div>

@@ -276,7 +276,6 @@ export default function App() {
   }
 
   async function submitForm() {
-    if (!bookChoice) return;
     setSubmitting(true);
     const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
       date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
@@ -662,7 +661,7 @@ export default function App() {
             </div>
           )}
 
-          {/* ── Comms prefs ── */}
+          {/* ── Comms prefs (final step) ── */}
           {step === 'comms' && (
             <div>
               <SQ>Stay in the loop</SQ>
@@ -673,7 +672,16 @@ export default function App() {
                 <PrefItem val="firm" title="Firm updates" desc="What AxisPoint is working on and firm news."/>
               </div>
               <p className="text-[0.7rem] text-hint mt-2.5 leading-relaxed">You can unsubscribe from any of these at any time.</p>
-              <div className="flex gap-2 mt-5"><NavBack onClick={goBack}/><NavNext onClick={goNext}/></div>
+              <div className="flex gap-2 mt-5">
+                <NavBack onClick={goBack}/>
+                <button type="button" disabled={submitting} onClick={submitForm}
+                  className="flex-1 py-3 px-4 rounded-[9px] border-none text-white text-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{background:'#9F328C'}}
+                >
+                  {submitting ? 'Sending…' : 'Send to AxisPoint'}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
             </div>
           )}
 
@@ -765,13 +773,7 @@ export default function App() {
               )}
               <div className="flex gap-2">
                 <NavBack onClick={goBack}/>
-                <button type="button" disabled={!bookChoice || submitting} onClick={submitForm}
-                  className="flex-1 py-3 px-4 rounded-[9px] border-none text-white text-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{background:'#9F328C'}}
-                >
-                  {submitting ? 'Sending…' : 'Submit'}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
+                <NavNext onClick={goNext} disabled={!bookChoice} label="Continue"/>
               </div>
             </div>
           )}

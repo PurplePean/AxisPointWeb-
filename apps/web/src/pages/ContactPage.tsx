@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { team } from '@brand/team';
 import { useReveal } from '../hooks/useReveal';
 
@@ -129,9 +129,8 @@ function Progress({ stepOrder, currentStep }: { stepOrder: Step[]; currentStep: 
     <div className="mb-6">
       <div className="flex items-center">
         {stepOrder.map((s, i) => (
-          <>
+          <React.Fragment key={s}>
             <div
-              key={`dot-${s}`}
               className={`w-6 h-6 rounded-full border flex items-center justify-center text-[0.65rem] font-semibold flex-shrink-0 z-10 transition-all ${
                 i < cur  ? 'border-teal bg-teal text-white' :
                 i === cur ? 'border-purple bg-[#EEEAF5] text-purple' :
@@ -142,12 +141,11 @@ function Progress({ stepOrder, currentStep }: { stepOrder: Step[]; currentStep: 
             </div>
             {i < stepOrder.length - 1 && (
               <div
-                key={`line-${i}`}
                 className="flex-1 h-[1.5px] transition-all"
                 style={{ background: i < cur ? 'linear-gradient(90deg,#24a5bc,#38285d)' : '#E8E4F0' }}
               />
             )}
-          </>
+          </React.Fragment>
         ))}
       </div>
       <div className="flex mt-1.5">
@@ -276,7 +274,6 @@ function ContactPage() {
   }
 
   async function submitForm() {
-    if (!bookChoice) return;
     setSubmitting(true);
     const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
       date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
@@ -737,7 +734,7 @@ function ContactPage() {
             </div>
           )}
 
-          {/* ── Comms prefs ── */}
+          {/* ── Comms prefs (final step) ── */}
           {step === 'comms' && (
             <div>
               <SQ>Stay in the loop</SQ>
@@ -750,7 +747,18 @@ function ContactPage() {
               <p className="text-[0.7rem] text-hint mt-2.5 leading-relaxed">You can unsubscribe from any of these at any time. We do not share your information.</p>
               <div className="flex gap-2 mt-5">
                 <NavBack onClick={goBack} />
-                <NavNext onClick={goNext} />
+                <button
+                  type="button"
+                  onClick={submitForm}
+                  disabled={submitting}
+                  className="flex-1 py-3 px-4 rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 text-sm font-semibold text-white transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{ background: '#9F328C' }}
+                >
+                  {submitting ? 'Sending…' : 'Send to AxisPoint'}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
               </div>
             </div>
           )}
@@ -877,18 +885,7 @@ function ContactPage() {
 
               <div className="flex gap-2 mt-5">
                 <NavBack onClick={goBack} />
-                <button
-                  type="button"
-                  onClick={submitForm}
-                  disabled={!bookChoice || submitting}
-                  className="flex-1 py-3 px-4 rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 text-sm font-semibold text-white transition-all hover:brightness-[1.08] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{ background: '#9F328C' }}
-                >
-                  {submitting ? 'Sending…' : 'Send to AxisPoint'}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-                </button>
+                <NavNext onClick={goNext} disabled={!bookChoice} label="Continue" />
               </div>
             </div>
           )}

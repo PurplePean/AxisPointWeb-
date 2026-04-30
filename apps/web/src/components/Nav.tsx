@@ -3,7 +3,7 @@ import Logo from './Logo';
 
 function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[9999] h-nav bg-body/92 backdrop-blur-nav border-b border-border [will-change:transform]">
+    <nav className="fixed top-0 left-0 right-0 z-[9999] h-nav [will-change:transform]" style={{ background: 'rgba(247,245,251,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #E8E4F0' }}>
       <div className="max-w-[1160px] mx-auto px-7 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
