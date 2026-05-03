@@ -234,6 +234,12 @@ export default function App() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  /* captured when user leaves the contact step */
+  const [contactFields, setContactFields] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
+  const [msgField, setMsgField]           = useState('');
+  /* captured when user leaves the booking step */
+  const [bookingPhone, setBookingPhone]   = useState('');
+
   const stepOrder = role === 'investor' ? STEP_ORDER_INVESTOR : STEP_ORDER_OTHER;
 
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -275,13 +281,32 @@ export default function App() {
     if (role === 'investor') setStep('prefs'); else setStep('contact');
   }
 
+  function captureContactAndAdvance() {
+    setContactFields({
+      firstName: (document.getElementById('c-fn') as HTMLInputElement | null)?.value.trim() ?? '',
+      lastName:  (document.getElementById('c-ln') as HTMLInputElement | null)?.value.trim() ?? '',
+      email:     (document.getElementById('c-em') as HTMLInputElement | null)?.value.trim() ?? '',
+      phone:     (document.getElementById('c-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+      company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
+    });
+    setMsgField((document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '');
+    goNext();
+  }
+
+  function captureBookingAndAdvance() {
+    if (meetType === 'phone') {
+      setBookingPhone((document.getElementById('cal-phone') as HTMLInputElement | null)?.value.trim() ?? '');
+    }
+    goNext();
+  }
+
   async function submitForm() {
     setSubmitting(true);
     const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
       date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
       slot: selSlot,
       meetType,
-      phone: (document.getElementById('cal-phone') as HTMLInputElement | null)?.value.trim() ?? '',
+      phone: bookingPhone,
     } : null;
     const payload = {
       role,
@@ -303,20 +328,15 @@ export default function App() {
         timeline: timelineSel,
         awareness: awareSel,
       },
-      person: {
-        firstName: (document.getElementById('c-fn') as HTMLInputElement | null)?.value.trim() ?? '',
-        lastName:  (document.getElementById('c-ln') as HTMLInputElement | null)?.value.trim() ?? '',
-        email:     (document.getElementById('c-em') as HTMLInputElement | null)?.value.trim() ?? '',
-        phone:     (document.getElementById('c-ph') as HTMLInputElement | null)?.value.trim() ?? '',
-        company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
-      },
+      person: contactFields,
       preferences: [...prefsSel],
       booking,
-      message: (document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+      message: msgField,
       source: sourceSel ?? '',
       timestamp: new Date().toISOString(),
       page: 'qr.axispoint.llc',
     };
+    console.log('AxisPoint form payload:', payload);
     try {
       if (FORM_ENDPOINT) {
         await fetch(FORM_ENDPOINT, {
@@ -657,7 +677,7 @@ export default function App() {
                 </div>
               </FG>
               <FTextarea id="c-msg" label="Anything else?" placeholder="Questions, context, anything helpful." rows={2}/>
-              <div className="flex gap-2 mt-5"><NavBack onClick={goBack}/><NavNext onClick={goNext}/></div>
+              <div className="flex gap-2 mt-5"><NavBack onClick={goBack}/><NavNext onClick={captureContactAndAdvance}/></div>
             </div>
           )}
 
@@ -773,7 +793,7 @@ export default function App() {
               )}
               <div className="flex gap-2">
                 <NavBack onClick={goBack}/>
-                <NavNext onClick={goNext} disabled={!bookChoice} label="Continue"/>
+                <NavNext onClick={captureBookingAndAdvance} disabled={!bookChoice} label="Continue"/>
               </div>
             </div>
           )}
