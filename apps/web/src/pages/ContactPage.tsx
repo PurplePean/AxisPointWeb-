@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { team } from '@brand/team';
 import { useReveal } from '../hooks/useReveal';
 
 const FORM_ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT as string | undefined;
@@ -30,6 +29,14 @@ function buildCalendar(year: number, month: number): (number | null)[] {
 
 function fmtDate(y: number, m: number, d: number) {
   return `${MONTHS[m]} ${d}, ${y}`;
+}
+
+function parseReferralInput(input: string): { referralCode: string | null; referredByEmail: string | null; referredByName: string | null } {
+  const t = input.trim();
+  if (!t) return { referralCode: null, referredByEmail: null, referredByName: null };
+  if (t.includes('@')) return { referralCode: null, referredByEmail: t, referredByName: null };
+  if (/^AXP-\d{4}$/i.test(t)) return { referralCode: t.toUpperCase(), referredByEmail: null, referredByName: null };
+  return { referralCode: null, referredByEmail: null, referredByName: t };
 }
 
 /* ── Chip helpers ── */
@@ -193,6 +200,16 @@ function NavNext({ onClick, disabled, label = 'Continue' }: { onClick: () => voi
   );
 }
 
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 my-4">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub whitespace-nowrap">{label}</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════ */
 function ContactPage() {
   useReveal();
@@ -225,14 +242,30 @@ function ContactPage() {
   const [sourceSel,    setSourceSel]    = useState<string | null>(null);
   const [prefsSel,     setPrefsSel]     = useState<Set<string>>(new Set());
 
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [submitError,  setSubmitError]  = useState(false);
 
   /* captured when user leaves the contact step */
   const [contactFields, setContactFields] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
   const [msgField, setMsgField]           = useState('');
-  const [referredFields, setReferredFields] = useState({ name: '', email: '', phone: '', notes: '' });
-  /* captured when user leaves the booking step */
+  const [referredFields, setReferredFields] = useState({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
   const [bookingPhone, setBookingPhone]   = useState('');
+
+  /* referral capture */
+  const [urlRef,        setUrlRef]        = useState<string | null>(null);
+  const [isReferred,    setIsReferred]    = useState(false);
+  const [referralInput, setReferralInput] = useState('');
+
+  /* API response */
+  const [responseReferralCode, setResponseReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  /* Read ?ref= URL param on mount */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setUrlRef(ref.trim().toUpperCase());
+  }, []);
 
   const stepOrder = role === 'investor' ? STEP_ORDER_INVESTOR : STEP_ORDER_OTHER;
 
@@ -247,34 +280,20 @@ function ContactPage() {
     if (idx > 0) setStep(stepOrder[idx - 1]);
   }
 
-  function pickRole(r: Role) {
-    setRole(r);
-  }
-
   function toggleSet(set: Set<string>, setFn: (s: Set<string>) => void, val: string) {
     const next = new Set(set);
     if (next.has(val)) next.delete(val); else next.add(val);
     setFn(next);
   }
 
-  useEffect(() => {
-    setSelDay(null);
-    setSelSlot(null);
-  }, [calMonth, calYear]);
+  useEffect(() => { setSelDay(null); setSelSlot(null); }, [calMonth, calYear]);
+  useEffect(() => { if (selDay !== null) setSelSlot(null); }, [selDay]);
 
-  useEffect(() => {
-    if (selDay !== null) setSelSlot(null);
-  }, [selDay]);
-
-  const today = new Date();
+  const today    = new Date();
   const calCells = buildCalendar(calYear, calMonth);
-  const isPast  = (d: number) => new Date(calYear, calMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const isWknd  = (_d: number, idx: number) => {
-    const col = (idx) % 7;
-    return col === 0 || col === 6;
-  };
+  const isPast   = (d: number) => new Date(calYear, calMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const isWknd   = (_d: number, idx: number) => { const col = idx % 7; return col === 0 || col === 6; };
 
-  /* ── Step 2 back destination ── */
   function s2Next() {
     if (role === 'investor') setStep('prefs');
     else setStep('contact');
@@ -289,16 +308,19 @@ function ContactPage() {
       company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
     });
     setMsgField((document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '');
+
     if (role === 'refer') {
       setReferredFields({
-        name: [
-          (document.getElementById('r-fn') as HTMLInputElement | null)?.value.trim(),
-          (document.getElementById('r-ln') as HTMLInputElement | null)?.value.trim(),
-        ].filter(Boolean).join(' '),
-        email: (document.getElementById('r-em') as HTMLInputElement | null)?.value.trim() ?? '',
-        phone: (document.getElementById('r-ph') as HTMLInputElement | null)?.value.trim() ?? '',
-        notes: (document.getElementById('r-notes') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+        firstName: (document.getElementById('r-fn') as HTMLInputElement | null)?.value.trim() ?? '',
+        lastName:  (document.getElementById('r-ln') as HTMLInputElement | null)?.value.trim() ?? '',
+        email:     (document.getElementById('r-em') as HTMLInputElement | null)?.value.trim() ?? '',
+        phone:     (document.getElementById('r-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+        notes:     (document.getElementById('r-notes') as HTMLTextAreaElement | null)?.value.trim() ?? '',
       });
+    } else {
+      setReferralInput(
+        (document.getElementById('r-ref') as HTMLInputElement | null)?.value.trim() ?? ''
+      );
     }
     goNext();
   }
@@ -312,66 +334,106 @@ function ContactPage() {
 
   async function submitForm() {
     setSubmitting(true);
+    setSubmitError(false);
+
     const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
       date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
       slot: selSlot,
       meetType,
       phone: bookingPhone,
     } : null;
+
+    /* Build referral fields for payload */
+    let referralCode: string | null    = null;
+    let referredByEmail: string | null = null;
+    let referredByName: string | null  = null;
+
+    if (urlRef) {
+      referralCode = urlRef;
+    } else if (role !== 'refer' && isReferred && referralInput.trim()) {
+      const parsed = parseReferralInput(referralInput);
+      referralCode    = parsed.referralCode;
+      referredByEmail = parsed.referredByEmail;
+      referredByName  = parsed.referredByName;
+    }
+
     const payload = {
       role,
       qualData: {
-        experience: [...expSel],
-        aum: aumSel,
-        profession: profSel,
-        clients: [...clientsSel],
+        experience:     [...expSel],
+        aum:            aumSel,
+        profession:     profSel,
+        clients:        [...clientsSel],
         referralIntent: refIntentSel,
-        proRole: proRoleSel,
-        markets: [...marketSel],
-        proIntent: proIntentSel,
-        curious: [...curiousSel],
-        journey: journeySel,
-        relationship: relSel,
-        fit: [...fitSel],
-        assetClasses: [...assetSel],
-        timeline: timelineSel,
-        awareness: awareSel,
+        proRole:        proRoleSel,
+        markets:        [...marketSel],
+        proIntent:      proIntentSel,
+        curious:        [...curiousSel],
+        journey:        journeySel,
+        relationship:   relSel,
+        fit:            [...fitSel],
+        assetClasses:   [...assetSel],
+        timeline:       timelineSel,
+        awareness:      awareSel,
       },
-      person: contactFields,
+      person:      contactFields,
       preferences: [...prefsSel],
       booking,
-      message: msgField,
-      source: sourceSel ?? '',
-      timestamp: new Date().toISOString(),
-      page: 'axispoint.llc',
+      message:     msgField,
+      source:      sourceSel ?? '',
+      timestamp:   new Date().toISOString(),
+      page:        'axispoint.llc',
+      referralCode,
+      referredByEmail,
+      referredByName,
       ...(role === 'refer' ? { referred: referredFields } : {}),
     };
-    console.log('AxisPoint form payload:', payload);
+
     try {
       if (FORM_ENDPOINT) {
-        await fetch(FORM_ENDPOINT, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        const res  = await fetch(FORM_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (data.success) {
+          setResponseReferralCode(data.referralCode || null);
+          setStep('success');
+        } else {
+          setSubmitError(true);
+        }
+      } else {
+        /* dev mode — no endpoint configured */
+        setStep('success');
       }
     } catch {
-      // fail silently — show success regardless so leads are not blocked
+      setSubmitError(true);
     } finally {
       setSubmitting(false);
-      setStep('success');
     }
   }
 
-  const { zach, ethaniel } = team;
+  async function copyLink() {
+    if (!responseReferralCode) return;
+    const link = `https://axispoint.llc/contact?ref=${responseReferralCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* ignore */ }
+  }
+
+  const canPrevMonth = !(calYear === today.getFullYear() && calMonth === today.getMonth());
+  function changeMonth(dir: -1 | 1) {
+    let m = calMonth + dir, y = calYear;
+    if (m < 0)  { m = 11; y--; }
+    if (m > 11) { m = 0;  y++; }
+    setCalMonth(m); setCalYear(y);
+  }
 
   /* ── Role tile ── */
-  function RoleTile({
-    r, icon, label, desc, wide,
-  }: { r: Role; icon: React.ReactNode; label: string; desc: string; wide?: boolean }) {
+  function RoleTile({ r, icon, label, desc, wide }: { r: Role; icon: React.ReactNode; label: string; desc: string; wide?: boolean }) {
     const sel = role === r;
     return (
       <div
-        onClick={() => pickRole(r)}
+        onClick={() => setRole(r)}
         className={`rounded-[13px] border cursor-pointer transition-all relative ${wide ? 'flex items-center gap-3 py-3 px-3.5' : 'p-3.5'} ${
           sel ? 'border-teal bg-[#E8F7FA]' : 'border-border bg-body hover:border-[#D4CEE8] hover:-translate-y-0.5 hover:bg-white'
         }`}
@@ -423,7 +485,7 @@ function ContactPage() {
     );
   }
 
-  /* ── Booking cal ── */
+  /* ── Calendar day ── */
   function CalDay({ d, cellIdx }: { d: number | null; cellIdx: number }) {
     if (d === null) return <div />;
     const past  = isPast(d);
@@ -444,16 +506,6 @@ function ContactPage() {
     );
   }
 
-  const canPrevMonth = !(calYear === today.getFullYear() && calMonth === today.getMonth());
-  function changeMonth(dir: -1 | 1) {
-    let m = calMonth + dir;
-    let y = calYear;
-    if (m < 0) { m = 11; y--; }
-    if (m > 11) { m = 0;  y++; }
-    setCalMonth(m); setCalYear(y);
-  }
-
-  /* ── SQ heading ── */
   function SQ({ children }: { children: React.ReactNode }) {
     return <div className="font-serif font-semibold text-ink mb-1 leading-snug" style={{ fontSize: '1.18rem' }}>{children}</div>;
   }
@@ -461,9 +513,9 @@ function ContactPage() {
     return <div className="text-[0.8rem] text-sub leading-relaxed mb-4">{children}</div>;
   }
 
-  /* ── Render current step ── */
-  const isSuccess = step === 'success';
+  const isSuccess  = step === 'success';
   const showProgress = !isSuccess;
+  const shareLink  = responseReferralCode ? `https://axispoint.llc/contact?ref=${responseReferralCode}` : null;
 
   return (
     <div className="min-h-screen">
@@ -515,7 +567,7 @@ function ContactPage() {
                 <RoleTile r="curious" label="Exploring CRE" desc="Learning, just starting out"
                   icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5270" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
                 />
-                <RoleTile r="refer" label="Referring Someone" desc="I know someone who might be a fit and want to make the intro" wide
+                <RoleTile r="refer" label="Making a Referral" desc="I want to introduce someone" wide
                   icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5270" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
                 />
               </div>
@@ -639,12 +691,12 @@ function ContactPage() {
 
               {role === 'refer' && (
                 <>
-                  <SQ>Tell us about the connection</SQ>
+                  <SQ>About the person you are referring</SQ>
                   <SH3>We will use this to make a warm, informed introduction.</SH3>
                   <div className="mb-3.5">
                     <FL>Your relationship to them</FL>
                     <div className="flex flex-wrap gap-1.5">
-                      {['Family member','Friend','Business partner or colleague','Client','Met recently'].map(v => (
+                      {['Client','Friend or family','Business partner or colleague','Met recently'].map(v => (
                         <ChipS key={v} label={v} sel={relSel===v} onClick={() => setRelSel(relSel===v ? null : v)} />
                       ))}
                     </div>
@@ -660,7 +712,7 @@ function ContactPage() {
                   <div className="mb-3.5">
                     <FL>Do they know you are reaching out?</FL>
                     <div className="flex flex-wrap gap-1.5">
-                      {['Yes, they are expecting a call','Not yet, I want to loop them in','I will handle the intro myself'].map(v => (
+                      {['Yes they are expecting a call','Not yet I want to loop them in','I will handle the intro myself'].map(v => (
                         <ChipS key={v} label={v} sel={awareSel===v} onClick={() => setAwareSel(awareSel===v ? null : v)} />
                       ))}
                     </div>
@@ -706,48 +758,90 @@ function ContactPage() {
           {/* ── Contact step ── */}
           {step === 'contact' && (
             <div>
-              <SQ>{role === 'refer' ? 'Tell us who you are and who to call' : 'How do we reach you?'}</SQ>
+              <SQ>{role === 'refer' ? 'Your referral details' : 'How do we reach you?'}</SQ>
               <SH3>{role === 'refer' ? 'Share whatever you know about them — even just a name helps.' : 'We will follow up personally.'}</SH3>
 
-              {role === 'refer' && (
+              {role === 'refer' ? (
                 <>
-                  <div className="flex items-center gap-2 my-4">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub whitespace-nowrap">Person you are referring</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
+                  {/* Section 1: Person being referred */}
+                  <SectionDivider label="Person you are referring" />
                   <p className="text-[0.77rem] text-sub mb-3 leading-snug">Share whatever you know. Even just a name helps us make a good first impression.</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <FInput id="r-fn" label="First Name" placeholder="John" />
-                    <FInput id="r-ln" label="Last Name" placeholder="Smith" />
+                    <FInput id="r-fn" label={<>First Name <FLNote>(optional)</FLNote></>} placeholder="John" />
+                    <FInput id="r-ln" label={<>Last Name <FLNote>(optional)</FLNote></>} placeholder="Smith" />
                   </div>
-                  <FInput id="r-em" label={<>Email <FLNote>(if you have it)</FLNote></>} type="email" placeholder="john@company.com" />
-                  <FInput id="r-ph" label={<>Phone <FLNote>(if you have it)</FLNote></>} type="tel" placeholder="(713) 555-0100" />
-                  <FTextarea id="r-notes" label="Notes for us" placeholder="Their situation, what they have mentioned, or the best way to approach them." rows={3} />
-                  <div className="flex items-center gap-2 my-4">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub whitespace-nowrap">Your contact info</span>
-                    <div className="flex-1 h-px bg-border" />
+                  <FInput id="r-em" label={<>Email <FLNote>(optional)</FLNote></>} type="email" placeholder="john@company.com" />
+                  <FInput id="r-ph" label={<>Phone <FLNote>(optional)</FLNote></>} type="tel" placeholder="(713) 555-0100" />
+                  <FTextarea id="r-notes" label="Notes about them" placeholder="Their situation, what they have mentioned, or the best way to approach them." rows={3} />
+
+                  {/* Section 2: Referrer (submitter) info */}
+                  <SectionDivider label="Your information" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <FInput id="c-fn" label={<>First Name *</>} placeholder="Jane" autocomplete="given-name" />
+                    <FInput id="c-ln" label={<>Last Name *</>} placeholder="Smith" autocomplete="family-name" />
                   </div>
+                  <FInput id="c-em" label={<>Email *</>} type="email" placeholder="jane@company.com" autocomplete="email" />
+                  <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel" />
+                  <FInput id="c-co" label="Company or Firm" placeholder="Your company" autocomplete="organization" />
+                  <FTextarea id="c-msg" label="Message" placeholder="Anything else we should know." rows={3} />
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FInput id="c-fn" label={<>First Name *</>} placeholder="Jane" autocomplete="given-name" />
+                    <FInput id="c-ln" label={<>Last Name *</>} placeholder="Smith" autocomplete="family-name" />
+                  </div>
+                  <FInput id="c-em" label={<>Email *</>} type="email" placeholder="jane@company.com" autocomplete="email" />
+                  <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel" />
+                  <FInput id="c-co" label="Company or Firm" placeholder="Your company" autocomplete="organization" />
+                  <div className="mb-3.5">
+                    <FL>How did you hear about AxisPoint?</FL>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Personal referral','LinkedIn','Networking event','Search','Other'].map(v => (
+                        <ChipS key={v} label={v} sel={sourceSel===v} onClick={() => setSourceSel(sourceSel===v ? null : v)} />
+                      ))}
+                    </div>
+                  </div>
+                  <FTextarea id="c-msg" label="Anything else?" placeholder="Questions, context, or anything helpful." rows={3} />
+
+                  {/* Referral capture for non-refer paths */}
+                  {!urlRef && (
+                    <div className="mt-2 mb-3.5 rounded-[12px] border border-border bg-body p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[0.8rem] font-medium text-ink">Were you referred to us?</span>
+                        <div className="flex rounded-full border border-border overflow-hidden text-[0.72rem] font-semibold">
+                          {(['No', 'Yes'] as const).map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setIsReferred(opt === 'Yes')}
+                              className={`px-3.5 py-1 transition-all cursor-pointer ${
+                                (opt === 'Yes') === isReferred
+                                  ? 'bg-purple text-white'
+                                  : 'bg-transparent text-sub hover:text-ink'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {isReferred && (
+                        <div>
+                          <FL>Referral code, name, or email</FL>
+                          <input
+                            id="r-ref"
+                            type="text"
+                            placeholder="Enter their referral code, name, or email address"
+                            className="w-full bg-white border border-border rounded-[10px] px-3 py-2.5 text-ink text-sm outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5]"
+                          />
+                          <p className="text-[0.67rem] text-hint mt-1.5">We will make sure they get credit.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <FInput id="c-fn" label={<>First Name *</>} placeholder="Jane" autocomplete="given-name" />
-                <FInput id="c-ln" label={<>Last Name *</>} placeholder="Smith" autocomplete="family-name" />
-              </div>
-              <FInput id="c-em" label={<>Email *</>} type="email" placeholder="jane@company.com" autocomplete="email" />
-              <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel" />
-              <FInput id="c-co" label="Company or Firm" placeholder="Your company" autocomplete="organization" />
-              <div className="mb-3.5">
-                <FL>How did you hear about AxisPoint?</FL>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Personal referral','LinkedIn','Networking event','Search','Other'].map(v => (
-                    <ChipS key={v} label={v} sel={sourceSel===v} onClick={() => setSourceSel(sourceSel===v ? null : v)} />
-                  ))}
-                </div>
-              </div>
-              <FTextarea id="c-msg" label="Anything else?" placeholder="Questions, context, or anything helpful." rows={3} />
 
               <div className="flex gap-2 mt-5">
                 <NavBack onClick={goBack} />
@@ -756,7 +850,7 @@ function ContactPage() {
             </div>
           )}
 
-          {/* ── Comms prefs (final step) ── */}
+          {/* ── Comms prefs (final step before submit) ── */}
           {step === 'comms' && (
             <div>
               <SQ>Stay in the loop</SQ>
@@ -767,6 +861,16 @@ function ContactPage() {
                 <PrefItem val="firm" title="Firm updates" desc="What AxisPoint is working on, new capabilities, and firm news." />
               </div>
               <p className="text-[0.7rem] text-hint mt-2.5 leading-relaxed">You can unsubscribe from any of these at any time. We do not share your information.</p>
+
+              {submitError && (
+                <div className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-[0.8rem] text-red-700 leading-relaxed">
+                  Something went wrong on our end. Please email us directly at{' '}
+                  <a href="mailto:zach@axispoint.llc" className="font-semibold underline">zach@axispoint.llc</a>{' '}
+                  or call{' '}
+                  <a href="tel:+18325802815" className="font-semibold underline">(832) 580-2815</a>.
+                </div>
+              )}
+
               <div className="flex gap-2 mt-5">
                 <NavBack onClick={goBack} />
                 <button
@@ -814,7 +918,6 @@ function ContactPage() {
 
               {bookChoice === 'yes' && (
                 <div className="mt-4 bg-body border border-border rounded-[14px] p-5">
-                  {/* Month nav */}
                   <div className="flex items-center justify-between mb-3.5">
                     <button
                       type="button"
@@ -834,19 +937,16 @@ function ContactPage() {
                     </button>
                   </div>
 
-                  {/* Day-of-week headers */}
                   <div className="grid grid-cols-7 gap-0.5 mb-1">
                     {DAYS.map(d => (
                       <div key={d} className="text-center text-[0.6rem] font-semibold tracking-[0.06em] uppercase text-hint py-0.5">{d}</div>
                     ))}
                   </div>
 
-                  {/* Calendar grid */}
                   <div className="grid grid-cols-7 gap-0.5 mb-3.5">
                     {calCells.map((d, i) => <CalDay key={i} d={d} cellIdx={i} />)}
                   </div>
 
-                  {/* Time slots */}
                   {selDay !== null && (
                     <div>
                       <div className="flex items-center gap-2 mb-2.5">
@@ -876,7 +976,6 @@ function ContactPage() {
                     </div>
                   )}
 
-                  {/* Meet type */}
                   {selSlot !== null && (
                     <div className="mt-4">
                       <FL>How would you like to meet?</FL>
@@ -914,7 +1013,7 @@ function ContactPage() {
 
           {/* ── Success ── */}
           {step === 'success' && (
-            <div className="flex flex-col items-center gap-3 py-3.5 text-center">
+            <div className="flex flex-col items-center gap-4 py-3.5 text-center">
               <div
                 className="w-[52px] h-[52px] rounded-full border-2 bg-[#E8F7FA] flex items-center justify-center text-teal text-[22px]"
                 style={{ borderColor: '#24a5bc', animation: 'pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275) both' }}
@@ -924,24 +1023,40 @@ function ContactPage() {
               <style>{`@keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
               <div className="font-serif font-semibold text-ink" style={{ fontSize: '1.3rem' }}>You are on our radar.</div>
               <p className="text-[0.82rem] text-sub leading-relaxed max-w-[320px]">
-                We will reach out personally, usually within one business day.
+                We will reach out personally within one business day.
               </p>
-              <div className="flex flex-col gap-2 w-full mt-1">
-                {[
-                  { member: zach, color: '#24A5BC', bg: '#E8F7FA', border: '#B8E6EF' },
-                  { member: ethaniel, color: '#38285D', bg: '#EEEAF5', border: '#C4B8DC' },
-                ].map(({ member, color, bg, border }) => (
-                  <div key={member.id} className="flex items-center gap-2.5 bg-body border border-border rounded-[10px] py-2.5 px-3">
-                    <div className="w-[30px] h-[30px] rounded-[7px] flex-shrink-0 flex items-center justify-center font-serif font-semibold text-[0.85rem]"
-                      style={{ background: bg, border: `1px solid ${border}`, color }}>
-                      {member.initials}
+
+              {/* Referral code section */}
+              <div className="w-full mt-1 rounded-[14px] border border-border bg-body p-5 text-left">
+                <div className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub mb-2">Your referral code</div>
+                {responseReferralCode ? (
+                  <>
+                    <div
+                      className="font-serif font-semibold text-ink mb-2 tracking-wide"
+                      style={{ fontSize: '1.5rem', letterSpacing: '0.05em' }}
+                    >
+                      {responseReferralCode}
                     </div>
-                    <div className="text-left">
-                      <div className="text-[0.77rem] font-semibold text-ink">{member.fullName}</div>
-                      <div className="text-[0.7rem] text-hint">{member.title}</div>
+                    <p className="text-[0.78rem] text-sub leading-relaxed mb-3">
+                      Share this link with anyone you refer to AxisPoint and we will make sure you get credit for the introduction.
+                    </p>
+                    <div className="flex items-center gap-2 rounded-[9px] border border-border bg-white px-3 py-2">
+                      <span className="flex-1 text-[0.75rem] text-ink truncate font-mono">{shareLink}</span>
+                      <button
+                        type="button"
+                        onClick={copyLink}
+                        className="flex-shrink-0 px-3 py-1 rounded-[7px] text-[0.72rem] font-semibold transition-all cursor-pointer"
+                        style={{ background: copied ? '#E8F7FA' : '#EEEAF5', color: copied ? '#1A8799' : '#38285D' }}
+                      >
+                        {copied ? 'Copied!' : 'Copy'}
+                      </button>
                     </div>
-                  </div>
-                ))}
+                  </>
+                ) : (
+                  <p className="text-[0.78rem] text-sub leading-relaxed">
+                    Check your confirmation email for your referral code.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -953,27 +1068,27 @@ function ContactPage() {
           <div className="bg-white border border-border rounded-[18px] p-6 shadow-card">
             <div className="font-serif font-semibold text-ink mb-4" style={{ fontSize: '1.1rem' }}>Talk to us directly</div>
 
-            <a href={`mailto:${zach.email}`} className="flex items-start gap-2.5 mb-3.5 no-underline text-inherit transition-opacity hover:opacity-75">
+            <a href="mailto:zach@axispoint.llc" className="flex items-start gap-2.5 mb-3.5 no-underline text-inherit transition-opacity hover:opacity-75">
               <div className="w-[34px] h-[34px] rounded-[9px] flex-shrink-0 flex items-center justify-center" style={{ background: '#E8F7FA', border: '1px solid #B8E6EF' }}>
                 <div className="w-[28px] h-[28px] rounded-[7px] flex items-center justify-center font-serif font-semibold text-[0.9rem]" style={{ background: '#E8F7FA', color: '#24A5BC' }}>ZR</div>
               </div>
               <div>
-                <div className="text-[0.84rem] font-semibold text-ink mb-0.5">{zach.fullName}</div>
+                <div className="text-[0.84rem] font-semibold text-ink mb-0.5">Zachary Russell</div>
                 <div className="text-[0.7rem] text-hint mb-0.5">Partner — Multifamily</div>
-                <div className="text-[0.76rem] text-teal">{zach.email}</div>
+                <div className="text-[0.76rem] text-teal">zach@axispoint.llc</div>
               </div>
             </a>
 
             <div className="h-px bg-border my-4" />
 
-            <a href={`mailto:${ethaniel.email}`} className="flex items-start gap-2.5 no-underline text-inherit transition-opacity hover:opacity-75">
+            <a href="mailto:ethaniel@axispoint.llc" className="flex items-start gap-2.5 no-underline text-inherit transition-opacity hover:opacity-75">
               <div className="w-[34px] h-[34px] rounded-[9px] flex-shrink-0 flex items-center justify-center" style={{ background: '#EEEAF5', border: '1px solid #C4B8DC' }}>
                 <div className="w-[28px] h-[28px] rounded-[7px] flex items-center justify-center font-serif font-semibold text-[0.9rem]" style={{ background: '#EEEAF5', color: '#38285D' }}>EV</div>
               </div>
               <div>
-                <div className="text-[0.84rem] font-semibold text-ink mb-0.5">{ethaniel.fullName}</div>
+                <div className="text-[0.84rem] font-semibold text-ink mb-0.5">Ethaniel Vu</div>
                 <div className="text-[0.7rem] text-hint mb-0.5">Partner — Commercial</div>
-                <div className="text-[0.76rem] text-teal">{ethaniel.email}</div>
+                <div className="text-[0.76rem] text-teal">ethaniel@axispoint.llc</div>
               </div>
             </a>
 

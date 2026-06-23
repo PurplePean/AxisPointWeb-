@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { team } from '@brand/team';
 import Logo from './Logo';
@@ -28,6 +28,14 @@ function buildCalendar(year: number, month: number): (number | null)[] {
   const cells: (number | null)[] = Array(first).fill(null);
   for (let d = 1; d <= days; d++) cells.push(d);
   return cells;
+}
+
+function parseReferralInput(input: string): { referralCode: string | null; referredByEmail: string | null; referredByName: string | null } {
+  const t = input.trim();
+  if (!t) return { referralCode: null, referredByEmail: null, referredByName: null };
+  if (t.includes('@')) return { referralCode: null, referredByEmail: t, referredByName: null };
+  if (/^AXP-\d{4}$/i.test(t)) return { referralCode: t.toUpperCase(), referredByEmail: null, referredByName: null };
+  return { referralCode: null, referredByEmail: null, referredByName: t };
 }
 
 /* ── vCard helpers ── */
@@ -102,7 +110,6 @@ function FL({ children }: { children: React.ReactNode }) {
 function FLNote({ children }: { children: React.ReactNode }) {
   return <span className="text-[0.6rem] font-normal normal-case tracking-normal text-hint">{children}</span>;
 }
-
 function FG({ children }: { children: React.ReactNode }) {
   return <div className="mb-3.5">{children}</div>;
 }
@@ -138,6 +145,16 @@ function SHint({ children }: { children: React.ReactNode }) {
   return <div className="text-[0.78rem] text-sub leading-relaxed mb-4">{children}</div>;
 }
 
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 my-3">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub whitespace-nowrap">{label}</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
 /* ── Progress ── */
 function Progress({ stepOrder, currentStep }: { stepOrder: FormStep[]; currentStep: FormStep }) {
   const labels = stepOrder.length === 6 ? STEP_LABELS_INVESTOR : STEP_LABELS_OTHER;
@@ -146,8 +163,8 @@ function Progress({ stepOrder, currentStep }: { stepOrder: FormStep[]; currentSt
     <div className="mb-5">
       <div className="flex items-center">
         {stepOrder.map((s, i) => (
-          <>
-            <div key={`d-${s}`}
+          <React.Fragment key={s}>
+            <div
               className={`w-6 h-6 rounded-full border flex items-center justify-center text-[0.66rem] font-semibold flex-shrink-0 z-10 transition-all ${
                 i < cur  ? 'border-teal bg-teal text-white' :
                 i === cur ? 'border-purple bg-[#EEEAF5] text-purple' :
@@ -157,11 +174,11 @@ function Progress({ stepOrder, currentStep }: { stepOrder: FormStep[]; currentSt
               {i < cur ? '✓' : i + 1}
             </div>
             {i < stepOrder.length - 1 && (
-              <div key={`l-${i}`} className="flex-1 h-[1.5px] transition-all"
+              <div className="flex-1 h-[1.5px] transition-all"
                 style={{ background: i < cur ? 'linear-gradient(90deg,#24a5bc,#38285d)' : '#E8E4F0' }}
               />
             )}
-          </>
+          </React.Fragment>
         ))}
       </div>
       <div className="flex mt-1.5">
@@ -232,18 +249,29 @@ export default function App() {
   const [sourceSel, setSourceSel]     = useState<string | null>(null);
   const [prefsSel, setPrefsSel]       = useState<Set<string>>(new Set());
 
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting,  setSubmitting]  = useState(false);
+  const [submitError, setSubmitError] = useState(false);
 
-  /* captured when user leaves the contact step */
+  /* captured when leaving contact step */
   const [contactFields, setContactFields] = useState({ firstName: '', lastName: '', email: '', phone: '', company: '' });
   const [msgField, setMsgField]           = useState('');
-  /* captured when user leaves the booking step */
+  const [referredFields, setReferredFields] = useState({ firstName: '', lastName: '', email: '', phone: '', notes: '' });
   const [bookingPhone, setBookingPhone]   = useState('');
+
+  /* referral capture */
+  const [urlRef,        setUrlRef]        = useState<string | null>(null);
+  const [isReferred,    setIsReferred]    = useState(false);
+  const [referralInput, setReferralInput] = useState('');
+
+  /* API response */
+  const [responseReferralCode, setResponseReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const stepOrder = role === 'investor' ? STEP_ORDER_INVESTOR : STEP_ORDER_OTHER;
 
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
+  /* QR code */
   useEffect(() => {
     if (qrCanvasRef.current) {
       QRCode.toCanvas(qrCanvasRef.current, QR_URL, {
@@ -254,13 +282,15 @@ export default function App() {
     }
   }, []);
 
+  /* URL ?ref= param */
   useEffect(() => {
-    setSelDay(null); setSelSlot(null);
-  }, [calMonth, calYear]);
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setUrlRef(ref.trim().toUpperCase());
+  }, []);
 
-  useEffect(() => {
-    if (selDay !== null) setSelSlot(null);
-  }, [selDay]);
+  useEffect(() => { setSelDay(null); setSelSlot(null); }, [calMonth, calYear]);
+  useEffect(() => { if (selDay !== null) setSelSlot(null); }, [selDay]);
 
   function toggleSet(set: Set<string>, setFn: (s: Set<string>) => void, val: string) {
     const next = new Set(set);
@@ -290,6 +320,20 @@ export default function App() {
       company:   (document.getElementById('c-co') as HTMLInputElement | null)?.value.trim() ?? '',
     });
     setMsgField((document.getElementById('c-msg') as HTMLTextAreaElement | null)?.value.trim() ?? '');
+
+    if (role === 'refer') {
+      setReferredFields({
+        firstName: (document.getElementById('r-fn') as HTMLInputElement | null)?.value.trim() ?? '',
+        lastName:  (document.getElementById('r-ln') as HTMLInputElement | null)?.value.trim() ?? '',
+        email:     (document.getElementById('r-em') as HTMLInputElement | null)?.value.trim() ?? '',
+        phone:     (document.getElementById('r-ph') as HTMLInputElement | null)?.value.trim() ?? '',
+        notes:     (document.getElementById('r-notes') as HTMLTextAreaElement | null)?.value.trim() ?? '',
+      });
+    } else {
+      setReferralInput(
+        (document.getElementById('r-ref') as HTMLInputElement | null)?.value.trim() ?? ''
+      );
+    }
     goNext();
   }
 
@@ -302,12 +346,28 @@ export default function App() {
 
   async function submitForm() {
     setSubmitting(true);
+    setSubmitError(false);
+
     const booking = bookChoice === 'yes' && selDay !== null && selSlot ? {
       date: `${MONTHS[calMonth]} ${selDay}, ${calYear}`,
       slot: selSlot,
       meetType,
       phone: bookingPhone,
     } : null;
+
+    let referralCode: string | null    = null;
+    let referredByEmail: string | null = null;
+    let referredByName: string | null  = null;
+
+    if (urlRef) {
+      referralCode = urlRef;
+    } else if (role !== 'refer' && isReferred && referralInput.trim()) {
+      const parsed = parseReferralInput(referralInput);
+      referralCode    = parsed.referralCode;
+      referredByEmail = parsed.referredByEmail;
+      referredByName  = parsed.referredByName;
+    }
+
     const payload = {
       role,
       qualData: {
@@ -335,21 +395,40 @@ export default function App() {
       source: sourceSel ?? '',
       timestamp: new Date().toISOString(),
       page: 'qr.axispoint.llc',
+      referralCode,
+      referredByEmail,
+      referredByName,
+      ...(role === 'refer' ? { referred: referredFields } : {}),
     };
-    console.log('AxisPoint form payload:', payload);
+
     try {
       if (FORM_ENDPOINT) {
-        await fetch(FORM_ENDPOINT, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        const res  = await fetch(FORM_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (data.success) {
+          setResponseReferralCode(data.referralCode || null);
+          setStep('success');
+        } else {
+          setSubmitError(true);
+        }
+      } else {
+        setStep('success');
       }
     } catch {
-      // fail silently
+      setSubmitError(true);
     } finally {
       setSubmitting(false);
-      setStep('success');
     }
+  }
+
+  async function copyLink() {
+    if (!responseReferralCode) return;
+    const link = `https://axispoint.llc/contact?ref=${responseReferralCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* ignore */ }
   }
 
   const today = new Date();
@@ -357,6 +436,7 @@ export default function App() {
   const isPast = (d: number) => new Date(calYear, calMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const isWknd = (_d: number, idx: number) => { const c = idx % 7; return c === 0 || c === 6; };
   const canPrevMonth = !(calYear === today.getFullYear() && calMonth === today.getMonth());
+
   function changeMonth(dir: -1 | 1) {
     let m = calMonth + dir, y = calYear;
     if (m < 0)  { m = 11; y--; }
@@ -406,6 +486,7 @@ export default function App() {
   }
 
   const isSuccess = step === 'success';
+  const shareLink = responseReferralCode ? `https://axispoint.llc/contact?ref=${responseReferralCode}` : null;
 
   return (
     <main className="max-w-[680px] mx-auto px-4 py-9 pb-20 flex flex-col items-center gap-[18px]">
@@ -530,8 +611,8 @@ export default function App() {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                       </div>
                       <div>
-                        <div className="text-[0.82rem] font-semibold text-ink mb-0.5">Referring Someone</div>
-                        <div className="text-[0.68rem] text-sub leading-snug">I know someone who might be a fit</div>
+                        <div className="text-[0.82rem] font-semibold text-ink mb-0.5">Making a Referral</div>
+                        <div className="text-[0.68rem] text-sub leading-snug">I want to introduce someone</div>
                       </div>
                     </div>
                   );
@@ -597,11 +678,32 @@ export default function App() {
               )}
               {role === 'refer' && (
                 <>
-                  <SQ>Tell us about the connection</SQ>
-                  <SHint>This helps us make a warm, informed introduction.</SHint>
-                  <FG><FL>Your relationship to them</FL><div className="flex flex-wrap gap-1.5">{['Family member','Friend','Business partner or colleague','Client','Met recently'].map(v=><ChipS key={v} label={v} sel={relSel===v} onClick={()=>setRelSel(relSel===v?null:v)}/>)}</div></FG>
-                  <FG><FL>Why might they be a fit? <FLNote>(select all)</FLNote></FL><div className="flex flex-wrap gap-1.5">{['Has significant investable capital','Expressed interest in CRE','Looking for passive income','Wants to diversify from stocks','Has a 1031 exchange situation'].map(v=><ChipM key={v} label={v} sel={fitSel.has(v)} onClick={()=>toggleSet(fitSel,setFitSel,v)}/>)}</div></FG>
-                  <FG><FL>Do they know you are reaching out?</FL><div className="flex flex-wrap gap-1.5">{['Yes, they are expecting a call','Not yet','I will handle the intro myself'].map(v=><ChipS key={v} label={v} sel={awareSel===v} onClick={()=>setAwareSel(awareSel===v?null:v)}/>)}</div></FG>
+                  <SQ>About the person you are referring</SQ>
+                  <SHint>We will use this to make a warm, informed introduction.</SHint>
+                  <FG>
+                    <FL>Your relationship to them</FL>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Client','Friend or family','Business partner or colleague','Met recently'].map(v=>(
+                        <ChipS key={v} label={v} sel={relSel===v} onClick={()=>setRelSel(relSel===v?null:v)}/>
+                      ))}
+                    </div>
+                  </FG>
+                  <FG>
+                    <FL>Why might they be a fit? <FLNote>(select all)</FLNote></FL>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Has significant investable capital','Has expressed interest in CRE','Looking for passive income','Wants to diversify from stocks','Has a 1031 exchange situation'].map(v=>(
+                        <ChipM key={v} label={v} sel={fitSel.has(v)} onClick={()=>toggleSet(fitSel,setFitSel,v)}/>
+                      ))}
+                    </div>
+                  </FG>
+                  <FG>
+                    <FL>Do they know you are reaching out?</FL>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Yes they are expecting a call','Not yet I want to loop them in','I will handle the intro myself'].map(v=>(
+                        <ChipS key={v} label={v} sel={awareSel===v} onClick={()=>setAwareSel(awareSel===v?null:v)}/>
+                      ))}
+                    </div>
+                  </FG>
                 </>
               )}
               <div className="flex gap-2 mt-5"><NavBack onClick={goBack}/><NavNext onClick={s2Next}/></div>
@@ -644,44 +746,96 @@ export default function App() {
           {/* ── Contact info ── */}
           {step === 'contact' && (
             <div>
-              <SQ>How do we reach you?</SQ>
-              <SHint>We will follow up personally.</SHint>
-              <div className="grid grid-cols-2 gap-2.5">
-                <FInput id="c-fn" label="First Name *" placeholder="Jane" autocomplete="given-name"/>
-                <FInput id="c-ln" label="Last Name *" placeholder="Smith" autocomplete="family-name"/>
-              </div>
-              <FInput id="c-em" label="Email *" type="email" placeholder="jane@company.com" autocomplete="email"/>
-              <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel"/>
-              <FInput id="c-co" label="Company / Firm" placeholder="Your company" autocomplete="organization"/>
-              {role === 'refer' && (
+              <SQ>{role === 'refer' ? 'Your referral details' : 'How do we reach you?'}</SQ>
+              <SHint>{role === 'refer' ? 'Share whatever you know — even just a name helps.' : 'We will follow up personally.'}</SHint>
+
+              {role === 'refer' ? (
                 <>
-                  <div className="flex items-center gap-2 my-3">
-                    <div className="flex-1 h-px bg-border"/><span className="text-[0.62rem] font-semibold tracking-[0.09em] uppercase text-sub whitespace-nowrap">Person you are referring</span><div className="flex-1 h-px bg-border"/>
-                  </div>
+                  {/* Section 1: Person being referred */}
+                  <SectionDivider label="Person you are referring" />
                   <p className="text-[0.76rem] text-sub mb-3 leading-snug">Share whatever you have. Even a name helps us make a good first impression.</p>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <FInput id="r-fn" label={<>Their First Name</>} placeholder="John"/>
-                    <FInput id="r-ln" label={<>Their Last Name</>} placeholder="Smith"/>
+                    <FInput id="r-fn" label={<>First Name <FLNote>(optional)</FLNote></>} placeholder="John"/>
+                    <FInput id="r-ln" label={<>Last Name <FLNote>(optional)</FLNote></>} placeholder="Smith"/>
                   </div>
-                  <FInput id="r-em" label={<>Their Email <FLNote>(if you have it)</FLNote></>} type="email" placeholder="john@company.com"/>
-                  <FInput id="r-ph" label={<>Their Phone <FLNote>(if you have it)</FLNote></>} type="tel" placeholder="(713) 555-0100"/>
-                  <FTextarea id="r-notes" label="Notes for us" placeholder="Their situation, what they have mentioned, the best way to approach them." rows={3}/>
+                  <FInput id="r-em" label={<>Email <FLNote>(optional)</FLNote></>} type="email" placeholder="john@company.com"/>
+                  <FInput id="r-ph" label={<>Phone <FLNote>(optional)</FLNote></>} type="tel" placeholder="(713) 555-0100"/>
+                  <FTextarea id="r-notes" label="Notes about them" placeholder="Their situation, what they have mentioned, the best way to approach them." rows={3}/>
+
+                  {/* Section 2: Referrer (submitter) info */}
+                  <SectionDivider label="Your information" />
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <FInput id="c-fn" label="First Name *" placeholder="Jane" autocomplete="given-name"/>
+                    <FInput id="c-ln" label="Last Name *" placeholder="Smith" autocomplete="family-name"/>
+                  </div>
+                  <FInput id="c-em" label="Email *" type="email" placeholder="jane@company.com" autocomplete="email"/>
+                  <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel"/>
+                  <FInput id="c-co" label="Company / Firm" placeholder="Your company" autocomplete="organization"/>
+                  <FTextarea id="c-msg" label="Message" placeholder="Anything else we should know." rows={2}/>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <FInput id="c-fn" label="First Name *" placeholder="Jane" autocomplete="given-name"/>
+                    <FInput id="c-ln" label="Last Name *" placeholder="Smith" autocomplete="family-name"/>
+                  </div>
+                  <FInput id="c-em" label="Email *" type="email" placeholder="jane@company.com" autocomplete="email"/>
+                  <FInput id="c-ph" label="Phone" type="tel" placeholder="(713) 555-0100" autocomplete="tel"/>
+                  <FInput id="c-co" label="Company / Firm" placeholder="Your company" autocomplete="organization"/>
+                  <FG>
+                    <FL>How did you find us?</FL>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Personal referral','Networking event','This business card','Other'].map(v=>(
+                        <ChipS key={v} label={v} sel={sourceSel===v} onClick={()=>setSourceSel(sourceSel===v?null:v)}/>
+                      ))}
+                    </div>
+                  </FG>
+                  <FTextarea id="c-msg" label="Anything else?" placeholder="Questions, context, anything helpful." rows={2}/>
+
+                  {/* Referral capture for non-refer paths */}
+                  {!urlRef && (
+                    <div className="mt-1 mb-3.5 rounded-[11px] border border-border bg-body p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[0.78rem] font-medium text-ink">Were you referred to us?</span>
+                        <div className="flex rounded-full border border-border overflow-hidden text-[0.7rem] font-semibold">
+                          {(['No', 'Yes'] as const).map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setIsReferred(opt === 'Yes')}
+                              className={`px-3 py-1 transition-all cursor-pointer ${
+                                (opt === 'Yes') === isReferred
+                                  ? 'bg-purple text-white'
+                                  : 'bg-transparent text-sub hover:text-ink'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {isReferred && (
+                        <div>
+                          <FL>Referral code, name, or email</FL>
+                          <input
+                            id="r-ref"
+                            type="text"
+                            placeholder="Enter their referral code, name, or email address"
+                            className="w-full bg-white border border-border rounded-[9px] px-3 py-2.5 text-ink text-sm outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5]"
+                          />
+                          <p className="text-[0.65rem] text-hint mt-1.5">We will make sure they get credit.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
-              <FG>
-                <FL>How did you hear about AxisPoint?</FL>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Personal referral','Networking event','This business card','Other'].map(v=>(
-                    <ChipS key={v} label={v} sel={sourceSel===v} onClick={()=>setSourceSel(sourceSel===v?null:v)}/>
-                  ))}
-                </div>
-              </FG>
-              <FTextarea id="c-msg" label="Anything else?" placeholder="Questions, context, anything helpful." rows={2}/>
+
               <div className="flex gap-2 mt-5"><NavBack onClick={goBack}/><NavNext onClick={captureContactAndAdvance}/></div>
             </div>
           )}
 
-          {/* ── Comms prefs (final step) ── */}
+          {/* ── Comms prefs ── */}
           {step === 'comms' && (
             <div>
               <SQ>Stay in the loop</SQ>
@@ -692,6 +846,16 @@ export default function App() {
                 <PrefItem val="firm" title="Firm updates" desc="What AxisPoint is working on and firm news."/>
               </div>
               <p className="text-[0.7rem] text-hint mt-2.5 leading-relaxed">You can unsubscribe from any of these at any time.</p>
+
+              {submitError && (
+                <div className="mt-4 rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-[0.78rem] text-red-700 leading-relaxed">
+                  Something went wrong on our end. Please email us at{' '}
+                  <a href="mailto:zach@axispoint.llc" className="font-semibold underline">zach@axispoint.llc</a>{' '}
+                  or call{' '}
+                  <a href="tel:+18325802815" className="font-semibold underline">(832) 580-2815</a>.
+                </div>
+              )}
+
               <div className="flex gap-2 mt-5">
                 <NavBack onClick={goBack}/>
                 <button type="button" disabled={submitting} onClick={submitForm}
@@ -800,14 +964,46 @@ export default function App() {
 
           {/* ── Success ── */}
           {step === 'success' && (
-            <div className="flex flex-col items-center gap-3 py-3.5 text-center">
+            <div className="flex flex-col items-center gap-4 py-3.5 text-center">
               <div className="w-[52px] h-[52px] rounded-full border-2 bg-[#E8F7FA] flex items-center justify-center text-teal text-[22px]"
                 style={{borderColor:'#24a5bc', animation:'pop 0.42s cubic-bezier(0.175,0.885,0.32,1.275) both'}}>
                 ✓
               </div>
               <style>{`@keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
               <div className="font-serif font-semibold text-ink" style={{fontSize:'1.28rem'}}>You are on our radar.</div>
-              <p className="text-[0.82rem] text-sub leading-relaxed max-w-[320px]">Expect a personal reach-out within one business day.</p>
+              <p className="text-[0.82rem] text-sub leading-relaxed max-w-[320px]">
+                We will reach out personally within one business day.
+              </p>
+
+              {/* Referral code section */}
+              <div className="w-full rounded-[13px] border border-border bg-body p-4 text-left">
+                <div className="text-[0.6rem] font-semibold tracking-[0.09em] uppercase text-sub mb-2">Your referral code</div>
+                {responseReferralCode ? (
+                  <>
+                    <div className="font-serif font-semibold text-ink mb-2 tracking-wide" style={{ fontSize: '1.4rem', letterSpacing: '0.05em' }}>
+                      {responseReferralCode}
+                    </div>
+                    <p className="text-[0.76rem] text-sub leading-relaxed mb-3">
+                      Share this link with anyone you refer to AxisPoint and we will make sure you get credit.
+                    </p>
+                    <div className="flex items-center gap-2 rounded-[8px] border border-border bg-white px-3 py-2">
+                      <span className="flex-1 text-[0.72rem] text-ink truncate font-mono">{shareLink}</span>
+                      <button
+                        type="button"
+                        onClick={copyLink}
+                        className="flex-shrink-0 px-2.5 py-1 rounded-[6px] text-[0.7rem] font-semibold transition-all cursor-pointer"
+                        style={{ background: copied ? '#E8F7FA' : '#EEEAF5', color: copied ? '#1A8799' : '#38285D' }}
+                      >
+                        {copied ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[0.76rem] text-sub leading-relaxed">
+                    Check your confirmation email for your referral code.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
