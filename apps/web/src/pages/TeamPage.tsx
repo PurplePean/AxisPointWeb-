@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { team } from '@brand/team';
+import { downloadVCard } from '@axispoint/brand';
 import { useReveal } from '../hooks/useReveal';
 
 function TeamPage() {
@@ -116,6 +117,18 @@ function TeamPage() {
                 </Link>
               </div>
             </div>
+          </div>
+
+          {/* ── Save Our Contacts ──────────────────────────── */}
+          <div className="rv d2 flex justify-center">
+            <button
+              type="button"
+              onClick={downloadVCard}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-button border-2 border-teal text-teal text-sm font-semibold bg-transparent hover:bg-teal/10 transition-all"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Our Contacts
+            </button>
           </div>
 
         </div>
