@@ -86,6 +86,561 @@ var CONFIG = {
 };
 
 
+/* ════════════════════════════════════════════════════════════
+   EMAIL TEMPLATES
+   HTML mirrors scripts/gas/emails/*.html. Apps Script cannot read
+   local files, so each template is embedded here as a const string.
+   Dynamic values use {{placeholder}} syntax, filled by renderTemplate().
+   ════════════════════════════════════════════════════════════ */
+
+var TEMPLATE_VISITOR_PHONE = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">
+<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">
+<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>
+</td></tr>
+<tr>
+<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">
+<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>
+<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>
+<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>
+</td>
+<td style="padding:14px 18px;vertical-align:middle;">
+<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>
+<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Phone call</p>
+<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">We will call you at {{bookingPhone}}</span>
+</td>
+</tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
+<tr><td style="padding:12px 16px;">
+<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
+<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
+<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
+</td></tr>
+</table>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_VISITOR_MEET = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">
+<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">
+<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>
+</td></tr>
+<tr>
+<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">
+<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>
+<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>
+<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>
+</td>
+<td style="padding:14px 18px;vertical-align:middle;">
+<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>
+<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Google Meet</p>
+<a href="{{meetLink}}" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>
+</td>
+</tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
+<tr><td style="padding:12px 16px;">
+<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
+<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
+<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
+</td></tr>
+</table>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_VISITOR_NO_BOOKING = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. Expect a personal reply within one business day.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
+<tr><td style="padding:20px 22px;text-align:center;">
+<div style="width:42px;height:42px;border-radius:50%;background:#E8F7FA;display:inline-block;text-align:center;line-height:42px;font-size:20px;margin:0 0 10px;">📅</div>
+<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;">Want to schedule a call?</p>
+<p style="font-size:12px;color:#5A5270;margin:0 0 14px;">30 minutes. No obligation.</p>
+<a href="https://axispoint.llc/contact" style="display:inline-block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:13px;font-weight:500;padding:10px 22px;border-radius:7px;">Book a call &nbsp;→</a>
+</td></tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
+<tr><td style="padding:12px 16px;">
+<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
+<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
+<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
+</td></tr>
+</table>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_REFERRER_NOTIFICATION = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Someone you referred just reached out to us. We will take it from here.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
+<tr><td style="padding:22px;text-align:center;">
+<div style="width:48px;height:48px;border-radius:50%;background:#24A5BC;display:inline-block;text-align:center;line-height:48px;font-size:24px;color:#ffffff;margin:0 0 12px;">✓</div>
+<p style="font-size:16px;font-weight:500;color:#1C1628;margin:0 0 4px;">Referral received</p>
+<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">Thank you for the introduction. We handle it from here.</p>
+</td></tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
+<tr><td style="background:#38285D;padding:10px 16px;">
+<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>
+</td></tr>
+<tr><td style="padding:16px;">
+<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>
+<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>
+<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>
+<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone's share sheet</p>
+</td></tr>
+</table>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because someone used your referral link.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_REFERRER_MONTHLY = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Here is a quick look at your referral activity with AxisPoint.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+<tr>
+<td width="50%" style="padding-right:6px;vertical-align:top;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#38285D;border-radius:8px;">
+<tr><td style="padding:20px 18px;text-align:center;">
+<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{totalReferrals}}</p>
+<p style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:0.05em;text-transform:uppercase;margin:0;">Total referrals</p>
+</td></tr>
+</table>
+</td>
+<td width="50%" style="padding-left:6px;vertical-align:top;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#24A5BC;border-radius:8px;">
+<tr><td style="padding:20px 18px;text-align:center;">
+<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{monthReferrals}}</p>
+<p style="font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.05em;text-transform:uppercase;margin:0;">This month</p>
+</td></tr>
+</table>
+</td>
+</tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
+<tr><td style="background:#38285D;padding:10px 16px;">
+<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>
+</td></tr>
+<tr><td style="padding:16px;">
+<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>
+<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>
+<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>
+<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone's share sheet</p>
+</td></tr>
+</table>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you have referred people to AxisPoint Partners.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_PARTNER_NOTIFICATION = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><span style="display:inline-block;background:#24A5BC;color:#ffffff;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:5px 12px;border-radius:20px;">New Lead</span></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+<tr>
+<td width="52" style="vertical-align:middle;">
+<div style="width:44px;height:44px;border-radius:50%;background:#38285D;color:#ffffff;text-align:center;line-height:44px;font-size:16px;font-weight:500;">{{initials}}</div>
+</td>
+<td style="padding-left:14px;vertical-align:middle;">
+<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 2px;">{{fullName}}</p>
+<p style="font-size:12px;color:#5A5270;margin:0;">{{role}} &nbsp;·&nbsp; via {{source}}</p>
+</td>
+</tr>
+</table>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 18px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+<tr>
+<td width="120" style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Lead ID</td>
+<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{leadId}}</td>
+</tr>
+<tr>
+<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Email</td>
+<td style="padding:6px 0;font-size:13px;vertical-align:top;"><a href="mailto:{{email}}" style="color:#24A5BC;text-decoration:none;">{{email}}</a></td>
+</tr>
+<tr>
+<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Phone</td>
+<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{phone}}</td>
+</tr>
+<tr>
+<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Company</td>
+<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{company}}</td>
+</tr>
+<tr>
+<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Asset class</td>
+<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{assetClass}}</td>
+</tr>
+{{capitalRangeRow}}
+<tr>
+<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Source</td>
+<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{source}}</td>
+</tr>
+{{referredByRow}}
+</table>
+{{messageBlock}}
+{{bookingBlock}}
+<a href="{{crmUrl}}" style="display:block;background:#38285D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:4px 0 0;">View in AxisPoint CRM &nbsp;→</a>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification — do not forward.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+var TEMPLATE_WELCOME_SUBSCRIBER = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
+<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td>
+<table cellpadding="0" cellspacing="0">
+<tr><td style="padding-right:8px;">
+<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
+</td>
+<td>
+<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
+<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
+</td></tr>
+</table>
+</td>
+<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 28px 24px;">
+<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
+<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">You are on the list. Here is what you signed up for.</p>
+<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+{{preferenceList}}
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border:1px solid #E8E4F0;border-radius:8px;margin:0 0 22px;">
+<tr><td style="padding:14px 16px;">
+<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">We only send what we said we would. No noise, no spam. You can unsubscribe at any time by replying to any email.</p>
+</td></tr>
+</table>
+<a href="https://axispoint.llc/learn" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:0 0 22px;">Explore our articles &nbsp;→</a>
+<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
+<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
+<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
+<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
+</td></tr>
+<tr><td style="padding:0 28px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
+<tr><td style="padding-top:12px;">
+<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you subscribed at axispoint.llc/learn.<br><a href="{{unsubscribeUrl}}" style="color:#9490A8;text-decoration:underline;">Unsubscribe</a></p>
+</td></tr>
+</table>
+</td></tr>
+<tr>
+<td width="33%" style="background:#24A5BC;height:3px;"></td>
+<td width="33%" style="background:#9F328C;height:3px;"></td>
+<td width="34%" style="background:#38285D;height:3px;"></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+/**
+ * Minimal template engine. Replaces every {{key}} with vars[key].
+ * Unfilled placeholders are stripped to '' so partial var sets render clean.
+ */
+function renderTemplate(template, vars) {
+  return String(template).replace(/\{\{(\w+)\}\}/g, function(_, key) {
+    var v = vars[key];
+    return (v === undefined || v === null) ? '' : String(v);
+  });
+}
+
+/**
+ * Resolves a template name to its embedded const string.
+ */
+function templateByName(name) {
+  return {
+    'visitor-phone':         TEMPLATE_VISITOR_PHONE,
+    'visitor-meet':          TEMPLATE_VISITOR_MEET,
+    'visitor-no-booking':    TEMPLATE_VISITOR_NO_BOOKING,
+    'referrer-notification': TEMPLATE_REFERRER_NOTIFICATION,
+    'referrer-monthly':      TEMPLATE_REFERRER_MONTHLY,
+    'partner-notification':  TEMPLATE_PARTNER_NOTIFICATION,
+    'welcome-subscriber':    TEMPLATE_WELCOME_SUBSCRIBER,
+  }[name] || '';
+}
+
+
 /* ────────────────────────────────────────────────────────────
    COLUMN DEFINITIONS  (0-based indexes)
    Shared by all lead tabs.
@@ -122,6 +677,7 @@ var COLS = {
   DIRECT_REFERRALS:   27,
   TOTAL_DOWNSTREAM:   28,
   LAST_REFERRAL_DATE: 29,
+  MEET_LINK:          30,   // Google Meet URL when meetType === 'meet'
 };
 
 var LEAD_HEADERS = [
@@ -132,7 +688,7 @@ var LEAD_HEADERS = [
   'Booking Phone', 'Source', 'Status', 'Date Submitted',
   'Referred By Lead ID', 'Referred By Name', 'Referred By Email', 'Referred By Code',
   'Match Type', 'Referral Chain', 'Chain Depth',
-  'Direct Referrals', 'Total Downstream', 'Last Referral Date',
+  'Direct Referrals', 'Total Downstream', 'Last Referral Date', 'Meet Link',
 ];
 
 // Referrals tab columns
@@ -185,8 +741,51 @@ function buildLeadId(seq) {
   return 'AXP-' + year + '-' + padded;
 }
 
-function buildReferralCode(seq) {
-  return 'AXP-' + String(seq).padStart(4, '0');
+/**
+ * Generates a hash-based referral code: AXP-XXXXXX
+ * 6 random uppercase alphanumeric chars, ambiguous chars (0,O,1,I) removed.
+ * Seeded from leadId + timestamp + Math.random(); collision-checked against
+ * the Lifetime Leads sheet, regenerating until unique.
+ */
+function generateReferralCode(leadId) {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // no 0, O, 1, I
+
+  function makeCode() {
+    var seed = String(leadId || '') + ':' + Date.now() + ':' + Math.random();
+    var out  = '';
+    for (var i = 0; i < 6; i++) {
+      // Mix the seed with the position and a fresh random draw each char.
+      var n = Math.floor((Math.random() * 1e9 + seed.charCodeAt(i % seed.length) + i)) % chars.length;
+      out += chars.charAt(n);
+    }
+    return 'AXP-' + out;
+  }
+
+  var existing = existingReferralCodes();
+  var code;
+  var attempts = 0;
+  do {
+    code = makeCode();
+    attempts++;
+  } while (existing[code] && attempts < 50);
+
+  return code;
+}
+
+/**
+ * Returns a lookup map of all referral codes currently in the Lifetime Leads
+ * sheet so generateReferralCode can detect collisions.
+ */
+function existingReferralCodes() {
+  var map   = {};
+  var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
+  if (!sheet) return map;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var c = String(data[i][COLS.REFERRAL_CODE] || '').toUpperCase();
+    if (c) map[c] = true;
+  }
+  return map;
 }
 
 /**
@@ -267,12 +866,20 @@ function handleFormSubmission(payload) {
     // ── New submission ──
     var seq          = nextLeadSequence();
     var leadId       = buildLeadId(seq);
-    var referralCode = buildReferralCode(seq);
+    var referralCode = generateReferralCode(leadId);
 
     // Match referrer (code > email > name priority)
     var referralMatch = matchReferrer(payload);
 
-    var row = buildLeadRow(payload, 'New Lead', leadId, referralCode, referralMatch);
+    // Create the booking event first so we can capture the Google Meet link
+    // and store it on the lead row / include it in confirmation emails.
+    var meetLink = '';
+    if (payload.booking && payload.booking.date) {
+      try { meetLink = createBookingEvent(payload) || ''; }
+      catch (err) { Logger.log('createBookingEvent failed: ' + err); }
+    }
+
+    var row = buildLeadRow(payload, 'New Lead', leadId, referralCode, referralMatch, meetLink);
 
     appendRow(CONFIG.TABS.LIFETIME_LEADS, row);
     appendRow(CONFIG.TABS.ACTIVE_LEADS,   row);
@@ -284,21 +891,16 @@ function handleFormSubmission(payload) {
     if (referralMatch.found) {
       updateReferrerStats(referralMatch.referrerLeadId);
       logReferralEntry(referralMatch, leadId, payload, row);
-      sendReferrerNotification(referralMatch.referrerEmail, referralMatch.referrerFirstName);
+      sendReferrerNotification(referralMatch.referrerEmail, referralMatch.referrerFirstName, referralMatch.referrerCode);
     }
 
     try { createContact(payload); }
     catch (err) { Logger.log('createContact failed: ' + err); }
 
-    if (payload.booking && payload.booking.date) {
-      try { createBookingEvent(payload); }
-      catch (err) { Logger.log('createBookingEvent failed: ' + err); }
-    }
-
-    try { sendVisitorConfirmation(payload, referralCode); }
+    try { sendVisitorConfirmation(payload, referralCode, meetLink); }
     catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
 
-    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch); }
+    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink); }
     catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
 
     return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
@@ -486,26 +1088,21 @@ function logReferralEntry(referralMatch, referredLeadId, payload, referredRow) {
   ]);
 }
 
-function sendReferrerNotification(referrerEmail, referrerFirstName) {
+function sendReferrerNotification(referrerEmail, referrerFirstName, referrerCode) {
   if (!referrerEmail) return;
   var name = referrerFirstName || 'there';
+
+  var html = renderTemplate(TEMPLATE_REFERRER_NOTIFICATION, {
+    firstName:    name,
+    referralLink: referralLinkFor(referrerCode),
+    sharePageUrl: sharePageUrlFor(referrerCode),
+  });
+
   GmailApp.sendEmail(
     referrerEmail,
     'Someone you referred just connected with AxisPoint',
-    [
-      'Hi ' + name + ',',
-      '',
-      'Someone you referred just reached out to us.',
-      'We will take it from here.',
-      '',
-      'Thank you for the introduction.',
-      '',
-      'Best,',
-      'Zachary and Ethaniel',
-      'AxisPoint Partners',
-      'axispoint.llc',
-    ].join('\n'),
-    { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL }
+    'Someone you referred just reached out to us.',
+    { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL, htmlBody: html }
   );
 }
 
@@ -537,7 +1134,7 @@ function sendResubmissionNotification(payload, existingLeadId, existingReferralC
 }
 
 /* ── Row builder ── */
-function buildLeadRow(payload, status, leadId, referralCode, referralMatch) {
+function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meetLink) {
   var p   = payload.person   || {};
   var b   = payload.booking  || null;
   var q   = payload.qualData || {};
@@ -591,6 +1188,7 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch) {
     0,                                                                 // 27 Direct Referrals
     0,                                                                 // 28 Total Downstream
     '',                                                                // 29 Last Referral Date
+    meetLink || '',                                                    // 30 Meet Link
   ];
 }
 
@@ -616,51 +1214,78 @@ function categoryTabForRole(role) {
   }[role] || null;
 }
 
-/* ── Visitor confirmation email ── */
-function sendVisitorConfirmation(payload, referralCode) {
+/* ── Referral URL helpers ── */
+function referralLinkFor(code) {
+  return code ? 'https://axispoint.llc/contact?ref=' + code : '';
+}
+function sharePageUrlFor(code) {
+  return code ? 'https://axispoint.llc/share/' + code : '';
+}
+
+/**
+ * Splits a booking date string into the parts the email templates need:
+ *   { month: 'JUN', day: '27', dow: 'Fri' }
+ */
+function bookingDateParts(dateStr, timeStr) {
+  var d = parseBookingDateTime(dateStr, timeStr || '12:00 PM');
+  if (!d) return { month: '', day: '', dow: '' };
+  return {
+    month: Utilities.formatDate(d, 'America/Chicago', 'MMM').toUpperCase(),
+    day:   Utilities.formatDate(d, 'America/Chicago', 'd'),
+    dow:   Utilities.formatDate(d, 'America/Chicago', 'EEE'),
+  };
+}
+
+/* ── Visitor confirmation email (HTML templates) ── */
+function sendVisitorConfirmation(payload, referralCode, meetLink) {
   var p = payload.person || {};
   if (!p.email) return;
 
-  var name       = p.firstName || 'there';
-  var hasBooking = payload.booking && payload.booking.date;
-  var bookingLine = hasBooking
-    ? 'We received your booking request for ' + payload.booking.date +
-      ' at ' + (payload.booking.slot || payload.booking.time) +
-      '. We will confirm your spot within one business day.'
-    : 'We will follow up personally — usually within one business day.';
+  var name         = p.firstName || 'there';
+  var referralLink = referralLinkFor(referralCode);
+  var b            = payload.booking;
+  var hasBooking   = b && b.date;
 
-  var referralSection = referralCode ? [
-    '',
-    'Your referral code: ' + referralCode,
-    '',
-    'If you ever refer someone to AxisPoint, share this link and we will make sure you get credit:',
-    'https://axispoint.llc/contact?ref=' + referralCode,
-  ].join('\n') : '';
+  var html, subject;
 
-  GmailApp.sendEmail(
-    p.email,
-    'We received your message — AxisPoint Partners',
-    [
-      'Hi ' + name + ',',
-      '',
-      'Thank you for reaching out to AxisPoint Partners.',
-      '',
-      bookingLine,
-      referralSection,
-      '',
-      'In the meantime, feel free to explore our work at axispoint.llc.',
-      '',
-      'Best,',
-      'Zachary Russell and Ethaniel Vu',
-      'AxisPoint Partners',
-      'axispoint.llc',
-    ].join('\n'),
-    { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL }
-  );
+  if (hasBooking) {
+    var parts = bookingDateParts(b.date, b.slot || b.time || '');
+    var vars  = {
+      firstName:        name,
+      bookingMonth:     parts.month,
+      bookingDay:       parts.day,
+      bookingDayOfWeek: parts.dow,
+      bookingTime:      b.slot || b.time || '',
+      referralCode:     referralCode || '',
+      referralLink:     referralLink,
+    };
+
+    if (b.meetType === 'meet') {
+      vars.meetLink = meetLink || '';
+      html = renderTemplate(TEMPLATE_VISITOR_MEET, vars);
+    } else {
+      vars.bookingPhone = b.phone || p.phone || '';
+      html = renderTemplate(TEMPLATE_VISITOR_PHONE, vars);
+    }
+    subject = 'Your call with AxisPoint is set';
+  } else {
+    html = renderTemplate(TEMPLATE_VISITOR_NO_BOOKING, {
+      firstName:    name,
+      referralCode: referralCode || '',
+      referralLink: referralLink,
+    });
+    subject = 'We received your message — AxisPoint Partners';
+  }
+
+  GmailApp.sendEmail(p.email, subject, 'Thank you for reaching out to AxisPoint Partners.', {
+    name:     CONFIG.SENDER_NAME,
+    replyTo:  CONFIG.FROM_EMAIL,
+    htmlBody: html,
+  });
 }
 
-/* ── Immediate partner notification ── */
-function sendPartnerNotification(payload, leadId, referralCode, referralMatch) {
+/* ── Immediate partner notification (HTML template) ── */
+function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink) {
   var p  = payload.person  || {};
   var b  = payload.booking || null;
   var q  = payload.qualData || {};
@@ -670,42 +1295,93 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch) {
   var category = roleToCategory(payload.role);
   var subject  = 'New lead: ' + name + ' (' + category + ') — ' + (leadId || '');
 
-  var lines = [
-    'Lead ID:       ' + (leadId        || '—'),
-    'Referral Code: ' + (referralCode  || '—'),
-    'Name:          ' + name,
-    'Role:          ' + category,
-    'Email:         ' + (p.email   || '—'),
-    'Phone:         ' + (p.phone   || '—'),
-    'Company:       ' + (p.company || '—'),
-    'Asset Class:   ' + assetClassFromQualData(q),
-    'Source:        ' + (payload.source || payload.page || '—'),
-    b && b.date
-      ? 'Booking:       ' + b.date + ' at ' + (b.slot || b.time) + ' (' + (b.meetType || '') + ')'
-      : 'Booking:       None',
-    rm.found
-      ? 'Referred By:   ' + rm.referrerName + ' (' + rm.matchType + ' match) — ' + rm.referrerCode
-      : '',
-    (payload.preferences || []).length
-      ? 'Preferences:   ' + payload.preferences.join(', ')
-      : '',
-    payload.message
-      ? '\nMessage:\n' + payload.message
-      : '',
-  ].filter(function(l) { return l !== ''; });
+  var initials = ((p.firstName || '').charAt(0) + (p.lastName || '').charAt(0)).toUpperCase() || '–';
+  var source   = payload.source || payload.page || '—';
 
-  GmailApp.sendEmail(
-    CONFIG.NOTIFY_EMAILS.join(','),
-    subject,
-    [
-      'A new lead just came in through ' + (payload.page || 'the contact form') + '.',
-      '',
-      lines.join('\n'),
-      '',
-      'View Active Leads: https://docs.google.com/spreadsheets/d/' + CONFIG.SPREADSHEET_ID,
-    ].join('\n'),
-    { name: CONFIG.SENDER_NAME }
-  );
+  // ── Capital range row (investor only) ──
+  var capitalRangeRow = '';
+  if (payload.role === 'investor' && q && q.aum) {
+    capitalRangeRow =
+      '<tr>' +
+      '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Capital range</td>' +
+      '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">' + escapeHtml(q.aum) + '</td>' +
+      '</tr>';
+  }
+
+  // ── Referred-by row with match-type badge ──
+  var referredByRow = '';
+  if (rm.found) {
+    var badge =
+      '<span style="display:inline-block;background:#EEEAF5;color:#38285D;font-size:10px;font-weight:600;' +
+      'letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:12px;margin-left:6px;">' +
+      escapeHtml(rm.matchType) + ' match</span>';
+    referredByRow =
+      '<tr>' +
+      '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Referred by</td>' +
+      '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">' +
+      escapeHtml(rm.referrerName || '') + badge + '</td>' +
+      '</tr>';
+  }
+
+  // ── Message block ──
+  var messageBlock = '';
+  if (payload.message) {
+    messageBlock =
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border:1px solid #E8E4F0;border-radius:8px;margin:0 0 20px;">' +
+      '<tr><td style="padding:14px 16px;">' +
+      '<p style="font-size:10px;font-weight:600;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 6px;">Message</p>' +
+      '<p style="font-size:13px;color:#1C1628;line-height:1.6;margin:0;white-space:pre-wrap;">' + escapeHtml(payload.message) + '</p>' +
+      '</td></tr></table>';
+  }
+
+  // ── Booking block (calendar design) ──
+  var bookingBlock = '';
+  if (b && b.date) {
+    var parts = bookingDateParts(b.date, b.slot || b.time || '');
+    var isMeet = b.meetType === 'meet';
+    var detailLabel = isMeet ? 'Google Meet' : 'Phone call';
+    var actionHtml = isMeet
+      ? '<a href="' + escapeHtml(meetLink || '') + '" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>'
+      : '<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">Call them at ' + escapeHtml(b.phone || p.phone || '') + '</span>';
+
+    bookingBlock =
+      '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">' +
+      '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">' +
+      '<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>' +
+      '</td></tr><tr>' +
+      '<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">' +
+      '<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">' + parts.month + '</p>' +
+      '<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">' + parts.day + '</p>' +
+      '<p style="font-size:10px;color:#9490A8;margin:0;">' + parts.dow + '</p>' +
+      '</td>' +
+      '<td style="padding:14px 18px;vertical-align:middle;">' +
+      '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">' + escapeHtml(b.slot || b.time || '') + ' CT</p>' +
+      '<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; ' + detailLabel + '</p>' +
+      actionHtml +
+      '</td></tr></table>';
+  }
+
+  var html = renderTemplate(TEMPLATE_PARTNER_NOTIFICATION, {
+    initials:        initials,
+    fullName:        name,
+    role:            category || (payload.role || ''),
+    source:          source,
+    leadId:          leadId || '—',
+    email:           p.email || '—',
+    phone:           p.phone || '—',
+    company:         p.company || '—',
+    assetClass:      assetClassFromQualData(q) || '—',
+    capitalRangeRow: capitalRangeRow,
+    referredByRow:   referredByRow,
+    messageBlock:    messageBlock,
+    bookingBlock:    bookingBlock,
+    crmUrl:          'https://docs.google.com/spreadsheets/d/' + CONFIG.SPREADSHEET_ID,
+  });
+
+  GmailApp.sendEmail(CONFIG.NOTIFY_EMAILS.join(','), subject, 'A new lead just came in.', {
+    name:     CONFIG.SENDER_NAME,
+    htmlBody: html,
+  });
 }
 
 
@@ -765,6 +1441,85 @@ function sendDailyDigest() {
     Logger.log('sendDailyDigest: emailed digest for ' + n + ' lead(s).');
   } catch (err) {
     Logger.log('sendDailyDigest error: ' + err);
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   JOB 2b — MONTHLY REFERRAL SUMMARIES  (1st of month, 9 am CT)
+   ════════════════════════════════════════════════════════════ */
+
+function sendMonthlyReferralSummaries() {
+  try {
+    var partnersSheet = tab(CONFIG.TABS.REFERRAL_PARTNERS);
+    if (!partnersSheet) { Logger.log('sendMonthlyReferralSummaries: no Referral Partners tab.'); return; }
+
+    // Tally referrals per referrer Lead ID from the Referrals tab.
+    var totals = {};   // leadId -> total count
+    var months = {};   // leadId -> this-month count
+    var now    = new Date();
+    var curMon = now.getMonth();
+    var curYr  = now.getFullYear();
+
+    var refSheet = tab(CONFIG.TABS.REFERRALS);
+    if (refSheet) {
+      var refData = refSheet.getDataRange().getValues();
+      for (var r = 1; r < refData.length; r++) {
+        var referrerLeadId = String(refData[r][1] || '');  // Referrer Lead ID
+        if (!referrerLeadId) continue;
+        totals[referrerLeadId] = (totals[referrerLeadId] || 0) + 1;
+
+        var dateVal = refData[r][11];  // Date column
+        var d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+        if (!isNaN(d) && d.getMonth() === curMon && d.getFullYear() === curYr) {
+          months[referrerLeadId] = (months[referrerLeadId] || 0) + 1;
+        }
+      }
+    }
+
+    var partners = partnersSheet.getDataRange().getValues();
+    var sent = 0;
+
+    for (var i = 1; i < partners.length; i++) {
+      var row    = partners[i];
+      var status = String(row[COLS.STATUS] || '');
+      if (status === 'Cold' || status === 'Archive') continue;
+
+      var leadId = String(row[COLS.LEAD_ID] || '');
+      var email  = String(row[COLS.EMAIL]   || '').trim();
+      if (!leadId || !email) continue;
+
+      var totalReferrals = totals[leadId] || 0;
+      if (totalReferrals <= 0) continue;
+
+      var monthReferrals = months[leadId] || 0;
+      var firstName      = String(row[COLS.FIRST_NAME] || '') || 'there';
+      var code           = String(row[COLS.REFERRAL_CODE] || '');
+
+      var html = renderTemplate(TEMPLATE_REFERRER_MONTHLY, {
+        firstName:      firstName,
+        totalReferrals: totalReferrals,
+        monthReferrals: monthReferrals,
+        referralLink:   referralLinkFor(code),
+        sharePageUrl:   sharePageUrlFor(code),
+      });
+
+      try {
+        GmailApp.sendEmail(
+          email,
+          'Your AxisPoint referral summary',
+          'Here is a quick look at your referral activity with AxisPoint.',
+          { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL, htmlBody: html }
+        );
+        sent++;
+      } catch (e) {
+        Logger.log('sendMonthlyReferralSummaries: failed for ' + email + ': ' + e);
+      }
+    }
+
+    Logger.log('sendMonthlyReferralSummaries: sent ' + sent + ' summary email(s).');
+  } catch (err) {
+    Logger.log('sendMonthlyReferralSummaries error: ' + err);
   }
 }
 
@@ -947,7 +1702,7 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail) {
 
   // Send referrer notification
   var firstName = String(referrerRow[COLS.FIRST_NAME] || '');
-  sendReferrerNotification(email, firstName);
+  sendReferrerNotification(email, firstName, referrerCode);
 }
 
 function handleStatusEdit(sheetName, rowNum, rowData, newStatus) {
@@ -1062,30 +1817,69 @@ function handleSubscribe(payload) {
 }
 
 function sendWelcomeEmail(email, firstName, preferences) {
-  var name    = firstName || 'there';
-  var prefStr = preferences.length
-    ? 'You signed up to receive:\n' + preferences.map(function(p) { return '  • ' + p; }).join('\n')
-    : 'You are now subscribed to updates from AxisPoint Partners.';
+  var name = firstName || 'there';
+
+  // Preference catalog: dot color + title + description. Only show what the
+  // subscriber selected. Matching is fuzzy on keywords so it tolerates the
+  // exact label strings the form sends.
+  var catalog = [
+    { keys: ['article', 'insight'], color: '#24A5BC',
+      title: 'New articles and insights',
+      desc:  'When Zachary or Ethaniel publish something new on CRE, asset management, or the Texas market.' },
+    { keys: ['investment', 'opportunit', 'deal'], color: '#9F328C',
+      title: 'Investment opportunities',
+      desc:  'When a deal or acquisition opportunity worth sharing comes across our desk.' },
+    { keys: ['firm', 'update', 'news'], color: '#38285D',
+      title: 'Firm updates',
+      desc:  'What AxisPoint is working on, new capabilities, and firm news.' },
+  ];
+
+  var prefsLower = (preferences || []).map(function(x) { return String(x).toLowerCase(); });
+  var rows = '';
+  catalog.forEach(function(item) {
+    var selected = prefsLower.some(function(pref) {
+      return item.keys.some(function(k) { return pref.indexOf(k) !== -1; });
+    });
+    if (!selected) return;
+    rows +=
+      '<tr><td style="padding:8px 0;vertical-align:top;">' +
+      '<table cellpadding="0" cellspacing="0"><tr>' +
+      '<td width="22" style="vertical-align:top;padding-top:5px;">' +
+      '<div style="width:9px;height:9px;border-radius:50%;background:' + item.color + ';"></div></td>' +
+      '<td style="vertical-align:top;">' +
+      '<p style="font-size:14px;font-weight:500;color:#1C1628;margin:0 0 2px;">' + item.title + '</p>' +
+      '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">' + item.desc + '</p>' +
+      '</td></tr></table></td></tr>';
+  });
+
+  // If nothing matched, fall back to listing everything in the catalog.
+  if (!rows) {
+    catalog.forEach(function(item) {
+      rows +=
+        '<tr><td style="padding:8px 0;vertical-align:top;">' +
+        '<table cellpadding="0" cellspacing="0"><tr>' +
+        '<td width="22" style="vertical-align:top;padding-top:5px;">' +
+        '<div style="width:9px;height:9px;border-radius:50%;background:' + item.color + ';"></div></td>' +
+        '<td style="vertical-align:top;">' +
+        '<p style="font-size:14px;font-weight:500;color:#1C1628;margin:0 0 2px;">' + item.title + '</p>' +
+        '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">' + item.desc + '</p>' +
+        '</td></tr></table></td></tr>';
+    });
+  }
+
+  var unsubscribeUrl = CONFIG.SCRIPT_URL + '?unsubscribe=' + encodeURIComponent(email);
+
+  var html = renderTemplate(TEMPLATE_WELCOME_SUBSCRIBER, {
+    firstName:      name,
+    preferenceList: rows,
+    unsubscribeUrl: unsubscribeUrl,
+  });
 
   GmailApp.sendEmail(
     email,
     'You are on the list — AxisPoint Partners',
-    [
-      'Hi ' + name + ',',
-      '',
-      'You are on the list.',
-      '',
-      prefStr,
-      '',
-      'We only send what we said we would.',
-      'You can unsubscribe at any time by replying "unsubscribe" to any email.',
-      '',
-      'Best,',
-      'Zachary and Ethaniel',
-      'AxisPoint Partners',
-      'axispoint.llc',
-    ].join('\n'),
-    { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL }
+    'You are on the list.',
+    { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL, htmlBody: html }
   );
 }
 
@@ -1251,6 +2045,12 @@ function ensureContactGroup(name) {
    GOOGLE CALENDAR
    ════════════════════════════════════════════════════════════ */
 
+/**
+ * Creates the intro-call event on the default calendar.
+ * When meetType === 'meet' a real Google Meet link is generated via the
+ * Advanced Calendar Service (conferenceDataVersion).
+ * Returns the Meet link string ('' when none).
+ */
 function createBookingEvent(payload) {
   var p = payload.person   || {};
   var b = payload.booking;
@@ -1259,7 +2059,7 @@ function createBookingEvent(payload) {
   var start = parseBookingDateTime(b.date, b.slot || b.time || '');
   if (!start) {
     Logger.log('createBookingEvent: unable to parse "' + b.date + ' ' + (b.slot || b.time) + '"');
-    return;
+    return '';
   }
   var end = new Date(start.getTime() + 30 * 60 * 1000);
 
@@ -1275,11 +2075,55 @@ function createBookingEvent(payload) {
     'Source:      ' + (payload.source || payload.page || ''),
   ].filter(Boolean).join('\n');
 
+  var guests = CONFIG.NOTIFY_EMAILS.slice();
+  if (p.email) guests.push(p.email);
+
+  // ── Google Meet booking: use the Advanced Calendar Service so Google
+  //    provisions a real Meet conference and returns its join link. ──
+  if (b.meetType === 'meet') {
+    try {
+      var requestId = 'axp-' + (payload.timestamp || Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+      var eventResource = {
+        summary:     title,
+        description: desc,
+        start:       { dateTime: start.toISOString(), timeZone: 'America/Chicago' },
+        end:         { dateTime: end.toISOString(),   timeZone: 'America/Chicago' },
+        attendees:   guests.map(function(g) { return { email: g }; }),
+        conferenceData: {
+          createRequest: {
+            requestId:             requestId,
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
+        },
+      };
+
+      var created = Calendar.Events.insert(eventResource, 'primary', {
+        conferenceDataVersion: 1,
+        sendUpdates:           'all',
+      });
+
+      var entryPoints = created && created.conferenceData && created.conferenceData.entryPoints;
+      if (entryPoints && entryPoints.length) {
+        for (var i = 0; i < entryPoints.length; i++) {
+          if (entryPoints[i].entryPointType === 'video' && entryPoints[i].uri) {
+            return entryPoints[i].uri;
+          }
+        }
+        return entryPoints[0].uri || '';
+      }
+      return created && created.hangoutLink ? created.hangoutLink : '';
+    } catch (err) {
+      Logger.log('createBookingEvent: Meet generation failed, falling back to plain event — ' + err);
+    }
+  }
+
+  // ── Phone call (or Meet fallback): plain calendar event, no Meet link. ──
   CalendarApp.getDefaultCalendar().createEvent(title, start, end, {
     description: desc,
-    guests:      CONFIG.NOTIFY_EMAILS.join(','),
+    guests:      guests.join(','),
     sendInvites: true,
   });
+  return '';
 }
 
 function parseBookingDateTime(dateStr, timeStr) {
@@ -1405,6 +2249,12 @@ function setupTriggers() {
     .atHour(8)
     .create();
 
+  ScriptApp.newTrigger('sendMonthlyReferralSummaries')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(9)
+    .create();
+
   ScriptApp.newTrigger('onSheetEdit')
     .forSpreadsheet(SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID))
     .onEdit()
@@ -1426,6 +2276,14 @@ function appendRow(tabName, row) {
   var sheet = tab(tabName);
   if (!sheet) { Logger.log('appendRow: tab not found — ' + tabName); return; }
   sheet.appendRow(row);
+}
+
+function escapeHtml(str) {
+  return String(str === undefined || str === null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function jsonResponse(obj) {

@@ -8,11 +8,14 @@ import TeamPage from './pages/TeamPage';
 import LearnPage from './pages/LearnPage';
 import ArticlePage from './pages/ArticlePage';
 import ContactPage from './pages/ContactPage';
+import SharePage from './pages/SharePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
     <Routes>
+      {/* Standalone share landing — no site chrome */}
+      <Route path="/share/:code" element={<SharePage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="services" element={<ServicesPage />} />

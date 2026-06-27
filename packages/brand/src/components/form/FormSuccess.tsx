@@ -7,6 +7,21 @@ import type { FormController } from './types';
 import { downloadVCard, shareVCard } from '../../utils/vcard';
 
 export function FormSuccess({ c }: { c: FormController }) {
+  async function shareReferral() {
+    if (!c.shareLink) return;
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'AxisPoint Partners',
+          text: 'Commercial real estate, done right.',
+          url: c.shareLink,
+        });
+      } catch { /* user dismissed the share sheet */ }
+    } else {
+      c.copyLink();
+    }
+  }
+
   return (
     <div className="flex flex-col items-center gap-4 py-3.5 text-center">
       <div
@@ -27,25 +42,36 @@ export function FormSuccess({ c }: { c: FormController }) {
         {c.responseReferralCode ? (
           <>
             <div
-              className="font-serif font-semibold text-ink mb-2 tracking-wide"
-              style={{ fontSize: '1.5rem', letterSpacing: '0.05em' }}
+              className="font-mono font-semibold text-ink mb-4"
+              style={{ fontSize: '1.05rem', letterSpacing: '0.08em' }}
             >
               {c.responseReferralCode}
             </div>
-            <p className="text-[0.78rem] text-sub leading-relaxed mb-3">
-              Share this link with anyone you refer to AxisPoint and we will make sure you get credit for the introduction.
-            </p>
-            <div className="flex items-center gap-2 rounded-[9px] border border-border bg-white px-3 py-2">
-              <span className="flex-1 text-[0.75rem] text-ink truncate font-mono">{c.shareLink}</span>
+
+            {/* Copy + Share buttons */}
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={c.copyLink}
-                className="flex-shrink-0 px-3 py-1 rounded-[7px] text-[0.72rem] font-semibold transition-all cursor-pointer"
-                style={{ background: c.copied ? '#E8F7FA' : '#EEEAF5', color: c.copied ? '#1A8799' : '#38285D' }}
+                className="flex-1 py-2.5 px-3 rounded-[10px] border bg-white text-teal text-[0.78rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:bg-[#E8F7FA] active:scale-[0.98]"
+                style={{ borderColor: '#24A5BC' }}
               >
-                {c.copied ? 'Copied!' : 'Copy'}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                {c.copied ? 'Copied!' : 'Copy link'}
+              </button>
+              <button
+                type="button"
+                onClick={shareReferral}
+                className="flex-1 py-2.5 px-3 rounded-[10px] border-none bg-teal text-white text-[0.78rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:brightness-110 active:scale-[0.98]"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Share link
               </button>
             </div>
+
+            <p className="text-[0.72rem] text-sub leading-relaxed mt-3">
+              Share with anyone you think should talk to us. We will make sure you get credit.
+            </p>
           </>
         ) : (
           <p className="text-[0.78rem] text-sub leading-relaxed">

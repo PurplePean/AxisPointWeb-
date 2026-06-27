@@ -32,7 +32,7 @@ export function parseReferralInput(input: string): { referralCode: string | null
   const t = input.trim();
   if (!t) return { referralCode: null, referredByEmail: null, referredByName: null };
   if (t.includes('@')) return { referralCode: null, referredByEmail: t, referredByName: null };
-  if (/^AXP-\d{4}$/i.test(t)) return { referralCode: t.toUpperCase(), referredByEmail: null, referredByName: null };
+  if (/^AXP-[A-Z0-9]{6}$/i.test(t)) return { referralCode: t.toUpperCase(), referredByEmail: null, referredByName: null };
   return { referralCode: null, referredByEmail: null, referredByName: t };
 }
 
