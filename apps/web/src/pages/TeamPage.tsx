@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { team } from '@brand/team';
-import { downloadVCard } from '@axispoint/brand';
+import { downloadVCard, shareVCard } from '@axispoint/brand';
 import { useReveal } from '../hooks/useReveal';
 
 function TeamPage() {
@@ -119,15 +119,23 @@ function TeamPage() {
             </div>
           </div>
 
-          {/* ── Save Our Contacts ──────────────────────────── */}
-          <div className="rv d2 flex justify-center">
+          {/* ── Save / Share Our Contacts ──────────────────── */}
+          <div className="rv d2 flex flex-col sm:flex-row justify-center gap-3">
             <button
               type="button"
               onClick={downloadVCard}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-button border-2 border-teal text-teal text-sm font-semibold bg-transparent hover:bg-teal/10 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-button bg-teal text-white text-sm font-semibold hover:brightness-110 transition-all"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Save Our Contacts
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              Save Contacts
+            </button>
+            <button
+              type="button"
+              onClick={shareVCard}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-button border-2 border-teal text-teal text-sm font-semibold bg-transparent hover:bg-teal/10 transition-all"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Share Contacts
             </button>
           </div>
 

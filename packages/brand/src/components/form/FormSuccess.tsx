@@ -4,7 +4,7 @@
  * shared "Save our contact" vCard button added below the referral block.
  */
 import type { FormController } from './types';
-import { downloadVCard } from '../../utils/vcard';
+import { downloadVCard, shareVCard } from '../../utils/vcard';
 
 export function FormSuccess({ c }: { c: FormController }) {
   return (
@@ -54,16 +54,26 @@ export function FormSuccess({ c }: { c: FormController }) {
         )}
       </div>
 
-      {/* Save our contact — vCard download */}
-      <button
-        type="button"
-        onClick={downloadVCard}
-        className="w-full py-3 px-4 rounded-[10px] border bg-white text-teal text-[0.82rem] font-semibold cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-[#E8F7FA] active:scale-[0.98]"
-        style={{ borderColor: '#24A5BC' }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save our contact — we will be in touch
-      </button>
+      {/* Save / Share our contacts — vCard download & native share */}
+      <div className="w-full flex flex-col sm:flex-row gap-2">
+        <button
+          type="button"
+          onClick={downloadVCard}
+          className="flex-1 py-2.5 px-3 rounded-[10px] border-none bg-teal text-white text-[0.78rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:brightness-110 active:scale-[0.98]"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Save Contacts
+        </button>
+        <button
+          type="button"
+          onClick={shareVCard}
+          className="flex-1 py-2.5 px-3 rounded-[10px] border bg-white text-teal text-[0.78rem] font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all hover:bg-[#E8F7FA] active:scale-[0.98]"
+          style={{ borderColor: '#24A5BC' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Share Contacts
+        </button>
+      </div>
     </div>
   );
 }

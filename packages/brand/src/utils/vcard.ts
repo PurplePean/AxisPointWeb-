@@ -42,3 +42,26 @@ export function downloadVCard(): void {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Share the combined partners vCard as a native .vcf file using the Web Share
+ * API. Falls back to {@link downloadVCard} when file sharing is unsupported.
+ */
+export async function shareVCard(): Promise<void> {
+  const blob = new Blob([VCARD], { type: 'text/vcard' });
+  const file = new File([blob], 'AxisPoint-Partners.vcf', { type: 'text/vcard' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: 'AxisPoint Partners',
+        text: 'Zachary Russell and Ethaniel Vu — AxisPoint Partners',
+        files: [file],
+      });
+    } catch {
+      /* user cancelled or share failed — no-op */
+    }
+  } else {
+    downloadVCard();
+  }
+}

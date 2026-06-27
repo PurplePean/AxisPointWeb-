@@ -7,7 +7,7 @@ import type { Role, MeetType, BookChoice, ContactFields, ReferredFields } from '
 export const STEP_ORDER_INVESTOR = ['role', 'context', 'prefs', 'contact', 'booking', 'comms'] as const;
 export const STEP_ORDER_OTHER = ['role', 'context', 'contact', 'booking', 'comms'] as const;
 
-export const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Preferences', 'Your info', 'Book a call', 'Stay in the loop'];
+export const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Asset class', 'Your info', 'Book a call', 'Stay in the loop'];
 export const STEP_LABELS_OTHER = ['Who you are', 'Background', 'Your info', 'Book a call', 'Stay in the loop'];
 
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
