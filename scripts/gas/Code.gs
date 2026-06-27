@@ -93,526 +93,540 @@ var CONFIG = {
    Dynamic values use {{placeholder}} syntax, filled by renderTemplate().
    ════════════════════════════════════════════════════════════ */
 
-var TEMPLATE_VISITOR_PHONE = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">
-<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">
-<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>
-</td></tr>
-<tr>
-<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">
-<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>
-<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>
-<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>
-</td>
-<td style="padding:14px 18px;vertical-align:middle;">
-<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>
-<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Phone call</p>
-<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">We will call you at {{bookingPhone}}</span>
-</td>
-</tr>
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
-<tr><td style="padding:12px 16px;">
-<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
-<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
-<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
-</td></tr>
-</table>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_VISITOR_PHONE = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">',
+  '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">',
+  '<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">',
+  '<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>',
+  '<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>',
+  '<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>',
+  '</td>',
+  '<td style="padding:14px 18px;vertical-align:middle;">',
+  '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Phone call</p>',
+  '<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">We will call you at {{bookingPhone}}</span>',
+  '</td>',
+  '</tr>',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">',
+  '<tr><td style="padding:12px 16px;">',
+  '<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>',
+  '<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>',
+  '<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>',
+  '</td></tr>',
+  '</table>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_VISITOR_MEET = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">
-<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">
-<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>
-</td></tr>
-<tr>
-<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">
-<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>
-<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>
-<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>
-</td>
-<td style="padding:14px 18px;vertical-align:middle;">
-<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>
-<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Google Meet</p>
-<a href="{{meetLink}}" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>
-</td>
-</tr>
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
-<tr><td style="padding:12px 16px;">
-<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
-<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
-<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
-</td></tr>
-</table>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_VISITOR_MEET = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">',
+  '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">',
+  '<span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="90" style="background:#F7F5FB;padding:14px 18px;text-align:center;border-right:1px solid #E8E4F0;vertical-align:middle;">',
+  '<p style="font-size:10px;font-weight:500;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 3px;">{{bookingMonth}}</p>',
+  '<p style="font-size:30px;font-weight:500;color:#38285D;line-height:1;margin:0 0 3px;">{{bookingDay}}</p>',
+  '<p style="font-size:10px;color:#9490A8;margin:0;">{{bookingDayOfWeek}}</p>',
+  '</td>',
+  '<td style="padding:14px 18px;vertical-align:middle;">',
+  '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;">{{bookingTime}} CT</p>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 10px;">30 minutes &nbsp;·&nbsp; Google Meet</p>',
+  '<a href="{{meetLink}}" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>',
+  '</td>',
+  '</tr>',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">',
+  '<tr><td style="padding:12px 16px;">',
+  '<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>',
+  '<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>',
+  '<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>',
+  '</td></tr>',
+  '</table>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_VISITOR_NO_BOOKING = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. Expect a personal reply within one business day.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
-<tr><td style="padding:20px 22px;text-align:center;">
-<div style="width:42px;height:42px;border-radius:50%;background:#E8F7FA;display:inline-block;text-align:center;line-height:42px;font-size:20px;margin:0 0 10px;">📅</div>
-<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;">Want to schedule a call?</p>
-<p style="font-size:12px;color:#5A5270;margin:0 0 14px;">30 minutes. No obligation.</p>
-<a href="https://axispoint.llc/contact" style="display:inline-block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:13px;font-weight:500;padding:10px 22px;border-radius:7px;">Book a call &nbsp;→</a>
-</td></tr>
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">
-<tr><td style="padding:12px 16px;">
-<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>
-<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>
-<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>
-</td></tr>
-</table>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_VISITOR_NO_BOOKING = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. Expect a personal reply within one business day.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
+  '<tr><td style="padding:20px 22px;text-align:center;">',
+  '<div style="width:42px;height:42px;border-radius:50%;background:#E8F7FA;display:inline-block;text-align:center;line-height:42px;font-size:20px;margin:0 0 10px;">📅</div>',
+  '<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;">Want to schedule a call?</p>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 14px;">30 minutes. No obligation.</p>',
+  '<a href="https://axispoint.llc/contact" style="display:inline-block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:13px;font-weight:500;padding:10px 22px;border-radius:7px;">Book a call &nbsp;→</a>',
+  '</td></tr>',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border-left:3px solid #24A5BC;border-radius:0 6px 6px 0;margin:0 0 22px;">',
+  '<tr><td style="padding:12px 16px;">',
+  '<p style="font-size:11px;color:#5A5270;margin:0 0 6px;">Know someone who should talk to us?</p>',
+  '<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;letter-spacing:0.03em;">{{referralCode}}</p>',
+  '<p style="font-size:11px;color:#5A5270;margin:0;">Share this link and we will make sure you get credit: <a href="{{referralLink}}" style="color:#24A5BC;">{{referralLink}}</a></p>',
+  '</td></tr>',
+  '</table>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_REFERRER_NOTIFICATION = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Someone you referred just reached out to us. We will take it from here.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
-<tr><td style="padding:22px;text-align:center;">
-<div style="width:48px;height:48px;border-radius:50%;background:#24A5BC;display:inline-block;text-align:center;line-height:48px;font-size:24px;color:#ffffff;margin:0 0 12px;">✓</div>
-<p style="font-size:16px;font-weight:500;color:#1C1628;margin:0 0 4px;">Referral received</p>
-<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">Thank you for the introduction. We handle it from here.</p>
-</td></tr>
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
-<tr><td style="background:#38285D;padding:10px 16px;">
-<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>
-</td></tr>
-<tr><td style="padding:16px;">
-<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>
-<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>
-<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>
-<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone's share sheet</p>
-</td></tr>
-</table>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because someone used your referral link.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_REFERRER_NOTIFICATION = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Someone you referred just reached out to us. We will take it from here.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
+  '<tr><td style="padding:22px;text-align:center;">',
+  '<div style="width:48px;height:48px;border-radius:50%;background:#24A5BC;display:inline-block;text-align:center;line-height:48px;font-size:24px;color:#ffffff;margin:0 0 12px;">✓</div>',
+  '<p style="font-size:16px;font-weight:500;color:#1C1628;margin:0 0 4px;">Referral received</p>',
+  '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">Thank you for the introduction. We handle it from here.</p>',
+  '</td></tr>',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
+  '<tr><td style="background:#38285D;padding:10px 16px;">',
+  '<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>',
+  '</td></tr>',
+  '<tr><td style="padding:16px;">',
+  '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>',
+  '<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>',
+  '<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>',
+  '<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone\'s share sheet</p>',
+  '</td></tr>',
+  '</table>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because someone used your referral link.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_REFERRER_MONTHLY = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Here is a quick look at your referral activity with AxisPoint.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
-<tr>
-<td width="50%" style="padding-right:6px;vertical-align:top;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#38285D;border-radius:8px;">
-<tr><td style="padding:20px 18px;text-align:center;">
-<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{totalReferrals}}</p>
-<p style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:0.05em;text-transform:uppercase;margin:0;">Total referrals</p>
-</td></tr>
-</table>
-</td>
-<td width="50%" style="padding-left:6px;vertical-align:top;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#24A5BC;border-radius:8px;">
-<tr><td style="padding:20px 18px;text-align:center;">
-<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{monthReferrals}}</p>
-<p style="font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.05em;text-transform:uppercase;margin:0;">This month</p>
-</td></tr>
-</table>
-</td>
-</tr>
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">
-<tr><td style="background:#38285D;padding:10px 16px;">
-<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>
-</td></tr>
-<tr><td style="padding:16px;">
-<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>
-<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>
-<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>
-<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone's share sheet</p>
-</td></tr>
-</table>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you have referred people to AxisPoint Partners.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_REFERRER_MONTHLY = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Here is a quick look at your referral activity with AxisPoint.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">',
+  '<tr>',
+  '<td width="50%" style="padding-right:6px;vertical-align:top;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#38285D;border-radius:8px;">',
+  '<tr><td style="padding:20px 18px;text-align:center;">',
+  '<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{totalReferrals}}</p>',
+  '<p style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:0.05em;text-transform:uppercase;margin:0;">Total referrals</p>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td width="50%" style="padding-left:6px;vertical-align:top;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#24A5BC;border-radius:8px;">',
+  '<tr><td style="padding:20px 18px;text-align:center;">',
+  '<p style="font-size:34px;font-weight:500;color:#ffffff;line-height:1;margin:0 0 6px;">{{monthReferrals}}</p>',
+  '<p style="font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.05em;text-transform:uppercase;margin:0;">This month</p>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '</tr>',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
+  '<tr><td style="background:#38285D;padding:10px 16px;">',
+  '<span style="font-size:11px;font-weight:500;color:#ffffff;letter-spacing:0.06em;text-transform:uppercase;">Your referral link</span>',
+  '</td></tr>',
+  '<tr><td style="padding:16px;">',
+  '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0 0 12px;">Keep sharing this link. Every time someone uses it we will let you know.</p>',
+  '<p style="font-size:13px;color:#24A5BC;word-break:break-all;margin:0 0 16px;"><a href="{{referralLink}}" style="color:#24A5BC;text-decoration:none;">{{referralLink}}</a></p>',
+  '<a href="{{sharePageUrl}}" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;">Share your referral link &nbsp;↑</a>',
+  '<p style="font-size:11px;color:#9490A8;text-align:center;margin:8px 0 0;">Opens your phone\'s share sheet</p>',
+  '</td></tr>',
+  '</table>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you have referred people to AxisPoint Partners.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_PARTNER_NOTIFICATION = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><span style="display:inline-block;background:#24A5BC;color:#ffffff;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:5px 12px;border-radius:20px;">New Lead</span></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
-<tr>
-<td width="52" style="vertical-align:middle;">
-<div style="width:44px;height:44px;border-radius:50%;background:#38285D;color:#ffffff;text-align:center;line-height:44px;font-size:16px;font-weight:500;">{{initials}}</div>
-</td>
-<td style="padding-left:14px;vertical-align:middle;">
-<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 2px;">{{fullName}}</p>
-<p style="font-size:12px;color:#5A5270;margin:0;">{{role}} &nbsp;·&nbsp; via {{source}}</p>
-</td>
-</tr>
-</table>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 18px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
-<tr>
-<td width="120" style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Lead ID</td>
-<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{leadId}}</td>
-</tr>
-<tr>
-<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Email</td>
-<td style="padding:6px 0;font-size:13px;vertical-align:top;"><a href="mailto:{{email}}" style="color:#24A5BC;text-decoration:none;">{{email}}</a></td>
-</tr>
-<tr>
-<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Phone</td>
-<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{phone}}</td>
-</tr>
-<tr>
-<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Company</td>
-<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{company}}</td>
-</tr>
-<tr>
-<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Asset class</td>
-<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{assetClass}}</td>
-</tr>
-{{capitalRangeRow}}
-<tr>
-<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Source</td>
-<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{source}}</td>
-</tr>
-{{referredByRow}}
-</table>
-{{messageBlock}}
-{{bookingBlock}}
-<a href="{{crmUrl}}" style="display:block;background:#38285D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:4px 0 0;">View in AxisPoint CRM &nbsp;→</a>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification — do not forward.</p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_PARTNER_NOTIFICATION = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><span style="display:inline-block;background:#24A5BC;color:#ffffff;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:5px 12px;border-radius:20px;">New Lead</span></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">',
+  '<tr>',
+  '<td width="52" style="vertical-align:middle;">',
+  '<div style="width:44px;height:44px;border-radius:50%;background:#38285D;color:#ffffff;text-align:center;line-height:44px;font-size:16px;font-weight:500;">{{initials}}</div>',
+  '</td>',
+  '<td style="padding-left:14px;vertical-align:middle;">',
+  '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 2px;">{{fullName}}</p>',
+  '<p style="font-size:12px;color:#5A5270;margin:0;">{{role}} &nbsp;·&nbsp; via {{source}}</p>',
+  '</td>',
+  '</tr>',
+  '</table>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 18px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">',
+  '<tr>',
+  '<td width="120" style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Lead ID</td>',
+  '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{leadId}}</td>',
+  '</tr>',
+  '<tr>',
+  '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Email</td>',
+  '<td style="padding:6px 0;font-size:13px;vertical-align:top;"><a href="mailto:{{email}}" style="color:#24A5BC;text-decoration:none;">{{email}}</a></td>',
+  '</tr>',
+  '<tr>',
+  '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Phone</td>',
+  '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{phone}}</td>',
+  '</tr>',
+  '<tr>',
+  '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Company</td>',
+  '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{company}}</td>',
+  '</tr>',
+  '<tr>',
+  '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Asset class</td>',
+  '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{assetClass}}</td>',
+  '</tr>',
+  '{{capitalRangeRow}}',
+  '<tr>',
+  '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Source</td>',
+  '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{source}}</td>',
+  '</tr>',
+  '{{referredByRow}}',
+  '</table>',
+  '{{messageBlock}}',
+  '{{bookingBlock}}',
+  '<a href="{{crmUrl}}" style="display:block;background:#38285D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:4px 0 0;">View in AxisPoint CRM &nbsp;→</a>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification — do not forward.</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
-var TEMPLATE_WELCOME_SUBSCRIBER = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td align="center" style="padding:32px 16px;">
-<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">
-<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td>
-<table cellpadding="0" cellspacing="0">
-<tr><td style="padding-right:8px;">
-<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">
-</td>
-<td>
-<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>
-<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>
-</td></tr>
-</table>
-</td>
-<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>
-</tr>
-</table>
-</td></tr>
-<tr><td style="padding:28px 28px 24px;">
-<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>
-<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">You are on the list. Here is what you signed up for.</p>
-<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
-{{preferenceList}}
-</table>
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border:1px solid #E8E4F0;border-radius:8px;margin:0 0 22px;">
-<tr><td style="padding:14px 16px;">
-<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">We only send what we said we would. No noise, no spam. You can unsubscribe at any time by replying to any email.</p>
-</td></tr>
-</table>
-<a href="https://axispoint.llc/learn" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:0 0 22px;">Explore our articles &nbsp;→</a>
-<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>
-<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>
-<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>
-<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>
-</td></tr>
-<tr><td style="padding:0 28px 16px;">
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">
-<tr><td style="padding-top:12px;">
-<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you subscribed at axispoint.llc/learn.<br><a href="{{unsubscribeUrl}}" style="color:#9490A8;text-decoration:underline;">Unsubscribe</a></p>
-</td></tr>
-</table>
-</td></tr>
-<tr>
-<td width="33%" style="background:#24A5BC;height:3px;"></td>
-<td width="33%" style="background:#9F328C;height:3px;"></td>
-<td width="34%" style="background:#38285D;height:3px;"></td>
-</tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+var TEMPLATE_WELCOME_SUBSCRIBER = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #E8E4F0;border-radius:10px;overflow:hidden;">',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0">',
+  '<tr>',
+  '<td>',
+  '<table cellpadding="0" cellspacing="0">',
+  '<tr><td style="padding-right:8px;">',
+  '<img src="https://axispoint.llc/logo-mark.png" width="24" height="24" alt="AxisPoint">',
+  '</td>',
+  '<td>',
+  '<span style="font-size:16px;font-weight:500;color:#38285D;">Axis</span><span style="font-size:16px;font-weight:500;color:#24A5BC;">Point</span><br>',
+  '<span style="font-size:9px;color:#9490A8;letter-spacing:0.12em;text-transform:uppercase;">CRE Asset Management</span>',
+  '</td></tr>',
+  '</table>',
+  '</td>',
+  '<td align="right"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#24A5BC,#9F328C);border-radius:2px;display:inline-block;"></div></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">You are on the list. Here is what you signed up for.</p>',
+  '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">',
+  '{{preferenceList}}',
+  '</table>',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5FB;border:1px solid #E8E4F0;border-radius:8px;margin:0 0 22px;">',
+  '<tr><td style="padding:14px 16px;">',
+  '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;">We only send what we said we would. No noise, no spam. You can unsubscribe at any time by replying to any email.</p>',
+  '</td></tr>',
+  '</table>',
+  '<a href="https://axispoint.llc/learn" style="display:block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:0 0 22px;">Explore our articles &nbsp;→</a>',
+  '<p style="font-size:12px;color:#5A5270;margin:0 0 2px;">Best,</p>',
+  '<p style="font-size:13px;color:#1C1628;font-weight:500;margin:0;">Zachary Russell and Ethaniel Vu</p>',
+  '<p style="font-size:12px;color:#9490A8;margin:0 0 2px;">AxisPoint Partners &nbsp;·&nbsp; axispoint.llc</p>',
+  '<p style="font-size:11px;color:#9490A8;font-style:italic;margin:0;">Commercial real estate, done right.</p>',
+  '</td></tr>',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you subscribed at axispoint.llc/learn.<br><a href="{{unsubscribeUrl}}" style="color:#9490A8;text-decoration:underline;">Unsubscribe</a></p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '<tr>',
+  '<td width="33%" style="background:#24A5BC;height:3px;"></td>',
+  '<td width="33%" style="background:#9F328C;height:3px;"></td>',
+  '<td width="34%" style="background:#38285D;height:3px;"></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
 
 /**
  * Minimal template engine. Replaces every {{key}} with vars[key].
