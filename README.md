@@ -64,6 +64,22 @@ The form backend lives in `scripts/gas/Code.gs`. Deploy it as a Web App:
 - **Execute as:** Me
 - **Who has access:** Anyone
 
+### Deploying Apps Script changes
+
+Pushes are handled by [clasp](https://github.com/google/clasp). One-time setup:
+
+```bash
+npm install -g @google/clasp
+clasp login
+```
+
+`scripts/gas/.clasp.json` (gitignored — it holds the script ID) wires the local
+files to the Apps Script project. To deploy:
+
+1. Make changes to `scripts/gas/Code.gs`
+2. Run: `pnpm deploy:gas`
+3. Go to [script.google.com](https://script.google.com) and deploy a new version
+
 ### Lead ID format
 
 Every submission gets a unique Lead ID: **`AXP-YYYY-XXXX`**

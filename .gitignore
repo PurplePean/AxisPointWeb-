@@ -41,3 +41,6 @@ coverage/
 # OS files
 Thumbs.db
 .env.local
+
+# clasp (contains the Apps Script ID)
+scripts/gas/.clasp.json
