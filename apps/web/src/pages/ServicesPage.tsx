@@ -32,7 +32,7 @@ function SidePanel({ btnColor, title, body, note, ctaText, ctaTo }: {
     <div className="rounded-[16px] text-white p-7 sticky" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)', top: 'calc(68px + 56px + 24px)' }}>
       <div className="text-xs font-semibold uppercase tracking-widest mb-4 text-white/60" style={{ letterSpacing: '0.1em' }}>Who this is for</div>
       <div className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.1rem' }}>{title}</div>
-      <p className="text-white/90 leading-[1.7] mb-4" style={{ fontSize: '0.875rem' }}>{body}</p>
+      <p className="text-white leading-[1.7] mb-4" style={{ fontSize: '0.875rem' }}>{body}</p>
       {note && (
         <>
           <div className="h-px bg-white/10 mb-4" />
@@ -367,7 +367,7 @@ function ServicesPage() {
             <div className="rv d2 rounded-card text-white p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
               <div>
                 <h3 className="font-serif font-semibold text-white mb-2" style={{ fontSize: '1.2rem' }}>How to refer a client</h3>
-                <p className="text-white/90 leading-[1.7] max-w-lg" style={{ fontSize: '0.875rem' }}>
+                <p className="text-white leading-[1.7] max-w-lg" style={{ fontSize: '0.875rem' }}>
                   Send us an introduction and we take it from there. We handle the client conversation, provide a clear summary of what we discussed, and loop you back in so you are never out of the picture. Your client relationship stays yours.
                 </p>
               </div>

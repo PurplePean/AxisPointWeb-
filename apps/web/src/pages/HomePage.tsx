@@ -19,7 +19,7 @@ function HomePage() {
         </div>
 
         <div className="relative max-w-[1160px] mx-auto px-7 w-full" style={{ paddingTop: 'calc(68px + 60px)', paddingBottom: 80 }}>
-          <h1 className="rv font-serif font-semibold text-white mb-2" style={{ fontSize: 'clamp(2.8rem,5vw,4.2rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
+          <h1 className="rv font-serif font-semibold text-white mb-2 text-left" style={{ fontSize: 'clamp(1.7rem,5.5vw,4.2rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
             <span className="block whitespace-nowrap">Commercial real estate,</span>
             <em className="not-italic text-teal">done right.</em>
           </h1>
@@ -73,7 +73,7 @@ function HomePage() {
               <h3 className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>
                 We'll walk you through every step of the process
               </h3>
-              <p className="text-white/90 leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
+              <p className="text-white leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
                 If you've never invested in commercial real estate, you're not behind. You just haven't had the right team in your corner. We act as your asset manager from day one, handling everything from deal sourcing to ongoing operations.
               </p>
               <div className="flex flex-col gap-2.5 mb-7 flex-1">
@@ -83,7 +83,7 @@ function HomePage() {
                   'Property management supervision and accountability',
                   'Monthly reporting and investor communication',
                 ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-white/90" style={{ fontSize: '0.88rem' }}>
+                  <div key={item} className="flex items-start gap-3 text-white" style={{ fontSize: '0.88rem' }}>
                     <span className="mt-0.5 w-5 h-5 rounded flex items-center justify-center flex-none text-teal font-bold text-xs bg-teal/15 border border-teal/30">✓</span>
                     {item}
                   </div>
