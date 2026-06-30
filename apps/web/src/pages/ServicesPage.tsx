@@ -80,20 +80,27 @@ function ServicesPage() {
       {/* ── Tab Bar ──────────────────────────────────────── */}
       <div className="sticky z-40 bg-card border-b border-border" style={{ top: 68 }}>
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="flex gap-0 overflow-x-auto scrollbar-thin">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-none px-5 py-4 text-sm border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                  activeTab === tab.id
-                    ? 'border-purple text-purple font-semibold'
-                    : 'border-transparent text-hint hover:text-sub font-medium'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex gap-0 overflow-x-auto tab-scroll">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-none px-5 py-4 text-sm border-b-2 border-transparent transition-colors whitespace-nowrap -mb-px ${
+                    active
+                      ? 'md:border-purple text-purple font-semibold'
+                      : 'text-hint hover:text-sub font-medium'
+                  }`}
+                >
+                  {/* On mobile the active indicator hugs the text width via an
+                      inner span; desktop keeps the original full-width underline. */}
+                  <span className={active ? 'max-md:inline-block max-md:border-b-2 max-md:border-purple max-md:pb-1' : undefined}>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

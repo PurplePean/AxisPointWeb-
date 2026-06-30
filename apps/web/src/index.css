@@ -35,54 +35,76 @@
 }
 
 /* ════════════════════════════════════════════════════════
-   MOBILE OPTIMIZATION — applies only below 768px.
+   MOBILE SPACING & TYPE — applies only below 768px.
    Desktop (≥768px) is intentionally left untouched.
+
+   Philosophy: mobile needs MORE breathing room relative to
+   content, not less. We rebalance the rhythm — generous
+   section padding, readable type, relaxed line-height —
+   rather than shrinking to fit more on screen.
    ════════════════════════════════════════════════════════ */
 @media (max-width: 767px) {
-  /* Part 2.1 — horizontal padding reduced to 20px everywhere */
+  /* Horizontal page gutter */
   .px-7 {
-    padding-left: 20px !important;
-    padding-right: 20px !important;
+    padding-left: 22px !important;
+    padding-right: 22px !important;
   }
 
-  /* Part 2.2 — section vertical spacing reduced ~35% */
-  .py-24 { padding-top: 60px !important; padding-bottom: 60px !important; }
-  .py-20 { padding-top: 52px !important; padding-bottom: 52px !important; }
-  .py-16 { padding-top: 44px !important; padding-bottom: 44px !important; }
-  .py-14 { padding-top: 40px !important; padding-bottom: 40px !important; }
-  .pb-16 { padding-bottom: 40px !important; }
-  .pb-14 { padding-bottom: 36px !important; }
+  /* ── 1 / 10. VERTICAL RHYTHM — never below 56px; give sections
+     a clear breathing gap. More scrolling beats cramped. ── */
+  .py-24 { padding-top: 72px !important; padding-bottom: 72px !important; }
+  .py-20 { padding-top: 64px !important; padding-bottom: 64px !important; }
+  .py-16 { padding-top: 60px !important; padding-bottom: 60px !important; }
+  .py-14 { padding-top: 56px !important; padding-bottom: 56px !important; }
+  .pb-16 { padding-bottom: 60px !important; }
+  .pb-14 { padding-bottom: 56px !important; }
 
-  /* Part 2.3 — font sizes scaled down (inline clamp()s are overridden) */
-  /* Hero headline → max 2.2rem */
+  /* ── 7. TYPOGRAPHY — readable size matters more than fitting
+     more on screen. Inline clamp()/px sizes are overridden. ── */
+  /* Hero headline → hold at 2.2rem (do not go smaller) */
   h1.font-serif {
-    font-size: 2.1rem !important;
-    line-height: 1.12 !important;
-  }
-  /* Section headings → max 1.6rem */
-  h2.font-serif {
-    font-size: 1.55rem !important;
-    line-height: 1.2 !important;
+    font-size: 2.2rem !important;
+    line-height: 1.14 !important;
   }
   /* Let long hero headlines wrap instead of overflowing */
   h1.font-serif .whitespace-nowrap {
     white-space: normal !important;
   }
-  /* Body copy → 15px max (targets the inline 1rem / 1.05rem / 0.95rem leads) */
-  [style*=" 1.05rem"],
-  [style*=" 1rem"] {
-    font-size: 0.94rem !important;
-  }
-  [style*=" 0.95rem"] {
-    font-size: 0.9rem !important;
-  }
-  /* Sub-headline → max 1.1rem (home hero italic clamp) */
-  [style*="1.3rem,2.5vw"] {
-    font-size: 1.1rem !important;
-    line-height: 1.4 !important;
+  /* Section headings keep their natural ~1.9rem clamp minimum
+     (≥1.75rem); only relax the line-height a touch. */
+  h2.font-serif {
+    line-height: 1.18 !important;
   }
 
-  /* Part 8.4 — footer link columns get 44px tap targets */
+  /* ── 2. LINE HEIGHT + body floors (1rem minimum) ── */
+  /* Primary lead paragraphs (React serializes inline styles with no
+     space after the colon, e.g. `font-size:1rem`). */
+  [style*="font-size:1.05rem"] { font-size: 1.05rem !important; line-height: 1.7 !important; }
+  [style*="font-size:1rem"]    { line-height: 1.7 !important; }
+  /* Secondary / card body text → lift to a 1rem-ish floor with
+     comfortable leading so it never reads as cramped. */
+  [style*="font-size:0.95rem"]  { font-size: 1rem !important;   line-height: 1.7 !important; }
+  [style*="font-size:0.9rem"]   { font-size: 0.95rem !important; line-height: 1.7 !important; }
+  [style*="font-size:0.88rem"]  { font-size: 0.95rem !important; line-height: 1.7 !important; }
+  [style*="font-size:0.875rem"] { font-size: 0.95rem !important; line-height: 1.7 !important; }
+  /* Generic relaxed-leading utility bump */
+  .leading-relaxed { line-height: 1.7 !important; }
+
+  /* ── 9. BUTTONS — generous 52px tap targets feel premium ── */
+  a.rounded-button,
+  button.rounded-button {
+    min-height: 52px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* ── 8. TAB BARS — hide the horizontal scrollbar while keeping
+     scroll functionality (Services / Learn). ── */
+  .tab-scroll { scrollbar-width: none !important; }
+  .tab-scroll::-webkit-scrollbar { display: none !important; }
+
+  /* Footer link columns get 44px tap targets */
   footer .flex.flex-col a {
     min-height: 44px;
     display: flex;

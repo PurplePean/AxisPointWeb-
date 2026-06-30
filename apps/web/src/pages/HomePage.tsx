@@ -56,7 +56,7 @@ function HomePage() {
               <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
               <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Who We Work With</span>
             </div>
-            <h2 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
+            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
               Starting fresh or taking over
             </h2>
             <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
@@ -66,7 +66,7 @@ function HomePage() {
 
           <div className="rv d1 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* New to CRE */}
-            <div className="rounded-card text-white p-9 max-md:p-6 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
+            <div className="rounded-card text-white p-9 max-md:p-7 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
               <div className="inline-flex self-start px-3 py-1 rounded-chip text-xs font-semibold uppercase tracking-wider mb-5" style={{ background: 'rgba(36,165,188,0.15)', border: '1px solid rgba(36,165,188,0.3)', color: '#24a5bc' }}>
                 New to CRE
               </div>
@@ -98,7 +98,7 @@ function HomePage() {
             </div>
 
             {/* Existing Asset */}
-            <div className="rounded-card bg-card border border-border p-9 max-md:p-6 flex flex-col shadow-card">
+            <div className="rounded-card bg-card border border-border p-9 max-md:p-7 flex flex-col shadow-card">
               <div className="inline-flex self-start px-3 py-1 rounded-chip bg-purple/10 border border-purple/20 text-purple text-xs font-semibold uppercase tracking-wider mb-5">
                 Existing Asset
               </div>
@@ -140,7 +140,7 @@ function HomePage() {
               <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
               <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>What We Do</span>
             </div>
-            <h2 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
+            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
               Three ways we work with clients
             </h2>
             <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
@@ -205,7 +205,7 @@ function HomePage() {
               <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
               <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>The Team</span>
             </div>
-            <h2 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
+            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
               Two specialists. One firm.
             </h2>
             <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
@@ -275,7 +275,7 @@ function HomePage() {
                 <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
                 <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Learn and Read</span>
               </div>
-              <h2 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
+              <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
                 Insights from the field
               </h2>
               <p className="text-sub leading-relaxed max-w-[520px]" style={{ fontSize: '1rem' }}>

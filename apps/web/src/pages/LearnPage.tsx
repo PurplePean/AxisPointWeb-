@@ -33,20 +33,26 @@ function LearnPage() {
       {/* ── Filter Bar ───────────────────────────────────── */}
       <div className="sticky z-40 bg-card border-b border-border" style={{ top: 68 }}>
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="flex gap-0 overflow-x-auto scrollbar-thin">
-            {([['all', 'All'], ['pub', 'Publications']] as [Filter, string][]).map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => setActiveFilter(id)}
-                className={`flex-none px-5 py-4 text-sm border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                  activeFilter === id
-                    ? 'border-purple text-purple font-semibold'
-                    : 'border-transparent text-hint hover:text-sub font-medium'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex gap-0 overflow-x-auto tab-scroll">
+            {([['all', 'All'], ['pub', 'Publications']] as [Filter, string][]).map(([id, label]) => {
+              const active = activeFilter === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveFilter(id)}
+                  className={`flex-none px-5 py-4 text-sm border-b-2 border-transparent transition-colors whitespace-nowrap -mb-px ${
+                    active
+                      ? 'md:border-purple text-purple font-semibold'
+                      : 'text-hint hover:text-sub font-medium'
+                  }`}
+                >
+                  {/* Mobile: indicator hugs text width; desktop: full-width underline. */}
+                  <span className={active ? 'max-md:inline-block max-md:border-b-2 max-md:border-purple max-md:pb-1' : undefined}>
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
