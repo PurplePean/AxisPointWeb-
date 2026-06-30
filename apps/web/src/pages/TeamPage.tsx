@@ -12,7 +12,7 @@ function TeamPage() {
     <div className="min-h-screen">
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+64px)] pb-16 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+28px)] md:pt-[calc(68px+64px)] pb-16 overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/4 w-80 h-80 rounded-full bg-teal/10 blur-[80px]" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-purple/10 blur-[80px]" />
@@ -40,7 +40,7 @@ function TeamPage() {
             <div className="h-1 bg-gradient-to-r from-teal to-[#1b8fa8]" />
             <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr]">
               {/* Left */}
-              <div className="p-10 border-b lg:border-b-0 lg:border-r border-border">
+              <div className="p-10 max-md:p-6 border-b lg:border-b-0 lg:border-r border-border">
                 <div className="w-24 h-24 rounded-[18px] bg-teal/10 border-2 border-teal/30 flex items-center justify-center mb-5">
                   <span className="font-serif font-semibold text-teal" style={{ fontSize: '2.2rem' }}>{zach.initials}</span>
                 </div>
@@ -59,7 +59,7 @@ function TeamPage() {
                 </div>
               </div>
               {/* Right */}
-              <div className="p-10">
+              <div className="p-10 max-md:p-6">
                 <div className="text-hint font-semibold uppercase tracking-widest mb-4" style={{ fontSize: '0.62rem', letterSpacing: '0.1em' }}>Background</div>
                 <div className="text-sub leading-[1.8] mb-7" style={{ fontSize: '0.95rem' }}>
                   {zach.bio.map((para: string, i: number) => (
@@ -68,7 +68,7 @@ function TeamPage() {
                 </div>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-button bg-teal text-white text-sm font-semibold hover:brightness-110 transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-button bg-teal text-white text-sm font-semibold hover:brightness-110 transition-all max-md:w-full"
                 >
                   Let's Talk
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -82,7 +82,7 @@ function TeamPage() {
             <div className="h-1 bg-gradient-to-r from-purple to-[#2c1f4a]" />
             <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr]">
               {/* Left */}
-              <div className="p-10 border-b lg:border-b-0 lg:border-r border-border">
+              <div className="p-10 max-md:p-6 border-b lg:border-b-0 lg:border-r border-border">
                 <div className="w-24 h-24 rounded-[18px] bg-purple/10 border-2 border-purple/30 flex items-center justify-center mb-5">
                   <span className="font-serif font-semibold text-purple" style={{ fontSize: '2.2rem' }}>{ethaniel.initials}</span>
                 </div>
@@ -101,7 +101,7 @@ function TeamPage() {
                 </div>
               </div>
               {/* Right */}
-              <div className="p-10">
+              <div className="p-10 max-md:p-6">
                 <div className="text-hint font-semibold uppercase tracking-widest mb-4" style={{ fontSize: '0.62rem', letterSpacing: '0.1em' }}>Background</div>
                 <div className="text-sub leading-[1.8] mb-7" style={{ fontSize: '0.95rem' }}>
                   {ethaniel.bio.map((para: string, i: number) => (
@@ -110,7 +110,7 @@ function TeamPage() {
                 </div>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all max-md:w-full"
                 >
                   Let's Talk
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -153,7 +153,7 @@ function TeamPage() {
           </p>
           <Link
             to="/contact"
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all"
+            className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all max-md:w-full"
           >
             Start a conversation
           </Link>

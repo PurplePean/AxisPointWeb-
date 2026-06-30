@@ -8,7 +8,7 @@ function Footer() {
         {/* Top Section */}
         <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 mb-12">
           {/* Brand Column */}
-          <div>
+          <div className="max-md:flex max-md:flex-col max-md:items-center max-md:text-center">
             <div className="mb-5">
               <Logo height={32} className="brightness-0 invert opacity-60" />
             </div>

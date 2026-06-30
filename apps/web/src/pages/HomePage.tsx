@@ -18,7 +18,7 @@ function HomePage() {
           <div className="absolute rounded-full" style={{ width: 380, height: 380, background: 'rgba(56,40,93,.25)', top: '25%', left: -120, filter: 'blur(110px)' }} />
         </div>
 
-        <div className="relative max-w-[1160px] mx-auto px-7 w-full" style={{ paddingTop: 'calc(68px + 60px)', paddingBottom: 80 }}>
+        <div className="relative max-w-[1160px] mx-auto px-7 w-full pt-[96px] pb-14 md:pt-[128px] md:pb-20">
           <h1 className="rv font-serif font-semibold text-white mb-2 text-left" style={{ fontSize: 'clamp(1.7rem,5.5vw,4.2rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
             <span className="block whitespace-nowrap">Commercial real estate,</span>
             <em className="not-italic text-teal">done right.</em>
@@ -30,17 +30,17 @@ function HomePage() {
             We manage commercial real estate on behalf of investors across Texas. We find the deals, run the numbers, execute the business plan, and manage the asset from day one through exit.{' '}
             <strong className="text-white/90 font-semibold">You own the investment. We do the work.</strong>
           </p>
-          <div className="rv d3 flex flex-wrap gap-3">
+          <div className="rv d3 flex flex-wrap gap-3 max-md:flex-col">
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25 max-md:w-full"
             >
               Let's Talk
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </Link>
             <Link
               to="/services"
-              className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all"
+              className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all text-center max-md:w-full"
             >
               Explore Services
             </Link>
@@ -66,7 +66,7 @@ function HomePage() {
 
           <div className="rv d1 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* New to CRE */}
-            <div className="rounded-card text-white p-9 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
+            <div className="rounded-card text-white p-9 max-md:p-6 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
               <div className="inline-flex self-start px-3 py-1 rounded-chip text-xs font-semibold uppercase tracking-wider mb-5" style={{ background: 'rgba(36,165,188,0.15)', border: '1px solid rgba(36,165,188,0.3)', color: '#24a5bc' }}>
                 New to CRE
               </div>
@@ -98,7 +98,7 @@ function HomePage() {
             </div>
 
             {/* Existing Asset */}
-            <div className="rounded-card bg-card border border-border p-9 flex flex-col shadow-card">
+            <div className="rounded-card bg-card border border-border p-9 max-md:p-6 flex flex-col shadow-card">
               <div className="inline-flex self-start px-3 py-1 rounded-chip bg-purple/10 border border-purple/20 text-purple text-xs font-semibold uppercase tracking-wider mb-5">
                 Existing Asset
               </div>
@@ -150,8 +150,8 @@ function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Asset Management */}
-            <div className="rv d1 rounded-card bg-body border border-border p-7 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default" style={{ position: 'relative' }}>
-              <div className="w-10 h-10 rounded-lg bg-teal/10 flex items-center justify-center mb-5">
+            <div className="rv d1 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default" style={{ position: 'relative' }}>
+              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-teal/10 flex items-center justify-center mb-5">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18M9 9h6M9 13h6M9 17h4"/></svg>
               </div>
               <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Asset Management</h3>
@@ -165,8 +165,8 @@ function HomePage() {
             </div>
 
             {/* Advisory */}
-            <div className="rv d2 rounded-card bg-body border border-border p-7 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
-              <div className="w-10 h-10 rounded-lg bg-purple/10 flex items-center justify-center mb-5">
+            <div className="rv d2 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
+              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-purple/10 flex items-center justify-center mb-5">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Advisory and Acquisitions</h3>
@@ -180,8 +180,8 @@ function HomePage() {
             </div>
 
             {/* Referral */}
-            <div className="rv d3 rounded-card bg-body border border-border p-7 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
-              <div className="w-10 h-10 rounded-lg bg-magenta/10 flex items-center justify-center mb-5">
+            <div className="rv d3 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
+              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-magenta/10 flex items-center justify-center mb-5">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Referral Partner Program</h3>
@@ -320,17 +320,17 @@ function HomePage() {
             <p className="text-white/75 leading-[1.7] mb-8" style={{ fontSize: '1rem' }}>
               We are selective about the capital we work with and the assets we take on, because our name is on every deal we manage. If there's a fit, we'll know early.
             </p>
-            <div className="flex flex-wrap gap-3 mb-5">
+            <div className="flex flex-wrap gap-3 mb-5 max-md:flex-col">
               <Link
                 to="/contact"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25 max-md:w-full"
               >
                 Start a Conversation
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </Link>
               <Link
                 to="/services"
-                className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all"
+                className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all text-center max-md:w-full"
               >
                 View Our Services
               </Link>

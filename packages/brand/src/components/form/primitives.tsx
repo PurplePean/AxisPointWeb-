@@ -73,7 +73,7 @@ export function FInput({ id, label, type = 'text', placeholder, autocomplete }: 
         type={type}
         placeholder={placeholder}
         autoComplete={autocomplete}
-        className="w-full bg-white border border-border rounded-[10px] px-3 py-2.5 text-ink text-sm font-[Figtree,sans-serif] outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5]"
+        className="w-full bg-white border border-border rounded-[10px] px-3 py-2.5 text-ink text-sm max-md:text-base font-[Figtree,sans-serif] outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5]"
       />
     </div>
   );
@@ -87,7 +87,7 @@ export function FTextarea({ id, label, placeholder, rows = 3 }: { id: string; la
         id={id}
         placeholder={placeholder}
         rows={rows}
-        className="w-full bg-white border border-border rounded-[10px] px-3 py-2.5 text-ink text-sm outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5] resize-y leading-snug min-h-[76px]"
+        className="w-full bg-white border border-border rounded-[10px] px-3 py-2.5 text-ink text-sm max-md:text-base outline-none transition-all placeholder:text-hint focus:border-purple focus:shadow-[0_0_0_3px_#EEEAF5] resize-y leading-snug min-h-[76px]"
       />
     </div>
   );

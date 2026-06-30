@@ -59,7 +59,7 @@ function ServicesPage() {
     <div className="min-h-screen">
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+64px)] pb-16 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+28px)] md:pt-[calc(68px+64px)] pb-16 overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/3 w-96 h-96 rounded-full bg-teal/8 blur-[80px]" />
           <div className="absolute bottom-0 right-1/3 w-80 h-80 rounded-full bg-purple/8 blur-[80px]" />
@@ -373,7 +373,7 @@ function ServicesPage() {
               </div>
               <Link
                 to="/contact"
-                className="flex-none inline-flex items-center gap-2 px-6 py-3 rounded-button bg-purple text-white font-semibold text-sm hover:brightness-110 transition-all whitespace-nowrap"
+                className="flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-button bg-purple text-white font-semibold text-sm hover:brightness-110 transition-all whitespace-nowrap max-md:w-full"
               >
                 Become a referral partner
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -395,17 +395,17 @@ function ServicesPage() {
             <p className="text-white/75 leading-[1.7] mb-8" style={{ fontSize: '1rem' }}>
               That is what the first call is for. Tell us about your situation and we will tell you honestly whether there is a fit and what it looks like.
             </p>
-            <div className="flex flex-wrap gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center max-md:flex-col">
               <Link
                 to="/contact"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/20"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/20 max-md:w-full"
               >
                 Book a 30-minute call
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </Link>
               <Link
                 to="/team"
-                className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all"
+                className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all text-center max-md:w-full"
               >
                 Meet the team first
               </Link>

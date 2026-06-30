@@ -9,7 +9,7 @@ function ContactPage() {
     <div className="min-h-screen">
 
       {/* Hero */}
-      <section className="relative pt-[calc(68px+56px)] pb-14 overflow-hidden text-center" style={{ background: 'linear-gradient(135deg,#2A1E47 0%,#1C1628 100%)' }}>
+      <section className="relative pt-[calc(68px+24px)] md:pt-[calc(68px+56px)] pb-14 overflow-hidden text-center" style={{ background: 'linear-gradient(135deg,#2A1E47 0%,#1C1628 100%)' }}>
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-[-100px] right-[-80px] w-[400px] h-[400px] rounded-full" style={{ background: 'rgba(36,165,188,0.10)', filter: 'blur(70px)' }} />
           <div className="absolute bottom-[-60px] left-[5%] w-[280px] h-[280px] rounded-full" style={{ background: 'rgba(159,50,140,0.08)', filter: 'blur(70px)' }} />

@@ -12,7 +12,7 @@ function LearnPage() {
     <div className="min-h-screen">
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+64px)] pb-16 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-[#2d1f50] to-ink pt-[calc(68px+28px)] md:pt-[calc(68px+64px)] pb-16 overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-teal/8 blur-[70px]" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-purple/6 blur-[70px]" />
@@ -33,7 +33,7 @@ function LearnPage() {
       {/* ── Filter Bar ───────────────────────────────────── */}
       <div className="sticky z-40 bg-card border-b border-border" style={{ top: 68 }}>
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="flex gap-0">
+          <div className="flex gap-0 overflow-x-auto scrollbar-thin">
             {([['all', 'All'], ['pub', 'Publications']] as [Filter, string][]).map(([id, label]) => (
               <button
                 key={id}
@@ -68,7 +68,7 @@ function LearnPage() {
             </p>
             <Link
               to="/contact"
-              className="rv d2 inline-block px-7 py-3.5 rounded-button bg-purple text-white font-semibold hover:brightness-110 transition-all"
+              className="rv d2 inline-block px-7 py-3.5 rounded-button bg-purple text-white font-semibold hover:brightness-110 transition-all text-center max-md:w-full"
             >
               Subscribe for Updates
             </Link>
@@ -87,7 +87,7 @@ function LearnPage() {
             </div>
             <Link
               to="/contact"
-              className="flex-none px-6 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all"
+              className="flex-none px-6 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all text-center max-md:w-full"
             >
               Subscribe
             </Link>

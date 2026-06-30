@@ -7,6 +7,13 @@
     @apply antialiased;
   }
 
+  html,
+  body {
+    /* Part 2.6 — kill horizontal scroll on small screens */
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body {
     @apply bg-body text-ink font-sans;
   }
@@ -24,6 +31,62 @@
   /* Smooth scroll behavior */
   html {
     scroll-behavior: smooth;
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   MOBILE OPTIMIZATION — applies only below 768px.
+   Desktop (≥768px) is intentionally left untouched.
+   ════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Part 2.1 — horizontal padding reduced to 20px everywhere */
+  .px-7 {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* Part 2.2 — section vertical spacing reduced ~35% */
+  .py-24 { padding-top: 60px !important; padding-bottom: 60px !important; }
+  .py-20 { padding-top: 52px !important; padding-bottom: 52px !important; }
+  .py-16 { padding-top: 44px !important; padding-bottom: 44px !important; }
+  .py-14 { padding-top: 40px !important; padding-bottom: 40px !important; }
+  .pb-16 { padding-bottom: 40px !important; }
+  .pb-14 { padding-bottom: 36px !important; }
+
+  /* Part 2.3 — font sizes scaled down (inline clamp()s are overridden) */
+  /* Hero headline → max 2.2rem */
+  h1.font-serif {
+    font-size: 2.1rem !important;
+    line-height: 1.12 !important;
+  }
+  /* Section headings → max 1.6rem */
+  h2.font-serif {
+    font-size: 1.55rem !important;
+    line-height: 1.2 !important;
+  }
+  /* Let long hero headlines wrap instead of overflowing */
+  h1.font-serif .whitespace-nowrap {
+    white-space: normal !important;
+  }
+  /* Body copy → 15px max (targets the inline 1rem / 1.05rem / 0.95rem leads) */
+  [style*=" 1.05rem"],
+  [style*=" 1rem"] {
+    font-size: 0.94rem !important;
+  }
+  [style*=" 0.95rem"] {
+    font-size: 0.9rem !important;
+  }
+  /* Sub-headline → max 1.1rem (home hero italic clamp) */
+  [style*="1.3rem,2.5vw"] {
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Part 8.4 — footer link columns get 44px tap targets */
+  footer .flex.flex-col a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 }
 

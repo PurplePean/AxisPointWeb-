@@ -218,7 +218,7 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
   };
 
   return (
-    <div className={className ?? 'rv bg-white border border-border rounded-[22px] p-9 shadow-card'}>
+    <div className={className ?? 'rv bg-white border border-border rounded-[22px] p-9 max-md:p-5 shadow-card'}>
       {showProgress && <FormProgress stepOrder={stepOrder} currentStep={step} />}
       {step === 'role'    && <Step1Role c={c} />}
       {step === 'context' && <Step2Context c={c} />}

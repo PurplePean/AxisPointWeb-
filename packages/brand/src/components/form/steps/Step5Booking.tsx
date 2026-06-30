@@ -92,7 +92,7 @@ export function Step5Booking({ c }: { c: FormController }) {
                 </div>
                 <span className="text-[0.72rem] text-hint">Pick a time</span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {SLOTS.map(s => (
                   <button
                     key={s}

@@ -32,7 +32,7 @@ export function FormProgress({ stepOrder, currentStep }: { stepOrder: Step[]; cu
           </React.Fragment>
         ))}
       </div>
-      <div className="flex mt-1.5">
+      <div className="flex mt-1.5 max-md:hidden">
         {labels.map((lbl, i) => (
           <span
             key={lbl}
