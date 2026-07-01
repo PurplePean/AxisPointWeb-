@@ -38,10 +38,11 @@
    MOBILE SPACING & TYPE — applies only below 768px.
    Desktop (≥768px) is intentionally left untouched.
 
-   Philosophy: mobile needs MORE breathing room relative to
-   content, not less. We rebalance the rhythm — generous
-   section padding, readable type, relaxed line-height —
-   rather than shrinking to fit more on screen.
+   Philosophy: the desktop py-24 rhythm (96px top+bottom per
+   section) stacks into ~1000px of dead whitespace on a phone.
+   On mobile we tighten vertical padding to roughly half so the
+   page reads as a continuous flow, while keeping type readable
+   and line-height relaxed. Desktop is unchanged.
    ════════════════════════════════════════════════════════ */
 @media (max-width: 767px) {
   /* Horizontal page gutter */
@@ -50,14 +51,14 @@
     padding-right: 22px !important;
   }
 
-  /* ── 1 / 10. VERTICAL RHYTHM — never below 56px; give sections
-     a clear breathing gap. More scrolling beats cramped. ── */
-  .py-24 { padding-top: 72px !important; padding-bottom: 72px !important; }
-  .py-20 { padding-top: 64px !important; padding-bottom: 64px !important; }
-  .py-16 { padding-top: 60px !important; padding-bottom: 60px !important; }
-  .py-14 { padding-top: 56px !important; padding-bottom: 56px !important; }
-  .pb-16 { padding-bottom: 60px !important; }
-  .pb-14 { padding-bottom: 56px !important; }
+  /* ── 1 / 10. VERTICAL RHYTHM — tighten section padding so the
+     page doesn't balloon with whitespace. py-24 → 3rem (was 6rem). ── */
+  .py-24 { padding-top: 3rem !important;    padding-bottom: 3rem !important; }
+  .py-20 { padding-top: 2.5rem !important;  padding-bottom: 2.5rem !important; }
+  .py-16 { padding-top: 2rem !important;    padding-bottom: 2rem !important; }
+  .py-14 { padding-top: 1.75rem !important; padding-bottom: 1.75rem !important; }
+  .pb-16 { padding-bottom: 2rem !important; }
+  .pb-14 { padding-bottom: 1.75rem !important; }
 
   /* ── 7. TYPOGRAPHY — readable size matters more than fitting
      more on screen. Inline clamp()/px sizes are overridden. ── */
