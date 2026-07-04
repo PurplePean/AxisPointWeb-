@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useReveal } from '../hooks/useReveal';
 
-type Tab = 'asset' | 'advisory' | 'takeover' | 'referral';
+type Tab = 'asset' | 'advisory' | 'referral';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'asset', label: 'Asset Management' },
   { id: 'advisory', label: 'Advisory and Acquisitions' },
-  { id: 'takeover', label: 'Asset Takeover' },
   { id: 'referral', label: 'Referral Partners' },
 ];
 
@@ -53,7 +52,7 @@ function SidePanel({ btnColor, title, body, note, ctaText, ctaTo, sticky = true 
 
 /* ── Mobile accordion (md:hidden) ───────────────────────────
    Same copy/data as the desktop tabs, stacked vertically so the
-   four services never overflow horizontally on small screens.   */
+   three services never overflow horizontally on small screens.   */
 
 function MHead({ eyebrow, heading, description }: { eyebrow: string; heading: string; description: string }) {
   return (
@@ -74,42 +73,51 @@ function MobileAsset() {
     <>
       <MHead
         eyebrow="Asset Management"
-        heading="Day-to-day oversight. Defined outcomes."
-        description="Most investors who own real estate directly are not actually managing their asset. They are reacting to it. Without a dedicated asset manager, CapEx projects stall, property managers operate without accountability, and reporting gaps leave investors making decisions without accurate information. AxisPoint changes that dynamic from day one."
+        heading="Your asset. Our full attention."
+        description="Whether you're acquiring your first commercial property or inheriting a management problem, the engagement starts the same way — an honest conversation and a real plan. Most property owners are reacting to their asset, not managing it. Vendors go unaccountable, CapEx gets deferred, reporting gaps leave you making decisions without accurate numbers. AxisPoint changes that from day one. We step in as your dedicated asset manager — whether you're starting clean or taking over a situation — and run your asset the way it should be run."
       />
       <div className="mb-6">
         <SvcItem {...teal}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+          title="Current-state assessment"
+          description="We start with an honest review of where the asset actually stands. Financials, operations, leasing, deferred maintenance. No assumptions."
+        />
+        <SvcItem {...teal}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>}
+          title="Business plan and strategy"
+          description="Based on the assessment we build a defined plan with clear milestones, a realistic CapEx program, and measurable performance targets."
+        />
+        <SvcItem {...teal}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
-          title="CapEx business plan development and oversight"
-          description="We develop a defined capital improvement program and manage execution from start to finish, holding contractors to schedule and budget."
+          title="CapEx oversight and execution"
+          description="We manage every capital project from scope to completion, holding contractors to schedule and budget."
         />
         <SvcItem {...teal}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
           title="Third-party property management supervision"
-          description="We supervise your property manager, hold them to performance benchmarks, and replace them if they are not performing. You are not managing the manager. We are."
+          description="We supervise your property manager, hold them to benchmarks, and replace them if they aren't performing. You are not managing the manager. We are."
         />
         <SvcItem {...teal}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>}
-          title="Monthly financial reporting and investor communication"
-          description="You receive clean, accurate monthly reports. No surprises. No gaps. You always know exactly where your asset stands."
+          title="Monthly financial reporting"
+          description="Clean, accurate monthly reports. No surprises. You always know exactly where your asset stands."
         />
         <SvcItem {...teal}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
           title="Debt placement and lender coordination"
-          description="We manage lender relationships, coordinate refinancing, and optimize your debt structure as the asset performs and market conditions evolve."
+          description="We manage lender relationships, coordinate refinancing, and optimize your debt structure as the asset performs."
         />
         <SvcItem {...teal}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-          title="Disposition and exit strategy execution"
-          description="When it is time to sell, we prepare the asset, position it for market, and manage the disposition process through closing."
+          title="Disposition and exit strategy"
+          description="When it's time to sell, we prepare the asset, position it for market, and manage the process through closing."
         />
       </div>
       <SidePanel
         sticky={false}
         btnColor="bg-teal"
-        title="Property owners who want institutional-grade oversight without institutional minimums"
-        body="Whether you own a single multifamily property or a growing portfolio across Texas markets, AxisPoint brings the same disciplined management structure to your asset. You maintain full ownership. We do the work."
-        note="Our specialty is Class B and C workforce housing in primary and secondary Texas markets, and commercial assets across all classes including industrial, retail, office, and NNN."
+        title="For property owners who want institutional-grade oversight without institutional minimums"
+        body="Whether you own one asset or a growing portfolio across Texas, AxisPoint brings the same disciplined management structure to every engagement. You maintain full ownership. We do the work."
         ctaText="Talk to us about your property"
         ctaTo="/contact"
       />
@@ -187,87 +195,45 @@ function MobileAdvisory() {
   );
 }
 
-function MobileTakeover() {
-  const magenta = { color: 'bg-magenta/10' };
+function MobileReferral() {
+  const purple = { color: 'bg-purple/10' };
   return (
     <>
       <MHead
-        eyebrow="Asset Takeover"
-        heading="It is never too late to put a real structure in place."
-        description="Not every client is starting from scratch. If you already own an asset that is underperforming, poorly managed, or simply running without a defined strategy, AxisPoint can step in as your asset manager. We assess the current state of the asset, identify operational gaps, implement a corrective business plan, and take over day-to-day oversight on your behalf."
+        eyebrow="Referral Partners"
+        heading="You know people who could use this. We make it easy to connect them."
+        description="You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners — a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good."
       />
       <div className="mb-6">
-        <SvcItem {...magenta}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
-          title="Current-state assessment"
-          description="We begin with a thorough assessment of the asset, the existing management, the leasing situation, the financials, and any deferred maintenance or CapEx that has been ignored."
+        <SvcItem {...purple}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>}
+          title="Your own referral link"
+          description="Share it however you want. When someone reaches out through your link, we know it came from you."
         />
-        <SvcItem {...magenta}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>}
-          title="Corrective business plan"
-          description="Based on the assessment, we build a corrective business plan with defined milestones, a realistic CapEx budget, and measurable performance targets."
+        <SvcItem {...purple}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+          title="We handle everything"
+          description="The conversation, the underwriting, the management. You stay connected and informed, but we do the work."
         />
-        <SvcItem {...magenta}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
-          title="Management transition and stabilization"
-          description="We handle the transition from your existing management structure, implement new vendor relationships where needed, and stabilize operations as quickly as possible."
+        <SvcItem {...purple}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+          title="Your relationship stays yours"
+          description="We work alongside your network, not around it. Your clients and contacts stay yours."
         />
-        <SvcItem {...magenta}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-          title="Ongoing asset management"
-          description="Once stabilized, we continue as your asset manager with the same reporting, accountability, and oversight we bring to every engagement."
+        <SvcItem {...purple}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>}
+          title="Referral partners are recognized and rewarded"
+          description="Every relationship you bring to AxisPoint is acknowledged. Reach out and we'll walk you through how it works."
         />
       </div>
       <SidePanel
         sticky={false}
-        btnColor="bg-magenta"
-        title="Owners with an asset that is not performing the way it should"
-        body="Whether you acquired the asset recently or have owned it for years, the situation is the same. You own a property that needs a real management structure. We can provide it."
-        note="Takeover engagements can happen quickly. If you have a situation that needs attention, the first call is the right place to start."
-        ctaText="Tell us about your situation"
+        btnColor="bg-purple"
+        title="For anyone who is connected to people with capital, existing assets, or an interest in commercial real estate"
+        body="No real estate background required. If you know the right people, we do the rest."
+        ctaText="Become a referral partner"
         ctaTo="/contact"
       />
-    </>
-  );
-}
-
-function MobileReferral() {
-  const cards = [
-    { bar: 'bg-teal', title: 'For CPAs and Tax Advisors', body: 'Your clients with real estate holdings need someone who understands the asset side as well as you understand the tax side. We provide deal analysis, asset oversight, and acquisition support. You stay in your lane. We stay in ours. Together you give your client a complete picture.' },
-    { bar: 'bg-purple', title: 'For Attorneys', body: 'When your clients are buying, selling, or inheriting commercial real estate, they need operational guidance that goes beyond the transaction itself. We provide pre-acquisition underwriting and ongoing asset management that protects their position after closing.' },
-    { bar: 'bg-magenta', title: 'For Financial Advisors', body: 'Clients looking to diversify into commercial real estate often come to you first. We handle the CRE piece, provide institutional-grade reporting, and keep you informed so you can continue to serve the whole client relationship.' },
-  ];
-  return (
-    <>
-      <MHead
-        eyebrow="Referral Partner Program"
-        heading="Your clients have real estate. We help them manage it well."
-        description="CPAs, attorneys, and financial advisors are often the first call when a client has a real estate question. AxisPoint becomes the CRE specialist in your network, deepening your client relationships without adding overhead to your practice."
-      />
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        {cards.map((card) => (
-          <div key={card.title} className="rounded-card bg-body border border-border overflow-hidden flex flex-col">
-            <div className={`h-1 ${card.bar}`} />
-            <div className="p-6">
-              <h4 className="font-serif font-semibold text-ink mb-2" style={{ fontSize: '1.05rem' }}>{card.title}</h4>
-              <p className="text-sub leading-[1.7]" style={{ fontSize: '0.875rem' }}>{card.body}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="rounded-card text-white p-6" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
-        <h4 className="font-serif font-semibold text-white mb-2" style={{ fontSize: '1.1rem' }}>How to refer a client</h4>
-        <p className="text-white leading-[1.7] mb-5" style={{ fontSize: '0.875rem' }}>
-          Send us an introduction and we take it from there. We handle the client conversation, provide a clear summary of what we discussed, and loop you back in so you are never out of the picture. Your client relationship stays yours.
-        </p>
-        <Link
-          to="/contact"
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-button bg-purple text-white font-semibold text-sm hover:brightness-110 transition-all"
-        >
-          Become a referral partner
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </Link>
-      </div>
     </>
   );
 }
@@ -276,7 +242,6 @@ function MobilePanel({ id }: { id: Tab }) {
   switch (id) {
     case 'asset': return <MobileAsset />;
     case 'advisory': return <MobileAdvisory />;
-    case 'takeover': return <MobileTakeover />;
     case 'referral': return <MobileReferral />;
   }
 }
@@ -390,41 +355,53 @@ function ServicesPage() {
                     <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Asset Management</span>
                   </div>
                   <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-                    Day-to-day oversight. Defined outcomes.
+                    Your asset. Our full attention.
                   </h2>
                   <p className="text-sub leading-[1.7] mb-6 max-w-2xl" style={{ fontSize: '0.95rem' }}>
-                    Most investors who own real estate directly are not actually managing their asset. They are reacting to it. Without a dedicated asset manager, CapEx projects stall, property managers operate without accountability, and reporting gaps leave investors making decisions without accurate information. AxisPoint changes that dynamic from day one.
+                    Whether you're acquiring your first commercial property or inheriting a management problem, the engagement starts the same way — an honest conversation and a real plan. Most property owners are reacting to their asset, not managing it. Vendors go unaccountable, CapEx gets deferred, reporting gaps leave you making decisions without accurate numbers. AxisPoint changes that from day one. We step in as your dedicated asset manager — whether you're starting clean or taking over a situation — and run your asset the way it should be run.
                   </p>
                   <div>
                     <SvcItem
                       color="bg-teal/10"
+                      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+                      title="Current-state assessment"
+                      description="We start with an honest review of where the asset actually stands. Financials, operations, leasing, deferred maintenance. No assumptions."
+                    />
+                    <SvcItem
+                      color="bg-teal/10"
+                      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>}
+                      title="Business plan and strategy"
+                      description="Based on the assessment we build a defined plan with clear milestones, a realistic CapEx program, and measurable performance targets."
+                    />
+                    <SvcItem
+                      color="bg-teal/10"
                       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
-                      title="CapEx business plan development and oversight"
-                      description="We develop a defined capital improvement program and manage execution from start to finish, holding contractors to schedule and budget."
+                      title="CapEx oversight and execution"
+                      description="We manage every capital project from scope to completion, holding contractors to schedule and budget."
                     />
                     <SvcItem
                       color="bg-teal/10"
                       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
                       title="Third-party property management supervision"
-                      description="We supervise your property manager, hold them to performance benchmarks, and replace them if they are not performing. You are not managing the manager. We are."
+                      description="We supervise your property manager, hold them to benchmarks, and replace them if they aren't performing. You are not managing the manager. We are."
                     />
                     <SvcItem
                       color="bg-teal/10"
                       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>}
-                      title="Monthly financial reporting and investor communication"
-                      description="You receive clean, accurate monthly reports. No surprises. No gaps. You always know exactly where your asset stands."
+                      title="Monthly financial reporting"
+                      description="Clean, accurate monthly reports. No surprises. You always know exactly where your asset stands."
                     />
                     <SvcItem
                       color="bg-teal/10"
                       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
                       title="Debt placement and lender coordination"
-                      description="We manage lender relationships, coordinate refinancing, and optimize your debt structure as the asset performs and market conditions evolve."
+                      description="We manage lender relationships, coordinate refinancing, and optimize your debt structure as the asset performs."
                     />
                     <SvcItem
                       color="bg-teal/10"
                       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-                      title="Disposition and exit strategy execution"
-                      description="When it is time to sell, we prepare the asset, position it for market, and manage the disposition process through closing."
+                      title="Disposition and exit strategy"
+                      description="When it's time to sell, we prepare the asset, position it for market, and manage the process through closing."
                     />
                   </div>
                 </div>
@@ -432,9 +409,8 @@ function ServicesPage() {
                   <SidePanel
                     color="text-teal"
                     btnColor="bg-teal"
-                    title="Property owners who want institutional-grade oversight without institutional minimums"
-                    body="Whether you own a single multifamily property or a growing portfolio across Texas markets, AxisPoint brings the same disciplined management structure to your asset. You maintain full ownership. We do the work."
-                    note="Our specialty is Class B and C workforce housing in primary and secondary Texas markets, and commercial assets across all classes including industrial, retail, office, and NNN."
+                    title="For property owners who want institutional-grade oversight without institutional minimums"
+                    body="Whether you own one asset or a growing portfolio across Texas, AxisPoint brings the same disciplined management structure to every engagement. You maintain full ownership. We do the work."
                     ctaText="Talk to us about your property"
                     ctaTo="/contact"
                   />
@@ -539,125 +515,59 @@ function ServicesPage() {
         </section>
       )}
 
-      {/* ── Asset Takeover ───────────────────────────────── */}
-      {activeTab === 'takeover' && (
+      {/* ── Referral Partners ────────────────────────────── */}
+      {activeTab === 'referral' && (
         <section className="py-20 bg-card">
           <div className="max-w-[1160px] mx-auto px-7">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
               <div className="rv">
                 <div className="flex items-center gap-2.5 mb-3.5">
                   <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-                  <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Asset Takeover</span>
+                  <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Referral Partners</span>
                 </div>
                 <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-                  It is never too late to put a real structure in place.
+                  You know people who could use this. We make it easy to connect them.
                 </h2>
                 <p className="text-sub leading-[1.7] mb-6 max-w-2xl" style={{ fontSize: '0.95rem' }}>
-                  Not every client is starting from scratch. If you already own an asset that is underperforming, poorly managed, or simply running without a defined strategy, AxisPoint can step in as your asset manager. We assess the current state of the asset, identify operational gaps, implement a corrective business plan, and take over day-to-day oversight on your behalf.
+                  You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners — a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good.
                 </p>
                 <div>
                   <SvcItem
-                    color="bg-magenta/10"
-                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
-                    title="Current-state assessment"
-                    description="We begin with a thorough assessment of the asset, the existing management, the leasing situation, the financials, and any deferred maintenance or CapEx that has been ignored."
+                    color="bg-purple/10"
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>}
+                    title="Your own referral link"
+                    description="Share it however you want. When someone reaches out through your link, we know it came from you."
                   />
                   <SvcItem
-                    color="bg-magenta/10"
-                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>}
-                    title="Corrective business plan"
-                    description="Based on the assessment, we build a corrective business plan with defined milestones, a realistic CapEx budget, and measurable performance targets."
+                    color="bg-purple/10"
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                    title="We handle everything"
+                    description="The conversation, the underwriting, the management. You stay connected and informed, but we do the work."
                   />
                   <SvcItem
-                    color="bg-magenta/10"
-                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
-                    title="Management transition and stabilization"
-                    description="We handle the transition from your existing management structure, implement new vendor relationships where needed, and stabilize operations as quickly as possible."
+                    color="bg-purple/10"
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+                    title="Your relationship stays yours"
+                    description="We work alongside your network, not around it. Your clients and contacts stay yours."
                   />
                   <SvcItem
-                    color="bg-magenta/10"
-                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-                    title="Ongoing asset management"
-                    description="Once stabilized, we continue as your asset manager with the same reporting, accountability, and oversight we bring to every engagement."
+                    color="bg-purple/10"
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>}
+                    title="Referral partners are recognized and rewarded"
+                    description="Every relationship you bring to AxisPoint is acknowledged. Reach out and we'll walk you through how it works."
                   />
                 </div>
               </div>
               <div className="rv d2">
                 <SidePanel
-                  color="text-magenta"
-                  btnColor="bg-magenta"
-                  title="Owners with an asset that is not performing the way it should"
-                  body="Whether you acquired the asset recently or have owned it for years, the situation is the same. You own a property that needs a real management structure. We can provide it."
-                  note="Takeover engagements can happen quickly. If you have a situation that needs attention, the first call is the right place to start."
-                  ctaText="Tell us about your situation"
+                  color="text-purple"
+                  btnColor="bg-purple"
+                  title="For anyone who is connected to people with capital, existing assets, or an interest in commercial real estate"
+                  body="No real estate background required. If you know the right people, we do the rest."
+                  ctaText="Become a referral partner"
                   ctaTo="/contact"
                 />
               </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Referral Partners ────────────────────────────── */}
-      {activeTab === 'referral' && (
-        <section className="py-20 bg-card">
-          <div className="max-w-[1160px] mx-auto px-7">
-            <div className="rv mb-10">
-              <div className="flex items-center gap-2.5 mb-3.5">
-                <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-                <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Referral Partner Program</span>
-              </div>
-              <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-                Your clients have real estate. We help them manage it well.
-              </h2>
-              <p className="text-sub leading-[1.7] max-w-2xl" style={{ fontSize: '0.95rem' }}>
-                CPAs, attorneys, and financial advisors are often the first call when a client has a real estate question. AxisPoint becomes the CRE specialist in your network, deepening your client relationships without adding overhead to your practice.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-              {[
-                {
-                  color: 'teal', bar: 'bg-teal', badge: 'bg-teal/10 text-teal border-teal/20',
-                  title: 'For CPAs and Tax Advisors',
-                  body: 'Your clients with real estate holdings need someone who understands the asset side as well as you understand the tax side. We provide deal analysis, asset oversight, and acquisition support. You stay in your lane. We stay in ours. Together you give your client a complete picture.',
-                },
-                {
-                  color: 'purple', bar: 'bg-purple', badge: 'bg-purple/10 text-purple border-purple/20',
-                  title: 'For Attorneys',
-                  body: 'When your clients are buying, selling, or inheriting commercial real estate, they need operational guidance that goes beyond the transaction itself. We provide pre-acquisition underwriting and ongoing asset management that protects their position after closing.',
-                },
-                {
-                  color: 'magenta', bar: 'bg-magenta', badge: 'bg-magenta/10 text-magenta border-magenta/20',
-                  title: 'For Financial Advisors',
-                  body: 'Clients looking to diversify into commercial real estate often come to you first. We handle the CRE piece, provide institutional-grade reporting, and keep you informed so you can continue to serve the whole client relationship.',
-                },
-              ].map((card, i) => (
-                <div key={card.title} className={`rv d${i + 1} rounded-card bg-body border border-border overflow-hidden flex flex-col`}>
-                  <div className={`h-1 ${card.bar}`} />
-                  <div className="p-7 flex flex-col flex-1">
-                    <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>{card.title}</h3>
-                    <p className="text-sub leading-[1.7] flex-1" style={{ fontSize: '0.875rem' }}>{card.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA row */}
-            <div className="rv d2 rounded-card text-white p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
-              <div>
-                <h3 className="font-serif font-semibold text-white mb-2" style={{ fontSize: '1.2rem' }}>How to refer a client</h3>
-                <p className="text-white leading-[1.7] max-w-lg" style={{ fontSize: '0.875rem' }}>
-                  Send us an introduction and we take it from there. We handle the client conversation, provide a clear summary of what we discussed, and loop you back in so you are never out of the picture. Your client relationship stays yours.
-                </p>
-              </div>
-              <Link
-                to="/contact"
-                className="flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-button bg-purple text-white font-semibold text-sm hover:brightness-110 transition-all whitespace-nowrap max-md:w-full"
-              >
-                Become a referral partner
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </Link>
             </div>
           </div>
         </section>
