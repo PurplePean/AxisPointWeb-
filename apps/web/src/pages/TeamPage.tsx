@@ -21,11 +21,11 @@ function TeamPage() {
           <div className="rv inline-flex items-center px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
             The People Behind the Work
           </div>
-          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.4rem,4.5vw,3.6rem)' }}>
+          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.7rem,4.8vw,4rem)' }}>
             Two specialists.<br />
             <em className="not-italic text-teal">One firm.</em>
           </h1>
-          <p className="rv d2 text-white/60 leading-[1.7]" style={{ fontSize: '1.05rem' }}>
+          <p className="rv d2 text-white leading-[1.7]" style={{ fontSize: '1.2rem' }}>
             When you work with AxisPoint, you deal with Zachary and Ethaniel directly, from the first call through every decision along the way.
           </p>
         </div>

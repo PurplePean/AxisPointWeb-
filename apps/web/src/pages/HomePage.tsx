@@ -19,16 +19,16 @@ function HomePage() {
         </div>
 
         <div className="relative max-w-[1160px] mx-auto px-7 w-full pt-[96px] pb-14 md:pt-[128px] md:pb-20">
-          <h1 className="rv font-serif font-semibold text-white mb-2 text-left" style={{ fontSize: 'clamp(1.7rem,5.5vw,4.2rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
+          <h1 className="rv font-serif font-semibold text-white mb-2 text-left" style={{ fontSize: 'clamp(1.9rem,5.5vw,4.6rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
             <span className="block whitespace-nowrap">Commercial real estate,</span>
             <em className="not-italic text-teal">done right.</em>
           </h1>
-          <p className="rv d2 font-serif italic text-white/70 mb-7" style={{ fontSize: 'clamp(1.3rem,2.5vw,1.7rem)', lineHeight: 1.35 }}>
+          <p className="rv d2 font-serif italic text-white mb-7" style={{ fontSize: 'clamp(1.45rem,2.7vw,1.9rem)', lineHeight: 1.35 }}>
             Most people never invest in CRE because they do not have the right team behind them. That is the problem AxisPoint solves.
           </p>
-          <p className="rv d2 text-white/65 mb-10 max-w-[480px]" style={{ fontSize: '1rem', lineHeight: 1.75 }}>
+          <p className="rv d2 text-white mb-10 max-w-[760px]" style={{ fontSize: '1.125rem', lineHeight: 1.75 }}>
             We manage commercial real estate on behalf of investors across Texas. We find the deals, run the numbers, execute the business plan, and manage the asset from day one through exit.{' '}
-            <strong className="text-white/90 font-semibold">You own the investment. We do the work.</strong>
+            <strong className="text-white font-semibold">You own the investment. We do the work.</strong>
           </p>
           <div className="rv d3 flex flex-wrap gap-3 max-md:flex-col">
             <Link

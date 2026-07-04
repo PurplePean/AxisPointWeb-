@@ -21,10 +21,10 @@ function LearnPage() {
           <div className="rv inline-flex items-center px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
             Insights & Knowledge
           </div>
-          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.4rem,4.5vw,3.6rem)' }}>
+          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.7rem,4.8vw,4rem)' }}>
             Learn from <em className="not-italic text-teal">practitioners</em>
           </h1>
-          <p className="rv d2 text-white/60 leading-[1.7] max-w-[500px]" style={{ fontSize: '1rem' }}>
+          <p className="rv d2 text-white leading-[1.7] max-w-[760px]" style={{ fontSize: '1.15rem' }}>
             Articles, guides, and papers written by Zachary and Ethaniel on commercial real estate strategy, asset management, and the Texas market.
           </p>
         </div>

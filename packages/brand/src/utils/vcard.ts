@@ -13,7 +13,7 @@ const VCARD = [
   'EMAIL;TYPE=WORK:zach@axispoint.llc',
   'TEL;TYPE=WORK,VOICE:(832) 580-2815',
   'URL:https://axispoint.llc',
-  'ADR;TYPE=WORK:;;Houston;TX;;;USA',
+  'ADR;TYPE=WORK:;;9999 Bellaire Blvd, Ste 999;Houston;TX;77036;USA',
   'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, asset takeover, and referral partnerships. Houston, TX.',
   'END:VCARD',
   'BEGIN:VCARD',
@@ -25,7 +25,7 @@ const VCARD = [
   'EMAIL;TYPE=WORK:ethaniel@axispoint.llc',
   'TEL;TYPE=WORK,VOICE:(832) 499-8389',
   'URL:https://axispoint.llc',
-  'ADR;TYPE=WORK:;;Houston;TX;;;USA',
+  'ADR;TYPE=WORK:;;9999 Bellaire Blvd, Ste 999;Houston;TX;77036;USA',
   'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, asset takeover, and referral partnerships. Houston, TX.',
   'END:VCARD',
 ].join('\r\n');

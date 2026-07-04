@@ -29,9 +29,6 @@ function Footer() {
                 Advisory and Acquisitions
               </Link>
               <Link to="/services" className="text-sm text-sub hover:text-teal transition-colors">
-                Asset Takeover
-              </Link>
-              <Link to="/services" className="text-sm text-sub hover:text-teal transition-colors">
                 Referral Partners
               </Link>
             </div>
@@ -65,7 +62,11 @@ function Footer() {
           <div>
             <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Contact</h5>
             <div className="flex flex-col gap-2.5">
-              <span className="text-sm text-hint">Houston, TX</span>
+              <span className="text-sm text-hint leading-relaxed">
+                9999 Bellaire Blvd, Ste 999
+                <br />
+                Houston, TX 77036
+              </span>
             </div>
           </div>
         </div>
@@ -77,7 +78,7 @@ function Footer() {
             Partners does not provide tax or legal advice. This website is intended for
             informational purposes only and does not constitute an offer to sell securities.
           </p>
-          <p className="text-xs text-hint">© 2025 AxisPoint Partners LLC. All rights reserved.</p>
+          <p className="text-xs text-hint">© 2026 AxisPoint Partners LLC. All rights reserved.</p>
         </div>
       </div>
     </footer>
