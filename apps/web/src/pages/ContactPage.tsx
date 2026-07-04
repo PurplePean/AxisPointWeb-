@@ -15,8 +15,7 @@ function ContactPage() {
           <div className="absolute bottom-[-60px] left-[5%] w-[280px] h-[280px] rounded-full" style={{ background: 'rgba(159,50,140,0.08)', filter: 'blur(70px)' }} />
         </div>
         <div className="relative max-w-[640px] mx-auto px-7">
-          <div className="rv inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal/15 border border-teal/25 text-teal text-[0.68rem] font-semibold tracking-[0.1em] uppercase mb-5">
-            <span className="w-[5px] h-[5px] rounded-full bg-teal" />
+          <div className="rv inline-flex items-center px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
             Get in Touch
           </div>
           <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.2rem,4vw,3.2rem)' }}>

@@ -18,7 +18,7 @@ function LearnPage() {
           <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-purple/6 blur-[70px]" />
         </div>
         <div className="relative max-w-[1160px] mx-auto px-7">
-          <div className="rv inline-flex items-center gap-2 px-4 py-1.5 rounded-chip bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-5 tracking-wider">
+          <div className="rv inline-flex items-center px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
             Insights & Knowledge
           </div>
           <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.4rem,4.5vw,3.6rem)' }}>

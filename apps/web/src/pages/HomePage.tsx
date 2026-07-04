@@ -65,10 +65,10 @@ function HomePage() {
           </div>
 
           <div className="rv d1 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* New to CRE */}
+            {/* First Investment */}
             <div className="rounded-card text-white p-9 max-md:p-7 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
-              <div className="inline-flex self-start px-3 py-1 rounded-chip text-xs font-semibold uppercase tracking-wider mb-5" style={{ background: 'rgba(36,165,188,0.15)', border: '1px solid rgba(36,165,188,0.3)', color: '#24a5bc' }}>
-                New to CRE
+              <div className="inline-flex self-start px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
+                First Investment
               </div>
               <h3 className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>
                 We'll walk you through every step of the process
@@ -99,7 +99,7 @@ function HomePage() {
 
             {/* Existing Asset */}
             <div className="rounded-card bg-card border border-border p-9 max-md:p-7 flex flex-col shadow-card">
-              <div className="inline-flex self-start px-3 py-1 rounded-chip bg-purple/10 border border-purple/20 text-purple text-xs font-semibold uppercase tracking-wider mb-5">
+              <div className="inline-flex self-start px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
                 Existing Asset
               </div>
               <h3 className="font-serif font-semibold text-ink mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>

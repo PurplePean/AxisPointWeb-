@@ -45,7 +45,7 @@ function ArticlePage() {
         </Link>
 
         {/* Placeholder content — real articles loaded from markdown */}
-        <div className="inline-flex px-3 py-1 rounded-chip bg-teal/10 border border-teal/20 text-teal text-xs font-semibold uppercase tracking-wider mb-6">
+        <div className="inline-flex px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-6">
           Article
         </div>
 

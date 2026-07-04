@@ -24,32 +24,6 @@ function SvcItem({ color, icon, title, description }: { color: string; icon: Rea
   );
 }
 
-function SidePanel({ btnColor, title, body, note, ctaText, ctaTo, sticky = true }: {
-  color?: string; btnColor: string; title: string; body: string; note?: string; ctaText: string; ctaTo: string; sticky?: boolean;
-}) {
-  return (
-    <div className={`rounded-[16px] text-white p-7 ${sticky ? 'sticky' : ''}`} style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)', ...(sticky ? { top: 'calc(68px + 56px + 24px)' } : {}) }}>
-      <div className="text-xs font-semibold uppercase tracking-widest mb-4 text-white/60" style={{ letterSpacing: '0.1em' }}>Who this is for</div>
-      <div className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.1rem' }}>{title}</div>
-      <p className="text-white leading-[1.7] mb-4" style={{ fontSize: '0.875rem' }}>{body}</p>
-      {note && (
-        <>
-          <div className="h-px bg-white/10 mb-4" />
-          <p className="text-white/70 leading-[1.6] mb-5" style={{ fontSize: '0.8rem' }}>{note}</p>
-        </>
-      )}
-      <Link
-        to={ctaTo}
-        className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-button text-white text-sm font-semibold hover:brightness-110 transition-all ${btnColor}`}
-      >
-        {ctaText}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </Link>
-      <div className="text-center text-hint mt-2" style={{ fontSize: '0.72rem' }}>30 minute intro call, no obligation</div>
-    </div>
-  );
-}
-
 /* ── Mobile accordion (md:hidden) ───────────────────────────
    Same copy/data as the desktop tabs, stacked vertically so the
    three services never overflow horizontally on small screens.   */
@@ -113,14 +87,6 @@ function MobileAsset() {
           description="When it's time to sell, we prepare the asset, position it for market, and manage the process through closing."
         />
       </div>
-      <SidePanel
-        sticky={false}
-        btnColor="bg-teal"
-        title="For property owners who want institutional-grade oversight without institutional minimums"
-        body="Whether you own one asset or a growing portfolio across Texas, AxisPoint brings the same disciplined management structure to every engagement. You maintain full ownership. We do the work."
-        ctaText="Talk to us about your property"
-        ctaTo="/contact"
-      />
       {/* Underwriting standard — cards kept at gap-6 on mobile */}
       <div className="mt-8">
         <MHead
@@ -182,15 +148,6 @@ function MobileAdvisory() {
           description="For clients building toward a larger portfolio, we help you think through sequencing, risk exposure, and how each acquisition fits the long-term picture."
         />
       </div>
-      <SidePanel
-        sticky={false}
-        btnColor="bg-purple"
-        title="Investors who want an honest read before committing"
-        body="If you have a deal in front of you and want to know what it actually is, or if you want us to source and underwrite opportunities on your behalf, Advisory is where we start. Every asset management engagement begins here."
-        note="Advisory services are also available for CPAs and attorneys with clients evaluating a real estate transaction. We provide the analysis. You stay in your lane."
-        ctaText="Bring us a deal to look at"
-        ctaTo="/contact"
-      />
     </>
   );
 }
@@ -226,14 +183,6 @@ function MobileReferral() {
           description="Every relationship you bring to AxisPoint is acknowledged. Reach out and we'll walk you through how it works."
         />
       </div>
-      <SidePanel
-        sticky={false}
-        btnColor="bg-purple"
-        title="For anyone who is connected to people with capital, existing assets, or an interest in commercial real estate"
-        body="No real estate background required. If you know the right people, we do the rest."
-        ctaText="Become a referral partner"
-        ctaTo="/contact"
-      />
     </>
   );
 }
@@ -300,13 +249,13 @@ function ServicesPage() {
           <div className="absolute bottom-0 right-1/3 w-80 h-80 rounded-full bg-purple/8 blur-[80px]" />
         </div>
         <div className="relative max-w-[1160px] mx-auto px-7">
-          <div className="rv inline-flex items-center gap-2 px-4 py-1.5 rounded-chip bg-teal/10 border border-teal/30 text-teal text-eyebrow font-semibold mb-5 tracking-wider">
-            What We Offer
+          <div className="rv inline-flex items-center px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
+            Our Services
           </div>
-          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.4rem,4.5vw,3.6rem)' }}>
+          <h1 className="rv d1 font-serif font-semibold text-white leading-[1.1] mb-3.5" style={{ fontSize: 'clamp(2.7rem,5vw,4rem)' }}>
             Services built around <em className="not-italic text-teal">your</em> situation
           </h1>
-          <p className="rv d2 text-white/60 leading-[1.7] max-w-[520px]" style={{ fontSize: '1.05rem' }}>
+          <p className="rv d2 text-white leading-[1.7] max-w-[760px]" style={{ fontSize: '1.2rem' }}>
             Every engagement starts with a conversation. Before we look at a single asset on your behalf, we take the time to understand what you are building, what you can afford to wait on, and what you cannot afford to lose.
           </p>
         </div>
@@ -348,7 +297,7 @@ function ServicesPage() {
         <>
           <section className="py-20 bg-card">
             <div className="max-w-[1160px] mx-auto px-7">
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
+              <div className="grid grid-cols-1 gap-10">
                 <div className="rv">
                   <div className="flex items-center gap-2.5 mb-3.5">
                     <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
@@ -405,16 +354,6 @@ function ServicesPage() {
                     />
                   </div>
                 </div>
-                <div className="rv d2">
-                  <SidePanel
-                    color="text-teal"
-                    btnColor="bg-teal"
-                    title="For property owners who want institutional-grade oversight without institutional minimums"
-                    body="Whether you own one asset or a growing portfolio across Texas, AxisPoint brings the same disciplined management structure to every engagement. You maintain full ownership. We do the work."
-                    ctaText="Talk to us about your property"
-                    ctaTo="/contact"
-                  />
-                </div>
               </div>
             </div>
           </section>
@@ -454,7 +393,7 @@ function ServicesPage() {
       {activeTab === 'advisory' && (
         <section className="py-20 bg-card">
           <div className="max-w-[1160px] mx-auto px-7">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
+            <div className="grid grid-cols-1 gap-10">
               <div className="rv">
                 <div className="flex items-center gap-2.5 mb-3.5">
                   <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
@@ -499,17 +438,6 @@ function ServicesPage() {
                   />
                 </div>
               </div>
-              <div className="rv d2">
-                <SidePanel
-                  color="text-purple"
-                  btnColor="bg-purple"
-                  title="Investors who want an honest read before committing"
-                  body="If you have a deal in front of you and want to know what it actually is, or if you want us to source and underwrite opportunities on your behalf, Advisory is where we start. Every asset management engagement begins here."
-                  note="Advisory services are also available for CPAs and attorneys with clients evaluating a real estate transaction. We provide the analysis. You stay in your lane."
-                  ctaText="Bring us a deal to look at"
-                  ctaTo="/contact"
-                />
-              </div>
             </div>
           </div>
         </section>
@@ -519,7 +447,7 @@ function ServicesPage() {
       {activeTab === 'referral' && (
         <section className="py-20 bg-card">
           <div className="max-w-[1160px] mx-auto px-7">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
+            <div className="grid grid-cols-1 gap-10">
               <div className="rv">
                 <div className="flex items-center gap-2.5 mb-3.5">
                   <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
@@ -557,16 +485,6 @@ function ServicesPage() {
                     description="Every relationship you bring to AxisPoint is acknowledged. Reach out and we'll walk you through how it works."
                   />
                 </div>
-              </div>
-              <div className="rv d2">
-                <SidePanel
-                  color="text-purple"
-                  btnColor="bg-purple"
-                  title="For anyone who is connected to people with capital, existing assets, or an interest in commercial real estate"
-                  body="No real estate background required. If you know the right people, we do the rest."
-                  ctaText="Become a referral partner"
-                  ctaTo="/contact"
-                />
               </div>
             </div>
           </div>
