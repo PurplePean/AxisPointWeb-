@@ -14,7 +14,7 @@ const VCARD = [
   'TEL;TYPE=WORK,VOICE:(832) 580-2815',
   'URL:https://axispoint.llc',
   'ADR;TYPE=WORK:;;9999 Bellaire Blvd, Ste 999;Houston;TX;77036;USA',
-  'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, asset takeover, and referral partnerships. Houston, TX.',
+  'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, and referral partnerships. Houston, TX.',
   'END:VCARD',
   'BEGIN:VCARD',
   'VERSION:3.0',
@@ -26,7 +26,7 @@ const VCARD = [
   'TEL;TYPE=WORK,VOICE:(832) 499-8389',
   'URL:https://axispoint.llc',
   'ADR;TYPE=WORK:;;9999 Bellaire Blvd, Ste 999;Houston;TX;77036;USA',
-  'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, asset takeover, and referral partnerships. Houston, TX.',
+  'NOTE:AxisPoint Partners — Commercial real estate asset management, property management, advisory and acquisitions, and referral partnerships. Houston, TX.',
   'END:VCARD',
 ].join('\r\n');
 

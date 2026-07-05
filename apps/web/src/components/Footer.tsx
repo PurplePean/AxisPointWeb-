@@ -62,11 +62,17 @@ function Footer() {
           <div>
             <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Contact</h5>
             <div className="flex flex-col gap-2.5">
-              <span className="text-sm text-hint leading-relaxed">
-                9999 Bellaire Blvd, Ste 999
-                <br />
-                Houston, TX 77036
-              </span>
+              <div className="flex items-start gap-2 text-sm text-hint">
+                <svg className="w-3.5 h-3.5 flex-none mt-0.5" fill="none" viewBox="0 0 24 24" stroke="#24A5BC" strokeWidth={1.8}>
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span className="leading-relaxed">
+                  <span className="whitespace-nowrap">9999 Bellaire Blvd, Ste 999</span>
+                  <br />
+                  Houston, TX 77036
+                </span>
+              </div>
             </div>
           </div>
         </div>
