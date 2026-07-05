@@ -4,10 +4,8 @@
  */
 import React from 'react';
 import type { Step } from './types';
-import { STEP_LABELS_INVESTOR, STEP_LABELS_OTHER } from './utils';
 
-export function FormProgress({ stepOrder, currentStep }: { stepOrder: Step[]; currentStep: Step }) {
-  const labels = stepOrder.length === 6 ? STEP_LABELS_INVESTOR : STEP_LABELS_OTHER;
+export function FormProgress({ stepOrder, currentStep, labels }: { stepOrder: Step[]; currentStep: Step; labels: string[] }) {
   const cur = stepOrder.indexOf(currentStep);
   return (
     <div className="mb-6">

@@ -8,10 +8,10 @@ import { SQ, SH3, FL, FLNote, ChipS, FInput, FTextarea, SectionDivider, NavBack,
 export function Step4Contact({ c }: { c: FormController }) {
   return (
     <div>
-      <SQ>{c.role === 'refer' ? 'Your referral details' : 'How do we reach you?'}</SQ>
-      <SH3>{c.role === 'refer' ? 'Share whatever you know about them — even just a name helps.' : 'We will follow up personally.'}</SH3>
+      <SQ>{c.role === 'submit_referral' ? 'Your referral details' : 'How do we reach you?'}</SQ>
+      <SH3>{c.role === 'submit_referral' ? 'Share whatever you know about them — even just a name helps.' : 'We will follow up personally.'}</SH3>
 
-      {c.role === 'refer' ? (
+      {c.role === 'submit_referral' ? (
         <>
           {/* Section 1: Person being referred */}
           <SectionDivider label="Person you are referring" />

@@ -46,21 +46,21 @@ export function Step1Role({ c }: { c: FormController }) {
         <RoleTile c={c} r="investor" label="Investor" desc="Looking to place capital in CRE"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
         />
-        <RoleTile c={c} r="referral" label="Referral Partner" desc="CPA, attorney, advisor"
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+        <RoleTile c={c} r="existing_asset_owner" label="Existing Asset Owner" desc="I own a property and need management"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>}
         />
         <RoleTile c={c} r="pro" label="RE Professional" desc="Broker, lender, developer"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>}
         />
-        <RoleTile c={c} r="curious" label="Exploring CRE" desc="Learning, just starting out"
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5270" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
+        <RoleTile c={c} r="referral" label="Referral Partner" desc="I know people who could benefit from AxisPoint"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
         />
-        <RoleTile c={c} r="refer" label="Making a Referral" desc="I want to introduce someone" wide
+        <RoleTile c={c} r="submit_referral" label="Submit a Referral" desc="I'm sending you a specific person right now" wide
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A5270" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
         />
       </div>
       <div className="flex gap-2 mt-5">
-        <NavNext onClick={() => c.setStep('context')} disabled={!c.role} />
+        <NavNext onClick={c.goNext} disabled={!c.role} />
       </div>
     </div>
   );

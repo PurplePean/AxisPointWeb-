@@ -2,13 +2,16 @@
  * Shared contact form constants, helpers and payload builder.
  * Extracted verbatim from apps/web/src/pages/ContactPage.tsx.
  */
-import type { Role, MeetType, BookChoice, ContactFields, ReferredFields } from './types';
+import type { Role, MeetType, BookChoice, ContactFields, ReferredFields, PropertyDetails, EAOContact, Booking } from './types';
 
 export const STEP_ORDER_INVESTOR = ['role', 'context', 'prefs', 'contact', 'booking', 'comms'] as const;
 export const STEP_ORDER_OTHER = ['role', 'context', 'contact', 'booking', 'comms'] as const;
+/* Existing Asset Owner: Who you are → Personal info → Property details → Current situation → Pressing issue → Schedule */
+export const STEP_ORDER_EAO = ['role', 'personal', 'property', 'situation', 'issue', 'schedule'] as const;
 
 export const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Asset class', 'Your info', 'Book a call', 'Stay in the loop'];
 export const STEP_LABELS_OTHER = ['Who you are', 'Background', 'Your info', 'Book a call', 'Stay in the loop'];
+export const STEP_LABELS_EAO = ['Who you are', 'Your info', 'Property details', 'Current situation', 'Pressing issue', 'Schedule'];
 
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -49,8 +52,6 @@ export interface FormSnapshot {
   proRoleSel: string | null;
   marketSel: Set<string>;
   proIntentSel: string | null;
-  curiousSel: Set<string>;
-  journeySel: string | null;
   relSel: string | null;
   fitSel: Set<string>;
   assetSel: Set<string>;
@@ -95,7 +96,7 @@ export function buildPayload(s: FormSnapshot, opts: BuildPayloadOptions = {}) {
 
   if (s.urlRef) {
     referralCode = s.urlRef;
-  } else if (s.role !== 'refer' && s.isReferred && s.referralInput.trim()) {
+  } else if (s.role !== 'submit_referral' && s.isReferred && s.referralInput.trim()) {
     const parsed = parseReferralInput(s.referralInput);
     referralCode = parsed.referralCode;
     referredByEmail = parsed.referredByEmail;
@@ -113,8 +114,6 @@ export function buildPayload(s: FormSnapshot, opts: BuildPayloadOptions = {}) {
       proRole: s.proRoleSel,
       markets: [...s.marketSel],
       proIntent: s.proIntentSel,
-      curious: [...s.curiousSel],
-      journey: s.journeySel,
       relationship: s.relSel,
       fit: [...s.fitSel],
       assetClasses: [...s.assetSel],
@@ -132,6 +131,37 @@ export function buildPayload(s: FormSnapshot, opts: BuildPayloadOptions = {}) {
     referredByEmail,
     referredByName,
     ...(opts.source ? { heardAbout: s.sourceSel ?? '' } : {}),
-    ...(s.role === 'refer' ? { referred: s.referredFields } : {}),
+    ...(s.role === 'submit_referral' ? { referred: s.referredFields } : {}),
+  };
+}
+
+/**
+ * Builds the Existing Asset Owner submission payload. Shape is shared verbatim
+ * with the backend rebuild — spreads the assembled property object (which already
+ * carries portfolio_type / property_type / units|sqft / asset_breakdown)
+ * at the top level, then adds situation, issue, contact, booking and schema_version.
+ *
+ * `booking` holds the same structured object the Investor / RE Professional
+ * payload uses ({ date, slot, meetType, phone }) — see buildPayload. The real
+ * Google Meet URL is NOT set here — the backend creates it when it actually
+ * books the calendar event.
+ */
+export function buildEAOPayload(args: {
+  property: PropertyDetails;
+  situation: string | null;
+  issue: string;
+  contact: EAOContact;
+  booking: Booking | null;
+}) {
+  const { property, situation, issue, contact, booking } = args;
+  return {
+    ...property,
+    current_situation: situation,
+    pressing_issue: issue,
+    name: contact.name,
+    email: contact.email,
+    phone: contact.phone,
+    booking,
+    schema_version: 1 as const,
   };
 }

@@ -94,30 +94,7 @@ export function Step2Context({ c }: { c: FormController }) {
         </>
       )}
 
-      {c.role === 'curious' && (
-        <>
-          <SQ>What is on your mind?</SQ>
-          <SH3>No experience needed. Tell us what you are trying to understand.</SH3>
-          <div className="mb-3.5">
-            <FL>What interests you? <FLNote>(select all)</FLNote></FL>
-            <div className="flex flex-wrap gap-1.5">
-              {['Passive income from real estate','How syndications work','1031 exchange strategies','Tax advantages of CRE','Building long-term wealth','Deal analysis basics'].map(v => (
-                <ChipM key={v} label={v} sel={c.curiousSel.has(v)} onClick={() => c.toggleSet(c.curiousSel, c.setCuriousSel, v)} />
-              ))}
-            </div>
-          </div>
-          <div className="mb-3.5">
-            <FL>Where are you financially?</FL>
-            <div className="flex flex-wrap gap-1.5">
-              {['Saving toward my first investment','Have capital but not sure where to start','In stocks and curious about CRE','Already own residential real estate'].map(v => (
-                <ChipS key={v} label={v} sel={c.journeySel===v} onClick={() => c.setJourneySel(c.journeySel===v ? null : v)} />
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      {c.role === 'refer' && (
+      {c.role === 'submit_referral' && (
         <>
           <SQ>About the person you are referring</SQ>
           <SH3>We will use this to make a warm, informed introduction.</SH3>

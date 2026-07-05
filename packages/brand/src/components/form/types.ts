@@ -4,10 +4,26 @@
  */
 import type { Dispatch, SetStateAction } from 'react';
 
-export type Role = 'investor' | 'referral' | 'pro' | 'curious' | 'refer';
-export type Step = 'role' | 'context' | 'prefs' | 'contact' | 'comms' | 'booking' | 'success';
+export type Role = 'investor' | 'referral' | 'pro' | 'existing_asset_owner' | 'submit_referral';
+export type Step =
+  | 'role' | 'context' | 'prefs' | 'contact' | 'comms' | 'booking' | 'success'
+  /* Existing Asset Owner flow */
+  | 'personal' | 'property' | 'situation' | 'issue' | 'schedule';
 export type MeetType = 'meet' | 'phone' | null;
 export type BookChoice = 'yes' | 'no' | null;
+
+/**
+ * Structured booking object shared by every flow's payload (Investor / RE
+ * Professional via buildPayload, Existing Asset Owner via buildEAOPayload).
+ * `phone` is the requested call-back number when meetType is 'phone', otherwise
+ * an empty string. The real Google Meet URL is created server-side, never here.
+ */
+export interface Booking {
+  date: string;
+  slot: string;
+  meetType: MeetType;
+  phone: string;
+}
 
 export interface ContactFields {
   firstName: string;
@@ -15,6 +31,54 @@ export interface ContactFields {
   email: string;
   phone: string;
   company: string;
+}
+
+/** A market/location chip. `placeId` is undefined until Google Places is wired. */
+export interface Market {
+  label: string;
+  placeId?: string;
+}
+
+/**
+ * Assembled property answer emitted by PropertyDetailsStep on Continue.
+ * Discriminated by `portfolio_type` / `portfolio_composition` — the shape
+ * mirrors the backend submission schema exactly.
+ *
+ * `units` is a plain count (a number). `sqft` is a tier token (a string).
+ * In the mixed breakdown, the commercial row collapses Retail/Office/Industrial
+ * into one entry whose `property_type` is the array of the specific types the
+ * owner checked; the Multifamily row (measured in units) stays separate.
+ */
+export type PropertyDetails =
+  | {
+      portfolio_type: 'single';
+      property_type: string;
+      units?: number;
+      sqft?: string;
+    }
+  | {
+      portfolio_type: 'portfolio';
+      portfolio_composition: 'single_asset_class';
+      property_type: string;
+      units?: number;
+      sqft?: string;
+    }
+  | {
+      portfolio_type: 'portfolio';
+      portfolio_composition: 'mixed_asset_classes';
+      asset_breakdown: Array<{
+        property_type: string | string[];
+        asset_count: number;
+        units?: number;
+        sqft?: string;
+      }>;
+    };
+
+/** Contact captured on the EAO "Contact & schedule" step. */
+export interface EAOContact {
+  name: string;
+  email: string;
+  phone: string;
 }
 
 export interface ReferredFields {
@@ -65,10 +129,6 @@ export interface FormController {
   setMarketSel: SetSet;
   proIntentSel: string | null;
   setProIntentSel: SetStr;
-  curiousSel: Set<string>;
-  setCuriousSel: SetSet;
-  journeySel: string | null;
-  setJourneySel: SetStr;
   relSel: string | null;
   setRelSel: SetStr;
   fitSel: Set<string>;
@@ -83,6 +143,18 @@ export interface FormController {
   setSourceSel: SetStr;
   prefsSel: Set<string>;
   setPrefsSel: SetSet;
+
+  /* ── Existing Asset Owner flow ── */
+  eaoContact: EAOContact;
+  setEaoContact: Dispatch<SetStateAction<EAOContact>>;
+  eaoProperty: PropertyDetails | null;
+  setEaoProperty: Dispatch<SetStateAction<PropertyDetails | null>>;
+  eaoSituation: string | null;
+  setEaoSituation: SetStr;
+  eaoIssue: string;
+  setEaoIssue: Dispatch<SetStateAction<string>>;
+  /** Assembles + logs (and later submits) the Existing Asset Owner payload. */
+  submitEAO: () => void;
 
   submitting: boolean;
   submitError: boolean;

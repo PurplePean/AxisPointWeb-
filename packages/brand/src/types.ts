@@ -34,8 +34,8 @@ export type ContactRole =
   | 'investor'
   | 'referral'
   | 'pro'
-  | 'curious'
-  | 'refer';
+  | 'existing_asset_owner'
+  | 'submit_referral';
 
 /**
  * Asset class options
