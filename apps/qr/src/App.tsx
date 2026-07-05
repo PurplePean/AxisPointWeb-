@@ -26,11 +26,6 @@ export default function App() {
     }
   }, []);
 
-  /* Smoothly scroll to the form */
-  function scrollToForm() {
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
   /* Native share of this card's URL, with clipboard fallback */
   function shareCard() {
     if (navigator.share) {
@@ -104,15 +99,6 @@ export default function App() {
           </div>
         ))}
       </div>
-
-      {/* ── Get in Touch (scrolls to the form) ── */}
-      <button type="button" onClick={scrollToForm}
-        className="w-full min-h-[48px] py-3.5 px-5 rounded-[12px] border-none bg-purple text-white font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.97] shadow-[0_2px_12px_rgba(56,40,93,.22)]"
-        style={{ fontSize: '0.95rem' }}
-      >
-        Get in Touch
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-      </button>
 
       {/* ── Save / Share Our Contacts (shared vCard) ── */}
       <div className="w-full flex flex-col min-[380px]:flex-row gap-3">

@@ -159,7 +159,7 @@ function MobileReferral() {
       <MHead
         eyebrow="Referral Partners"
         heading="You know people who could use this. We make it easy to connect them."
-        description="You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners — a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good."
+        description="You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners: a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good."
       />
       <div className="mb-6">
         <SvcItem {...purple}
@@ -457,7 +457,7 @@ function ServicesPage() {
                   You know people who could use this. We make it easy to connect them.
                 </h2>
                 <p className="text-sub leading-[1.7] mb-6 max-w-2xl" style={{ fontSize: '0.95rem' }}>
-                  You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners — a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good.
+                  You don't have to be in real estate to be a referral partner. You just have to know people who are thinking about it. Doctors, engineers, attorneys, business owners: a lot of people in high-earning professions are sitting on capital they don't know how to put to work in real estate, or they already own property that isn't performing the way it should. If you're connected to people like that, you can be a resource for them. We become your CRE team. You make the introduction. We take it from there and make you look good.
                 </p>
                 <div>
                   <SvcItem

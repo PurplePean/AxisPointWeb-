@@ -186,7 +186,7 @@ function HomePage() {
               </div>
               <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Referral Partner Program</h3>
               <p className="text-sub leading-[1.7] flex-1" style={{ fontSize: '0.875rem' }}>
-                For CPAs, attorneys, and financial advisors who serve clients with real estate exposure or interest. We become the CRE specialist you refer to, deepening your client relationships without adding overhead to your practice.
+                You don't have to be in real estate to send us the right person. If you know someone sitting on capital, or already holding a property that isn't performing, make the introduction. We take it from there.
               </p>
               <Link to="/services" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-magenta hover:underline">
                 Learn more
