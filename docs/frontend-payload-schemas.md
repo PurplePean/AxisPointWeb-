@@ -1,0 +1,139 @@
+# Frontend Payload Schemas
+
+The exact JSON POSTed to the GAS endpoint for each lead type. Verified against
+`packages/brand/src/components/form/utils.ts` and `types.ts`.
+
+Both apps render the **same** shared `<ContactForm>` from `@axispoint/brand`,
+which reads `VITE_FORM_ENDPOINT` and `fetch`-POSTs the payload:
+
+- `apps/web` → `<ContactForm />` (defaults: `page: 'axispoint.llc'`, `source` from the form's own "how did you hear" answer).
+- `apps/qr` → `<ContactForm source="qr" page="qr.axispoint.llc" />`.
+
+Four roles build their payload with `buildPayload`; `existing_asset_owner` uses
+`buildEAOPayload`.
+
+## Shared booking object
+
+Used by every flow. Emitted only when the user chose to book and picked a day +
+slot; otherwise `null`.
+
+```ts
+booking: {
+  date: string;      // "June 27, 2026"  (MONTHS[m] D, YYYY)
+  slot: string;      // "2:30 PM"
+  meetType: 'meet' | 'phone' | null;
+  phone: string;     // requested call-back number when meetType==='phone', else ''
+} | null
+```
+
+The real Google Meet URL is **not** in the payload — the backend creates it when
+it books the Calendar event.
+
+## `buildPayload` roles — `investor`, `referral`, `pro`, `submit_referral`
+
+```jsonc
+{
+  "role": "investor" | "referral" | "pro" | "submit_referral",
+  "qualData": {
+    "experience": string[],        // expSel
+    "aum": string | null,
+    "profession": string | null,
+    "clients": string[],
+    "referralIntent": string | null,
+    "proRole": string | null,
+    "markets": string[],
+    "proIntent": string | null,
+    "relationship": string | null,
+    "fit": string[],
+    "assetClasses": string[],      // → sheet "Asset Class" column
+    "timeline": string | null,
+    "awareness": string | null
+  },
+  "person": {                      // ContactFields
+    "firstName": string, "lastName": string,
+    "email": string, "phone": string, "company": string
+  },
+  "preferences": string[],         // comms opt-ins
+  "booking": Booking | null,       // shared object above
+  "message": string,               // msgField
+  "source": string,                // opts.source ?? (sourceSel ?? '')
+  "timestamp": string,             // new Date().toISOString()
+  "page": string,                  // opts.page ?? 'axispoint.llc'
+  "referralCode": string | null,
+  "referredByEmail": string | null,
+  "referredByName": string | null
+
+  // conditionally present:
+  // "heardAbout": string          // ONLY when opts.source is set (i.e. the QR app)
+  // "referred": ReferredFields     // ONLY when role === 'submit_referral'
+}
+```
+
+`qualData` always carries **all** keys; irrelevant ones are just empty/`null`
+for the given role (e.g. an investor leaves `proRole` null). Only the two
+conditional keys are added/omitted.
+
+### Referral field resolution
+
+- If a `?ref=` URL param is present (`urlRef`) → `referralCode = urlRef`, and the "were you referred?" toggle is hidden.
+- Else, for non-`submit_referral` roles that answered "yes" and typed something, `parseReferralInput()` classifies the free-text input:
+  - contains `@` → `referredByEmail`
+  - matches `/^AXP-[A-Z0-9]{6}$/i` → `referralCode` (uppercased) — **6-char code**, matching the backend's `AXP-` + 6-char generator
+  - otherwise → `referredByName`
+
+### `submit_referral` — the extra `referred` block
+
+```jsonc
+"referred": {                      // ReferredFields
+  "firstName": string, "lastName": string,
+  "email": string, "phone": string, "notes": string
+}
+```
+
+The backend folds this into the Message column of the submitter's own lead row;
+`submit_referral` gets no dedicated category tab (see backend-architecture.md).
+
+## `buildEAOPayload` — `existing_asset_owner`
+
+Flat shape (spreads the assembled `property` object at the top level), not the
+`qualData`/`person` shape. The backend's `normalizeEaoPayload` converts it.
+
+```jsonc
+{
+  "role": "existing_asset_owner",
+
+  // ...property (one of three discriminated shapes) spread at top level:
+  //  single:
+  "portfolio_type": "single",
+  "property_type": string,
+  "units"?: number,            // plain count
+  "sqft"?: string,             // tier token
+
+  //  portfolio, single asset class:
+  //   "portfolio_type": "portfolio",
+  //   "portfolio_composition": "single_asset_class",
+  //   "property_type": string, "units"?: number, "sqft"?: string
+
+  //  portfolio, mixed asset classes:
+  //   "portfolio_type": "portfolio",
+  //   "portfolio_composition": "mixed_asset_classes",
+  //   "asset_breakdown": Array<{
+  //       property_type: string | string[];  // commercial row collapses Retail/Office/Industrial into an array
+  //       asset_count: number;
+  //       units?: number; sqft?: string;
+  //   }>
+
+  "current_situation": string | null,
+  "pressing_issue": string,        // → Message column + partner email; NOT echoed to visitor
+  "name": string,                  // single field; backend splits into first/last
+  "email": string,
+  "phone": string,
+  "booking": Booking | null,       // same shared object
+  "schema_version": 1
+}
+```
+
+Note the EAO payload has **no** `person` object, `message`, `source`, `page`,
+`timestamp`, or referral fields — `normalizeEaoPayload` synthesizes `person`,
+`message` (from `pressing_issue`), `qualData.assetClasses` (a one-line asset
+label), and `preferences` (a JSON dump of every EAO field) server-side.
