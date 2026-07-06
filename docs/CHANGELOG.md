@@ -8,6 +8,8 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 - **docs:** Established `/docs` as the verified source of truth (backend architecture, email templates, frontend payload schemas, deployment) and corrected the stale root `README.md` against current source.
 - **audit:** Confirmed pre-EAO dead code (`curious` / `Explorers` / `'refer'` / `Referrals Made`) is fully removed from `Code.gs`.
 - **audit:** Found template drift — all 7 `scripts/gas/emails/*.html` mirrors carry a footer street-address line the embedded `TEMPLATE_*` constants lack, so it does not ship in live email (see email-templates.md).
+- **fix(gas):** Added per-role `{{personalNote}}` to visitor confirmation emails — all 5 lead types now reflect back what they actually submitted (investor capital/experience, pro role/markets, referral profession/intent, EAO `pressing_issue`→`current_situation`, submit_referral referred-person name). New helpers `buildVisitorPersonalNote`/`humanList`/`referralIntentClause`; works across meet/phone/no-booking.
+- **fix(gas):** Resolved the email-template drift — the footer address line is now embedded in all 7 `TEMPLATE_*` constants; embedded ↔ mirror verified byte-for-byte in sync.
 
 ## 2026-07-05 — `fix(gas)` (#10)
 

@@ -31,28 +31,26 @@ array (or vice-versa). Nothing enforces parity.
 `renderTemplate(template, vars)` replaces every `{{key}}`; unfilled placeholders
 render as empty string.
 
-## ⚠️ Current drift — ALL 7 mirrors are ahead of the embedded constants
+## Sync status — embedded ↔ mirror: IN SYNC ✅
 
-Checked line-by-line right now (embedded array joined on `\n` vs the `.html`
-file). **Every one of the seven** standalone mirrors contains one extra footer
-line that the embedded constant does **not** have:
+As of 2026-07-06 all seven embedded `TEMPLATE_*` constants match their `.html`
+mirrors byte-for-byte (verified by joining each embedded array on `\n` and
+diffing against the file). The prior address-line drift is **resolved**: the
+footer address line
 
 ```html
 <p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>
 ```
 
-It sits immediately after the existing `AxisPoint Partners LLC · Houston,
-Texas · …` footer line in each `.html`. The embedded `TEMPLATE_*` constants stop
-at that existing line.
+now exists in **both** forms across all seven templates, so it ships in live
+email. (The address itself is still a placeholder — `9999 Bellaire Blvd, Ste 999`
+— swap it for the real suite when known; change both forms.)
 
-**Consequence:** because the embedded constants are what send, this street-
-address line does **not** appear in any live email today. The mirrors were
-edited (address looks like a placeholder — `9999 Bellaire Blvd, Ste 999`) but
-the change was never carried into `Code.gs`. No other differences exist — the
-seven templates are otherwise identical to their mirrors.
+The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
+(see below); it too is present in both the embedded constant and the mirror.
 
-To resolve: either add the line to all seven `TEMPLATE_*` arrays (with a real
-address) so it ships, or drop it from the mirrors. Do not leave it half-applied.
+> Re-run the parity check any time you touch a template — join the embedded
+> array on `\n`, `rstrip` a trailing newline, and diff against the `.html`.
 
 ## Template inventory
 
@@ -86,51 +84,51 @@ Built inline as text, not through `renderTemplate`:
 - **Daily digest** (`sendDailyDigest`) → `NOTIFY_EMAILS`, 6 pm CT.
 - **Cold-move summary** (`moveColdLeads`) → `NOTIFY_EMAILS`, Monday 8 am CT.
 
-## Resolved: is there a generic dynamic-content mechanism on the visitor side?
+## Visitor-facing personalized content — `{{personalNote}}` (all 5 roles)
 
-**Open question:** does `sendVisitorConfirmation` have a generic dynamic-content
-slot equivalent to `partner-notification`'s `messageBlock` — and if so, does
-`normalizeEaoPayload` feed it from `pressing_issue`?
+**History:** originally the visitor confirmation had **no** content-echo
+mechanism at all — unlike `partner-notification`, which builds a `messageBlock`
+from `payload.message`. As of 2026-07-06 that gap is closed for **every** lead
+type via a per-role `{{personalNote}}` block.
 
-**Answer: No.** There is no such mechanism on the visitor side.
-
-`sendPartnerNotification` builds a `messageBlock` from `payload.message` and
-injects it via a `{{messageBlock}}` placeholder in `TEMPLATE_PARTNER_NOTIFICATION`:
-
-```js
-var messageBlock = '';
-if (payload.message) {
-  messageBlock = '<table ...>...' + escapeHtml(payload.message) + '...</table>';
-}
-// ...
-var html = renderTemplate(TEMPLATE_PARTNER_NOTIFICATION, {
-  ..., messageBlock: messageBlock, ...
-});
-```
-
-`sendVisitorConfirmation` has **no equivalent**. The complete variable set it
-ever passes is:
+**How it works.** All three visitor templates (`TEMPLATE_VISITOR_PHONE`,
+`_MEET`, `_NO_BOOKING`) carry a `{{personalNote}}` placeholder, positioned right
+after the intro divider and before the booking/prompt block.
+`sendVisitorConfirmation` computes it **once** — independent of the
+booking/no-booking branch — and passes it into whichever template it renders:
 
 ```js
-// booking branch
-{ firstName, bookingMonth, bookingDay, bookingDayOfWeek, bookingTime,
-  referralCode, referralLink, meetLink | bookingPhone }
-// no-booking branch
-{ firstName, referralCode, referralLink }
+var personalNote = buildVisitorPersonalNote(payload);
+// ...added to both the booking `vars` object and the no-booking object...
 ```
 
-None of the three visitor templates (`TEMPLATE_VISITOR_PHONE`, `_MEET`,
-`_NO_BOOKING`) contains a `{{message}}` / `{{messageBlock}}` placeholder — grep
-confirms `messageBlock` appears only in the partner template and its builder.
+`buildVisitorPersonalNote(payload)` returns a ready styled callout (magenta
+left-border, `#9F328C`) or `''` when there's nothing substantive to echo (in
+which case `renderTemplate` strips the placeholder to empty — clean output).
+Helpers: `humanList()` (prose list joiner) and `referralIntentClause()`.
 
-`normalizeEaoPayload` **does** populate `payload.message`:
+Each role reflects back only fields it **actually** captures (see
+[`frontend-payload-schemas.md`](frontend-payload-schemas.md)):
 
-```js
-payload.message = payload.pressing_issue || payload.message || '';
-```
+| Role | Fields echoed | Fallback when absent |
+|---|---|---|
+| `investor` | `qualData.aum` (capital range, unless "Prefer not to say") + `qualData.experience[]` (minus "Never invested in CRE") | warm generic |
+| `pro` | `qualData.proRole` + `qualData.markets[]` | warm generic |
+| `referral` | `qualData.profession` + a closer keyed off `qualData.referralIntent` | warm generic |
+| `existing_asset_owner` | `payload.pressing_issue`, else `payload.current_situation` (quoted) | generic "we reviewed your details" |
+| `submit_referral` | referred person's name (`payload.referred.firstName/lastName`) — this email goes to the **submitter**, acknowledging we'll reach out to their referral | generic "the person you introduced" |
 
-…but that value only ever surfaces in **(a)** the Message column of the sheet
-(`buildLeadRow`) and **(b)** the internal `partner-notification` email. It is
-**never echoed back to the visitor**, because no visitor template reads it. So
-an Existing Asset Owner's `pressing_issue` is captured internally but is not
-shown in their confirmation email.
+All interpolated values pass through `escapeHtml`. Fixed option-list strings are
+escaped too, defensively.
+
+### Note on `normalizeEaoPayload` and `pressing_issue`
+
+`normalizeEaoPayload` sets `payload.message = payload.pressing_issue || …` (which
+feeds the sheet Message column + the internal `partner-notification`). It does
+**not** delete the original top-level `pressing_issue` / `current_situation`, so
+`buildVisitorPersonalNote` reads those directly for the EAO note — the visitor
+now *does* see their pressing issue reflected back, which previously was not the
+case.
+
+`partner-notification` still uses its own separate `messageBlock` from
+`payload.message`; the two mechanisms are independent.
