@@ -155,6 +155,7 @@ export function buildEAOPayload(args: {
 }) {
   const { property, situation, issue, contact, booking } = args;
   return {
+    role: 'existing_asset_owner' as const,
     ...property,
     current_situation: situation,
     pressing_issue: issue,
