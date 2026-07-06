@@ -11,6 +11,7 @@ This is a pnpm monorepo containing:
 - **packages/brand** — Shared brand assets, colors, fonts, team data, and types
 - **content/** — Markdown articles and publications
 - **scripts/gas/** — Google Apps Script backend (Code.gs)
+- **docs/** — Verified source-of-truth documentation (backend, email templates, payload schemas, deployment, changelog)
 
 ## Tech Stack
 
@@ -77,8 +78,13 @@ clasp login
 files to the Apps Script project. To deploy:
 
 1. Make changes to `scripts/gas/Code.gs`
-2. Run: `pnpm deploy:gas`
-3. Go to [script.google.com](https://script.google.com) and deploy a new version
+2. Run `pnpm deploy:gas` (`clasp push`) — this updates the script editor's HEAD **only**
+3. Redeploy the live version so `/exec` serves the new code:
+   `cd scripts/gas && clasp deploy -i <deploymentId>`
+
+> `clasp push` alone does **not** update the live endpoint. See
+> [`docs/deployment.md`](docs/deployment.md) for the deployment ID and the full
+> push-vs-deploy distinction.
 
 ### Lead ID format
 
@@ -87,9 +93,10 @@ Every submission gets a unique Lead ID: **`AXP-YYYY-XXXX`**
 - `YYYY` — four-digit year of submission
 - `XXXX` — zero-padded sequential number scoped across all submissions (e.g. `AXP-2026-0001`)
 
-A matching **Referral Code** is also generated in shorter form: **`AXP-XXXX`** (e.g. `AXP-0001`).
+Each lead also gets a personal shareable **Referral Code**: **`AXP-` + 6 unambiguous
+characters** (e.g. `AXP-K7M4PQ`), collision-checked against Lifetime Leads.
 
-The sequence is stored in Script Properties under `LAST_LEAD_ID` and incremented atomically using `LockService.getScriptLock()`.
+The Lead ID sequence is stored in Script Properties under `LAST_LEAD_ID` and incremented atomically using `LockService.getScriptLock()`.
 
 ### Deduplication
 
@@ -128,111 +135,35 @@ When a partner manually types an email into the `Referred By Email` column of an
 
 ### Google Sheet structure
 
-The spreadsheet has 11 tabs. All lead tabs share the same 30-column schema:
+The spreadsheet has **11 tabs**: Active Leads, Lifetime Leads, Cold Leads,
+Investors, Referral Partners, RE Professionals, Existing Asset Owners, Clients,
+Archive, Referrals, and Subscribers. All lead tabs share a **31-column** schema
+(the Referral Partners tab adds a 32nd `Reports Enabled` column).
 
-| # | Column | Notes |
-|---|---|---|
-| 1 | Timestamp | ISO string |
-| 2 | Lead ID | `AXP-YYYY-XXXX` |
-| 3 | Referral Code | `AXP-XXXX` |
-| 4 | First Name | |
-| 5 | Last Name | |
-| 6 | Email | Deduplication key |
-| 7 | Phone | |
-| 8 | Company | |
-| 9 | Role | investor / referral / pro / curious / refer |
-| 10 | Category | Derived from qual data |
-| 11 | Asset Class | |
-| 12 | Message | |
-| 13 | Preferences | Comma-separated |
-| 14 | Booking Date | |
-| 15 | Booking Time | |
-| 16 | Meet Type | meet / phone |
-| 17 | Booking Phone | |
-| 18 | Source | How they found us |
-| 19 | Status | |
-| 20 | Date Submitted | |
-| 21 | Referred By Lead ID | |
-| 22 | Referred By Name | |
-| 23 | Referred By Email | |
-| 24 | Referred By Code | |
-| 25 | Match Type | code / email / name / manual |
-| 26 | Referral Chain | Pipe-separated |
-| 27 | Chain Depth | Integer |
-| 28 | Direct Referrals | Running count |
-| 29 | Total Downstream | Running count |
-| 30 | Last Referral Date | |
+The full column layout, tab purposes, deduplication logic, referral matching,
+and the `onEdit` sync are documented in
+[`docs/backend-architecture.md`](docs/backend-architecture.md) — the verified
+source of truth for the backend.
 
-**Tabs:**
+## Contact form
 
-| Tab | Purpose |
-|---|---|
-| Lifetime Leads | All submissions combined; deduplication source |
-| Investor Leads | Role = investor |
-| Referral Partners | Role = referral |
-| RE Professionals | Role = pro |
-| Explorers | Role = curious |
-| Referrals Made | Role = refer |
-| Bookings | Leads with confirmed booking slots |
-| Referrals | One row per matched referral event (`REF-YYYY-XXXX`) |
-| Daily Digest | Auto-populated summary |
-| Contacts Mirror | Google Contacts sync log |
-| Setup Log | Schema initialization record |
+Both `apps/web` (`ContactPage.tsx`) and `apps/qr` (`App.tsx`) render the **same**
+shared `<ContactForm>` from `packages/brand`, which POSTs to the single GAS
+endpoint (`VITE_FORM_ENDPOINT`).
 
-## Form flow
+There are **five lead types**: Investor, Referral Partner (`referral`), RE
+Professional (`pro`), Existing Asset Owner (`existing_asset_owner`), and Making a
+Referral (`submit_referral`). Investor / Referral / Pro / submit_referral run a
+step wizard; Existing Asset Owner has its own dedicated step flow (personal →
+property → situation → issue → schedule).
 
-Both `apps/web` (ContactPage.tsx) and `apps/qr` (App.tsx) share the same 6-step wizard pattern.
+Referral capture: a `?ref=AXP-XXXXXX` URL param pre-fills the code silently;
+otherwise a "Were you referred?" toggle accepts a code
+(`/^AXP-[A-Z0-9]{6}$/i`), an email (`@`), or a name.
 
-### Steps
-
-| # | Step | Description |
-|---|---|---|
-| 1 | Role | Who are you? Five tiles: Investor, Referral Partner, RE Professional, Exploring CRE, Making a Referral |
-| 2 | Context | Background questions tailored to role |
-| 3 | Preferences | Investment prefs (Investor only) |
-| 4 | Contact | Name, email, phone, company. For "Making a Referral": two sections — Person you are referring (optional) then Your information |
-| 5 | Booking | Optional 30-minute call scheduling (weekdays, 8am–5pm CT) |
-| 6 | Comms | Optional update preferences; Submit button |
-
-### Referral capture in the form
-
-**Making a Referral path:**
-- Step 2 context asks about the relationship, fit signals, and whether the referred person is aware
-- Step 4 contact step has two sections: referred person fields first (all optional), then submitter's own info
-
-**All other paths:**
-- A "Were you referred to us?" Yes/No toggle appears at the bottom of the contact step
-- If Yes, a single text input accepts any of:
-  - A referral code (`AXP-XXXX`) — detected by regex `/^AXP-\d{4}$/i`
-  - An email address — detected by presence of `@`
-  - A name — everything else
-- The field maps to `referralCode`, `referredByEmail`, or `referredByName` in the payload accordingly
-
-### URL parameter referral capture
-
-Visiting `/contact?ref=AXP-0042` (or `qr.axispoint.llc?ref=AXP-0042`) pre-populates the referral code silently:
-
-- The `?ref=` value is read from `URLSearchParams` on mount and stored in state
-- The "Were you referred to us?" toggle is **not shown** when a URL ref is present
-- The captured code is sent as `referralCode` in the payload
-- Partners can share their personal link `https://axispoint.llc/contact?ref=AXP-XXXX` to automatically credit themselves on any submission
-
-### API response and success screen
-
-The Apps Script endpoint returns:
-```json
-{ "success": true, "leadId": "AXP-2026-0042", "referralCode": "AXP-0042" }
-```
-
-The success screen displays the referral code, a shareable link, and a copy-to-clipboard button. If no `referralCode` is returned (e.g. dev mode without endpoint), the message falls back to "Check your confirmation email for your referral code."
-
-### Error handling
-
-If the fetch throws or the response contains `success: false`, an inline error banner is shown in the comms step:
-
-> Something went wrong on our end. Please email us directly at zach@axispoint.llc or call (832) 580-2815.
-
-The form is not cleared and the user can retry.
+The exact payload shape for every lead type is documented in
+[`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md), and the
+email templates in [`docs/email-templates.md`](docs/email-templates.md).
 
 ## Brand guidelines
 
