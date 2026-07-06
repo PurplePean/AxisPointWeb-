@@ -153,7 +153,7 @@ export interface FormController {
   setEaoSituation: SetStr;
   eaoIssue: string;
   setEaoIssue: Dispatch<SetStateAction<string>>;
-  /** Assembles + logs (and later submits) the Existing Asset Owner payload. */
+  /** Assembles and POSTs the Existing Asset Owner payload to the form endpoint. */
   submitEAO: () => void;
 
   submitting: boolean;

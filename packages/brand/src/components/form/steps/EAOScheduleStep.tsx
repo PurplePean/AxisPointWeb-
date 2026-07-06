@@ -5,8 +5,8 @@
  * EAOPersonalStep and lives on c.eaoContact; this step just renders the shared
  * BookingCalendar (the exact same scheduling / Meet-booking component the
  * Investor and RE Professional flows use — this books a real call, not a soft
- * text preference). On submit it calls c.submitEAO, which assembles and logs the
- * full payload.
+ * text preference). On submit it calls c.submitEAO, which assembles and POSTs the
+ * full payload to the shared form endpoint.
  */
 import type { FormController } from '../types';
 import { SQ, SH3, FL, NavBack } from '../primitives';

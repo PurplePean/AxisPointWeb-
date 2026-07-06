@@ -166,12 +166,15 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
   }
 
   /**
-   * Existing Asset Owner submit. Assembles the payload (shape shared with the
-   * backend rebuild) and console.logs it. Not yet wired to GAS — that is the
-   * companion backend task.
+   * Existing Asset Owner submit. Assembles the EAO payload and POSTs it to the
+   * same VITE_FORM_ENDPOINT the Investor / RE Professional flow uses. The backend
+   * normalizes the flat EAO shape into the generic lead payload, so booking,
+   * confirmation email and CRM routing all run through the shared code path.
    */
-  function submitEAO() {
+  async function submitEAO() {
     if (!eaoProperty) return;
+    setSubmitting(true);
+    setSubmitError(false);
 
     const contact: EAOContact = {
       name: eaoContact.name.trim(),
@@ -203,8 +206,25 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
       booking,
     });
 
-    console.log('[EAO submission payload]', payload);
-    setStep('success');
+    try {
+      if (FORM_ENDPOINT) {
+        const res  = await fetch(FORM_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (data.success) {
+          setResponseReferralCode(data.referralCode || null);
+          setStep('success');
+        } else {
+          setSubmitError(true);
+        }
+      } else {
+        /* dev mode — no endpoint configured */
+        setStep('success');
+      }
+    } catch {
+      setSubmitError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function submitForm() {

@@ -77,7 +77,7 @@ var CONFIG = {
     INVESTORS:         'Investors',
     REFERRAL_PARTNERS: 'Referral Partners',
     RE_PROFESSIONALS:  'RE Professionals',
-    CURIOUS:           'Curious',
+    ASSET_OWNER:       'Existing Asset Owners',
     CLIENTS:           'Clients',
     SUBSCRIBERS:       'Subscribers',
     ARCHIVE:           'Archive',
@@ -93,7 +93,9 @@ var CONFIG = {
     COLD:              'AxisPoint Cold',
   },
 
-  COLD_THRESHOLD_DAYS: 60,
+  // Days a lead can sit Active before moveColdLeads() sweeps it to Cold.
+  // Centralized here so a future dashboard control can adjust it in one place.
+  COLD_LEAD_DAYS: 60,
 };
 
 
@@ -819,6 +821,12 @@ var LEAD_HEADERS = [
   'Direct Referrals', 'Total Downstream', 'Last Referral Date', 'Meet Link',
 ];
 
+// The Referral Partners tab carries one extra column beyond LEAD_HEADERS:
+// a per-partner toggle for the monthly referral-summary email. 0-based index
+// (= first column past the shared lead layout). Blank/TRUE = enabled; only an
+// explicit FALSE opts a partner out. Groundwork for a future dashboard control.
+var REPORTS_ENABLED_COL = LEAD_HEADERS.length;
+
 // Referrals tab columns
 var REFERRAL_HEADERS = [
   'Referral ID', 'Referrer Lead ID', 'Referrer Name', 'Referrer Email', 'Referrer Code',
@@ -981,6 +989,12 @@ function doGet(e) {
 
 function handleFormSubmission(payload) {
   try {
+    // Existing Asset Owner submissions arrive with a flat contact/property shape.
+    // Normalize them into the generic lead payload (person / message / qualData /
+    // preferences) so every downstream step below runs through the same code path
+    // as Investor / RE Professional / Referral — no per-role branching required.
+    if (payload.role === 'existing_asset_owner') normalizeEaoPayload(payload);
+
     var email = ((payload.person || {}).email || '').toLowerCase().trim();
 
     // ── Dedupe check ──
@@ -1013,7 +1027,17 @@ function handleFormSubmission(payload) {
     appendRow(CONFIG.TABS.ACTIVE_LEADS,   row);
 
     var categoryTab = categoryTabForRole(payload.role);
-    if (categoryTab) appendRow(categoryTab, row);
+    if (categoryTab) {
+      appendRow(categoryTab, row);
+      // New referral partners default to "Reports Enabled = TRUE" so they receive
+      // the monthly referral summary until explicitly opted out in the sheet.
+      if (categoryTab === CONFIG.TABS.REFERRAL_PARTNERS) {
+        var partnerSheet = tab(categoryTab);
+        if (partnerSheet) {
+          partnerSheet.getRange(partnerSheet.getLastRow(), REPORTS_ENABLED_COL + 1).setValue(true);
+        }
+      }
+    }
 
     // Update referrer stats if matched
     if (referralMatch.found) {
@@ -1172,7 +1196,7 @@ function updateReferrerStats(referrerLeadId) {
   var tabsToCheck = [
     CONFIG.TABS.LIFETIME_LEADS, CONFIG.TABS.ACTIVE_LEADS,
     CONFIG.TABS.REFERRAL_PARTNERS, CONFIG.TABS.INVESTORS,
-    CONFIG.TABS.RE_PROFESSIONALS, CONFIG.TABS.CURIOUS, CONFIG.TABS.COLD_LEADS,
+    CONFIG.TABS.RE_PROFESSIONALS, CONFIG.TABS.ASSET_OWNER, CONFIG.TABS.COLD_LEADS,
   ];
   tabsToCheck.forEach(function(tabName) {
     var sheet = tab(tabName);
@@ -1270,7 +1294,7 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meet
   var rm  = referralMatch || { found: false, matchType: 'none' };
 
   var message = payload.message || '';
-  if (payload.role === 'refer' && payload.referred) {
+  if (payload.role === 'submit_referral' && payload.referred) {
     var ref = payload.referred;
     var refFirstName = ref.firstName || '';
     var refLastName  = ref.lastName  || '';
@@ -1324,7 +1348,9 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meet
 function roleToCategory(role) {
   return {
     investor: 'Investor', referral: 'Referral Partner',
-    pro: 'RE Professional', curious: 'Curious', refer: 'Referral',
+    pro: 'RE Professional',
+    existing_asset_owner: 'Existing Asset Owner',
+    submit_referral: 'Referral',
   }[role] || '';
 }
 
@@ -1335,11 +1361,71 @@ function assetClassFromQualData(q) {
 
 function categoryTabForRole(role) {
   return {
-    investor: CONFIG.TABS.INVESTORS,
-    referral: CONFIG.TABS.REFERRAL_PARTNERS,
-    pro:      CONFIG.TABS.RE_PROFESSIONALS,
-    curious:  CONFIG.TABS.CURIOUS,
+    investor:             CONFIG.TABS.INVESTORS,
+    referral:             CONFIG.TABS.REFERRAL_PARTNERS,
+    pro:                  CONFIG.TABS.RE_PROFESSIONALS,
+    existing_asset_owner: CONFIG.TABS.ASSET_OWNER,
+    // submit_referral intentionally has no per-role tab: the submitter's own lead
+    // lives in Active/Lifetime only, while the referral relationship is logged to
+    // the Referrals tab. Returning null here preserves that by-design behavior.
   }[role] || null;
+}
+
+/* ── Existing Asset Owner normalization ──
+   Reshapes the flat EAO payload emitted by buildEAOPayload (frontend) into the
+   generic lead payload every other role uses, so buildLeadRow, dedupe, the
+   partner notification and the booking flow all work with zero role branching.
+     • person       ← name (split into first/last) + email + phone
+     • message      ← pressing_issue        (renders in the Message column + email)
+     • qualData     ← { assetClasses: [readable one-line asset summary] }
+     • preferences  ← [JSON summary of every property/situation field]  (nothing lost) */
+function normalizeEaoPayload(payload) {
+  var fullName  = String(payload.name || '').trim();
+  var nameParts = fullName ? fullName.split(/\s+/) : [];
+  var firstName = nameParts.shift() || '';
+  var lastName  = nameParts.join(' ');
+
+  payload.person = {
+    firstName: firstName,
+    lastName:  lastName,
+    email:     payload.email || '',
+    phone:     payload.phone || '',
+    company:   '',
+  };
+  payload.message     = payload.pressing_issue || payload.message || '';
+  payload.qualData    = { assetClasses: [eaoAssetClassLabel(payload)].filter(Boolean) };
+  payload.preferences = [eaoDetailsSummary(payload)];
+  return payload;
+}
+
+/** Readable one-line asset summary for the Asset Class column, from the EAO
+ *  property object. Fed through qualData.assetClasses so assetClassFromQualData()
+ *  and the partner-notification "Asset Class" row both pick it up generically. */
+function eaoAssetClassLabel(payload) {
+  if (Array.isArray(payload.asset_breakdown) && payload.asset_breakdown.length) {
+    var types = payload.asset_breakdown.map(function(b) {
+      return Array.isArray(b.property_type) ? b.property_type.join('/') : b.property_type;
+    }).filter(Boolean);
+    return 'Mixed portfolio: ' + types.join(', ');
+  }
+  var label = payload.property_type || '';
+  if (payload.portfolio_type === 'portfolio') return label ? 'Portfolio: ' + label : 'Portfolio';
+  return label ? 'Single: ' + label : '';
+}
+
+/** JSON-stringified capture of every EAO-specific field, stored in the
+ *  Preferences column so no detail is lost despite there being no dedicated
+ *  column per EAO field. */
+function eaoDetailsSummary(payload) {
+  var summary = { portfolio_type: payload.portfolio_type || '' };
+  if (payload.portfolio_composition) summary.portfolio_composition = payload.portfolio_composition;
+  if (payload.property_type)         summary.property_type         = payload.property_type;
+  if (payload.units != null)         summary.units                 = payload.units;
+  if (payload.sqft)                  summary.sqft                  = payload.sqft;
+  if (payload.asset_breakdown)       summary.asset_breakdown       = payload.asset_breakdown;
+  if (payload.current_situation)     summary.current_situation     = payload.current_situation;
+  if (payload.pressing_issue)        summary.pressing_issue        = payload.pressing_issue;
+  return JSON.stringify(summary);
 }
 
 /* ── Referral URL helpers ── */
@@ -1615,6 +1701,11 @@ function sendMonthlyReferralSummaries() {
       var status = String(row[COLS.STATUS] || '');
       if (status === 'Cold' || status === 'Archive') continue;
 
+      // Skip partners who have explicitly opted out (Reports Enabled = FALSE).
+      // Blank or TRUE keeps them enabled.
+      var reportsEnabled = row[REPORTS_ENABLED_COL];
+      if (reportsEnabled === false || String(reportsEnabled).trim().toUpperCase() === 'FALSE') continue;
+
       var leadId = String(row[COLS.LEAD_ID] || '');
       var email  = String(row[COLS.EMAIL]   || '').trim();
       if (!leadId || !email) continue;
@@ -1677,7 +1768,7 @@ function moveColdLeads() {
       if (isNaN(submitted)) continue;
 
       var age = (now - submitted) / 86400000;
-      if (age <= CONFIG.COLD_THRESHOLD_DAYS) continue;
+      if (age <= CONFIG.COLD_LEAD_DAYS) continue;
 
       row[COLS.STATUS] = 'Cold';
       appendRow(CONFIG.TABS.COLD_LEADS, row);
@@ -2275,7 +2366,7 @@ function onOpen() {
     .createMenu('AxisPoint')
     .addItem('📣  Send publish notification',  'openPublishDialog')
     .addSeparator()
-    .addItem('❄️  Run cold lead check now',    'moveColdLeads')
+    .addItem('❄️  Run Cold Lead Sweep Now',     'moveColdLeads')
     .addItem('📬  Send daily digest now',       'sendDailyDigest')
     .addToUi();
 }
@@ -2337,7 +2428,7 @@ function setupSpreadsheet() {
     { name: CONFIG.TABS.INVESTORS,         color: '#24A5BC' },
     { name: CONFIG.TABS.REFERRAL_PARTNERS, color: '#38285D' },
     { name: CONFIG.TABS.RE_PROFESSIONALS,  color: '#9F328C' },
-    { name: CONFIG.TABS.CURIOUS,           color: '#5A5270' },
+    { name: CONFIG.TABS.ASSET_OWNER,       color: '#1A8799' },
     { name: CONFIG.TABS.CLIENTS,           color: '#1A8799' },
     { name: CONFIG.TABS.ARCHIVE,           color: '#9490A8' },
   ];
@@ -2345,8 +2436,13 @@ function setupSpreadsheet() {
   leadTabs.forEach(function(cfg) {
     var sheet = ss.getSheetByName(cfg.name) || ss.insertSheet(cfg.name);
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(LEAD_HEADERS);
-      sheet.getRange(1, 1, 1, LEAD_HEADERS.length)
+      // Every lead tab shares LEAD_HEADERS. The Referral Partners tab carries one
+      // extra "Reports Enabled" column (monthly-summary opt-out toggle).
+      var headers = cfg.name === CONFIG.TABS.REFERRAL_PARTNERS
+        ? LEAD_HEADERS.concat(['Reports Enabled'])
+        : LEAD_HEADERS;
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length)
         .setFontWeight('bold')
         .setBackground(cfg.color)
         .setFontColor('#FFFFFF');
