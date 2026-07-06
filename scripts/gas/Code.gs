@@ -145,6 +145,8 @@ var TEMPLATE_VISITOR_PHONE = [
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
+  '{{personalNote}}',
+  '',
   '<!-- BOOKING BLOCK -->',
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">',
   '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">',
@@ -185,6 +187,7 @@ var TEMPLATE_VISITOR_PHONE = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -236,6 +239,8 @@ var TEMPLATE_VISITOR_MEET = [
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
+  '{{personalNote}}',
+  '',
   '<!-- BOOKING BLOCK -->',
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">',
   '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">',
@@ -276,6 +281,7 @@ var TEMPLATE_VISITOR_MEET = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -327,6 +333,8 @@ var TEMPLATE_VISITOR_NO_BOOKING = [
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
+  '{{personalNote}}',
+  '',
   '<!-- BOOKING PROMPT CARD -->',
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
   '<tr><td style="padding:20px 22px;text-align:center;">',
@@ -358,6 +366,7 @@ var TEMPLATE_VISITOR_NO_BOOKING = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; This email was sent because you submitted a contact form at axispoint.llc.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -443,6 +452,7 @@ var TEMPLATE_REFERRER_NOTIFICATION = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because someone used your referral link.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -541,6 +551,7 @@ var TEMPLATE_REFERRER_MONTHLY = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you have referred people to AxisPoint Partners.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -645,6 +656,7 @@ var TEMPLATE_PARTNER_NOTIFICATION = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification — do not forward.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -722,6 +734,7 @@ var TEMPLATE_WELCOME_SUBSCRIBER = [
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; You are receiving this because you subscribed at axispoint.llc/learn.<br><a href="{{unsubscribeUrl}}" style="color:#9490A8;text-decoration:underline;">Unsubscribe</a></p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
   '</td></tr>',
@@ -1460,12 +1473,18 @@ function sendVisitorConfirmation(payload, referralCode, meetLink) {
   var b            = payload.booking;
   var hasBooking   = b && b.date;
 
+  // Per-role note that reflects back what the visitor actually told us. Empty
+  // string for roles/payloads with nothing substantive to echo; renderTemplate
+  // strips the unfilled {{personalNote}} placeholder to '' in that case.
+  var personalNote = buildVisitorPersonalNote(payload);
+
   var html, subject;
 
   if (hasBooking) {
     var parts = bookingDateParts(b.date, b.slot || b.time || '');
     var vars  = {
       firstName:        name,
+      personalNote:     personalNote,
       bookingMonth:     parts.month,
       bookingDay:       parts.day,
       bookingDayOfWeek: parts.dow,
@@ -1485,6 +1504,7 @@ function sendVisitorConfirmation(payload, referralCode, meetLink) {
   } else {
     html = renderTemplate(TEMPLATE_VISITOR_NO_BOOKING, {
       firstName:    name,
+      personalNote: personalNote,
       referralCode: referralCode || '',
       referralLink: referralLink,
     });
@@ -1497,6 +1517,114 @@ function sendVisitorConfirmation(payload, referralCode, meetLink) {
     htmlBody: html,
     inlineImages: { logo: LOGO_BLOB },
   });
+}
+
+/* ── Per-role personalized confirmation note ──
+   Reflects back what the visitor actually submitted, using only fields that
+   role really captures (see docs/frontend-payload-schemas.md). Returns a ready
+   HTML callout, or '' when there is nothing substantive to echo. All
+   interpolated values are escaped; option-list values are fixed strings but are
+   escaped anyway for safety. Rendered into the {{personalNote}} placeholder that
+   every visitor template carries, so it works for booking and no-booking alike. */
+function buildVisitorPersonalNote(payload) {
+  var role = payload.role;
+  var q    = payload.qualData || {};
+  var label = '';
+  var body  = '';
+
+  if (role === 'investor') {
+    label = 'Your investor profile';
+    var aum = (q.aum && q.aum !== 'Prefer not to say') ? q.aum : '';
+    var exp = (Array.isArray(q.experience) ? q.experience : [])
+      .filter(function(x) { return x && x !== 'Never invested in CRE'; });
+    if (aum && exp.length) {
+      body = 'You mentioned capital in the ' + escapeHtml(aum) + ' range, with a background that includes ' + escapeHtml(humanList(exp)) + '. We will frame the conversation around exactly where you are.';
+    } else if (aum) {
+      body = 'You mentioned capital in the ' + escapeHtml(aum) + ' range. We will tailor the conversation to your goals and timeline.';
+    } else if (exp.length) {
+      body = 'Thanks for sharing your CRE background — ' + escapeHtml(humanList(exp)) + '. We will pick up right there when we talk.';
+    } else {
+      body = 'Thanks for sharing where you are as an investor. We will tailor the conversation to your goals.';
+    }
+
+  } else if (role === 'pro') {
+    label = 'Your practice';
+    var proRole = q.proRole || '';
+    var markets = Array.isArray(q.markets) ? q.markets : [];
+    if (proRole && markets.length) {
+      body = 'Great to connect with someone in ' + escapeHtml(proRole) + ' working across ' + escapeHtml(humanList(markets)) + '. We are always open to smart collaboration.';
+    } else if (proRole) {
+      body = 'Great to connect with someone in ' + escapeHtml(proRole) + '. We are always open to smart collaboration.';
+    } else if (markets.length) {
+      body = 'Good to connect with someone working across ' + escapeHtml(humanList(markets)) + '. We are always open to smart collaboration.';
+    } else {
+      body = 'Great to connect with a fellow CRE professional. We are always open to smart collaboration.';
+    }
+
+  } else if (role === 'referral') {
+    label = 'Your practice';
+    var profession = q.profession || '';
+    var closer = referralIntentClause(q.referralIntent || '');
+    if (profession) {
+      body = 'Great to connect with a ' + escapeHtml(profession) + '. ' + closer;
+    } else {
+      body = 'Thank you for thinking of AxisPoint for your clients. ' + closer;
+    }
+
+  } else if (role === 'existing_asset_owner') {
+    label = 'What you told us';
+    var issue     = String(payload.pressing_issue   || '').trim();
+    var situation = String(payload.current_situation || '').trim();
+    if (issue) {
+      body = 'You told us the most pressing thing on your plate is: “' + escapeHtml(issue) + '” — that is exactly where we will start.';
+    } else if (situation) {
+      body = 'You described your current situation as: “' + escapeHtml(situation) + '” — we will dig into that when we connect.';
+    } else {
+      body = 'We reviewed the details on your portfolio and situation, and we will come prepared to talk specifics.';
+    }
+
+  } else if (role === 'submit_referral') {
+    label = 'Your referral';
+    var ref = payload.referred || {};
+    var refName = [ref.firstName, ref.lastName].filter(Boolean).join(' ').trim() || String(ref.name || '').trim();
+    if (refName) {
+      body = 'Thank you for thinking of us. We will personally reach out to ' + escapeHtml(refName) + ' and take good care of the introduction — you will not be left wondering what happened next.';
+    } else {
+      body = 'Thank you for the referral. We will personally reach out to the person you introduced and take good care of it from here.';
+    }
+
+  } else {
+    return '';
+  }
+
+  if (!body) return '';
+
+  return [
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5FB;border-left:3px solid #9F328C;border-radius:0 6px 6px 0;margin:0 0 20px;">',
+    '<tr><td style="padding:12px 16px;">',
+    '<p style="font-size:10px;font-weight:600;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 5px;">' + escapeHtml(label) + '</p>',
+    '<p style="font-size:13px;color:#1C1628;line-height:1.6;margin:0;">' + body + '</p>',
+    '</td></tr>',
+    '</table>',
+  ].join('');
+}
+
+/** Joins a list into readable prose: "A", "A and B", "A, B and C". */
+function humanList(arr) {
+  var a = (arr || []).filter(Boolean);
+  if (a.length <= 1) return a.join('');
+  if (a.length === 2) return a[0] + ' and ' + a[1];
+  return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+}
+
+/** Closing sentence for a referral partner, keyed off their stated intent. */
+function referralIntentClause(intent) {
+  return {
+    'I actively refer CRE opportunities': 'We look forward to a lasting referral relationship.',
+    'I have a specific client in mind':   'We would love to hear about the client you have in mind.',
+    'Building a referral relationship':   'We look forward to building a referral relationship with you.',
+    'Exploring if there is a fit':        'We are glad to explore whether there is a fit.',
+  }[intent] || 'We look forward to connecting.';
 }
 
 /* ── Immediate partner notification (HTML template) ── */
