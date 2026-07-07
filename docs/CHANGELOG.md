@@ -3,6 +3,10 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-07
+
+- **infra:** Hosting automation scripts built and verified live (`scripts/hosting`), full DNS/subdomain inventory captured, production migration plan documented (not yet executed). See deployment.md.
+
 ## 2026-07-06
 
 - **docs:** Established `/docs` as the verified source of truth (backend architecture, email templates, frontend payload schemas, deployment) and corrected the stale root `README.md` against current source.
