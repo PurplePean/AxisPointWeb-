@@ -7,12 +7,18 @@
 // Usage:
 //   node scripts/hosting/list-subdomains.js
 
-const { uapi } = require('./lib/cpanel');
+const { api2 } = require('./lib/cpanel');
 const { printTable } = require('./lib/table');
 
 async function main() {
-  const res = await uapi('SubDomain', 'listsubdomains');
-  const rows = Array.isArray(res.data) ? res.data : [];
+  // SubDomain::listsubdomains only exists in cPanel API 2 — there is no UAPI
+  // equivalent (UAPI's recommended path is DomainInfo::list_domains, which
+  // returns a different shape). Same reason clean-directory.js uses api2() for
+  // Fileman::fileop. See lib/cpanel.js.
+  const res = await api2('SubDomain', 'listsubdomains');
+  const rows = Array.isArray(res.cpanelresult && res.cpanelresult.data)
+    ? res.cpanelresult.data
+    : [];
 
   console.log(`Found ${rows.length} subdomain(s):\n`);
   printTable(

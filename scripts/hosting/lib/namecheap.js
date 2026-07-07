@@ -1,6 +1,10 @@
 // Shared Namecheap client for the XML API.
 //
-//   https://api.namecheap.com/xml.api
+//   https://api.namecheap.com/xml.response
+//
+// NOTE: the endpoint path is `xml.response`, NOT `xml.api`. Hitting the wrong
+// path returns a generic HTML 404 from Namecheap's web server (not the API's
+// XML error envelope), which is the confusing symptom this was fixed from.
 //
 // Every request carries the five required auth/routing params: ApiUser, ApiKey,
 // UserName, ClientIp, Command. Credentials come from the environment
@@ -25,7 +29,17 @@
 
 const { getEnv } = require('./env');
 
-const ENDPOINT = 'https://api.namecheap.com/xml.api';
+const ENDPOINT = 'https://api.namecheap.com/xml.response';
+
+// Return the request URL as a string with the ApiKey value redacted, for
+// safe logging. Never log the raw URL — it carries the live API key.
+function redactedUrl(url) {
+  const clone = new URL(url.toString());
+  if (clone.searchParams.has('ApiKey')) {
+    clone.searchParams.set('ApiKey', '***REDACTED***');
+  }
+  return clone.toString();
+}
 
 function assertFetch() {
   if (typeof fetch !== 'function') {
@@ -99,6 +113,15 @@ async function call(command, params = {}) {
   url.searchParams.set('Command', command);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) url.searchParams.set(key, value);
+  }
+
+  // Set DEBUG=1 (or DEBUG=namecheap) to print the exact request URL, with the
+  // API key redacted, before the request goes out. Kept as a flag rather than
+  // removed: the wrong-endpoint bug that made this necessary was invisible
+  // without seeing the constructed URL.
+  const debug = process.env.DEBUG;
+  if (debug === '1' || debug === 'true' || /\bnamecheap\b/i.test(debug || '')) {
+    console.error(`[namecheap debug] ${command} -> ${redactedUrl(url)}`);
   }
 
   let res;
