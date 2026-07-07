@@ -97,6 +97,60 @@ By design it does **not** touch domain registration, renewal, or transfer — th
 stay manual. See [`scripts/hosting/README.md`](../scripts/hosting/README.md) for
 credentials and per-command usage.
 
+## Hosting inventory (as of live scan via `scripts/hosting`)
+
+Server: `premium171.web-hosting.com`, IP `162.0.209.114`, cPanel account: `axisipak`
+
+Current cPanel subdomains:
+
+- `qr.axispoint.llc` — document root: `/home/axisipak/public_html/qr` (nested inside `public_html` — this is a known issue, see Migration Plan below)
+- `crm.axispoint.llc` — document root: `/home/axisipak/crm.axispoint.llc` — OLD/STALE project, safe to wipe when reset
+
+DNS records for `axispoint.llc` — 7 A records tied to hosting (all safe to
+repoint/reuse during migration, no DNS changes needed, only file content
+changes): `@`, `api`, `crm`, `qr`, `staging`, `www`, `www.crm` — all currently
+point to `162.0.209.114`. Note: `api` and `staging` already have DNS A records
+but **NO** corresponding cPanel subdomain/folder yet — DNS is pre-provisioned,
+hosting is not.
+
+### NEVER MODIFY — Google email/verification records
+
+These 8 DNS records must never be changed, deleted, or touched under any
+circumstances, regardless of any other hosting cleanup:
+
+- 5x MX records (`ASPMX.L.GOOGLE.COM` + 4 alternates) — powers `@axispoint.llc` email
+- TXT `_dmarc` — DMARC policy
+- TXT `google._domainkey` — DKIM signing
+- TXT `@` (`v=spf1...`) — SPF
+- TXT `@` (`google-site-verification=...`) — Search Console ownership
+
+## Production migration plan (not yet executed — current site is still in active use)
+
+When the new monorepo project actually goes live (explicit go-ahead required, not
+yet given):
+
+1. **Standardize subdomain structure:** each subdomain gets its own top-level
+   sibling folder under `/home/axisipak/` (e.g. `qr.axispoint.llc/`,
+   `crm.axispoint.llc/`) rather than nesting inside `public_html`. Main site
+   (`axispoint.llc`) stays in `public_html` since it's the account's primary
+   domain root.
+2. **Migrate qr specifically:** move files from `public_html/qr` to a new
+   top-level `qr.axispoint.llc/` folder, update the cPanel subdomain's document
+   root to match, and update `deploy-qr.yml`'s FTP target path accordingly —
+   otherwise the next auto-deploy uploads to the old, now-wrong path. (Nested
+   placement inside `public_html` also means qr's files may currently be
+   unintentionally reachable at `axispoint.llc/qr` as an unplanned side door.)
+3. **Wipe `crm.axispoint.llc` clean** (confirmed old/stale, not needed) — ready
+   to receive the real dashboard whenever that gets built later.
+4. **`api` and `staging`:** leave un-provisioned (no folder created) until those
+   are actually being built — DNS is already pointed and ready whenever needed.
+5. **OPEN QUESTION, not yet investigated:** whether the FTP deploy workflows
+   (`deploy-web.yml`/`deploy-qr.yml`, using `SamKirkland/FTP-Deploy-Action`) have
+   "clean slate"/mirror-delete behavior configured. Without it, a deploy only
+   adds/overwrites files — it does **NOT** remove old site files that aren't part
+   of the new build. This must be checked and likely enabled before the
+   migration, or old site cruft will sit alongside the new deploy indefinitely.
+
 ## One-time GAS setup (from `Code.gs` header)
 
 1. Create the Sheet, create the Apps Script project, paste `Code.gs`.
