@@ -15,9 +15,13 @@ export const STEP_LABELS_EAO = ['Who you are', 'Your info', 'Property details', 
 
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+/* Fixed intro-call slots (all Central Time). MUST stay in sync with BOOKING_SLOTS
+   in scripts/gas/Code.gs — the availability endpoint keys its free/busy response by
+   these exact labels. Real per-day availability is fetched from the backend at
+   selection time (see ContactForm's availability effect); there is no static
+   "taken" list anymore. */
 export const SLOTS = ['8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
   '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
-export const TAKEN = new Set(['9:00 AM', '11:00 AM', '2:00 PM', '3:30 PM']);
 
 export function buildCalendar(year: number, month: number): (number | null)[] {
   const first = new Date(year, month, 1).getDay();

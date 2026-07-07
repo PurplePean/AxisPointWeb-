@@ -5,6 +5,8 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 
 ## 2026-07-07
 
+- **feat(gas):** **Booking calendar migration — behavior change for ALL bookings.** `createBookingEvent` now writes every event (Meet and phone) to a dedicated shared "AxisPoint Bookings" calendar (`CONFIG.BOOKING_CALENDAR_ID`, read from the new `BOOKING_CALENDAR_ID` Script Property) instead of the deploying account's personal `CalendarApp.getDefaultCalendar()` / the `'primary'` calendar. Requires running `setProperties()` with the real calendar ID, then `clasp push` + `clasp deploy -i`.
+- **feat(gas):** New read-only availability endpoint — `doGet ?action=availability&date=<…>` runs `Calendar.Freebusy.query` against the same `BOOKING_CALENDAR_ID` and returns which fixed `BOOKING_SLOTS` are free. Frontend `BookingCalendar` now fetches this on day-select and disables booked slots; on any failure it falls back to showing all slots available. No OAuth scope change (existing `auth/calendar` already covers Freebusy). Replaces the old static `TAKEN` set in `packages/brand`.
 - **infra:** Hosting automation scripts built and verified live (`scripts/hosting`), full DNS/subdomain inventory captured, production migration plan documented (not yet executed). See deployment.md.
 
 ## 2026-07-06
