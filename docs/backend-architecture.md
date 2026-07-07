@@ -12,7 +12,7 @@ All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 | Function | Kind | Behavior |
 |---|---|---|
 | `doPost(e)` | Web App POST | `JSON.parse(e.postData.contents)`. Routes to `handleSubscribe` when `payload.type === 'subscribe'` **or** (`!payload.role && payload.email`); otherwise `handleFormSubmission`. Errors return `{ success:false, error }`. |
-| `doGet(e)` | Web App GET | If `?unsubscribe=<email>` present → `handleUnsubscribe`. Otherwise returns plain text `"AxisPoint Partners API"`. |
+| `doGet(e)` | Web App GET | `?unsubscribe=<email>` → `handleUnsubscribe`. `?action=availability&date=<"June 27, 2026">` → `handleAvailability` (free/busy JSON for the shared booking calendar, see below). Otherwise returns plain text `"AxisPoint Partners API"`. |
 
 ## Form-submission path
 
@@ -22,11 +22,23 @@ All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 2. Dedupe: `findExistingLead(email)` scans **Lifetime Leads** by lowercased email. On match → `handleResubmission` (updates empty fields, appends a resubmission note to Message, notifies partners, returns original Lead ID; **no new row / no new contact**).
 3. New lead: `nextLeadSequence()` → `buildLeadId()` (`AXP-YYYY-XXXX`), `generateReferralCode()` (`AXP-` + 6 unambiguous chars, collision-checked against Lifetime Leads).
 4. `matchReferrer(payload)` — priority **code → email → name** against Lifetime Leads.
-5. If `payload.booking.date` → `createBookingEvent(payload)` first, to capture the Google Meet link.
+5. If `payload.booking.date` → `createBookingEvent(payload)` first, to capture the Google Meet link. **All booking events (Meet and phone) are written to the dedicated shared "AxisPoint Bookings" calendar** identified by `CONFIG.BOOKING_CALENDAR_ID`, not the deploying account's personal default calendar. If that property is unset or the account lacks edit access, the event is skipped and logged (the call is try/caught upstream, so submission still succeeds without a booking).
 6. `buildLeadRow(...)` → `appendRow` to **Lifetime Leads** and **Active Leads**, then to the role's category tab via `categoryTabForRole` (new Referral Partners rows get `Reports Enabled = TRUE`).
 7. If referral matched → `updateReferrerStats`, `logReferralEntry` (Referrals tab), `sendReferrerNotification`.
 8. `createContact(payload)`, `sendVisitorConfirmation(...)`, `sendPartnerNotification(...)` — each wrapped in try/catch so one failure can't abort the response.
 9. Returns `{ success:true, leadId, referralCode }`.
+
+## Calendar booking + availability
+
+Both the write (event creation) and read (free/busy check) paths reference the
+**same** `CONFIG.BOOKING_CALENDAR_ID` — a getter that reads the
+`BOOKING_CALENDAR_ID` Script Property — so availability shown to visitors and the
+events actually booked can never point at different calendars.
+
+- `createBookingEvent(payload)` — Meet bookings use `Calendar.Events.insert(resource, CONFIG.BOOKING_CALENDAR_ID, {conferenceDataVersion:1, sendUpdates:'all'})`; phone/fallback bookings use `CalendarApp.getCalendarById(CONFIG.BOOKING_CALENDAR_ID).createEvent(...)`. Returns the Meet join URL (Meet) or `''`. Skips + logs (returns `''`) if the calendar ID is unset or inaccessible.
+- `handleAvailability(dateStr)` — GET endpoint. Runs `Calendar.Freebusy.query` for the calendar day against `BOOKING_CALENDAR_ID`, then `computeSlotAvailability(dateStr, busy, BOOKING_SLOTS)` marks each slot free/booked by 30-minute overlap. Returns `{ success:true, date, slots:{ "8:00 AM":true, … } }` (`true` = free) or `{ success:false, error }`. The frontend treats any non-success as "all slots available".
+- `computeSlotAvailability(dateStr, busyPeriods, slots)` — pure overlap logic (no GAS globals beyond the pure `parseBookingDateTime`), unit-tested in Node against stubbed Freebusy responses.
+- `BOOKING_SLOTS` — the 16 fixed CT slot labels, mirrored from `SLOTS` in `packages/brand/src/components/form/utils.ts` (must stay in sync — same drift risk as the email template mirrors).
 
 ## Lead types → Category + tab mapping
 
@@ -73,7 +85,7 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 |---|---|
 | `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
-| `setProperties()` | One-time: stores `SPREADSHEET_ID` and `SCRIPT_URL` in Script Properties. |
+| `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
 | `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column). |
 | `setupTriggers()` | Creates the four triggers above. |
 
@@ -154,15 +166,25 @@ CONFIG = {
     CLIENTS: 'AxisPoint Clients', COLD: 'AxisPoint Cold',
   },
   COLD_LEAD_DAYS: 60,
+  // getter → reads the BOOKING_CALENDAR_ID Script Property (shared "AxisPoint
+  // Bookings" calendar). Kept out of the committed literal for the same
+  // survives-redeploys / not-hardcoded reason as SPREADSHEET_ID.
+  get BOOKING_CALENDAR_ID() { return getProp('BOOKING_CALENDAR_ID'); },
 };
 ```
+
+`BOOKING_SLOTS` (module-level `var`, not in `CONFIG`) holds the 16 fixed CT slot
+labels used by `handleAvailability`; keep it in sync with `SLOTS` in
+`packages/brand`.
 
 **11 tabs** created by `setupSpreadsheet`: Active Leads, Lifetime Leads, Cold
 Leads, Investors, Referral Partners, RE Professionals, Existing Asset Owners,
 Clients, Archive, Referrals, Subscribers.
 
-`SPREADSHEET_ID` and `SCRIPT_URL` are **not** in `CONFIG` — they live in Script
+`SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` live in Script
 Properties (set by `setProperties`, read by `getProp`) so they survive redeploys.
+`CONFIG.BOOKING_CALENDAR_ID` is a getter over the property; the raw values are
+never committed as literals.
 
 ## OAuth scopes (`appsscript.json`)
 
@@ -173,6 +195,10 @@ https://www.googleapis.com/auth/spreadsheets
 https://www.googleapis.com/auth/contacts
 https://www.googleapis.com/auth/script.scriptapp
 ```
+
+The availability endpoint's `Calendar.Freebusy.query` needs **no additional
+scope** — the broad `auth/calendar` scope already covers it, so adding it did not
+change `oauthScopes` and does not trigger a reauth.
 
 Plus the advanced **Calendar API v3** service (`enabledAdvancedServices`),
 `timeZone: America/Chicago`, `runtimeVersion: V8`,

@@ -29,6 +29,29 @@ booking: {
 The real Google Meet URL is **not** in the payload — the backend creates it when
 it books the Calendar event.
 
+### Availability check (GET, before slot render)
+
+When a day is selected in the shared `BookingCalendar`, `ContactForm` first GETs
+the backend for that day's real availability, then renders slots. Identical for
+all three booking lead types (Investor, RE Professional, Existing Asset Owner) —
+no role branching.
+
+```
+GET  {VITE_FORM_ENDPOINT}?action=availability&date=<"June 27, 2026">
+→ 200  { "success": true,
+         "date": "June 27, 2026",
+         "slots": { "8:00 AM": true, "9:00 AM": false, … } }   // true = free
+→ 200  { "success": false, "error": "…" }
+```
+
+Booked slots (`false`) render visibly disabled (struck through), not hidden; a
+loading state shows while the check is in flight. **Fallback:** if the request
+fails, returns `success:false`, or no endpoint is configured (local dev), the
+frontend treats every slot as available — i.e. a failed check silently reverts to
+the pre-availability behavior. Slots are queried against the same shared
+`BOOKING_CALENDAR_ID` the backend books onto. (This replaced the old static
+`TAKEN` set in `packages/brand`.)
+
 ## `buildPayload` roles — `investor`, `referral`, `pro`, `submit_referral`
 
 ```jsonc

@@ -11,7 +11,7 @@
  */
 import type { FormController, MeetType } from './types';
 import { FL, FInput } from './primitives';
-import { MONTHS, DAYS, SLOTS, TAKEN, fmtDate } from './utils';
+import { MONTHS, DAYS, SLOTS, fmtDate } from './utils';
 
 function CalDay({ c, d, cellIdx }: { c: FormController; d: number | null; cellIdx: number }) {
   if (d === null) return <div />;
@@ -94,24 +94,32 @@ export function BookingCalendar({ c }: { c: FormController }) {
                 <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[0.7rem] font-semibold" style={{ background: '#EEEAF5', borderColor: '#C4B8DC', color: '#38285D' }}>
                   {fmtDate(c.calYear, c.calMonth, c.selDay)}
                 </div>
-                <span className="text-[0.72rem] text-hint">Pick a time</span>
+                <span className="text-[0.72rem] text-hint">
+                  {c.slotsLoading ? 'Checking availability…' : 'Pick a time'}
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {SLOTS.map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    disabled={TAKEN.has(s)}
-                    onClick={() => !TAKEN.has(s) && c.setSelSlot(s)}
-                    className={`py-2 rounded-[8px] border text-center text-[0.72rem] font-semibold transition-all ${
-                      TAKEN.has(s)   ? 'bg-body border-border text-[#D4CEE8] cursor-not-allowed line-through font-normal' :
-                      c.selSlot === s  ? 'bg-teal border-teal text-white' :
-                                       'bg-white border-border text-sub cursor-pointer hover:border-teal/40 hover:bg-[#E8F7FA] hover:text-teal'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className={`grid grid-cols-2 sm:grid-cols-4 gap-1.5 transition-opacity ${c.slotsLoading ? 'opacity-50' : ''}`}>
+                {SLOTS.map(s => {
+                  // slotAvail null (not loaded / check failed) → treat as available.
+                  const booked = c.slotAvail ? c.slotAvail[s] === false : false;
+                  const disabled = booked || c.slotsLoading;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => !disabled && c.setSelSlot(s)}
+                      className={`py-2 rounded-[8px] border text-center text-[0.72rem] font-semibold transition-all ${
+                        booked         ? 'bg-body border-border text-[#D4CEE8] cursor-not-allowed line-through font-normal' :
+                        c.slotsLoading ? 'bg-white border-border text-sub cursor-wait' :
+                        c.selSlot === s  ? 'bg-teal border-teal text-white' :
+                                         'bg-white border-border text-sub cursor-pointer hover:border-teal/40 hover:bg-[#E8F7FA] hover:text-teal'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
               <div className="text-[0.63rem] text-hint mt-1.5">All times Central Time (CT)</div>
             </div>

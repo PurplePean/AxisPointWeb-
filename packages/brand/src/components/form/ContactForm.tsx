@@ -44,6 +44,8 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
   const [selDay, setSelDay]     = useState<number | null>(null);
   const [selSlot, setSelSlot]   = useState<string | null>(null);
+  const [slotAvail, setSlotAvail]     = useState<Record<string, boolean> | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   /* multi-select state */
   const [expSel,       setExpSel]       = useState<Set<string>>(new Set());
@@ -121,6 +123,32 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
 
   useEffect(() => { setSelDay(null); setSelSlot(null); }, [calMonth, calYear]);
   useEffect(() => { if (selDay !== null) setSelSlot(null); }, [selDay]);
+
+  /* When a day is selected, ask the backend which slots are already booked on the
+     shared calendar before rendering them. Identical for all three lead types that
+     share BookingCalendar — no role branching. On ANY failure (or when no endpoint
+     is configured, e.g. local dev) slotAvail stays null and every slot renders as
+     available: a failed check silently reverts to the pre-availability behavior. */
+  useEffect(() => {
+    if (bookChoice !== 'yes' || selDay === null || !FORM_ENDPOINT) {
+      setSlotAvail(null);
+      setSlotsLoading(false);
+      return;
+    }
+    const dateStr = `${MONTHS[calMonth]} ${selDay}, ${calYear}`;
+    let cancelled = false;
+    setSlotsLoading(true);
+    setSlotAvail(null);
+    fetch(`${FORM_ENDPOINT}?action=availability&date=${encodeURIComponent(dateStr)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        setSlotAvail(data && data.success && data.slots ? data.slots : null);
+      })
+      .catch(() => { if (!cancelled) setSlotAvail(null); })
+      .finally(() => { if (!cancelled) setSlotsLoading(false); });
+    return () => { cancelled = true; };
+  }, [bookChoice, selDay, calMonth, calYear]);
 
   const today    = new Date();
   const calCells = buildCalendar(calYear, calMonth);
@@ -287,7 +315,7 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
 
   const c: FormController = {
     step, setStep, role, setRole, bookChoice, setBookChoice, meetType, setMeetType,
-    calMonth, calYear, selDay, setSelDay, selSlot, setSelSlot,
+    calMonth, calYear, selDay, setSelDay, selSlot, setSelSlot, slotAvail, slotsLoading,
     expSel, setExpSel, aumSel, setAumSel, profSel, setProfSel, clientsSel, setClientsSel,
     refIntentSel, setRefIntentSel, proRoleSel, setProRoleSel, marketSel, setMarketSel,
     proIntentSel, setProIntentSel,

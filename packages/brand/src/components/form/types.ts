@@ -112,6 +112,12 @@ export interface FormController {
   setSelDay: Dispatch<SetStateAction<number | null>>;
   selSlot: string | null;
   setSelSlot: Dispatch<SetStateAction<string | null>>;
+  /** Per-slot availability for the selected day, keyed by slot label
+   *  (true = free, false = booked). null = not loaded / check failed, in which
+   *  case every slot is treated as available (see BookingCalendar). */
+  slotAvail: Record<string, boolean> | null;
+  /** True while the availability check for the selected day is in flight. */
+  slotsLoading: boolean;
 
   expSel: Set<string>;
   setExpSel: SetSet;

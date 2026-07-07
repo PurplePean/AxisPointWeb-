@@ -96,7 +96,26 @@ var CONFIG = {
   // Days a lead can sit Active before moveColdLeads() sweeps it to Cold.
   // Centralized here so a future dashboard control can adjust it in one place.
   COLD_LEAD_DAYS: 60,
+
+  // Calendar ID of the dedicated shared "AxisPoint Bookings" calendar that ALL
+  // booking events (Google Meet and phone) are written to — never the deploying
+  // account's personal default calendar. The actual ID lives in Script Properties
+  // (set once via setProperties(), the same survives-redeploys pattern as
+  // SPREADSHEET_ID / SCRIPT_URL) and is read here so it is never hardcoded in a
+  // function body. createBookingEvent() and the availability endpoint both
+  // reference this one value, so bookings and free/busy checks can never diverge.
+  get BOOKING_CALENDAR_ID() { return getProp('BOOKING_CALENDAR_ID'); },
 };
+
+// Fixed intro-call time slots offered on the booking calendar (all Central Time).
+// MUST stay in sync with SLOTS in packages/brand/src/components/form/utils.ts —
+// the frontend renders these labels and the availability endpoint keys its
+// free/busy response by them. Editing one copy without the other silently breaks
+// the availability cross-reference.
+var BOOKING_SLOTS = [
+  '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM',
+];
 
 
 /* ────────────────────────────────────────────────────────────
@@ -985,6 +1004,9 @@ function doGet(e) {
     var params = e.parameter || {};
     if (params.unsubscribe) {
       return handleUnsubscribe(params.unsubscribe);
+    }
+    if (params.action === 'availability' && params.date) {
+      return handleAvailability(params.date);
     }
     return ContentService
       .createTextOutput('AxisPoint Partners API')
@@ -2405,6 +2427,16 @@ function createBookingEvent(payload) {
   var b = payload.booking;
   var q = payload.qualData || {};
 
+  // All booking events go on the shared "AxisPoint Bookings" calendar, never a
+  // personal default calendar. If the property isn't configured, skip cleanly
+  // (this call is wrapped in try/catch upstream) rather than write to the wrong
+  // calendar — a missing ID is a setup error, surfaced in the logs.
+  var calId = CONFIG.BOOKING_CALENDAR_ID;
+  if (!calId) {
+    Logger.log('createBookingEvent: BOOKING_CALENDAR_ID Script Property not set — run setProperties(). Skipping event creation.');
+    return '';
+  }
+
   var start = parseBookingDateTime(b.date, b.slot || b.time || '');
   if (!start) {
     Logger.log('createBookingEvent: unable to parse "' + b.date + ' ' + (b.slot || b.time) + '"');
@@ -2446,7 +2478,7 @@ function createBookingEvent(payload) {
         },
       };
 
-      var created = Calendar.Events.insert(eventResource, 'primary', {
+      var created = Calendar.Events.insert(eventResource, calId, {
         conferenceDataVersion: 1,
         sendUpdates:           'all',
       });
@@ -2467,7 +2499,13 @@ function createBookingEvent(payload) {
   }
 
   // ── Phone call (or Meet fallback): plain calendar event, no Meet link. ──
-  CalendarApp.getDefaultCalendar().createEvent(title, start, end, {
+  var cal = CalendarApp.getCalendarById(calId);
+  if (!cal) {
+    Logger.log('createBookingEvent: no Calendar access for BOOKING_CALENDAR_ID=' + calId +
+               ' — the deploying account needs edit access. Skipping event creation.');
+    return '';
+  }
+  cal.createEvent(title, start, end, {
     description: desc,
     guests:      guests.join(','),
     sendInvites: true,
@@ -2482,6 +2520,95 @@ function parseBookingDateTime(dateStr, timeStr) {
   } catch (e) {
     return null;
   }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   JOB — CALENDAR AVAILABILITY (read-only GET endpoint)
+   ════════════════════════════════════════════════════════════ */
+
+/**
+ * Read-only availability endpoint.
+ *   GET  ?action=availability&date=<"June 27, 2026">
+ *
+ * Queries the SHARED booking calendar's free/busy for that calendar day and
+ * returns which of the fixed BOOKING_SLOTS are still free. It reads exactly the
+ * same CONFIG.BOOKING_CALENDAR_ID that createBookingEvent() writes to, so the
+ * availability shown and the events actually booked can never reference
+ * different calendars.
+ *
+ * Response shape (always 200; the frontend keys off `success`):
+ *   { success:true, date:"June 27, 2026",
+ *     slots:{ "8:00 AM":true, "9:00 AM":false, ... } }   // true = free
+ *   { success:false, error:"…" }                          // frontend falls back
+ *                                                         // to all-available
+ */
+function handleAvailability(dateStr) {
+  try {
+    var calId = CONFIG.BOOKING_CALENDAR_ID;
+    if (!calId) {
+      return jsonResponse({ success: false, error: 'BOOKING_CALENDAR_ID not configured' });
+    }
+
+    var dayStart = parseBookingDateTime(dateStr, '12:00 AM');
+    if (!dayStart) {
+      return jsonResponse({ success: false, error: 'Unparseable date: ' + dateStr });
+    }
+    var dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    var resp = Calendar.Freebusy.query({
+      timeMin:  dayStart.toISOString(),
+      timeMax:  dayEnd.toISOString(),
+      timeZone: 'America/Chicago',
+      items:    [{ id: calId }],
+    });
+
+    var calBusy = resp && resp.calendars && resp.calendars[calId];
+    var busy = (calBusy && calBusy.busy) || [];
+
+    var slots = computeSlotAvailability(dateStr, busy, BOOKING_SLOTS);
+    return jsonResponse({ success: true, date: dateStr, slots: slots });
+  } catch (err) {
+    Logger.log('handleAvailability error: ' + err);
+    return jsonResponse({ success: false, error: err.toString() });
+  }
+}
+
+/**
+ * Pure slot/busy overlap logic — no GAS globals except parseBookingDateTime
+ * (itself pure) — so it is unit-testable in Node with a stubbed Freebusy
+ * response (see scripts/gas tests). For each slot label it builds the
+ * [start, start+30min) interval on `dateStr` and marks the slot unavailable
+ * (false) when that interval overlaps ANY busy period.
+ *
+ * @param {string} dateStr       e.g. "June 27, 2026"
+ * @param {Array}  busyPeriods   [{ start:ISO, end:ISO }, …] from Freebusy.query
+ * @param {Array}  slots         slot labels, e.g. BOOKING_SLOTS
+ * @return {Object}              { "8:00 AM":true, … }  (true = free)
+ */
+function computeSlotAvailability(dateStr, busyPeriods, slots) {
+  var SLOT_MIN = 30;
+  var intervals = (busyPeriods || []).map(function(bp) {
+    return { start: new Date(bp.start).getTime(), end: new Date(bp.end).getTime() };
+  });
+
+  var out = {};
+  for (var i = 0; i < slots.length; i++) {
+    var label = slots[i];
+    var slotStart = parseBookingDateTime(dateStr, label);
+    if (!slotStart) { out[label] = true; continue; }  // unparseable → don't block
+
+    var sStart = slotStart.getTime();
+    var sEnd   = sStart + SLOT_MIN * 60 * 1000;
+
+    var free = true;
+    for (var j = 0; j < intervals.length; j++) {
+      // half-open overlap: [sStart,sEnd) intersects [busyStart,busyEnd)
+      if (sStart < intervals[j].end && sEnd > intervals[j].start) { free = false; break; }
+    }
+    out[label] = free;
+  }
+  return out;
 }
 
 
@@ -2537,7 +2664,11 @@ function openPublishDialog() {
 function setProperties() {
   PropertiesService.getScriptProperties().setProperties({
     'SPREADSHEET_ID': '1Z5Eyn9F4SoOYg4dJ0cDDorfnvqVbn_uYsUxDkPn12wY',
-    'SCRIPT_URL': 'https://script.google.com/macros/s/AKfycbzfFHPUSP4bUc-Xu1Ma9179bk_dsprrqswaKljeV8ZUmB5Q0gOl9UVtPTqKt4IXeZgBqg/exec'
+    'SCRIPT_URL': 'https://script.google.com/macros/s/AKfycbzfFHPUSP4bUc-Xu1Ma9179bk_dsprrqswaKljeV8ZUmB5Q0gOl9UVtPTqKt4IXeZgBqg/exec',
+    // Dedicated shared "AxisPoint Bookings" calendar (see CONFIG.BOOKING_CALENDAR_ID).
+    // The deploying account must have EDIT access to this calendar. Re-run this
+    // function after pasting the real ID, then clasp push + clasp deploy -i.
+    'BOOKING_CALENDAR_ID': 'c_c6da83c28bffd2cb7bb374dc8376bbc54d31eac404f3b26023d82e42dffae709@group.calendar.google.com'
   });
   Logger.log('Properties set successfully');
 }
