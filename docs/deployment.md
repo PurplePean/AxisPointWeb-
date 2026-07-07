@@ -79,6 +79,24 @@ only.)
 | `FTP_USERNAME_QR` | deploy-qr | QR FTP user |
 | `FTP_PASSWORD_QR` | deploy-qr | QR FTP password |
 
+## Hosting automation — `scripts/hosting`
+
+A dependency-free Node library for read/write access to the hosting stack that
+sits *underneath* the front-end deploys documented above:
+
+- **cPanel** (UAPI + API 2): list subdomains, add subdomains, add redirects, and
+  clean directories.
+- **Namecheap** (XML API): read current DNS records.
+
+It mirrors the `scripts/gas` pattern (shared clients in `lib/`, thin runnable
+scripts on top) and reads all credentials from a gitignored `scripts/hosting/.env`
+(template: `scripts/hosting/.env.example`) — nothing is hardcoded. Write actions
+(`add-subdomain`, `add-redirect`, `clean-directory`) require explicit confirmation.
+
+By design it does **not** touch domain registration, renewal, or transfer — those
+stay manual. See [`scripts/hosting/README.md`](../scripts/hosting/README.md) for
+credentials and per-command usage.
+
 ## One-time GAS setup (from `Code.gs` header)
 
 1. Create the Sheet, create the Apps Script project, paste `Code.gs`.

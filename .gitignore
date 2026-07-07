@@ -45,3 +45,6 @@ Thumbs.db
 
 # clasp (contains the Apps Script ID)
 scripts/gas/.clasp.json
+
+# hosting-automation credentials (cPanel + Namecheap) — never commit
+scripts/hosting/.env
