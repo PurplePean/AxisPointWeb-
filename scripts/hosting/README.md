@@ -57,7 +57,7 @@ If that prints your subdomains, your cPanel host/token/TLS are good.
 
 | Command | What it does |
 |---|---|
-| `node scripts/hosting/list-subdomains.js` | Lists subdomains + document roots (UAPI `SubDomain::listsubdomains`). |
+| `node scripts/hosting/list-subdomains.js` | Lists subdomains + document roots (cPanel API 2 `SubDomain::listsubdomains` — no UAPI equivalent). |
 | `node scripts/hosting/list-dns.js [domain]` | Lists DNS records — type, host, value, TTL (Namecheap `domains.dns.getHosts`). Defaults to `axispoint.llc`. |
 
 ```bash
@@ -129,6 +129,18 @@ File Manager shows paths.
 - **`fileop`/`unlink` version differences:** deleting files is a cPanel API 2
   operation. If a future cPanel version changes this, adjust `clean-directory.js`
   and `lib/cpanel.js` together.
+- **cPanel API 2 vs UAPI:** not every operation exists in UAPI. `SubDomain::listsubdomains`
+  and `Fileman::fileop` are API 2 only and use the `api2()` helper; everything else
+  uses `uapi()`. Don't assume a function exists in UAPI just because the module does.
+- **Namecheap endpoint / debugging:** the Namecheap API path is `xml.response`
+  (production), not `xml.api` or a sandbox host. A wrong path returns a generic
+  HTML 404 instead of the usual XML error envelope. To see the exact request URL
+  a Namecheap script builds (API key redacted), run it with `DEBUG=namecheap`,
+  e.g. `DEBUG=namecheap node scripts/hosting/list-dns.js`.
+- **Namecheap IP whitelist:** a valid-looking request can still fail if the IP in
+  `NAMECHEAP_CLIENT_IP` doesn't exactly match a whitelisted IP under
+  Namecheap > Profile > Tools > API Access. Confirm your current public IP
+  (`curl ifconfig.me`) matches both `NAMECHEAP_CLIENT_IP` and the dashboard whitelist.
 - **Live testing is manual:** these scripts were verified by code review against
   the cPanel UAPI / Namecheap XML API docs. Run `list-subdomains.js` and
   `list-dns.js` against a filled-in `.env` to confirm live access.
