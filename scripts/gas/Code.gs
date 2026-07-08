@@ -1051,8 +1051,13 @@ function handleFormSubmission(payload) {
     // Create the booking event first so we can capture the Google Meet link
     // and store it on the lead row / include it in confirmation emails.
     var meetLink = '';
+    var calendarLink = '';
     if (payload.booking && payload.booking.date) {
-      try { meetLink = createBookingEvent(payload) || ''; }
+      try {
+        var bookingResult = createBookingEvent(payload, leadId) || {};
+        meetLink     = bookingResult.meetLink || '';
+        calendarLink = bookingResult.calendarLink || '';
+      }
       catch (err) { Logger.log('createBookingEvent failed: ' + err); }
     }
 
@@ -1087,7 +1092,7 @@ function handleFormSubmission(payload) {
     try { sendVisitorConfirmation(payload, referralCode, meetLink); }
     catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
 
-    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink); }
+    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink); }
     catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
 
     return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
@@ -1650,7 +1655,7 @@ function referralIntentClause(intent) {
 }
 
 /* ── Immediate partner notification (HTML template) ── */
-function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink) {
+function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink) {
   var p  = payload.person  || {};
   var b  = payload.booking || null;
   var q  = payload.qualData || {};
@@ -1709,6 +1714,12 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
       ? '<a href="' + escapeHtml(meetLink || '') + '" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>'
       : '<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">Call them at ' + escapeHtml(b.phone || p.phone || '') + '</span>';
 
+    // Link to the actual calendar event (captured from the booking insert), so
+    // a partner can open it, reschedule, or check attendee responses directly.
+    var calendarLinkHtml = calendarLink
+      ? '<a href="' + escapeHtml(calendarLink) + '" style="display:inline-block;margin-left:8px;background:#F1EEF8;border:1px solid #DDD6EC;border-radius:5px;padding:4px 10px;font-size:11px;color:#5A4A87;font-weight:500;text-decoration:none;">View in calendar &nbsp;→</a>'
+      : '';
+
     bookingBlock =
       '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">' +
       '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">' +
@@ -1722,7 +1733,7 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
       '<td style="padding:14px 18px;vertical-align:middle;">' +
       '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;white-space:nowrap;">' + escapeHtml(b.slot || b.time || '') + ' CT</p>' +
       '<p style="font-size:12px;color:#5A5270;margin:0 0 10px;white-space:nowrap;">30 minutes &nbsp;·&nbsp; ' + detailLabel + '</p>' +
-      actionHtml +
+      actionHtml + calendarLinkHtml +
       '</td></tr></table>';
   }
 
@@ -2417,100 +2428,143 @@ function ensureContactGroup(name) {
    ════════════════════════════════════════════════════════════ */
 
 /**
- * Creates the intro-call event on the default calendar.
- * When meetType === 'meet' a real Google Meet link is generated via the
- * Advanced Calendar Service (conferenceDataVersion).
- * Returns the Meet link string ('' when none).
+ * Creates the intro-call event on the shared "AxisPoint Bookings" calendar.
+ *
+ * Both booking types are inserted through the Advanced Calendar Service
+ * (Calendar.Events.insert):
+ *   - meetType === 'meet'  → a real Google Meet conference is provisioned.
+ *   - meetType === 'phone' → a plain event (no conference), callback number in
+ *     the location/description.
+ * The advanced service is used for the phone path too (not CalendarApp) so we
+ * can capture the event's htmlLink for the partner email — CalendarApp's
+ * createEvent does not cleanly expose it. CalendarApp remains only as a
+ * last-resort fallback if the advanced insert throws.
+ *
+ * All three parties are added as attendees (zach@ + ethaniel@ from
+ * NOTIFY_EMAILS, plus the visitor) and Google sends real invites
+ * (sendUpdates: 'all' / sendInvites: true), so the event lands on the
+ * partners' personal calendars and the visitor gets a proper Google invite.
+ *
+ * Returns { meetLink, calendarLink } (each '' when unavailable).
  */
-function createBookingEvent(payload) {
+function createBookingEvent(payload, leadId) {
   var p = payload.person   || {};
   var b = payload.booking;
   var q = payload.qualData || {};
+  var result = { meetLink: '', calendarLink: '' };
 
   // All booking events go on the shared "AxisPoint Bookings" calendar, never a
   // personal default calendar. If the property isn't configured, skip cleanly
   // (this call is wrapped in try/catch upstream) rather than write to the wrong
-  // calendar — a missing ID is a setup error, surfaced in the logs.
+  // calendar. A missing ID is a setup error, surfaced in the logs.
   var calId = CONFIG.BOOKING_CALENDAR_ID;
   if (!calId) {
-    Logger.log('createBookingEvent: BOOKING_CALENDAR_ID Script Property not set — run setProperties(). Skipping event creation.');
-    return '';
+    Logger.log('createBookingEvent: BOOKING_CALENDAR_ID Script Property not set, run setProperties(). Skipping event creation.');
+    return result;
   }
 
   var start = parseBookingDateTime(b.date, b.slot || b.time || '');
   if (!start) {
     Logger.log('createBookingEvent: unable to parse "' + b.date + ' ' + (b.slot || b.time) + '"');
-    return '';
+    return result;
   }
   var end = new Date(start.getTime() + 30 * 60 * 1000);
 
-  var title = 'Intro Call — ' + [p.firstName, p.lastName].filter(Boolean).join(' ');
+  var isPhone        = b.meetType === 'phone';
+  var name           = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Guest';
+  var category       = roleToCategory(payload.role) || payload.role || 'Lead';
+  var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
 
-  var desc = [
-    'Role:        ' + roleToCategory(payload.role),
-    'Asset Class: ' + assetClassFromQualData(q),
-    'Email:       ' + (p.email || ''),
-    'Phone:       ' + (p.phone || ''),
-    b.meetType === 'phone' && b.phone ? 'Call them at: ' + b.phone : '',
-    payload.message ? '\nMessage:\n' + payload.message : '',
-    'Source:      ' + (payload.source || payload.page || ''),
-  ].filter(Boolean).join('\n');
+  // Readable at-a-glance title, e.g. "AxisPoint Call: Jane Smith (Investor)".
+  var title = 'AxisPoint Call: ' + name + ' (' + category + ')';
+
+  // Plain-text context block so anyone glancing at the event (not just the
+  // Sheet) knows who this is and why the call exists.
+  var descLines = [];
+  descLines.push('Lead: ' + name + ' (' + category + ')');
+  descLines.push('Lead ID: ' + (leadId || 'n/a'));
+  if (p.email) descLines.push('Email: ' + p.email);
+  if (p.phone) descLines.push('Phone: ' + p.phone);
+  if (isPhone) descLines.push('Preferred callback number: ' + (callbackNumber || 'not provided'));
+  var assetClass = assetClassFromQualData(q);
+  if (assetClass) descLines.push('Asset class: ' + assetClass);
+  if (payload.role === 'existing_asset_owner' && payload.current_situation) {
+    descLines.push('Current situation: ' + payload.current_situation);
+  }
+  if (payload.source || payload.page) descLines.push('Source: ' + (payload.source || payload.page));
+  if (payload.message) {
+    descLines.push('');
+    descLines.push('Message / pressing issue:');
+    descLines.push(payload.message);
+  }
+  var desc = descLines.join('\n');
+
+  var location = isPhone
+    ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
+    : 'Google Meet';
 
   var guests = CONFIG.NOTIFY_EMAILS.slice();
   if (p.email) guests.push(p.email);
 
-  // ── Google Meet booking: use the Advanced Calendar Service so Google
-  //    provisions a real Meet conference and returns its join link. ──
-  if (b.meetType === 'meet') {
-    try {
+  // ── Advanced Calendar Service insert (both meet and phone paths). ──
+  try {
+    var eventResource = {
+      summary:     title,
+      description: desc,
+      location:    location,
+      start:       { dateTime: start.toISOString(), timeZone: 'America/Chicago' },
+      end:         { dateTime: end.toISOString(),   timeZone: 'America/Chicago' },
+      attendees:   guests.map(function(g) { return { email: g }; }),
+    };
+
+    var insertOpts = { sendUpdates: 'all' };
+    if (!isPhone) {
       var requestId = 'axp-' + (payload.timestamp || Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
-      var eventResource = {
-        summary:     title,
-        description: desc,
-        start:       { dateTime: start.toISOString(), timeZone: 'America/Chicago' },
-        end:         { dateTime: end.toISOString(),   timeZone: 'America/Chicago' },
-        attendees:   guests.map(function(g) { return { email: g }; }),
-        conferenceData: {
-          createRequest: {
-            requestId:             requestId,
-            conferenceSolutionKey: { type: 'hangoutsMeet' },
-          },
+      eventResource.conferenceData = {
+        createRequest: {
+          requestId:             requestId,
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
         },
       };
+      insertOpts.conferenceDataVersion = 1;
+    }
 
-      var created = Calendar.Events.insert(eventResource, calId, {
-        conferenceDataVersion: 1,
-        sendUpdates:           'all',
-      });
+    var created = Calendar.Events.insert(eventResource, calId, insertOpts);
+    result.calendarLink = (created && created.htmlLink) ? created.htmlLink : '';
 
+    if (!isPhone) {
       var entryPoints = created && created.conferenceData && created.conferenceData.entryPoints;
       if (entryPoints && entryPoints.length) {
         for (var i = 0; i < entryPoints.length; i++) {
           if (entryPoints[i].entryPointType === 'video' && entryPoints[i].uri) {
-            return entryPoints[i].uri;
+            result.meetLink = entryPoints[i].uri;
+            break;
           }
         }
-        return entryPoints[0].uri || '';
+        if (!result.meetLink) result.meetLink = entryPoints[0].uri || '';
+      } else if (created && created.hangoutLink) {
+        result.meetLink = created.hangoutLink;
       }
-      return created && created.hangoutLink ? created.hangoutLink : '';
-    } catch (err) {
-      Logger.log('createBookingEvent: Meet generation failed, falling back to plain event — ' + err);
     }
+    return result;
+  } catch (err) {
+    Logger.log('createBookingEvent: Calendar.Events.insert failed, falling back to CalendarApp — ' + err);
   }
 
-  // ── Phone call (or Meet fallback): plain calendar event, no Meet link. ──
+  // ── Fallback: plain CalendarApp event (no htmlLink capture available). ──
   var cal = CalendarApp.getCalendarById(calId);
   if (!cal) {
     Logger.log('createBookingEvent: no Calendar access for BOOKING_CALENDAR_ID=' + calId +
                ' — the deploying account needs edit access. Skipping event creation.');
-    return '';
+    return result;
   }
   cal.createEvent(title, start, end, {
     description: desc,
+    location:    location,
     guests:      guests.join(','),
     sendInvites: true,
   });
-  return '';
+  return result;
 }
 
 function parseBookingDateTime(dateStr, timeStr) {

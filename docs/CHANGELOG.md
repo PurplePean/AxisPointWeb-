@@ -3,6 +3,10 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-08
+
+- **feat(gas):** Booking calendar events now carry real context and invite all three parties. `createBookingEvent(payload, leadId)` adds attendees (zach@, ethaniel@, and the visitor) with `sendUpdates:'all'`/`sendInvites:true` so Google actually emails invites and the event lands on the partners' personal calendars; sets a descriptive title (`AxisPoint Call: <name> (<category>)`) and a plain-text description (lead ID, email, phone, asset class, source, per-type free-text field, phone-callback number); routes the phone path through the advanced `Calendar.Events.insert` too so the event `htmlLink` can be captured; and returns `{ meetLink, calendarLink }`. `sendPartnerNotification` renders the `calendarLink` ("View in calendar") in the booking block. Ships live only after `clasp push` + `clasp deploy -i`.
+
 ## 2026-07-07
 
 - **feat(gas):** **Booking calendar migration — behavior change for ALL bookings.** `createBookingEvent` now writes every event (Meet and phone) to a dedicated shared "AxisPoint Bookings" calendar (`CONFIG.BOOKING_CALENDAR_ID`, read from the new `BOOKING_CALENDAR_ID` Script Property) instead of the deploying account's personal `CalendarApp.getDefaultCalendar()` / the `'primary'` calendar. Requires running `setProperties()` with the real calendar ID, then `clasp push` + `clasp deploy -i`.
