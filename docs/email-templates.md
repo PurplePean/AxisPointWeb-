@@ -33,9 +33,10 @@ render as empty string.
 
 ## Sync status — embedded ↔ mirror: IN SYNC ✅
 
-As of 2026-07-06 all seven embedded `TEMPLATE_*` constants match their `.html`
+As of 2026-07-08 all seven embedded `TEMPLATE_*` constants match their `.html`
 mirrors byte-for-byte (verified by joining each embedded array on `\n` and
-diffing against the file). The prior address-line drift is **resolved**: the
+diffing against the file — the three visitor openers were re-synced on both
+sides in the same pass). The prior address-line drift is **resolved**: the
 footer address line
 
 ```html
@@ -78,17 +79,41 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 
 ### `.ics` calendar attachment (visitor booking confirmations)
 
-The `visitor-phone` and `visitor-meet` emails ship with a fully-detailed
-iCalendar attachment (`axispoint-call.ics`, `text/calendar`) built by
-`buildBookingIcs` in `Code.gs` — **not** a template file. It mirrors the real
-Calendar event (shared `bookingEventTitle` / `bookingEventDescription` helpers),
-uses America/Chicago wall-clock times with a `VTIMEZONE` block, and sets
+The `visitor-phone` and `visitor-meet` emails ship with an iCalendar attachment
+(`axispoint-call.ics`, `text/calendar`) built by `buildBookingIcs` in `Code.gs` —
+**not** a template file. **It is delivered straight to the visitor, so it carries
+only client-facing content** (`bookingEventTitle` + `bookingEventClientDescription`
+— warm, minimal, no CRM internals; `leadId` appears only in the opaque `UID`).
+It uses America/Chicago wall-clock times with a `VTIMEZONE` block, and sets
 `LOCATION` to the Meet link (video) or phone number (phone). It is a deliberate
 backup to Google's native attendee invite: the `.ics` works even if the native
 invite is delayed, filtered, or the visitor has no Google account. See
 [`backend-architecture.md`](backend-architecture.md) → *Calendar booking* for the
 full detail. No mirror file exists for it; the only source of truth is
 `buildBookingIcs`.
+
+**Do not put CRM data in the `.ics` or the Calendar event.** The visitor is an
+attendee on the real event, so both surfaces are visitor-facing. The full detail
+dump (`bookingEventInternalDescription`) belongs **only** in the internal
+`partner-notification` email.
+
+### Internal booking detail + calendar-failure warning (`partner-notification`)
+
+When a submission includes a booking, `sendPartnerNotification` appends two extra
+pieces to its booking block (both internal-only, sent to `NOTIFY_EMAILS`):
+
+1. A **"Booking details (internal only)"** block rendering
+   `bookingEventInternalDescription(payload, leadId)` — the full dump (lead ID,
+   email, phone, callback number, asset class, source, EAO current situation,
+   message). This is the CRM detail that was **removed** from the client-facing
+   Calendar event / `.ics`.
+2. A loud **"⚠ Calendar event was NOT created"** warning, shown only when a
+   booking was requested but `createBookingEvent` returned `created: false`
+   (with the underlying `error` and a pointer to `BOOKING_CALENDAR_ID` / calendar
+   edit access). This makes a previously-silent booking-creation failure visible.
+
+Both are built in JS and concatenated onto the `{{bookingBlock}}` variable, so no
+new template placeholder or mirror-file change is required.
 
 ### Plain-text emails (no HTML template)
 
