@@ -128,13 +128,18 @@ export function buildPayload(s: FormSnapshot, opts: BuildPayloadOptions = {}) {
     preferences: [...s.prefsSel],
     booking,
     message: s.msgField,
-    source: opts.source ?? (s.sourceSel ?? ''),
+    // `source` is the real origin/channel only (e.g. 'qr' from the QR app, or ''
+    // for a direct site visit). The visitor's "How did you hear about us?"
+    // answer is a SEPARATE datum sent as `heardAbout` — it must never be written
+    // into `source`, or it corrupts the CRM's Source column (e.g. stamping
+    // "LinkedIn" as the submission origin).
+    source: opts.source ?? '',
     timestamp: new Date().toISOString(),
     page: opts.page ?? 'axispoint.llc',
     referralCode,
     referredByEmail,
     referredByName,
-    ...(opts.source ? { heardAbout: s.sourceSel ?? '' } : {}),
+    heardAbout: s.sourceSel ?? '',
     ...(s.role === 'submit_referral' ? { referred: s.referredFields } : {}),
   };
 }
