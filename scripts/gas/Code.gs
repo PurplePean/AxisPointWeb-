@@ -160,7 +160,7 @@ var TEMPLATE_VISITOR_PHONE = [
   '<tr><td style="padding:28px 28px 24px;">',
   '',
   '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
-  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Thanks for reaching out. Your call is set. We will review your details ahead of time and come ready to talk specifics about your situation.</p>',
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
@@ -254,7 +254,7 @@ var TEMPLATE_VISITOR_MEET = [
   '<tr><td style="padding:28px 28px 24px;">',
   '',
   '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
-  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. See you at the time below.</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Thanks for reaching out. Your call is set. We will review your details ahead of time and come ready to talk specifics about your situation.</p>',
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
@@ -348,7 +348,7 @@ var TEMPLATE_VISITOR_NO_BOOKING = [
   '<tr><td style="padding:28px 28px 24px;">',
   '',
   '<p style="font-size:15px;color:#1C1628;margin:0 0 6px;">Hi {{firstName}},</p>',
-  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">We received your message. Expect a personal reply within one business day.</p>',
+  '<p style="font-size:15px;color:#1C1628;line-height:1.6;margin:0 0 20px;">Thanks for reaching out. We are reviewing your details now, and one of us will follow up personally within one business day.</p>',
   '',
   '<div style="border-top:1px solid #E8E4F0;margin:0 0 20px;"></div>',
   '',
@@ -674,7 +674,7 @@ var TEMPLATE_PARTNER_NOTIFICATION = [
   '<tr><td style="padding:0 28px 16px;">',
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
   '<tr><td style="padding-top:12px;">',
-  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification — do not forward.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal notification, do not forward.</p>',
   '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
   '</td></tr>',
   '</table>',
@@ -1051,13 +1051,21 @@ function handleFormSubmission(payload) {
     // and store it on the lead row / include it in confirmation emails.
     var meetLink = '';
     var calendarLink = '';
-    if (payload.booking && payload.booking.date) {
+    var bookingRequested = !!(payload.booking && payload.booking.date);
+    var calendarCreated = false;
+    var calendarError = '';
+    if (bookingRequested) {
       try {
         var bookingResult = createBookingEvent(payload, leadId) || {};
-        meetLink     = bookingResult.meetLink || '';
-        calendarLink = bookingResult.calendarLink || '';
+        meetLink        = bookingResult.meetLink || '';
+        calendarLink    = bookingResult.calendarLink || '';
+        calendarCreated = !!bookingResult.created;
+        calendarError   = bookingResult.error || '';
       }
-      catch (err) { Logger.log('createBookingEvent failed: ' + err); }
+      catch (err) {
+        calendarError = String(err);
+        Logger.log('createBookingEvent failed: ' + err);
+      }
     }
 
     var row = buildLeadRow(payload, 'New Lead', leadId, referralCode, referralMatch, meetLink);
@@ -1091,7 +1099,7 @@ function handleFormSubmission(payload) {
     try { sendVisitorConfirmation(payload, referralCode, meetLink, leadId); }
     catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
 
-    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink); }
+    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, bookingRequested && !calendarCreated, calendarError); }
     catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
 
     return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
@@ -1684,7 +1692,7 @@ function referralIntentClause(intent) {
 }
 
 /* ── Immediate partner notification (HTML template) ── */
-function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink) {
+function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarFailed, calendarError) {
   var p  = payload.person  || {};
   var b  = payload.booking || null;
   var q  = payload.qualData || {};
@@ -1751,7 +1759,31 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
       ? '<a href="' + escapeHtml(calendarLink) + '" style="display:inline-block;margin-left:8px;background:#F1EEF8;border:1px solid #DDD6EC;border-radius:5px;padding:4px 10px;font-size:11px;color:#5A4A87;font-weight:500;text-decoration:none;">View in calendar &nbsp;→</a>'
       : '';
 
+    // Loud warning when the booking came in but no Calendar event was actually
+    // created. This is the signal that used to be swallowed — a config/access
+    // failure now shows up right in the notification instead of only in the logs.
+    var calendarWarningHtml = calendarFailed
+      ? '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FCEEEC;border:1px solid #E7B7AF;border-radius:8px;margin:0 0 20px;">' +
+        '<tr><td style="padding:12px 16px;">' +
+        '<p style="font-size:11px;font-weight:700;color:#B23B2E;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 4px;">⚠ Calendar event was NOT created</p>' +
+        '<p style="font-size:12px;color:#7A2C22;line-height:1.5;margin:0;">This booking has no event on the shared calendar and no invite reached the visitor. ' +
+        'Check the BOOKING_CALENDAR_ID Script Property and the deploying account\'s edit access, then add the event manually.' +
+        (calendarError ? '<br><span style="font-size:11px;color:#9A4A3E;">' + escapeHtml(calendarError) + '</span>' : '') +
+        '</p></td></tr></table>'
+      : '';
+
+    // Internal-only detail dump (goes to NOTIFY_EMAILS only, never to the
+    // visitor). Kept out of the shared Calendar event / .ics on purpose.
+    var internalDetailHtml =
+      '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5FB;border:1px dashed #DDD6EC;border-radius:8px;margin:0 0 20px;">' +
+      '<tr><td style="padding:12px 16px;">' +
+      '<p style="font-size:10px;font-weight:600;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 6px;">Booking details (internal only)</p>' +
+      '<p style="font-size:12px;color:#5A5270;line-height:1.6;margin:0;white-space:pre-wrap;font-family:\'SFMono-Regular\',Consolas,Menlo,monospace;">' +
+      escapeHtml(bookingEventInternalDescription(payload, leadId)) + '</p>' +
+      '</td></tr></table>';
+
     bookingBlock =
+      calendarWarningHtml +
       '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">' +
       '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">' +
       '<span style="font-size:10px;font-weight:500;color:#C9C4D6;letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>' +
@@ -1765,7 +1797,8 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
       '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 3px;white-space:nowrap;">' + escapeHtml(b.slot || b.time || '') + ' CT</p>' +
       '<p style="font-size:12px;color:#5A5270;margin:0 0 10px;white-space:nowrap;">30 minutes &nbsp;·&nbsp; ' + detailLabel + '</p>' +
       actionHtml + calendarLinkHtml +
-      '</td></tr></table>';
+      '</td></tr></table>' +
+      internalDetailHtml;
   }
 
   var html = renderTemplate(TEMPLATE_PARTNER_NOTIFICATION, {
@@ -2461,18 +2494,56 @@ function ensureContactGroup(name) {
    GOOGLE CALENDAR
    ════════════════════════════════════════════════════════════ */
 
-/* ── Shared booking-event content ──
-   Title + description are built here so the real Calendar event, and the .ics
-   file attached to the visitor confirmation, always carry identical wording.
-   Editing either surface means editing one place. */
+/* ── Booking-event content: CLIENT-FACING vs INTERNAL ──
+   PRIVACY-CRITICAL SPLIT. The visitor is added as an attendee on the real
+   Calendar event, so the event's own title/description land in the visitor's
+   personal calendar, and the .ics attachment goes straight to their inbox.
+   Those two surfaces MUST use the client-facing helpers below and must never
+   carry CRM internals (Lead ID, Source, asset class, internal category label).
+
+   The full internal detail dump (bookingEventInternalDescription) is used ONLY
+   in the internal partner-notification email, which goes to NOTIFY_EMAILS. */
+
+/** Client-facing event title. The visitor sees this in their own calendar, so
+    it carries NO internal category label. */
 function bookingEventTitle(payload) {
   var p = payload.person || {};
-  var name     = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Guest';
-  var category = roleToCategory(payload.role) || payload.role || 'Lead';
-  return 'AxisPoint Call: ' + name + ' (' + category + ')';
+  var name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+  return name ? ('AxisPoint Partners intro call with ' + name) : 'AxisPoint Partners intro call';
 }
 
-function bookingEventDescription(payload, leadId) {
+/** Client-facing event description. Used for the real Calendar EVENT (visitor
+    is an attendee and sees it) AND the .ics attachment sent to the visitor.
+    Warm and minimal — deliberately NO Lead ID, Source, asset class, or any
+    other CRM internal. */
+function bookingEventClientDescription(payload) {
+  var b = payload.booking || {};
+  var p = payload.person  || {};
+  var isPhone        = b.meetType === 'phone';
+  var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
+
+  var lines = [];
+  lines.push('Looking forward to talking with you.');
+  lines.push('');
+  if (isPhone) {
+    lines.push(callbackNumber
+      ? ('We will call you at ' + callbackNumber + ' at the scheduled time.')
+      : 'We will call you at the scheduled time.');
+  } else {
+    lines.push('We will meet by Google Meet. The join link is in this invite and in your confirmation email.');
+  }
+  lines.push('');
+  lines.push('This is a 30-minute introductory call to understand your situation and where we can help. Bring whatever is top of mind.');
+  lines.push('');
+  lines.push('Zach and Ethaniel');
+  lines.push('AxisPoint Partners');
+  return lines.join('\n');
+}
+
+/** INTERNAL-ONLY detail dump. Never attached to the shared Calendar event or
+    the visitor .ics — used solely inside the partner-notification email body,
+    which is sent only to NOTIFY_EMAILS. */
+function bookingEventInternalDescription(payload, leadId) {
   var p = payload.person   || {};
   var b = payload.booking  || {};
   var q = payload.qualData || {};
@@ -2526,8 +2597,9 @@ function buildBookingIcs(payload, leadId, meetLink) {
     ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
     : (meetLink || 'Google Meet');
 
+  // Client-facing content only — this .ics is delivered straight to the visitor.
   var title = bookingEventTitle(payload);
-  var desc  = bookingEventDescription(payload, leadId);
+  var desc  = bookingEventClientDescription(payload);
 
   var tz    = 'America/Chicago';
   var fmtLocal = function(d) { return Utilities.formatDate(d, tz, "yyyyMMdd'T'HHmmss"); };
@@ -2619,21 +2691,27 @@ function createBookingEvent(payload, leadId) {
   var p = payload.person   || {};
   var b = payload.booking;
   var q = payload.qualData || {};
-  var result = { meetLink: '', calendarLink: '' };
+  // `created` and `error` let the caller surface a real failure instead of it
+  // being swallowed silently. The fail-safe design (never break submission) had
+  // been masking config/access problems — a booking that quietly created no
+  // event looked identical to a healthy one. Callers now report the difference.
+  var result = { meetLink: '', calendarLink: '', created: false, error: '' };
 
   // All booking events go on the shared "AxisPoint Bookings" calendar, never a
   // personal default calendar. If the property isn't configured, skip cleanly
   // (this call is wrapped in try/catch upstream) rather than write to the wrong
-  // calendar. A missing ID is a setup error, surfaced in the logs.
+  // calendar. A missing ID is a setup error, surfaced in the logs AND the email.
   var calId = CONFIG.BOOKING_CALENDAR_ID;
   if (!calId) {
-    Logger.log('createBookingEvent: BOOKING_CALENDAR_ID Script Property not set, run setProperties(). Skipping event creation.');
+    result.error = 'BOOKING_CALENDAR_ID Script Property is not set (re-run setProperties()).';
+    Logger.log('createBookingEvent: ' + result.error + ' Skipping event creation.');
     return result;
   }
 
   var start = parseBookingDateTime(b.date, b.slot || b.time || '');
   if (!start) {
-    Logger.log('createBookingEvent: unable to parse "' + b.date + ' ' + (b.slot || b.time) + '"');
+    result.error = 'Could not parse booking date/time "' + b.date + ' ' + (b.slot || b.time) + '".';
+    Logger.log('createBookingEvent: ' + result.error);
     return result;
   }
   var end = new Date(start.getTime() + 30 * 60 * 1000);
@@ -2641,10 +2719,11 @@ function createBookingEvent(payload, leadId) {
   var isPhone        = b.meetType === 'phone';
   var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
 
-  // Title + description are built by shared helpers so the .ics attachment on the
-  // visitor confirmation carries the exact same readable context as the event.
+  // The visitor is an attendee on this event, so its title/description show up
+  // in THEIR calendar. Both must be the client-facing versions — never the
+  // internal CRM dump (see bookingEventInternalDescription).
   var title = bookingEventTitle(payload);
-  var desc  = bookingEventDescription(payload, leadId);
+  var desc  = bookingEventClientDescription(payload);
 
   var location = isPhone
     ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
@@ -2677,6 +2756,7 @@ function createBookingEvent(payload, leadId) {
     }
 
     var created = Calendar.Events.insert(eventResource, calId, insertOpts);
+    result.created = true;
     result.calendarLink = (created && created.htmlLink) ? created.htmlLink : '';
 
     if (!isPhone) {
@@ -2695,14 +2775,16 @@ function createBookingEvent(payload, leadId) {
     }
     return result;
   } catch (err) {
-    Logger.log('createBookingEvent: Calendar.Events.insert failed, falling back to CalendarApp — ' + err);
+    result.error = 'Calendar.Events.insert failed: ' + err;
+    Logger.log('createBookingEvent: ' + result.error + ' — falling back to CalendarApp.');
   }
 
   // ── Fallback: plain CalendarApp event (no htmlLink capture available). ──
   var cal = CalendarApp.getCalendarById(calId);
   if (!cal) {
-    Logger.log('createBookingEvent: no Calendar access for BOOKING_CALENDAR_ID=' + calId +
-               ' — the deploying account needs edit access. Skipping event creation.');
+    result.error = 'No Calendar access for BOOKING_CALENDAR_ID=' + calId +
+                   ' (the deploying account needs edit access).';
+    Logger.log('createBookingEvent: ' + result.error + ' Skipping event creation.');
     return result;
   }
   cal.createEvent(title, start, end, {
@@ -2711,6 +2793,8 @@ function createBookingEvent(payload, leadId) {
     guests:      guests.join(','),
     sendInvites: true,
   });
+  result.created = true;
+  result.error = '';
   return result;
 }
 
