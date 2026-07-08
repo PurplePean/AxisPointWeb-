@@ -58,8 +58,8 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 
 | Template | Sent by | Trigger / cadence |
 |---|---|---|
-| `visitor-phone` | `sendVisitorConfirmation` | New submission **with booking** and `meetType !== 'meet'` (phone call-back). Subject: *Your call with AxisPoint is set*. |
-| `visitor-meet` | `sendVisitorConfirmation` | New submission **with booking** and `meetType === 'meet'` (Google Meet). Same subject. |
+| `visitor-phone` | `sendVisitorConfirmation` | New submission **with booking** and `meetType !== 'meet'` (phone call-back). Subject: *Your call with AxisPoint is set*. **Carries a `.ics` attachment** (see below). |
+| `visitor-meet` | `sendVisitorConfirmation` | New submission **with booking** and `meetType === 'meet'` (Google Meet). Same subject. **Carries a `.ics` attachment** (see below). |
 | `visitor-no-booking` | `sendVisitorConfirmation` | New submission **without** a booking. Subject: *We received your message — AxisPoint Partners*. |
 | `welcome-subscriber` | `sendWelcomeEmail` | New newsletter subscribe (`handleSubscribe`). Renders `{{preferenceList}}` + `{{unsubscribeUrl}}`. |
 
@@ -75,6 +75,20 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 | Template | Sent by | Trigger |
 |---|---|---|
 | `partner-notification` | `sendPartnerNotification` | Every new lead. Subject: *New lead: {name} ({category}) — {leadId}*. |
+
+### `.ics` calendar attachment (visitor booking confirmations)
+
+The `visitor-phone` and `visitor-meet` emails ship with a fully-detailed
+iCalendar attachment (`axispoint-call.ics`, `text/calendar`) built by
+`buildBookingIcs` in `Code.gs` — **not** a template file. It mirrors the real
+Calendar event (shared `bookingEventTitle` / `bookingEventDescription` helpers),
+uses America/Chicago wall-clock times with a `VTIMEZONE` block, and sets
+`LOCATION` to the Meet link (video) or phone number (phone). It is a deliberate
+backup to Google's native attendee invite: the `.ics` works even if the native
+invite is delayed, filtered, or the visitor has no Google account. See
+[`backend-architecture.md`](backend-architecture.md) → *Calendar booking* for the
+full detail. No mirror file exists for it; the only source of truth is
+`buildBookingIcs`.
 
 ### Plain-text emails (no HTML template)
 

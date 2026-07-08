@@ -92,7 +92,8 @@ export interface ContactFormData {
 
   // Additional fields
   message: string;
-  source: string; // How did you hear about us
+  source: string; // Real origin/channel only ('qr' or '' for direct) — NOT the how-heard answer
+  heardAbout: string; // The visitor's "How did you hear about us?" answer
   timestamp: string; // ISO timestamp
 
   // For referral path only

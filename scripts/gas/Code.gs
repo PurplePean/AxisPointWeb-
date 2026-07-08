@@ -828,18 +828,17 @@ var COLS = {
   BOOKING_PHONE:      16,
   SOURCE:             17,
   STATUS:             18,
-  DATE_SUBMITTED:     19,
-  REF_BY_LEAD_ID:     20,
-  REF_BY_NAME:        21,
-  REF_BY_EMAIL:       22,
-  REF_BY_CODE:        23,
-  MATCH_TYPE:         24,
-  REFERRAL_CHAIN:     25,
-  CHAIN_DEPTH:        26,
-  DIRECT_REFERRALS:   27,
-  TOTAL_DOWNSTREAM:   28,
-  LAST_REFERRAL_DATE: 29,
-  MEET_LINK:          30,   // Google Meet URL when meetType === 'meet'
+  REF_BY_LEAD_ID:     19,
+  REF_BY_NAME:        20,
+  REF_BY_EMAIL:       21,
+  REF_BY_CODE:        22,
+  MATCH_TYPE:         23,
+  REFERRAL_CHAIN:     24,
+  CHAIN_DEPTH:        25,
+  DIRECT_REFERRALS:   26,
+  TOTAL_DOWNSTREAM:   27,
+  LAST_REFERRAL_DATE: 28,
+  MEET_LINK:          29,   // Google Meet URL when meetType === 'meet'
 };
 
 var LEAD_HEADERS = [
@@ -847,7 +846,7 @@ var LEAD_HEADERS = [
   'First Name', 'Last Name', 'Email', 'Phone',
   'Company', 'Role', 'Category', 'Asset Class', 'Message',
   'Preferences', 'Booking Date', 'Booking Time', 'Meet Type',
-  'Booking Phone', 'Source', 'Status', 'Date Submitted',
+  'Booking Phone', 'Source', 'Status',
   'Referred By Lead ID', 'Referred By Name', 'Referred By Email', 'Referred By Code',
   'Match Type', 'Referral Chain', 'Chain Depth',
   'Direct Referrals', 'Total Downstream', 'Last Referral Date', 'Meet Link',
@@ -1089,7 +1088,7 @@ function handleFormSubmission(payload) {
     try { createContact(payload); }
     catch (err) { Logger.log('createContact failed: ' + err); }
 
-    try { sendVisitorConfirmation(payload, referralCode, meetLink); }
+    try { sendVisitorConfirmation(payload, referralCode, meetLink, leadId); }
     catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
 
     try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink); }
@@ -1367,20 +1366,19 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meet
     b ? (b.slot || b.time || '') : '',                                 // 14 Booking Time
     b ? (b.meetType || '') : '',                                       // 15 Meet Type
     b ? (b.phone || '') : '',                                          // 16 Booking Phone
-    payload.source || payload.page || '',                              // 17 Source
+    leadSource(payload),                                               // 17 Source (origin only)
     status,                                                            // 18 Status
-    Utilities.formatDate(now, 'America/Chicago', 'MM/dd/yyyy'),        // 19 Date Submitted
-    rm.found ? rm.referrerLeadId : '',                                 // 20 Referred By Lead ID
-    rm.found ? rm.referrerName   : '',                                 // 21 Referred By Name
-    rm.found ? rm.referrerEmail  : '',                                 // 22 Referred By Email
-    rm.found ? rm.referrerCode   : '',                                 // 23 Referred By Code
-    rm.matchType || 'none',                                            // 24 Match Type
-    rm.found ? rm.chain : '',                                          // 25 Referral Chain
-    rm.found ? rm.depth : 0,                                           // 26 Chain Depth
-    0,                                                                 // 27 Direct Referrals
-    0,                                                                 // 28 Total Downstream
-    '',                                                                // 29 Last Referral Date
-    meetLink || '',                                                    // 30 Meet Link
+    rm.found ? rm.referrerLeadId : '',                                 // 19 Referred By Lead ID
+    rm.found ? rm.referrerName   : '',                                 // 20 Referred By Name
+    rm.found ? rm.referrerEmail  : '',                                 // 21 Referred By Email
+    rm.found ? rm.referrerCode   : '',                                 // 22 Referred By Code
+    rm.matchType || 'none',                                            // 23 Match Type
+    rm.found ? rm.chain : '',                                          // 24 Referral Chain
+    rm.found ? rm.depth : 0,                                           // 25 Chain Depth
+    0,                                                                 // 26 Direct Referrals
+    0,                                                                 // 27 Total Downstream
+    '',                                                                // 28 Last Referral Date
+    meetLink || '',                                                    // 29 Meet Link
   ];
 }
 
@@ -1397,6 +1395,23 @@ function roleToCategory(role) {
 function assetClassFromQualData(q) {
   var a = q && q.assetClasses;
   return Array.isArray(a) && a.length ? a.join(', ') : '';
+}
+
+/* ── Lead origin (the CRM "Source" column) ──
+   Reflects only the real, actual origin/channel of a submission, NOT the
+   visitor's "How did you hear about us?" answer (which arrives as
+   `payload.heardAbout` and is intentionally kept out of this column).
+     • QR microsite → "QR"   (frontend sends payload.source === 'qr')
+     • normal site  → ''     (direct — left blank on purpose)
+   `payload.page` is deliberately NOT used as a fallback here: every main-site
+   submission carries page === 'axispoint.llc', which would wrongly stamp the
+   domain into Source on every row. Any other explicit, non-empty origin passes
+   through verbatim so a future channel doesn't silently vanish. */
+function leadSource(payload) {
+  var s = String((payload && payload.source) || '').trim();
+  if (!s) return '';
+  if (s.toLowerCase() === 'qr') return 'QR';
+  return s;
 }
 
 function categoryTabForRole(role) {
@@ -1491,7 +1506,7 @@ function bookingDateParts(dateStr, timeStr) {
 }
 
 /* ── Visitor confirmation email (HTML templates) ── */
-function sendVisitorConfirmation(payload, referralCode, meetLink) {
+function sendVisitorConfirmation(payload, referralCode, meetLink, leadId) {
   var p = payload.person || {};
   if (!p.email) return;
 
@@ -1538,12 +1553,26 @@ function sendVisitorConfirmation(payload, referralCode, meetLink) {
     subject = 'We received your message — AxisPoint Partners';
   }
 
-  GmailApp.sendEmail(p.email, subject, 'Thank you for reaching out to AxisPoint Partners.', {
+  var mailOpts = {
     name:     CONFIG.SENDER_NAME,
     replyTo:  CONFIG.FROM_EMAIL,
     htmlBody: html,
     inlineImages: { logo: LOGO_BLOB },
-  });
+  };
+
+  // Attach a fully-detailed .ics so the visitor can add the call to any
+  // calendar app, independent of Google's native attendee invite. Backup only,
+  // never a hard dependency: if generation fails, the email still sends.
+  if (hasBooking) {
+    try {
+      var icsBlob = buildBookingIcs(payload, leadId, meetLink);
+      if (icsBlob) mailOpts.attachments = [icsBlob];
+    } catch (err) {
+      Logger.log('buildBookingIcs failed: ' + err);
+    }
+  }
+
+  GmailApp.sendEmail(p.email, subject, 'Thank you for reaching out to AxisPoint Partners.', mailOpts);
 }
 
 /* ── Per-role personalized confirmation note ──
@@ -1666,7 +1695,9 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
   var subject  = 'New lead: ' + name + ' (' + category + ') — ' + (leadId || '');
 
   var initials = ((p.firstName || '').charAt(0) + (p.lastName || '').charAt(0)).toUpperCase() || '–';
-  var source   = payload.source || payload.page || '—';
+  // Real origin only (QR / direct); the "how did you hear about us" answer lives
+  // in payload.heardAbout and is deliberately not conflated with origin here.
+  var source   = leadSource(payload) || 'Direct';
 
   // ── Capital range row (investor only) ──
   var capitalRangeRow = '';
@@ -1773,7 +1804,10 @@ function sendDailyDigest() {
 
     var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
     var rows  = sheet.getDataRange().getValues().slice(1).filter(function(r) {
-      return String(r[COLS.DATE_SUBMITTED]) === today;
+      // Timestamp is an ISO string; compare its CT calendar date to today's.
+      var ts = new Date(r[COLS.TIMESTAMP]);
+      if (isNaN(ts)) return false;
+      return Utilities.formatDate(ts, 'America/Chicago', 'MM/dd/yyyy') === today;
     });
 
     if (rows.length === 0) {
@@ -1925,7 +1959,7 @@ function moveColdLeads() {
       var status = String(row[COLS.STATUS] || '');
       if (active.indexOf(status) === -1) continue;
 
-      var submitted = new Date(row[COLS.DATE_SUBMITTED]);
+      var submitted = new Date(row[COLS.TIMESTAMP]);
       if (isNaN(submitted)) continue;
 
       var age = (now - submitted) / 86400000;
@@ -1950,7 +1984,7 @@ function moveColdLeads() {
         'Name:           ' + [r[COLS.FIRST_NAME], r[COLS.LAST_NAME]].filter(Boolean).join(' '),
         'Role:           ' + r[COLS.CATEGORY],
         'Email:          ' + r[COLS.EMAIL],
-        'Date Submitted: ' + r[COLS.DATE_SUBMITTED],
+        'Submitted:      ' + Utilities.formatDate(new Date(r[COLS.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
       ].join('\n');
     });
 
@@ -2427,6 +2461,140 @@ function ensureContactGroup(name) {
    GOOGLE CALENDAR
    ════════════════════════════════════════════════════════════ */
 
+/* ── Shared booking-event content ──
+   Title + description are built here so the real Calendar event, and the .ics
+   file attached to the visitor confirmation, always carry identical wording.
+   Editing either surface means editing one place. */
+function bookingEventTitle(payload) {
+  var p = payload.person || {};
+  var name     = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Guest';
+  var category = roleToCategory(payload.role) || payload.role || 'Lead';
+  return 'AxisPoint Call: ' + name + ' (' + category + ')';
+}
+
+function bookingEventDescription(payload, leadId) {
+  var p = payload.person   || {};
+  var b = payload.booking  || {};
+  var q = payload.qualData || {};
+  var isPhone        = b.meetType === 'phone';
+  var name           = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Guest';
+  var category       = roleToCategory(payload.role) || payload.role || 'Lead';
+  var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
+
+  var lines = [];
+  lines.push('Lead: ' + name + ' (' + category + ')');
+  lines.push('Lead ID: ' + (leadId || 'n/a'));
+  if (p.email) lines.push('Email: ' + p.email);
+  if (p.phone) lines.push('Phone: ' + p.phone);
+  if (isPhone) lines.push('Preferred callback number: ' + (callbackNumber || 'not provided'));
+  var assetClass = assetClassFromQualData(q);
+  if (assetClass) lines.push('Asset class: ' + assetClass);
+  if (payload.role === 'existing_asset_owner' && payload.current_situation) {
+    lines.push('Current situation: ' + payload.current_situation);
+  }
+  var origin = leadSource(payload) || payload.page;
+  if (origin) lines.push('Source: ' + origin);
+  if (payload.message) {
+    lines.push('');
+    lines.push('Message / pressing issue:');
+    lines.push(payload.message);
+  }
+  return lines.join('\n');
+}
+
+/* ── iCalendar (.ics) attachment for the visitor confirmation ──
+   A fully-detailed VEVENT the visitor can add to any calendar app. This is a
+   deliberate belt-and-suspenders backup to Google's own native attendee invite
+   (which may be delayed, spam-filtered, or useless to a non-Google visitor):
+   an attached .ics works everywhere and needs no Google account. METHOD:PUBLISH
+   (not REQUEST) so clients treat it as an event to add, not an RSVP flow.
+   Times are emitted in America/Chicago wall-clock with a real VTIMEZONE block,
+   matching CONFIG / the project time zone. Returns a Blob, or null when the
+   booking can't be resolved. */
+function buildBookingIcs(payload, leadId, meetLink) {
+  var b = payload.booking;
+  if (!b || !b.date) return null;
+
+  var start = parseBookingDateTime(b.date, b.slot || b.time || '');
+  if (!start) return null;
+  var end = new Date(start.getTime() + 30 * 60 * 1000);
+
+  var isPhone        = b.meetType === 'phone';
+  var p              = payload.person || {};
+  var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
+  var location = isPhone
+    ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
+    : (meetLink || 'Google Meet');
+
+  var title = bookingEventTitle(payload);
+  var desc  = bookingEventDescription(payload, leadId);
+
+  var tz    = 'America/Chicago';
+  var fmtLocal = function(d) { return Utilities.formatDate(d, tz, "yyyyMMdd'T'HHmmss"); };
+  var stampUtc = Utilities.formatDate(new Date(), 'UTC', "yyyyMMdd'T'HHmmss'Z'");
+  var uid = 'axp-' + (leadId || 'booking') + '-' + (payload.timestamp || Date.now()) + '@axispoint.llc';
+
+  var lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//AxisPoint Partners//Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VTIMEZONE',
+    'TZID:America/Chicago',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:-0600',
+    'TZOFFSETTO:-0500',
+    'TZNAME:CDT',
+    'DTSTART:19700308T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:-0500',
+    'TZOFFSETTO:-0600',
+    'TZNAME:CST',
+    'DTSTART:19701101T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'DTSTAMP:' + stampUtc,
+    'DTSTART;TZID=America/Chicago:' + fmtLocal(start),
+    'DTEND;TZID=America/Chicago:' + fmtLocal(end),
+    'SUMMARY:' + icsEscape(title),
+    'DESCRIPTION:' + icsEscape(desc),
+    'LOCATION:' + icsEscape(location),
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+
+  var ics = lines.map(icsFold).join('\r\n') + '\r\n';
+  return Utilities.newBlob(ics, 'text/calendar', 'axispoint-call.ics');
+}
+
+/** Escape a value for an iCalendar TEXT field (RFC 5545 §3.3.11). */
+function icsEscape(text) {
+  return String(text == null ? '' : text)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n|\r|\n/g, '\\n');
+}
+
+/** Fold a content line at 75 octets per RFC 5545 §3.1 (continuations start with a space). */
+function icsFold(line) {
+  if (line.length <= 75) return line;
+  var out = line.slice(0, 75);
+  var rest = line.slice(75);
+  while (rest.length > 74) {
+    out += '\r\n ' + rest.slice(0, 74);
+    rest = rest.slice(74);
+  }
+  return out + '\r\n ' + rest;
+}
+
 /**
  * Creates the intro-call event on the shared "AxisPoint Bookings" calendar.
  *
@@ -2471,33 +2639,12 @@ function createBookingEvent(payload, leadId) {
   var end = new Date(start.getTime() + 30 * 60 * 1000);
 
   var isPhone        = b.meetType === 'phone';
-  var name           = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Guest';
-  var category       = roleToCategory(payload.role) || payload.role || 'Lead';
   var callbackNumber = (isPhone && b.phone) ? b.phone : (p.phone || '');
 
-  // Readable at-a-glance title, e.g. "AxisPoint Call: Jane Smith (Investor)".
-  var title = 'AxisPoint Call: ' + name + ' (' + category + ')';
-
-  // Plain-text context block so anyone glancing at the event (not just the
-  // Sheet) knows who this is and why the call exists.
-  var descLines = [];
-  descLines.push('Lead: ' + name + ' (' + category + ')');
-  descLines.push('Lead ID: ' + (leadId || 'n/a'));
-  if (p.email) descLines.push('Email: ' + p.email);
-  if (p.phone) descLines.push('Phone: ' + p.phone);
-  if (isPhone) descLines.push('Preferred callback number: ' + (callbackNumber || 'not provided'));
-  var assetClass = assetClassFromQualData(q);
-  if (assetClass) descLines.push('Asset class: ' + assetClass);
-  if (payload.role === 'existing_asset_owner' && payload.current_situation) {
-    descLines.push('Current situation: ' + payload.current_situation);
-  }
-  if (payload.source || payload.page) descLines.push('Source: ' + (payload.source || payload.page));
-  if (payload.message) {
-    descLines.push('');
-    descLines.push('Message / pressing issue:');
-    descLines.push(payload.message);
-  }
-  var desc = descLines.join('\n');
+  // Title + description are built by shared helpers so the .ics attachment on the
+  // visitor confirmation carries the exact same readable context as the event.
+  var title = bookingEventTitle(payload);
+  var desc  = bookingEventDescription(payload, leadId);
 
   var location = isPhone
     ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
