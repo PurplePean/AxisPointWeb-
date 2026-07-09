@@ -3,6 +3,15 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-09 (condensed header-audit summary mode)
+
+- **chore(gas): `auditLeadTabHeaders()` was unreadable in practice.** It emits a full 31-column header row per tab, and the Apps Script log viewer truncated the message before `Referral Partners`, `RE Professionals`, `Existing Asset Owners`, `Clients` and `Archive` ever rendered — so the five tabs nobody had ever inspected were exactly the five the audit could not show.
+- **feat(gas): `auditLeadTabHeadersSummary()`,** one line per tab (`OK`/`DRIFT`, `rows=`, `cols=actual/expected`, `rewrite=SAFE|NO(has data)`, count of missing name-looked-up headers) plus a drifted-tab footer. ~660 chars for nine tabs against ~6,300 for the full audit. Deliberately prints the *count* of missing key headers, not their names: three long header names across nine tabs is the unbounded growth this mode exists to avoid.
+- **feat(gas): `auditLeadTabHeaderDetail(tabName)`,** the drill-down the summary points at. Full per-column diff for one tab, which is now the only way to read a drifted tab's columns without the other eight crowding it out of the log. Throws on an unknown tab name.
+- **refactor(gas): `leadTabHeaderAudit(ss, tabName)` extracted** as the single analysis pass, with `renderLeadTabHeaderDetail()` as its shared renderer. All three audit entry points read one verdict object, so the summary cannot report `OK` on a tab the detail calls `DRIFT`. `safeToRewrite` is defined as **drifted AND empty**, never merely empty, so it only ever points at tabs that both need a repair and can take one.
+- **verify(gas):** Node harness (`vm`-loaded real `Code.gs`). Differential test asserts `auditLeadTabHeaders()` output is **byte-identical** before and after the refactor. Summary asserted at 662 chars / 13 lines (9.5× smaller, longest line 82 chars), containing all nine tabs by name. Semantics covered against a seeded world: a drifted+empty tab reports `rewrite=SAFE`, a **drifted tab holding data** reports `rewrite=NO(has data)`, a healthy+empty tab reports `safeToRewrite === false` rather than being invited to a pointless rewrite, Referral Partners reads `cols=32/32`, a deleted tab reports `MISSING` instead of crashing, and the detail function names the missing `Lead ID`, excludes other tabs, and throws on an unknown or absent tab name.
+- **not claimed:** the harness bounds the log size, it does not reproduce Apps Script's exact truncation threshold. The truncation itself is an observed behavior of the live log viewer.
+
 ## 2026-07-09 (Lifetime Leads header repair + cross-tab header audit)
 
 - **feat(gas): `auditLeadTabHeaders()`, read-only.** Dumps every lead tab's data-row count and live header row, diffed per column against `expectedHeadersFor()` and flagging any missing name-looked-up header (`Lead ID`, `Category`, `Heard About`). Nothing in the script had ever read a header row purely to check it, so drift was only ever discovered when an unrelated function tripped over it. This is the first direct way to see the live layout of all nine lead tabs.
