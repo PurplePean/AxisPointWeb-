@@ -1019,12 +1019,90 @@ var LEAD_HEADERS = [
    landed one cell to the right and the appended lead row overwrote the toggle.
    Name-based lookup means a column can now be inserted anywhere in LEAD_HEADERS
    without anyone having to reason about what it does to the extra columns. */
-var REPORTS_ENABLED_HEADER = 'Reports Enabled';
-var HEARD_ABOUT_HEADER     = 'Heard About';
+var REPORTS_ENABLED_HEADER = 'Reports Enabled';   // not in LEAD_HEADERS: a per-tab extra
+
+/* Header names DERIVED from the schema rather than re-typed. LEAD_HEADERS + COLS
+   are the single source of truth for the standard layout, so any code needing a
+   standard column's name reads it from there. A hand-copied literal is a second
+   definition site that can silently drift from the first. */
+var HEARD_ABOUT_HEADER = LEAD_HEADERS[COLS.HEARD_ABOUT];   // 'Heard About'
+var LEAD_ID_HEADER     = LEAD_HEADERS[COLS.LEAD_ID];       // 'Lead ID'
+var CATEGORY_HEADER    = LEAD_HEADERS[COLS.CATEGORY];      // 'Category'
+
+/* -- Resilient header matching --
+   A header cell typed or pasted by a human is not guaranteed to be byte-identical
+   to its LEAD_HEADERS constant. Observed and plausible drift: differing case
+   ('Lead Id'), a doubled internal space ('Lead  ID'), a no-break space pasted in
+   place of a normal one, or a stray zero-width character. An exact === compare
+   rejects all of these and reports the column as ABSENT, which is a far more
+   damaging failure than the cosmetic difference that caused it.
+
+   normalizeHeaderName collapses that entire class: zero-width characters are
+   deleted, every run of whitespace becomes a single space, then trim + lowercase.
+   Two headers a human would call "the same header" compare equal.
+
+   JS \s already matches U+00A0 (no-break space) and U+FEFF (byte-order mark),
+   so those need no special case. U+200B..U+200D (zero-width space, non-joiner,
+   joiner) are NOT in \s, so they are stripped outright rather than collapsed to
+   a space, which would wrongly split "Lead{ZWSP}ID" into two words.
+
+   Applied to header NAMES only, never to cell data. Data values are written by
+   this script and are compared exactly, on purpose. */
+function normalizeHeaderName(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/[\u200B-\u200D]/g, '')      // zero-width chars: delete, do not turn into a space
+    .replace(/\s+/g, ' ')            // \s already covers U+00A0 and U+FEFF
+    .trim()
+    .toLowerCase();
+}
+
+/* 0-based index of `headerName` within an already-read header ROW (an array),
+   matched resiliently. -1 if absent. */
+function findHeaderIndex(headerRow, headerName) {
+  var want = normalizeHeaderName(headerName);
+  if (!want) return -1;
+  for (var i = 0; i < headerRow.length; i++) {
+    if (normalizeHeaderName(headerRow[i]) === want) return i;
+  }
+  return -1;
+}
+
+/* Renders a live header row character by character, so a mismatch that is
+   invisible on screen (NBSP vs space, trailing zero-width char, wrong case) is
+   immediately readable in the execution log. This is the diagnostic that turns
+   "header not found" from a dead end into a one-line answer. */
+function describeHeaderRow(headerRow) {
+  return headerRow.map(function(v, i) {
+    var t = String(v === null || v === undefined ? '' : v);
+    var codes = t.split('').map(function(c) { return c.charCodeAt(0); }).join(',');
+    return '    col ' + (i + 1) + ': "' + t + '"  len=' + t.length + '  codes=[' + codes + ']';
+  }).join('\n');
+}
+
+/* Builds (and logs) the error thrown when even a resilient lookup finds nothing.
+   At this point the problem is real, not cosmetic, so dump everything needed to
+   diagnose it without anyone having to write a separate probe function. */
+function headerLookupError(sheetName, headerRow, headerName) {
+  var msg = 'No "' + headerName + '" header on "' + sheetName + '". ' +
+            'Matched case-insensitively, ignoring surrounding and repeated whitespace, ' +
+            'so this is a real mismatch, not a formatting one.\n' +
+            '  Live header row of "' + sheetName + '", character by character:\n' +
+            describeHeaderRow(headerRow) + '\n' +
+            '  Expected (from LEAD_HEADERS): "' + headerName + '"  normalized: "' +
+            normalizeHeaderName(headerName) + '"';
+  Logger.log(msg);
+  return new Error(msg);
+}
 
 /* 0-based index of `headerName` in a sheet's ACTUAL header row, or -1 if absent.
    Reads the sheet rather than trusting a compile-time constant, so it stays
-   correct on tabs that have not yet been migrated to the current layout. */
+   correct on tabs that have not yet been migrated to the current layout.
+
+   NOTE: this still matches on trim() + exact case, unlike findHeaderIndex above.
+   Its two callers (reportsEnabledIndex, migrateAddHeardAboutColumn) treat -1 as a
+   meaningful "column absent" state that drives a WRITE — migrate inserts a column
+   when it reads -1 — so loosening the match here changes migration behavior and is
+   deliberately left for its own change. See the PR discussion. */
 function headerIndex(sheet, headerName) {
   if (!sheet) return -1;
   if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) return -1;
@@ -3423,15 +3501,18 @@ function eaoBackfillPlan(ss) {
 
   var trim = function(v) { return String(v === null || v === undefined ? '' : v).trim(); };
 
-  var srcHeaders = src.getRange(1, 1, 1, src.getLastColumn()).getValues()[0].map(trim);
-  var dstHeaders = dst.getRange(1, 1, 1, dst.getLastColumn()).getValues()[0].map(trim);
+  // Header rows are read RAW (not trimmed) so the diagnostic can report exactly
+  // what is in each cell. All comparison goes through normalizeHeaderName.
+  var srcHeaders = src.getRange(1, 1, 1, src.getLastColumn()).getValues()[0];
+  var dstHeaders = dst.getRange(1, 1, 1, dst.getLastColumn()).getValues()[0];
 
-  var srcCategoryIdx = srcHeaders.indexOf('Category');
-  var srcLeadIdIdx   = srcHeaders.indexOf('Lead ID');
-  var dstLeadIdIdx   = dstHeaders.indexOf('Lead ID');
-  if (srcCategoryIdx === -1) throw new Error('No "Category" header on ' + srcName);
-  if (srcLeadIdIdx === -1)   throw new Error('No "Lead ID" header on ' + srcName);
-  if (dstLeadIdIdx === -1)   throw new Error('No "Lead ID" header on ' + leadType.tab);
+  // Expected names come from LEAD_HEADERS/COLS, never re-typed here.
+  var srcCategoryIdx = findHeaderIndex(srcHeaders, CATEGORY_HEADER);
+  var srcLeadIdIdx   = findHeaderIndex(srcHeaders, LEAD_ID_HEADER);
+  var dstLeadIdIdx   = findHeaderIndex(dstHeaders, LEAD_ID_HEADER);
+  if (srcCategoryIdx === -1) throw headerLookupError(srcName, srcHeaders, CATEGORY_HEADER);
+  if (srcLeadIdIdx === -1)   throw headerLookupError(srcName, srcHeaders, LEAD_ID_HEADER);
+  if (dstLeadIdIdx === -1)   throw headerLookupError(leadType.tab, dstHeaders, LEAD_ID_HEADER);
 
   // Lead IDs already on the destination tab — the idempotency key.
   var seen = {};
@@ -3440,6 +3521,16 @@ function eaoBackfillPlan(ss) {
        .getValues()
        .forEach(function(r) { var id = trim(r[0]); if (id) seen[id] = true; });
   }
+
+  // Normalized source header -> index, built once rather than re-scanned per row.
+  // First occurrence wins, so a duplicated header cannot shadow the real column.
+  var srcIndexByHeader = {};
+  srcHeaders.forEach(function(h, i) {
+    var key = normalizeHeaderName(h);
+    if (key && !Object.prototype.hasOwnProperty.call(srcIndexByHeader, key)) {
+      srcIndexByHeader[key] = i;
+    }
+  });
 
   var plan = { dst: dst, matched: 0, alreadyPresent: 0, blankLeadId: 0, toInsert: [] };
   if (src.getLastRow() < 2) return plan;
@@ -3455,11 +3546,18 @@ function eaoBackfillPlan(ss) {
        if (seen[leadId]) { plan.alreadyPresent++; return; }
        seen[leadId] = true;  // also dedupes within Lifetime Leads itself
 
-       // Name-based projection onto the destination layout. A destination column
-       // with no counterpart in the source (none today) is left blank.
+       // Name-based projection onto the destination layout, matched with the same
+       // normalization as the lookups above. An exact compare here would silently
+       // blank any column whose two header cells differ only in case or spacing —
+       // including Lead ID itself, which would insert rows with an empty key and
+       // so destroy idempotency: the next run would not see them and would insert
+       // duplicates. A destination column genuinely absent from the source (none
+       // today) is left blank.
        plan.toInsert.push(dstHeaders.map(function(h) {
-         var i = srcHeaders.indexOf(h);
-         return i === -1 ? '' : row[i];
+         var key = normalizeHeaderName(h);
+         return Object.prototype.hasOwnProperty.call(srcIndexByHeader, key)
+           ? row[srcIndexByHeader[key]]
+           : '';
        }));
      });
 
