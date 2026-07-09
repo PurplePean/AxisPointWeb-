@@ -62,7 +62,7 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 |---|---|---|
 | `visitor-phone` | `sendVisitorConfirmation` | New submission **with booking** and `meetType !== 'meet'` (phone call-back). Subject: *Your call with AxisPoint is set*. **Carries a `.ics` attachment** (see below). |
 | `visitor-meet` | `sendVisitorConfirmation` | New submission **with booking** and `meetType === 'meet'` (Google Meet). Same subject. **Carries a `.ics` attachment** (see below). |
-| `visitor-no-booking` | `sendVisitorConfirmation` | New submission **without** a booking. Subject: *We received your message — AxisPoint Partners*. |
+| `visitor-no-booking` | `sendVisitorConfirmation` | New submission **without** a booking. Subject: *We received your message*. |
 | `welcome-subscriber` | `sendWelcomeEmail` | New newsletter subscribe (`handleSubscribe`). Renders `{{preferenceList}}` + `{{unsubscribeUrl}}`. |
 
 ### Referrer-facing (recipient = the matched referrer)
@@ -76,7 +76,7 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 
 | Template | Sent by | Trigger |
 |---|---|---|
-| `partner-notification` | `sendPartnerNotification` | Every new lead. Subject: *New lead: {name} ({category}) — {leadId}*. |
+| `partner-notification` | `sendPartnerNotification` | Every new lead. Subject: *New lead: {name} ({category}), {leadId}*. |
 
 ### `.ics` calendar attachment (visitor booking confirmations)
 
@@ -98,57 +98,119 @@ attendee on the real event, so both surfaces are visitor-facing. The full detail
 dump (`bookingEventInternalDescription`) belongs **only** in the internal
 `partner-notification` email.
 
-### Internal booking detail + calendar-failure warning (`partner-notification`)
+### Internal booking detail + calendar warnings (`partner-notification`)
 
-When a submission includes a booking, `sendPartnerNotification` appends two extra
-pieces to its booking block (both internal-only, sent to `NOTIFY_EMAILS`):
+When a submission includes a booking, `sendPartnerNotification` appends three extra
+pieces to its booking block (all internal-only, sent to `NOTIFY_EMAILS`):
 
 1. A **"Booking details (internal only)"** block rendering
    `bookingEventInternalDescription(payload, leadId)` — the full dump (lead ID,
    email, phone, callback number, asset class, source, EAO current situation,
    message). This is the CRM detail that was **removed** from the client-facing
    Calendar event / `.ics`.
-2. A loud **"⚠ Calendar event was NOT created"** warning, shown only when a
+2. A loud red **"⚠ Calendar event was NOT created"** banner, shown only when a
    booking was requested but `createBookingEvent` returned `created: false`
    (with the underlying `error` and a pointer to `BOOKING_CALENDAR_ID` / calendar
-   edit access). This makes a previously-silent booking-creation failure visible.
+   edit access). This makes a silent booking-creation failure visible.
+3. An amber **"⚠ Calendar event created, but no link captured"** notice, shown when
+   an event **does** exist but `calendarLink` is empty (the `CalendarApp` fallback,
+   or an insert with no `htmlLink`). Deliberately distinct from (2): nothing needs
+   to be created by hand, so the copy says so. See the calendar-link section below.
 
-Both are built in JS and concatenated onto the `{{bookingBlock}}` variable, so no
-new template placeholder or mirror-file change is required.
+All three are built in JS and concatenated onto the `{{bookingBlock}}` variable, so
+no new template placeholder or mirror-file change is required for them.
 
-### Status of the missing "View in calendar" link — ⚠️ NOT CONFIRMED RESOLVED
+### `{{heardAboutRow}}` — self-reported attribution (internal only)
 
-**Do not read the changelog as saying this is fixed.** As of 2026-07-08 the
-symptom (no "View in calendar" link in the internal booking email) has **never been
-observed working in a real delivered email.** What is actually known:
+`partner-notification` carries one placeholder the other templates do not:
+`{{heardAboutRow}}`, sitting directly below the `Source` row in the detail table.
+`sendPartnerNotification` fills it with a `Heard about us` row when
+`leadHeardAbout(payload)` is non-empty, and with `''` otherwise (EAO submissions send
+no `heardAbout`, so the row simply disappears). It follows the same
+`{{capitalRangeRow}}` / `{{referredByRow}}` conditional-row pattern.
 
-- ✅ **Confirmed by reading source:** `sendPartnerNotification` renders
-  `calendarLinkHtml` whenever the `calendarLink` argument is non-empty, and
-  `createBookingEvent` populates `calendarLink` from `created.htmlLink` on a
-  successful `Calendar.Events.insert`. The code path is correct.
-- ❌ **Not confirmed:** that a live booking through the deployed `/exec` endpoint
-  produces the link in the received email. No live test has been recorded.
+This **is** a template change, so it exists in both the embedded
+`TEMPLATE_PARTNER_NOTIFICATION` constant **and** `emails/partner-notification.html`.
+Parity re-verified after the edit.
 
-Two prior task summaries give **different root causes** for the same symptom, and
-neither was verified end-to-end:
+`Source` and `Heard about us` are two separate, separately-labeled rows on purpose:
+Source is the technical channel the submission arrived through, Heard About is what
+the person said brought them. They must never be merged. `heardAbout` appears on no
+client-facing surface.
 
-1. The `#19` entry claims the link was missing because *the pinned `/exec`
-   deployment predated `#18`* — a `clasp deploy` gap, not a code bug.
-2. The `#20` entry claims the root cause was *`createBookingEvent`'s fail-silent
-   design* — the event was never created at all, so there was no `htmlLink` to
-   render.
+### Status of the missing "View in calendar" link — one real bug found and fixed; live test still required
 
-These are not compatible. (2) is the more plausible: a stale deployment would have
-suppressed the link but still created events on the old code path, whereas a missing
-`BOOKING_CALENDAR_ID` explains an empty `calendarLink` *and* the absent calendar
-event. But (2) was reasoned about, not observed.
+Re-investigated clean-room on 2026-07-08 against the then-current `Code.gs`, trusting
+neither prior PR's explanation. Result: **the chain was *not* internally consistent.
+There was a third code path neither `#19` nor `#20` accounted for**, and it has been
+fixed. Separately, which cause produced the *originally observed* symptom still
+cannot be settled without one live booking.
 
-**What would actually settle it:** confirm `BOOKING_CALENDAR_ID` is set (re-run
-`setProperties()` in the Apps Script editor), confirm the deploying account has edit
-access to that calendar, run `clasp push` + `clasp deploy -i <deploymentId>`, then
-submit a real booking and read the received partner email. Until someone does that,
-the correct state of this issue is **unknown**, and the `#20` warning banner is the
-mechanism that will tell you which cause it was: if the banner appears, it was (2).
+**The bug that was found (now fixed).** `createBookingEvent`'s `CalendarApp`
+fallback — the path taken when the advanced `Calendar.Events.insert` throws — did
+this:
+
+```js
+cal.createEvent(title, start, end, {...});
+result.created = true;
+result.error   = '';       // ← wiped the reason we ended up here
+return result;             // ← calendarLink never set, still ''
+```
+
+So it returned `created: true`, `calendarLink: ''`, `error: ''`. The `#20` warning
+banner fires on `bookingRequested && !calendarCreated`, which is **false** here. The
+outcome: an event genuinely exists, no "View in calendar" link renders, **and no
+warning appears** — indistinguishable from a healthy booking. That is exactly the
+reported symptom, reachable with `BOOKING_CALENDAR_ID` correctly set and the
+deployment fully current. `#20`'s fix did not cover it, because `#20` only
+distinguished *created* from *not created*.
+
+Two further defects in the same path:
+
+- For a **Meet** booking, `CalendarApp.createEvent` provisions no conference, so
+  `meetLink` stayed `''` and the partner email rendered
+  `<a href="">Join Google Meet &nbsp;→</a>` — a live-looking button with an empty
+  `href`.
+- A successful advanced `insert` that returned no `htmlLink` hit the same silent
+  no-link/no-warning state.
+
+**The fix.** `createBookingEvent` now returns a third flag, `degraded`, set whenever
+an event exists but no `calendarLink` could be captured, and it **preserves** the
+error explaining why. `sendPartnerNotification` renders an amber
+**"⚠ Calendar event created, but no link captured"** notice for that state (distinct
+from the red "NOT created" banner, because nothing needs to be booked by hand), and
+the empty-`href` anchor is replaced by a plain "No Google Meet link was created"
+marker. See `backend-architecture.md` → *Booking failure is fail-visible*.
+
+**What is now confirmed by code inspection**, verified in a Node harness that drives
+the real functions with stubbed GAS globals across all six outcomes (healthy insert,
+unset `BOOKING_CALENDAR_ID`, unparseable date, insert-throws → fallback, fallback
+with no calendar access, insert without `htmlLink`):
+
+- ✅ `createBookingEvent` returns a non-empty `calendarLink` **whenever the advanced
+  insert genuinely creates an event and returns an `htmlLink`** — and now flags
+  `degraded` in the two cases where an event is created without one.
+- ✅ `sendPartnerNotification` renders the red banner on every path where no event
+  exists, the amber notice on every path where one exists without a link, and the
+  "View in calendar" link exactly when a link is present.
+- ✅ No path can now produce a missing link with no explanation.
+
+**What still cannot be confirmed by inspection, per the audit's own finding:** whether
+a real booking through the deployed `/exec` endpoint delivers the link. **This
+requires one live test** and nothing else will settle it: after `clasp push` +
+`clasp deploy -i <deploymentId>`, book a real slot and read the received partner
+email. The three states are now mutually exclusive and self-identifying:
+
+| What you see in the email | What it means |
+|---|---|
+| "View in calendar" link | Healthy. The chain works end to end. |
+| Amber "created, but no link captured" | The advanced insert is failing; the fallback is carrying bookings. The preserved error says why. |
+| Red "Calendar event was NOT created" | No event exists. Check `BOOKING_CALENDAR_ID` and the deploying account's edit access. |
+
+The two prior PRs' explanations can finally be adjudicated by that test: a red banner
+means `#20`'s fail-silent-creation theory; a working link on the first live booking
+after redeploy means `#19`'s stale-deployment theory; an amber notice means neither,
+and the bug fixed here was the real one.
 
 ### Plain-text emails (no HTML template)
 
@@ -176,9 +238,16 @@ The booking pair share an identical opener by design — the meet/phone differen
 already carried by the booking block below it, not the greeting. `{{personalNote}}`
 personalization is unchanged and still does the per-role reflection.
 
-Note that the visitor-facing openers themselves are clean, but **`buildVisitorPersonalNote`
-and two subject lines still contain em dashes**, which violates the sitewide copy
-standard in `CLAUDE.md`. See the deviations list in the docs-refresh PR.
+**Em dashes: cleared 2026-07-08.** `Code.gs` now contains **zero em dashes in any
+runtime string** (verified by stripping comments and grepping the remaining code, and
+by asserting on every rendered subject and body in the Node harness). The audit's
+count of "4 in `buildVisitorPersonalNote` + 2 subject lines" undercounted: seven
+subject lines carried them (visitor no-booking, partner notification, daily digest,
+cold-move summary, welcome subscriber, publish notification, unsubscribe), along with
+the resubmission note written into the Sheet's Message column, the `'—'` empty-value
+placeholders in two internal emails (now `n/a`), and one `Logger.log` string. All
+were replaced with commas, colons, periods, or rephrasing. Em dashes remain only in
+code **comments**, which are not copy.
 
 ## Visitor-facing personalized content — `{{personalNote}}` (all 5 roles)
 

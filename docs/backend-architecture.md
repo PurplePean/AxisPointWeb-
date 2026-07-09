@@ -35,7 +35,7 @@ Both the write (event creation) and read (free/busy check) paths reference the
 `BOOKING_CALENDAR_ID` Script Property — so availability shown to visitors and the
 events actually booked can never point at different calendars.
 
-- `createBookingEvent(payload, leadId)` — **both** Meet and phone bookings are inserted via `Calendar.Events.insert(resource, CONFIG.BOOKING_CALENDAR_ID, {sendUpdates:'all', …})` (Meet adds `conferenceData` + `conferenceDataVersion:1`; phone omits both). The advanced service is used for the phone path too, specifically so the event's `htmlLink` can be captured (`CalendarApp.createEvent` does not cleanly expose it); `CalendarApp.getCalendarById(...).createEvent(...)` remains only as a last-resort fallback if the advanced insert throws. Attendees on every event are `CONFIG.NOTIFY_EMAILS` (zach@, ethaniel@) plus the visitor's submitted email, and `sendUpdates:'all'`/`sendInvites:true` means Google emails all three a real invite, so the event also lands on the partners' personal calendars. **PRIVACY: because the visitor is an attendee, the event's title/description land in the visitor's own calendar, so both use the CLIENT-facing helpers only** — event **title** `bookingEventTitle(payload)` (`AxisPoint Partners intro call with <name>`, no internal category) and **description** `bookingEventClientDescription(payload)` (warm, minimal: what the call is + how to join; **no** lead ID, source, asset class, or category). The full internal detail dump lives in `bookingEventInternalDescription(payload, leadId)` and is used **only** in the internal partner-notification email, never on the shared event or the `.ics`. Returns `{ meetLink, calendarLink, created, error }` — `created` is `true` only when an event was actually inserted (advanced or fallback), and `error` holds the reason it was not (unset `BOOKING_CALENDAR_ID`, unparseable date/time, insert exception, or no calendar access). Skips + logs (and now surfaces `error`) if the calendar ID is unset or inaccessible. `handleFormSubmission` passes `created`/`error` into `sendPartnerNotification`, which renders a loud "⚠ Calendar event was NOT created" warning when a booking was requested but no event resulted — so this failure is no longer silent.
+- `createBookingEvent(payload, leadId)` — **both** Meet and phone bookings are inserted via `Calendar.Events.insert(resource, CONFIG.BOOKING_CALENDAR_ID, {sendUpdates:'all', …})` (Meet adds `conferenceData` + `conferenceDataVersion:1`; phone omits both). The advanced service is used for the phone path too, specifically so the event's `htmlLink` can be captured (`CalendarApp.createEvent` does not cleanly expose it); `CalendarApp.getCalendarById(...).createEvent(...)` remains only as a last-resort fallback if the advanced insert throws. Attendees on every event are `CONFIG.NOTIFY_EMAILS` (zach@, ethaniel@) plus the visitor's submitted email, and `sendUpdates:'all'`/`sendInvites:true` means Google emails all three a real invite, so the event also lands on the partners' personal calendars. **PRIVACY: because the visitor is an attendee, the event's title/description land in the visitor's own calendar, so both use the CLIENT-facing helpers only** — event **title** `bookingEventTitle(payload)` (`AxisPoint Partners intro call with <name>`, no internal category) and **description** `bookingEventClientDescription(payload)` (warm, minimal: what the call is + how to join; **no** lead ID, source, asset class, or category). The full internal detail dump lives in `bookingEventInternalDescription(payload, leadId)` and is used **only** in the internal partner-notification email, never on the shared event or the `.ics`. Returns `{ meetLink, calendarLink, created, degraded, error }` — `created` is `true` only when an event was actually inserted (advanced or fallback), `degraded` is `true` when an event exists but no `calendarLink` could be captured (the `CalendarApp` fallback, which also provisions no Meet conference), and `error` holds the reason for whichever non-healthy state applies. Skips + logs (and surfaces `error`) if the calendar ID is unset or inaccessible. `handleFormSubmission` threads a `calendarStatus` object into `sendPartnerNotification`, which renders a red "⚠ Calendar event was NOT created" banner when no event resulted and an amber "⚠ Calendar event created, but no link captured" notice when one exists without a link — so neither failure is silent. See *Booking failure is fail-visible* below.
 
 **`.ics` attachment (visitor confirmation).** `buildBookingIcs(payload, leadId, meetLink)` produces an iCalendar `VEVENT` blob (`text/calendar`, `axispoint-call.ics`) attached to the booking visitor-confirmation emails (meet + phone) via `GmailApp.sendEmail`'s `attachments` option. Because it is delivered straight to the visitor, it carries **only** the client-facing `bookingEventTitle` / `bookingEventClientDescription` (no CRM internals); `leadId` appears solely in the opaque `UID` field (a machine identifier for dedup, never displayed). It emits America/Chicago wall-clock times with a real `VTIMEZONE` block, and sets `LOCATION` to the Meet link (video) or the phone number (phone). `METHOD:PUBLISH` so clients treat it as an event to add. This is a **deliberate belt-and-suspenders backup** to Google's native attendee invite (which can be delayed, spam-filtered, or useless to a non-Google visitor): the visitor is still added as an attendee on the real event with `sendUpdates:'all'`, so both the native invite **and** the attached `.ics` reach them. Generation is wrapped in try/catch — a failure never blocks the confirmation email.
 - `handleAvailability(dateStr)` — GET endpoint. Runs `Calendar.Freebusy.query` for the calendar day against `BOOKING_CALENDAR_ID`, then `computeSlotAvailability(dateStr, busy, BOOKING_SLOTS)` marks each slot free/booked by 30-minute overlap. Returns `{ success:true, date, slots:{ "8:00 AM":true, … } }` (`true` = free) or `{ success:false, error }`. The frontend treats any non-success as "all slots available".
@@ -75,23 +75,48 @@ the visitor should see it. `bookingEventInternalDescription` must never be passe
 
 ### Booking failure is fail-visible, by design
 
-`createBookingEvent` returns `{ meetLink, calendarLink, created, error }`. `created`
-is `true` only when an event was actually inserted (advanced service or the
-`CalendarApp` fallback); `error` carries the reason it was not — unset
-`BOOKING_CALENDAR_ID`, an unparseable date/time, an `insert` exception, or no
-calendar access.
+`createBookingEvent` returns `{ meetLink, calendarLink, created, degraded, error }`.
+There are **three** distinct outcomes, not two, and each gets its own signal in the
+internal `partner-notification` email:
 
-`handleFormSubmission` passes `bookingRequested && !calendarCreated` plus the error
-string into `sendPartnerNotification`, which renders a loud
-**"⚠ Calendar event was NOT created"** banner at the top of the booking block.
+| Outcome | `created` | `degraded` | `calendarLink` | Signal in the partner email |
+|---|---|---|---|---|
+| **Healthy** — advanced `Calendar.Events.insert` succeeded and returned an `htmlLink` | `true` | `false` | set | "View in calendar" link, no banner |
+| **Degraded** — an event genuinely exists, but no link could be captured | `true` | `true` | `''` | Amber **"⚠ Calendar event created, but no link captured"** notice + the underlying cause |
+| **Failed** — no event exists at all | `false` | `false` | `''` | Loud red **"⚠ Calendar event was NOT created"** banner + the underlying cause |
 
-This replaced a **fail-silent** design. Previously every failure path only wrote to
-`Logger.log` and returned an empty string, while the submission still returned
-`success: true` — so a booking that created no event, sent no invite, and left the
-visitor expecting a call looked *identical to a healthy one* in every surface a
-human actually reads. The submission still must never break on a calendar failure
-(that part was right), but the failure now has to announce itself. Logs nobody reads
-are not a signal.
+`handleFormSubmission` builds a `calendarStatus` object
+(`{ requested, created, degraded, error }`) and passes it to
+`sendPartnerNotification`, which derives
+`calendarFailed = requested && !created` and
+`calendarDegraded = requested && created && !calendarLink`.
+
+**Failed** covers: unset `BOOKING_CALENDAR_ID`, an unparseable date/time, no calendar
+access, and an exception from the `CalendarApp` fallback itself (which propagates to
+`handleFormSubmission`'s try/catch, leaving `created` false).
+
+**Degraded** covers the two paths where the event is real but link-less:
+
+1. The **`CalendarApp` fallback** (taken when the advanced `insert` throws).
+   `CalendarApp.createEvent` exposes no `htmlLink` and provisions no Meet
+   conference. It therefore keeps `degraded = true` and **preserves the
+   advanced-insert error** that forced the fallback.
+2. An `insert` that returns no `htmlLink` (defensive; the Calendar API always sets
+   one in practice).
+
+This three-state design replaced a two-state one that was still partly fail-silent.
+The `CalendarApp` fallback used to set `created = true` and then **clear `error` to
+`''`**, returning an empty `calendarLink`. That produced an email with no "View in
+calendar" link, no warning banner, and no explanation — *byte-for-byte identical to a
+healthy booking that just happened to render no link*. Worse, for a Meet booking the
+fallback creates no conference, so the partner email rendered
+`<a href="">Join Google Meet →</a>`: a button that looks live and goes nowhere. Both
+are fixed; the empty-`href` anchor is now a plain "No Google Meet link was created"
+marker.
+
+The submission still must never break on a calendar failure (that part was always
+right), but the failure now has to announce itself. Logs nobody reads are not a
+signal, and neither is a missing link.
 
 ## `source` vs `heardAbout` — two different questions
 
@@ -101,7 +126,7 @@ already corrupted the CRM's Source column.
 | Field | Question it answers | Values | Where it lands |
 |---|---|---|---|
 | `payload.source` | *Through which channel did this submission physically arrive?* | `'qr'` (QR microsite) or `''` (direct site visit) | Sheet **Source** column, via `leadSource(payload)` → `QR` / blank |
-| `payload.heardAbout` | *How did the visitor say they first heard of us?* | The form's "How did you hear about us?" answer, e.g. `'LinkedIn'`, `'Referral'` | **Nowhere. Currently dropped.** |
+| `payload.heardAbout` | *How did the visitor say they first heard of us?* | The form's "How did you hear about us?" answer, e.g. `'LinkedIn'`, `'Referral'` | Sheet **Heard About** column, via `leadHeardAbout(payload)`, **and** a `Heard about us` row in the internal `partner-notification` email. Never client-facing. |
 
 `leadSource(payload)` reads **only** `payload.source`. It deliberately does **not**
 fall back to `payload.page`: every main-site submission carries
@@ -115,17 +140,23 @@ doesn't silently vanish.
   `components/form/utils.ts` sends it **unconditionally** (`heardAbout: s.sourceSel ?? ''`)
   on all four `buildPayload` roles.
 - `buildEAOPayload` does **not** send it (the EAO flow has no "how did you hear"
-  step).
-- `Code.gs` **never reads it.** The only two occurrences of the string `heardAbout`
-  in the backend are comments explaining that it must stay out of the Source column.
-- There is **no `Heard About` column** in `LEAD_HEADERS` and no `HEARD_ABOUT` key in
-  `COLS`.
+  step), so EAO rows carry a blank **Heard About** cell.
+- `Code.gs` reads it through **`leadHeardAbout(payload)`** (defined next to
+  `leadSource`, deliberately, so the distinction is visible at the definition site).
+- **Column 31, `Heard About`**, is the last entry in `LEAD_HEADERS`;
+  `COLS.HEARD_ABOUT === 30`.
 
-So the frontend is transmitting this data and the backend is discarding it. The
-groundwork (clean separation from `source`) is done; **persisting it is not.**
-Adding it means appending `'Heard About'` to `LEAD_HEADERS`, adding the `COLS` key,
-writing it in `buildLeadRow`, and a one-time header edit on every live lead tab —
-the same live-Sheet schema migration the `Date Submitted` removal required.
+It is persisted as of 2026-07-08. Where it goes:
+
+| Surface | Carries `heardAbout`? |
+|---|---|
+| Sheet **Heard About** column (every lead tab) | ✅ |
+| `partner-notification` email (`NOTIFY_EMAILS`) — its own `Heard about us` row, directly under `Source` | ✅ |
+| Visitor confirmation email / `.ics` / Calendar event | ❌ never, by the same client/internal split as the booking helpers |
+
+It sits in its own clearly-labeled row rather than being merged into `Source`,
+because they answer different questions and conflating them once already corrupted
+the Source column.
 
 ## Lead types → Category + tab mapping
 
@@ -179,11 +210,12 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
 `renderTemplate`, `templateByName`, `getProp`.
 
-## `LEAD_HEADERS` — full 30-column layout
+## `LEAD_HEADERS` — full 31-column layout
 
 Shared by every lead tab. `COLS` holds 0-based indexes; column number = index + 1.
 Re-verified against `Code.gs` on 2026-07-08: the array below is the literal current
-contents — `Date Submitted` is **gone**, and `Heard About` has **not** been added.
+contents — `Date Submitted` is **gone**, and `Heard About` has been **appended** as
+column 31.
 
 | # | Column | Notes |
 |---|---|---|
@@ -204,7 +236,7 @@ contents — `Date Submitted` is **gone**, and `Heard About` has **not** been ad
 | 15 | Booking Time | `booking.slot || booking.time` |
 | 16 | Meet Type | `meet` / `phone` |
 | 17 | Booking Phone | |
-| 18 | Source | `leadSource(payload)` — **real origin only**: `QR` for the QR app, blank for a direct site visit. Deliberately **not** `payload.source \|\| payload.page` any more. The visitor's "How did you hear about us?" answer arrives separately as `payload.heardAbout`, is **never** written here, and is currently **not stored at all** — see *`source` vs `heardAbout`* above. |
+| 18 | Source | `leadSource(payload)` — **real origin only**: `QR` for the QR app, blank for a direct site visit. Deliberately **not** `payload.source \|\| payload.page` any more. The visitor's "How did you hear about us?" answer arrives separately as `payload.heardAbout` and is **never** written here; it lands in column 31 — see *`source` vs `heardAbout`* above. |
 | 19 | Status | seeded `New Lead` |
 | 20 | Referred By Lead ID | |
 | 21 | Referred By Name | |
@@ -217,6 +249,15 @@ contents — `Date Submitted` is **gone**, and `Heard About` has **not** been ad
 | 28 | Total Downstream | running count (reserved; seeded 0) |
 | 29 | Last Referral Date | |
 | 30 | Meet Link | Google Meet URL when `meetType === 'meet'` |
+| 31 | Heard About | `leadHeardAbout(payload)` — the visitor's own "How did you hear about us?" answer. Blank for EAO (no such step). Distinct from **Source**. |
+
+**Added 2026-07-08:** column 31 **Heard About**. Appended at the end so no existing
+column index moves. **This is a live-Sheet schema change** on every lead tab (see the
+deploy note), and it has one non-obvious consequence: `REPORTS_ENABLED_COL` is
+defined as `LEAD_HEADERS.length`, so the **Referral Partners** tab's `Reports
+Enabled` column shifts from column 31 to **column 32**. That tab needs `Heard About`
+*inserted before* `Reports Enabled`, not appended after it, or `handleFormSubmission`
+will write its `Reports Enabled = TRUE` seed into the wrong cell.
 
 **Removed:** the former column 20 **Date Submitted** (`MM/dd/yyyy` CT) was
 redundant with **Timestamp** and has been deleted from the schema. `sendDailyDigest`
@@ -227,8 +268,8 @@ callers reference columns through the `COLS` map (no hardcoded positions), so th
 shift is fully absorbed. **This is a live-Sheet schema change:** see the deploy note.
 
 The **Referral Partners** tab carries one extra column past this layout,
-`Reports Enabled` (index 30, `REPORTS_ENABLED_COL`): blank/`TRUE` = receives the
-monthly summary, explicit `FALSE` opts out.
+`Reports Enabled` (index 31, `REPORTS_ENABLED_COL` = `LEAD_HEADERS.length`):
+blank/`TRUE` = receives the monthly summary, explicit `FALSE` opts out.
 
 Two other tabs use their own schemas: **Referrals** (`REFERRAL_HEADERS`, 13
 columns, IDs `REF-YYYY-XXXX`) and **Subscribers** (`SUBSCRIBER_HEADERS`, 6
