@@ -37,6 +37,39 @@ pnpm deploy:gas     # == cd scripts/gas && clasp push
 **A `clasp push` alone will silently leave production on old code.** Always
 follow a backend change with `clasp deploy -i <deploymentId>`.
 
+### Gotcha: the deploying account needs *edit* access to `BOOKING_CALENDAR_ID`
+
+The Web App runs as `executeAs: USER_DEPLOYING`, so every `Calendar.Events.insert`
+and `Calendar.Freebusy.query` executes as the account that created the deployment —
+**not** as the visitor, and not as the calendar's owner unless they are the same
+account.
+
+`BOOKING_CALENDAR_ID` points at the dedicated shared **AxisPoint Bookings**
+calendar, which is a secondary calendar, not anyone's primary. Whether the deploying
+account can write to it depends on how it got access:
+
+- **The deploying account owns the calendar** → edit access is implicit. Nothing to
+  configure. This is the current arrangement.
+- **The deploying account is not the owner** → ownership does *not* propagate.
+  The owner must explicitly share the calendar with that account at the
+  **"Make changes to events"** permission level (Calendar → *Settings and sharing* →
+  *Share with specific people* ). "See all event details" is **not** sufficient —
+  free/busy reads will succeed while every event insert fails, which presents as
+  bookings that produce a confirmation email and no calendar event.
+
+This matters the moment the deploying account changes (a redeploy from a different
+Google account silently re-binds execution identity). Symptoms of getting it wrong:
+
+| Symptom | Meaning |
+|---|---|
+| Partner email shows **"⚠ Calendar event was NOT created"** | Insert failed. Check the error line in the banner, then the sharing level. |
+| Availability always shows every slot free | `Freebusy.query` is failing or the property is unset; the frontend falls back to all-available on any error. |
+| Both of the above, with `BOOKING_CALENDAR_ID Script Property is not set` | `setProperties()` has not been re-run on this script. |
+
+`setProperties()` stores `SPREADSHEET_ID`, `SCRIPT_URL`, **and**
+`BOOKING_CALENDAR_ID`. Re-run it in the Apps Script editor after any change to those
+values; `clasp push` uploads the function, it does not execute it.
+
 ## Front-end — GitHub Actions → Namecheap FTP
 
 Both apps share the **same** GAS endpoint: each deploy workflow passes
@@ -155,7 +188,23 @@ yet given):
 
 1. Create the Sheet, create the Apps Script project, paste `Code.gs`.
 2. Set project time zone to `America/Chicago`.
-3. Run `setProperties()` once (stores `SPREADSHEET_ID` + `SCRIPT_URL`).
-4. Run `setupSpreadsheet()` (creates the 11 tabs).
-5. Deploy → Web App, **Execute as: Me**, **Access: Anyone (anonymous)**.
-6. Run `setupTriggers()` (daily digest, weekly cold sweep, monthly summary, onEdit).
+3. Create the shared **AxisPoint Bookings** calendar and give the deploying account
+   edit access (see the gotcha above).
+4. Run `setProperties()` once (stores `SPREADSHEET_ID`, `SCRIPT_URL`, and
+   `BOOKING_CALENDAR_ID`).
+5. Run `setupSpreadsheet()` (creates the 11 tabs).
+6. Enable the advanced **Calendar API v3** service (already declared in
+   `appsscript.json` under `enabledAdvancedServices`).
+7. Deploy → Web App, **Execute as: Me**, **Access: Anyone (anonymous)**.
+8. Run `setupTriggers()` (daily digest, weekly cold sweep, monthly summary, onEdit).
+
+### Gotcha: `clasp` reauth is routine, not a failure
+
+`clasp push`, `clasp deploy`, and other `clasp` subcommands each independently
+trigger `invalid_grant` / `invalid_rapt` OAuth errors, and can do so **repeatedly
+within one session even after a successful `clasp login`**. A successful login does
+not immunize the next command. Re-run `clasp login`, then re-run the command.
+
+This is Google reauth friction (especially after OAuth scope changes), **not** a
+broken script and not a code bug. Do not start debugging `Code.gs` because a
+`clasp` command failed this way.

@@ -6,8 +6,13 @@ The exact JSON POSTed to the GAS endpoint for each lead type. Verified against
 Both apps render the **same** shared `<ContactForm>` from `@axispoint/brand`,
 which reads `VITE_FORM_ENDPOINT` and `fetch`-POSTs the payload:
 
-- `apps/web` → `<ContactForm />` (defaults: `page: 'axispoint.llc'`, `source` from the form's own "how did you hear" answer).
+- `apps/web` → `<ContactForm />` (defaults: `page: 'axispoint.llc'`, `source: ''` — a direct visit has no channel).
 - `apps/qr` → `<ContactForm source="qr" page="qr.axispoint.llc" />`.
+
+`source` is the **arrival channel**, never the visitor's "how did you hear about us?"
+answer — that is a separate field, `heardAbout`. Conflating them corrupted the CRM's
+Source column (stamping e.g. `LinkedIn` as the submission origin) until it was fixed;
+see `backend-architecture.md` → *`source` vs `heardAbout`*.
 
 Four roles build their payload with `buildPayload`; `existing_asset_owner` uses
 `buildEAOPayload`.
@@ -79,7 +84,8 @@ the pre-availability behavior. Slots are queried against the same shared
   "preferences": string[],         // comms opt-ins
   "booking": Booking | null,       // shared object above
   "message": string,               // msgField
-  "source": string,                // opts.source ?? (sourceSel ?? '')
+  "source": string,                // opts.source ?? ''   — arrival channel ONLY ('qr' | '')
+  "heardAbout": string,            // s.sourceSel ?? ''   — "how did you hear about us?" answer
   "timestamp": string,             // new Date().toISOString()
   "page": string,                  // opts.page ?? 'axispoint.llc'
   "referralCode": string | null,
@@ -87,14 +93,19 @@ the pre-availability behavior. Slots are queried against the same shared
   "referredByName": string | null
 
   // conditionally present:
-  // "heardAbout": string          // ONLY when opts.source is set (i.e. the QR app)
   // "referred": ReferredFields     // ONLY when role === 'submit_referral'
 }
 ```
 
 `qualData` always carries **all** keys; irrelevant ones are just empty/`null`
-for the given role (e.g. an investor leaves `proRole` null). Only the two
-conditional keys are added/omitted.
+for the given role (e.g. an investor leaves `proRole` null). `referred` is the only
+conditional key.
+
+**`heardAbout` is always sent** by all four `buildPayload` roles (it is `''` when the
+visitor skipped the question), not conditionally on `source` as this document
+previously stated. **The backend currently discards it** — there is no `Heard About`
+column in `LEAD_HEADERS` and `Code.gs` never reads the field. It is transmitted and
+dropped. See `backend-architecture.md` for what adding persistence would involve.
 
 ### Referral field resolution
 
@@ -147,7 +158,9 @@ Flat shape (spreads the assembled `property` object at the top level), not the
   //   }>
 
   "current_situation": string | null,
-  "pressing_issue": string,        // → Message column + partner email; NOT echoed to visitor
+  "pressing_issue": string,        // → Message column + partner email, AND echoed back to the
+                                   //   visitor in {{personalNote}} (falls back to
+                                   //   current_situation when empty)
   "name": string,                  // single field; backend splits into first/last
   "email": string,
   "phone": string,
@@ -156,7 +169,13 @@ Flat shape (spreads the assembled `property` object at the top level), not the
 }
 ```
 
-Note the EAO payload has **no** `person` object, `message`, `source`, `page`,
-`timestamp`, or referral fields — `normalizeEaoPayload` synthesizes `person`,
+Note the EAO payload has **no** `person` object, `message`, `source`, `heardAbout`,
+`page`, `timestamp`, or referral fields — `normalizeEaoPayload` synthesizes `person`,
 `message` (from `pressing_issue`), `qualData.assetClasses` (a one-line asset
-label), and `preferences` (a JSON dump of every EAO field) server-side.
+label), and `preferences` (a JSON dump of every EAO field) server-side. Because it
+sends no `source`, `leadSource()` returns `''` and EAO rows land with a blank Source
+column even when submitted from the QR microsite.
+
+`normalizeEaoPayload` copies `pressing_issue` into `message` but does **not** delete
+the top-level `pressing_issue` / `current_situation`, which is what lets
+`buildVisitorPersonalNote` echo them back to the visitor.
