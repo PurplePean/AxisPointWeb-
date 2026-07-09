@@ -154,6 +154,18 @@ export function buildPayload(s: FormSnapshot, opts: BuildPayloadOptions = {}) {
  * payload uses ({ date, slot, meetType, phone }) — see buildPayload. The real
  * Google Meet URL is NOT set here — the backend creates it when it actually
  * books the calendar event.
+ *
+ * NO `heardAbout` FIELD, DELIBERATELY. buildPayload sends `heardAbout: s.sourceSel`,
+ * but `sourceSel` is only ever set by Step4Contact, and STEP_ORDER_EAO does not
+ * include that step — the EAO flow never asks "How did you hear about us?". Adding
+ * `heardAbout: ''` here would not fix anything: the backend's leadHeardAbout()
+ * already yields '' for a missing field, so the Heard About cell is blank either
+ * way. It would only make a hardcoded blank look like a captured answer.
+ *
+ * To actually populate Heard About for EAO, the fix is a PRODUCT one: add a
+ * "how did you hear about us" question to the EAO step order, then thread its
+ * answer through here. Do that, or leave the column blank on purpose — but do not
+ * split the difference with a field that is always ''.
  */
 export function buildEAOPayload(args: {
   property: PropertyDetails;
