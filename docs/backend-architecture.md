@@ -262,7 +262,7 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
 | `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
-| `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `auditLeadTabHeaders`, `repairLifetimeLeadsHeader`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
+| `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `auditLeadTabHeaders`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
 | `setupTriggers()` | Creates the four triggers above. |
 | `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Reads the same `leadTabConfigs()`. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
@@ -271,7 +271,17 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `auditLeadTabHeadersSummary()` | **Read-only. Start here.** One line per tab (name, `rows=`, `cols=actual/expected`, drift, `rewrite=SAFE\|NO(has data)`), plus a drifted-tab footer. ~660 chars for nine tabs vs ~6.3k for the full audit, which the Apps Script log viewer truncates before the later tabs are reached. |
 | `auditLeadTabHeaderDetail(tabName)` | **Read-only.** Full per-column diff for **one** tab, so a drifted tab's columns can be inspected without the other eight crowding it out of the log. Throws on an unknown tab name. |
 | `auditLeadTabHeaders()` | **Read-only.** Full per-column detail for every lead tab. ⚠️ **Truncated by the Apps Script log viewer** once all nine tabs exist — `Referral Partners` onward may never render. Kept for pasting into a PR or issue; use the summary + detail pair when reading the log. |
-| `repairLifetimeLeadsHeader()` | Clears row 1 of Lifetime Leads across the full sheet width and rewrites it from `expectedHeadersFor()`. **Throws if the tab has any data rows.** `leadRow()` writes a positional 31-value array via `appendRow()` without ever reading the header, so a wrong header does not imply wrong rows — and rewriting the header over rows written under an older layout silently relabels every column instead of moving any cell. Realigning a data-bearing tab is a separate task. |
+| `rewriteLeadTabHeaderRow(sheet, tabName)` | The mechanical rewrite, and **the single site of the zero-data-row assert**. Clears row 1 across the full sheet width, writes `expectedHeadersFor(tabName)`, restyles from the tab's `leadTabConfigs()` colour, strips formatting off trailing cells left over from a wider old header, freezes row 1. Returns `{ before, after }`. Throws if the tab has any data rows, even though every caller has already checked, because this is the function that would do the damage. |
+| `repairLeadTabHeader(tabName)` | Repairs **one** lead tab. Takes its verdict from `leadTabHeaderAudit()` rather than re-deriving it. A healthy tab is left completely untouched (no rewrite); a drifted tab holding data throws; a drifted empty tab is rewritten. Throws on an unknown tab name. |
+| `repairLifetimeLeadsHeader()` | Thin alias for `repairLeadTabHeader(CONFIG.TABS.LIFETIME_LEADS)`, kept as the name this repair has always been run under. |
+| `repairAllDriftedLeadTabHeaders()` | **Bulk repair.** Same iteration as `auditLeadTabHeadersSummary()`; rewrites every tab the audit reports `rewrite=SAFE` and skips every other verdict. **The guard is `leadTabHeaderAudit().safeToRewrite` taken verbatim** (drifted AND zero data rows) — this function gets no vote of its own. Logs one line per tab: `REPAIRED`, `SKIPPED (already OK)`, `SKIPPED (unsafe: has data, needs manual review)`, or `SKIPPED (tab not found)`, then a tally. Idempotent: a second run is all-skips. |
+
+**Why a header rewrite needs a guard at all.** `leadRow()` writes a positional
+31-value array via `appendRow()` without ever reading the header, so a wrong header
+does not imply wrong rows. Rewriting the header over rows written under an older
+layout moves no cells, it silently relabels every column, after which name-based
+readers like `eaoBackfillPlan()` copy the wrong cells while appearing healthy.
+Realigning a data-bearing tab is a separate, careful task.
 
 ### Header matching is resilient, and header names are derived
 
