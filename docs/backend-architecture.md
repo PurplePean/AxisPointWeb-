@@ -265,7 +265,62 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `setupTriggers()` | Creates the four triggers above. |
 | `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Reads the same `leadTabConfigs()`. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
-| `backfillEaoCategoryRows()` | One-time (but **idempotent**) repair of the EAO rows dropped while the tab did not exist. Copies them out of Lifetime Leads. Keyed on `Lead ID`, so a second run inserts nothing; a later run picks up only genuinely-new rows. Columns are projected **by header name**, never by position, so source and destination may differ in column order/width. Throws with an actionable message if the tab does not exist yet. |
+| `backfillEaoCategoryRows()` | One-time (but **idempotent**) repair of the EAO rows dropped while the tab did not exist. Copies them out of Lifetime Leads. Keyed on `Lead ID`, so a second run inserts nothing; a later run picks up only genuinely-new rows. Columns are projected **by header name** (resiliently — see below), never by position, so source and destination may differ in column order, width, casing, or spacing. Throws with an actionable message if the tab does not exist yet. |
+
+### Header matching is resilient, and header names are derived
+
+A header cell typed or pasted into the live Sheet by a human is not guaranteed to
+be byte-identical to its `LEAD_HEADERS` constant. `eaoBackfillPlan` originally did
+`srcHeaders.indexOf('Lead ID')` — an exact, case-sensitive compare against a
+hardcoded literal — and threw `No "Lead ID" header on Lifetime Leads` against the
+real Sheet, because that cell differs by casing or invisible whitespace. Fixed
+2026-07-09.
+
+Two separate defects were involved, and the second was worse:
+
+1. The **lookup** rejected the column outright, so the function refused to run.
+2. The **column projection** (`dstHeaders.map(h => srcHeaders.indexOf(h))`) used the
+   same exact compare. Had the lookup succeeded, any column whose two header cells
+   differed only in case or spacing would have been written **blank** — including
+   `Lead ID` itself. Blank keys are invisible to the `seen` set, so the next run
+   would not recognize the rows and would **insert duplicates**. Idempotency, the
+   whole safety property of this function, depended on an exact string match across
+   two independently hand-edited header rows.
+
+Both now go through:
+
+| Helper | Role |
+|---|---|
+| `normalizeHeaderName(v)` | Deletes `U+200B..U+200D` (zero-width), collapses every whitespace run (JS `\s` already covers `U+00A0` NBSP and `U+FEFF` BOM) to one space, trims, lowercases. |
+| `findHeaderIndex(headerRow, name)` | Index of `name` in an already-read header row, compared through `normalizeHeaderName`. `-1` if absent. |
+| `describeHeaderRow(headerRow)` | Renders each cell with its length and character codes. |
+| `headerLookupError(sheet, row, name)` | Logs **and** returns the `Error` thrown when even a resilient match fails, embedding the full `describeHeaderRow` dump. |
+
+So `Lead ID`, `lead id`, `Lead  ID`, `Lead<NBSP>ID`, and `  LEAD ID ` all match, while
+`LeadID` and `Referred By Lead ID` correctly do not. `Lead<ZWSP>ID` renders on screen
+as `LeadID`, so stripping the zero-width character (rather than converting it to a
+space) correctly keeps it equal to `LeadID` and distinct from `Lead ID`.
+
+The expected names are **derived from the schema**, not re-typed:
+
+```js
+var HEARD_ABOUT_HEADER = LEAD_HEADERS[COLS.HEARD_ABOUT];   // 'Heard About'
+var LEAD_ID_HEADER     = LEAD_HEADERS[COLS.LEAD_ID];       // 'Lead ID'
+var CATEGORY_HEADER    = LEAD_HEADERS[COLS.CATEGORY];      // 'Category'
+```
+
+`REPORTS_ENABLED_HEADER` stays a literal because it is a per-tab extra and is
+genuinely not in `LEAD_HEADERS`.
+
+**When a resilient match still fails**, the thrown error (and the execution log)
+now contains the entire live header row rendered character by character —
+`col 2: "LeadID"  len=6  codes=[76,101,97,100,73,68]` — plus the expected name and
+its normalized form. No separate probe function is needed to diagnose it.
+
+**`headerIndex(sheet, name)` deliberately still matches exactly** (trim + case-
+sensitive). Its callers are `reportsEnabledIndex` and `migrateAddHeardAboutColumn`,
+and in the latter a `-1` drives a **write**: it inserts a column. Loosening that
+match changes migration behavior on live tabs, so it is left for its own change.
 
 **Order of operations for the EAO repair** (both manual, from the Apps Script
 editor, after `clasp push` + `clasp deploy`):
@@ -282,7 +337,8 @@ does **not** create tabs.
 
 Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
 `renderTemplate`, `templateByName`, `getProp`, `headerIndex`, `reportsEnabledIndex`,
-`openCrmSpreadsheet`, `eaoBackfillPlan`.
+`openCrmSpreadsheet`, `eaoBackfillPlan`, `normalizeHeaderName`, `findHeaderIndex`,
+`describeHeaderRow`, `headerLookupError`.
 
 ## `LEAD_HEADERS` — full 31-column layout
 
