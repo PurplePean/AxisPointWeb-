@@ -1027,7 +1027,7 @@ var REPORTS_ENABLED_HEADER = 'Reports Enabled';   // not in LEAD_HEADERS: a per-
 
    Single definition site. setupSpreadsheet() writes new tabs from this,
    auditLeadTabHeaders() compares live tabs against it, and
-   repairLifetimeLeadsHeader() rewrites from it — so "what a healthy tab looks
+   rewriteLeadTabHeaderRow() rewrites from it — so "what a healthy tab looks
    like" can never mean three different things in three places.
 
    NOTE: 'Heard About' is ALREADY the last element of LEAD_HEADERS. Anything that
@@ -3751,6 +3751,11 @@ function auditLeadTabHeadersSummary() {
   if (drifted.length) {
     lines.push('  → auditLeadTabHeaderDetail("<tab name>") for the per-column diff.');
   }
+  var safe = drifted.filter(function(a) { return a.safeToRewrite; });
+  if (safe.length) {
+    lines.push('  → repairAllDriftedLeadTabHeaders() rewrites the ' + safe.length +
+               ' empty drifted tab(s); it skips any tab holding data.');
+  }
 
   var text = lines.join('\n');
   Logger.log(text);
@@ -3790,9 +3795,9 @@ function auditLeadTabHeaderDetail(tabName) {
    function tripped over it. Run this before trusting any tab's layout.
 
    The data-row count matters as much as the header diff: a mismatched header on an
-   EMPTY tab is a clean rewrite (repairLifetimeLeadsHeader), while the same mismatch
-   on a tab holding rows is a column-realignment problem, because the rows may have
-   been written under the older layout the header still describes. */
+   EMPTY tab is a clean rewrite (repairAllDriftedLeadTabHeaders), while the same
+   mismatch on a tab holding rows is a column-realignment problem, because the rows
+   may have been written under the older layout the header still describes. */
 function auditLeadTabHeaders() {
   var ss = openCrmSpreadsheet();
   var out = ['auditLeadTabHeaders:'];
@@ -3807,41 +3812,45 @@ function auditLeadTabHeaders() {
   return text;
 }
 
-/* ── Repair the Lifetime Leads header row ──
-   Clears row 1 across the sheet's full width and rewrites it from
-   expectedHeadersFor('Lifetime Leads'), which is exactly LEAD_HEADERS.
+/* ── Header repair ──
+   WHY A HEADER REWRITE IS DANGEROUS, and therefore why everything below is built
+   around one guard. leadRow() builds a positional 31-value array and appendRow()
+   writes it without ever consulting the header row. So the header being wrong
+   tells you nothing about whether the ROWS are wrong. If rows written under an
+   older, narrower layout are present, swapping the header underneath them
+   silently relabels every column: data that was 'Date Submitted' starts reporting
+   itself as 'Status', and name-based readers like eaoBackfillPlan() would then
+   copy the wrong cells into the category tabs while looking completely healthy.
+   That corruption is unrecoverable without a backup, and it is caused BY the
+   repair. Realigning a data-bearing tab is a separate, careful task.
 
-   REFUSES TO RUN IF THE TAB HAS DATA ROWS. This is the whole safety property, and
-   it is not paranoia. leadRow() builds a positional 31-value array and appendRow()
-   writes it to Lifetime Leads on every single submission without ever consulting
-   the header row. So the header being wrong tells you nothing about whether the
-   ROWS are wrong. If rows written under an older, narrower layout are present,
-   swapping the header underneath them silently relabels every column: data that
-   was 'Date Submitted' starts reporting itself as 'Status', and name-based readers
-   like eaoBackfillPlan() would then copy the wrong cells into the category tabs
-   while looking completely healthy. That corruption is unrecoverable without a
-   backup, and it is caused BY the repair, which is why the guard throws instead of
-   warning. Realigning a data-bearing tab is a separate, careful task.
+   Hence: a header row is only ever rewritten on a tab with ZERO data rows. That
+   invariant is asserted in exactly one place, rewriteLeadTabHeaderRow() below, so
+   no caller can route around it. */
 
-   Idempotent on an empty tab: a second run rewrites the same 31 cells. */
-function repairLifetimeLeadsHeader() {
-  var ss    = openCrmSpreadsheet();
-  var name  = CONFIG.TABS.LIFETIME_LEADS;
-  var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    throw new Error('Tab "' + name + '" does not exist. Run setupSpreadsheet() first.');
-  }
+/** The refusal every data-bearing repair path raises. One string, so the single
+ *  and bulk paths cannot explain the same danger two different ways. */
+function headerRewriteRefusal(tabName, dataRows) {
+  return 'REFUSING to rewrite the header of "' + tabName + '": it has ' + dataRows + ' data row(s).\n' +
+    'A header rewrite only relabels columns, it does not move cells, so any row written\n' +
+    'under the old layout would end up silently mislabeled. Run auditLeadTabHeaders() to\n' +
+    'see the live layout, then realign the columns as its own reviewed change.';
+}
 
+/* Mechanical rewrite of one lead tab's header row. Clears row 1 across the sheet's
+   full width and rewrites it from expectedHeadersFor(tabName) — 31 columns for every
+   lead tab, 32 for Referral Partners.
+
+   THE ZERO-DATA-ROW ASSERT LIVES HERE. Callers are expected to have decided the tab
+   is repairable (leadTabHeaderAudit().safeToRewrite), but this is the function that
+   would do the damage, so it re-checks rather than trusting them.
+
+   Returns { before, after } — the header row as it was and as it now is. */
+function rewriteLeadTabHeaderRow(sheet, tabName) {
   var dataRows = Math.max(0, sheet.getLastRow() - 1);
-  if (dataRows > 0) {
-    throw new Error(
-      'REFUSING to rewrite the header of "' + name + '": it has ' + dataRows + ' data row(s).\n' +
-      'A header rewrite only relabels columns, it does not move cells, so any row written\n' +
-      'under the old layout would end up silently mislabeled. Run auditLeadTabHeaders() to\n' +
-      'see the live layout, then realign the columns as its own reviewed change.');
-  }
+  if (dataRows > 0) throw new Error(headerRewriteRefusal(tabName, dataRows));
 
-  var expected = expectedHeadersFor(name);
+  var expected = expectedHeadersFor(tabName);
   var before   = sheet.getLastColumn() > 0 && sheet.getLastRow() > 0
     ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];
@@ -3857,27 +3866,152 @@ function repairLifetimeLeadsHeader() {
 
   // Styling comes from the same registry entry setupSpreadsheet() would have used,
   // rather than a colour re-typed here.
-  var cfg = leadTabConfigs().filter(function(c) { return c.name === name; })[0];
+  var cfg = leadTabConfigs().filter(function(c) { return c.name === tabName; })[0];
   if (cfg) {
     sheet.getRange(1, 1, 1, expected.length)
       .setFontWeight('bold')
       .setBackground(cfg.color)
       .setFontColor('#FFFFFF');
   }
+
+  // A tab that was WIDER than expected keeps the old header's bold fill on the
+  // now-empty trailing cells, which reads as a real column. Strip it.
+  if (sheet.getMaxColumns() > expected.length) {
+    sheet.getRange(1, expected.length + 1, 1, sheet.getMaxColumns() - expected.length).clearFormat();
+  }
+
   sheet.setFrozenRows(1);
+  return { before: before, after: expected };
+}
+
+/** Header row rendered for a log line: blanks made visible, nothing else changed. */
+function formatHeaderRowForLog(row) {
+  return row.map(function(v) {
+    var t = String(v === null || v === undefined ? '' : v);
+    return t === '' ? '(blank)' : t;
+  }).join(' | ');
+}
+
+/* ── Repair ONE lead tab's header row ──
+   Works for any tab in leadTabConfigs(), not just Lifetime Leads. Reuses
+   leadTabHeaderAudit() for the verdict rather than re-deriving "is this drifted,
+   is this empty" a second time.
+
+   Throws on a data-bearing drifted tab (see headerRewriteRefusal). A tab whose
+   header already matches is left completely alone — an untouched healthy tab is a
+   better outcome than an idempotent rewrite of it. */
+function repairLeadTabHeader(tabName) {
+  if (!tabName) throw new Error('repairLeadTabHeader: pass a tab name, e.g. "Lifetime Leads".');
+  var known = leadTabConfigs().map(function(cfg) { return cfg.name; });
+  if (known.indexOf(tabName) === -1) {
+    throw new Error('"' + tabName + '" is not a lead tab. Known: ' + known.join(', '));
+  }
+
+  var ss = openCrmSpreadsheet();
+  var a  = leadTabHeaderAudit(ss, tabName);
+
+  if (a.missing) {
+    throw new Error('Tab "' + tabName + '" does not exist. Run setupSpreadsheet() first.');
+  }
+  if (!a.drift) {
+    var ok = 'repairLeadTabHeader:\n  "' + tabName + '" header already matches (' +
+             a.actual.length + ' cols). Nothing rewritten.';
+    Logger.log(ok);
+    return ok;
+  }
+  if (!a.safeToRewrite) throw new Error(headerRewriteRefusal(tabName, a.dataRows));
+
+  var r = rewriteLeadTabHeaderRow(ss.getSheetByName(tabName), tabName);
 
   var out = [
-    'repairLifetimeLeadsHeader:',
-    '  tab: "' + name + '"  (0 data rows, clean rewrite)',
-    '  before (' + before.length + ' cols): ' + before.map(function(v) {
-      var t = String(v === null || v === undefined ? '' : v);
-      return t === '' ? '(blank)' : t;
-    }).join(' | '),
-    '  after  (' + expected.length + ' cols): ' + expected.join(' | '),
-    '  → verify with countMissingEaoCategoryRows()',
+    'repairLeadTabHeader:',
+    '  tab: "' + tabName + '"  (0 data rows, clean rewrite)',
+    '  before (' + r.before.length + ' cols): ' + formatHeaderRowForLog(r.before),
+    '  after  (' + r.after.length + ' cols): ' + r.after.join(' | '),
+    '  → verify with auditLeadTabHeadersSummary()',
   ].join('\n');
   Logger.log(out);
   return out;
+}
+
+/** Kept as the name the Lifetime Leads repair has always been run under. The logic
+ *  is repairLeadTabHeader()'s; this only pins the tab. */
+function repairLifetimeLeadsHeader() {
+  return repairLeadTabHeader(CONFIG.TABS.LIFETIME_LEADS);
+}
+
+/* ── Repair EVERY drifted lead tab that is safe to repair ──
+   The bulk counterpart to auditLeadTabHeadersSummary(): same iteration, same
+   per-tab verdict from leadTabHeaderAudit(), except that a tab reporting
+   rewrite=SAFE gets its header row rewritten instead of merely reported.
+
+   THE GUARD IS a.safeToRewrite, TAKEN VERBATIM FROM THE AUDIT. It means "drifted
+   AND zero data rows". Any other verdict — healthy, data-bearing, tab missing — is
+   skipped and logged, never written to. This function is only correct because the
+   audit already refuses to call a data-bearing tab safe; it does not get a vote of
+   its own, and rewriteLeadTabHeaderRow() re-asserts the zero-row invariant beneath
+   it regardless.
+
+   Idempotent: every repaired tab reports OK on the next run, so a second run is
+   all-skips. */
+function repairAllDriftedLeadTabHeaders() {
+  var ss = openCrmSpreadsheet();
+
+  var audits = leadTabConfigs().map(function(cfg) {
+    return leadTabHeaderAudit(ss, cfg.name);
+  });
+
+  var pad = audits.reduce(function(m, a) { return Math.max(m, a.name.length); }, 0);
+  var padded = function(s) {
+    var out = s;
+    while (out.length < pad) out += ' ';
+    return out;
+  };
+
+  var lines = ['repairAllDriftedLeadTabHeaders:'];
+  var repaired = 0, skippedOk = 0, skippedUnsafe = 0, skippedMissing = 0;
+
+  audits.forEach(function(a) {
+    if (a.missing) {
+      skippedMissing++;
+      lines.push('  SKIPPED   ' + padded(a.name) + '  (tab not found)');
+      return;
+    }
+
+    if (!a.drift) {
+      skippedOk++;
+      lines.push('  SKIPPED   ' + padded(a.name) +
+                 '  (already OK)  cols=' + a.actual.length);
+      return;
+    }
+
+    if (!a.safeToRewrite) {
+      skippedUnsafe++;
+      lines.push('  SKIPPED   ' + padded(a.name) +
+                 '  (unsafe: has data, needs manual review)' +
+                 '  rows=' + a.dataRows +
+                 '  cols=' + a.actual.length + '/' + a.expected.length);
+      return;
+    }
+
+    var r = rewriteLeadTabHeaderRow(ss.getSheetByName(a.name), a.name);
+    repaired++;
+    lines.push('  REPAIRED  ' + padded(a.name) +
+               '  cols ' + r.before.length + ' → ' + r.after.length);
+  });
+
+  lines.push('');
+  lines.push('  ' + repaired + ' repaired, ' + skippedOk + ' already OK, ' +
+             skippedUnsafe + ' unsafe (skipped), ' + skippedMissing + ' missing');
+  if (skippedUnsafe) {
+    lines.push('  → the unsafe tab(s) hold data. auditLeadTabHeaderDetail("<tab name>"), then');
+    lines.push('    realign the columns by hand. A header rewrite there would mislabel real rows.');
+  }
+  lines.push('  → verify with auditLeadTabHeadersSummary()');
+
+  var text = lines.join('\n');
+  Logger.log(text);
+  return text;
 }
 
 function setupTriggers() {
