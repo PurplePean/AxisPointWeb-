@@ -3616,14 +3616,177 @@ function backfillEaoCategoryRows() {
   return out;
 }
 
-/* ── Read-only header audit across every lead tab ──
-   Writes nothing. For each lead tab, reports its data-row count and its live
-   header row cell by cell, diffed against expectedHeadersFor(tab).
+/* ── Read-only header audit: the analysis, separated from its rendering ──
+   Reads one lead tab and returns a structured verdict. Writes nothing.
+
+   Three functions render this: auditLeadTabHeadersSummary (one line per tab),
+   auditLeadTabHeaders (every column of every tab), and auditLeadTabHeaderDetail
+   (every column of one tab). Splitting analysis from rendering is what keeps them
+   from disagreeing — a summary that said OK while the detail said DRIFT would be
+   worse than having no summary at all.
+
+   `safeToRewrite` deliberately means "drifted AND empty", not merely "empty". A
+   healthy tab has nothing to rewrite, so the flag stays false and only ever points
+   at tabs that both need a repair and can take one. */
+function leadTabHeaderAudit(ss, tabName) {
+  var sheet = ss.getSheetByName(tabName);
+  if (!sheet) return { name: tabName, missing: true };
+
+  var expected = expectedHeadersFor(tabName);
+  var dataRows = Math.max(0, sheet.getLastRow() - 1);
+  var lastCol  = sheet.getLastColumn();
+  var actual   = lastCol > 0 && sheet.getLastRow() > 0
+    ? sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    : [];
+
+  var cell = function(v) { return String(v === null || v === undefined ? '' : v); };
+
+  // Compare with the same normalization every runtime lookup uses, so a header this
+  // audit calls "OK" is exactly one findHeaderIndex() will resolve.
+  var diffs = [];
+  var width = Math.max(expected.length, actual.length);
+  for (var i = 0; i < width; i++) {
+    var same = i < expected.length && i < actual.length &&
+               normalizeHeaderName(expected[i]) === normalizeHeaderName(actual[i]);
+    if (!same) {
+      diffs.push({
+        col:      i + 1,
+        expected: i < expected.length ? expected[i]       : '(none)',
+        actual:   i < actual.length   ? cell(actual[i])   : '(none)',
+      });
+    }
+  }
+
+  // Headers the runtime looks up by name. Their absence is what actually breaks
+  // things, independent of ordering.
+  var missingCritical = [LEAD_ID_HEADER, CATEGORY_HEADER, HEARD_ABOUT_HEADER]
+    .filter(function(h) { return findHeaderIndex(actual, h) === -1; });
+
+  return {
+    name: tabName, missing: false,
+    expected: expected, actual: actual, dataRows: dataRows,
+    diffs: diffs, missingCritical: missingCritical,
+    drift: diffs.length > 0,
+    safeToRewrite: diffs.length > 0 && dataRows === 0,
+  };
+}
+
+/* Renders one audited tab's full per-column detail as an array of lines. */
+function renderLeadTabHeaderDetail(a) {
+  if (a.missing) return ['MISSING  "' + a.name + '": tab not found'];
+
+  var lines = [
+    (a.drift ? 'DRIFT   ' : 'OK      ') + '"' + a.name + '"' +
+      '  dataRows=' + a.dataRows +
+      '  cols=' + a.actual.length + ' (expected ' + a.expected.length + ')',
+    '    header: ' + a.actual.map(function(v) {
+      var t = String(v === null || v === undefined ? '' : v);
+      return t === '' ? '(blank)' : t;
+    }).join(' | '),
+  ];
+
+  if (a.missingCritical.length) {
+    lines.push('    !! missing name-looked-up header(s): ' + a.missingCritical.join(', '));
+  }
+  if (a.diffs.length) {
+    lines.push('    mismatched cells (' + a.diffs.length + '):');
+    a.diffs.forEach(function(d) {
+      lines.push('      col ' + d.col + ': expected "' + d.expected + '"  actual "' + d.actual + '"');
+    });
+    lines.push(a.dataRows > 0
+      ? '    → HAS DATA: do NOT rewrite the header. Needs column realignment.'
+      : '    → empty: safe to rewrite the header row from expectedHeadersFor().');
+  }
+  return lines;
+}
+
+/* ── Condensed audit: one line per tab ──
+   WHY THIS IS THE DEFAULT ONE TO RUN. auditLeadTabHeaders() emits a full 31-column
+   header row per tab, and the Apps Script log viewer truncates the message before
+   the later tabs (Referral Partners onward) are ever reached — so the tabs nobody
+   had looked at were precisely the ones the audit could not show. A summary that
+   always fits is worth more than a detailed one that silently stops early.
+
+   Budget: ~9 tabs at well under 200 chars each, a single Logger.log call. The
+   per-column detail lives in auditLeadTabHeaderDetail(tabName), which is scoped to
+   one tab and so cannot be crowded out by the other eight. */
+function auditLeadTabHeadersSummary() {
+  var ss = openCrmSpreadsheet();
+
+  var audits = leadTabConfigs().map(function(cfg) {
+    return leadTabHeaderAudit(ss, cfg.name);
+  });
+
+  // Pad to the longest tab name so the columns line up in the log.
+  var pad = audits.reduce(function(m, a) { return Math.max(m, a.name.length); }, 0);
+  var padded = function(s) {
+    var out = s;
+    while (out.length < pad) out += ' ';
+    return out;
+  };
+
+  var lines = ['auditLeadTabHeadersSummary:'];
+
+  audits.forEach(function(a) {
+    if (a.missing) { lines.push('  MISSING  ' + padded(a.name) + '  tab not found'); return; }
+
+    // Only the COUNT of missing critical headers here, never the names: three long
+    // header names on nine tabs is exactly the unbounded growth this mode exists to
+    // avoid. auditLeadTabHeaderDetail() names them.
+    var note = a.drift
+      ? '  rewrite=' + (a.safeToRewrite ? 'SAFE' : 'NO(has data)') +
+        (a.missingCritical.length ? '  missingKeyCols=' + a.missingCritical.length : '')
+      : '';
+
+    lines.push('  ' + (a.drift ? 'DRIFT' : 'OK   ') + '  ' + padded(a.name) +
+               '  rows=' + a.dataRows +
+               '  cols=' + a.actual.length + '/' + a.expected.length +
+               note);
+  });
+
+  var drifted = audits.filter(function(a) { return !a.missing && a.drift; });
+  lines.push('');
+  lines.push('  ' + drifted.length + ' of ' + audits.length + ' tab(s) drifted' +
+             (drifted.length ? ': ' + drifted.map(function(a) { return a.name; }).join(', ') : ''));
+  if (drifted.length) {
+    lines.push('  → auditLeadTabHeaderDetail("<tab name>") for the per-column diff.');
+  }
+
+  var text = lines.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/* Full per-column detail for ONE tab. The drill-down after the summary flags a tab,
+   and the only way to see a drifted tab's columns without the nine-tab audit being
+   truncated out from under it. */
+function auditLeadTabHeaderDetail(tabName) {
+  if (!tabName) throw new Error('auditLeadTabHeaderDetail: pass a tab name, e.g. "Lifetime Leads".');
+  var known = leadTabConfigs().map(function(cfg) { return cfg.name; });
+  if (known.indexOf(tabName) === -1) {
+    throw new Error('"' + tabName + '" is not a lead tab. Known: ' + known.join(', '));
+  }
+
+  var text = ['auditLeadTabHeaderDetail:']
+    .concat(renderLeadTabHeaderDetail(leadTabHeaderAudit(openCrmSpreadsheet(), tabName)))
+    .join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/* ── Read-only header audit across every lead tab, full per-column detail ──
+   Writes nothing. For each lead tab, reports its data-row count and its live header
+   row cell by cell, diffed against expectedHeadersFor(tab).
+
+   WARNING: the Apps Script log viewer truncates this before the last few tabs when
+   all nine exist. Use auditLeadTabHeadersSummary() to see every tab, then
+   auditLeadTabHeaderDetail(tabName) to drill into one. Kept because the full dump
+   is still the right thing to paste into a PR or an issue.
 
    WHY THIS EXISTS. Header drift on Lifetime Leads was found only because
    eaoBackfillPlan() happened to throw on a missing 'Lead ID'. Every other tab was
-   assumed fine without anyone having looked. Nothing in this script had ever read
-   a header row purely to check it, so drift stayed invisible until some unrelated
+   assumed fine without anyone having looked. Nothing in this script had ever read a
+   header row purely to check it, so drift stayed invisible until some unrelated
    function tripped over it. Run this before trusting any tab's layout.
 
    The data-row count matters as much as the header diff: a mismatched header on an
@@ -3635,51 +3798,8 @@ function auditLeadTabHeaders() {
   var out = ['auditLeadTabHeaders:'];
 
   leadTabConfigs().forEach(function(cfg) {
-    var sheet = ss.getSheetByName(cfg.name);
-    if (!sheet) { out.push('', 'MISSING  "' + cfg.name + '": tab not found'); return; }
-
-    var expected  = expectedHeadersFor(cfg.name);
-    var dataRows  = Math.max(0, sheet.getLastRow() - 1);
-    var lastCol   = sheet.getLastColumn();
-    var actual    = lastCol > 0 && sheet.getLastRow() > 0
-      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0]
-      : [];
-
-    // Compare with the same normalization every runtime lookup uses, so a header
-    // this audit calls "OK" is exactly one findHeaderIndex() will resolve.
-    var diffs = [];
-    var width = Math.max(expected.length, actual.length);
-    for (var i = 0; i < width; i++) {
-      var want = i < expected.length ? expected[i] : '(none)';
-      var got  = i < actual.length   ? String(actual[i] === null || actual[i] === undefined ? '' : actual[i]) : '(none)';
-      var same = i < expected.length && i < actual.length &&
-                 normalizeHeaderName(expected[i]) === normalizeHeaderName(actual[i]);
-      if (!same) diffs.push('      col ' + (i + 1) + ': expected "' + want + '"  actual "' + got + '"');
-    }
-
-    // Headers the runtime looks up by name. Their absence is what actually breaks
-    // things, independent of ordering.
-    var missingCritical = [LEAD_ID_HEADER, CATEGORY_HEADER, HEARD_ABOUT_HEADER]
-      .filter(function(h) { return findHeaderIndex(actual, h) === -1; });
-
     out.push('');
-    out.push((diffs.length ? 'DRIFT   ' : 'OK      ') + '"' + cfg.name + '"' +
-             '  dataRows=' + dataRows + '  cols=' + actual.length + ' (expected ' + expected.length + ')');
-    out.push('    header: ' + actual.map(function(v) {
-      var t = String(v === null || v === undefined ? '' : v);
-      return t === '' ? '(blank)' : t;
-    }).join(' | '));
-
-    if (missingCritical.length) {
-      out.push('    !! missing name-looked-up header(s): ' + missingCritical.join(', '));
-    }
-    if (diffs.length) {
-      out.push('    mismatched cells (' + diffs.length + '):');
-      out.push(diffs.join('\n'));
-      out.push(dataRows > 0
-        ? '    → HAS DATA: do NOT rewrite the header. Needs column realignment.'
-        : '    → empty: safe to rewrite the header row from expectedHeadersFor().');
-    }
+    out = out.concat(renderLeadTabHeaderDetail(leadTabHeaderAudit(ss, cfg.name)));
   });
 
   var text = out.join('\n');
