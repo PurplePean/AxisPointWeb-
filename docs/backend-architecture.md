@@ -39,8 +39,93 @@ events actually booked can never point at different calendars.
 
 **`.ics` attachment (visitor confirmation).** `buildBookingIcs(payload, leadId, meetLink)` produces an iCalendar `VEVENT` blob (`text/calendar`, `axispoint-call.ics`) attached to the booking visitor-confirmation emails (meet + phone) via `GmailApp.sendEmail`'s `attachments` option. Because it is delivered straight to the visitor, it carries **only** the client-facing `bookingEventTitle` / `bookingEventClientDescription` (no CRM internals); `leadId` appears solely in the opaque `UID` field (a machine identifier for dedup, never displayed). It emits America/Chicago wall-clock times with a real `VTIMEZONE` block, and sets `LOCATION` to the Meet link (video) or the phone number (phone). `METHOD:PUBLISH` so clients treat it as an event to add. This is a **deliberate belt-and-suspenders backup** to Google's native attendee invite (which can be delayed, spam-filtered, or useless to a non-Google visitor): the visitor is still added as an attendee on the real event with `sendUpdates:'all'`, so both the native invite **and** the attached `.ics` reach them. Generation is wrapped in try/catch — a failure never blocks the confirmation email.
 - `handleAvailability(dateStr)` — GET endpoint. Runs `Calendar.Freebusy.query` for the calendar day against `BOOKING_CALENDAR_ID`, then `computeSlotAvailability(dateStr, busy, BOOKING_SLOTS)` marks each slot free/booked by 30-minute overlap. Returns `{ success:true, date, slots:{ "8:00 AM":true, … } }` (`true` = free) or `{ success:false, error }`. The frontend treats any non-success as "all slots available".
-- `computeSlotAvailability(dateStr, busyPeriods, slots)` — pure overlap logic (no GAS globals beyond the pure `parseBookingDateTime`), unit-tested in Node against stubbed Freebusy responses.
+- `computeSlotAvailability(dateStr, busyPeriods, slots)` — pure overlap logic (no GAS globals beyond the pure `parseBookingDateTime`), so it **can** be exercised in Node against a stubbed Freebusy response. **No committed test suite exists** — `scripts/gas/` contains only `Code.gs`, `appsscript.json`, and `emails/`. The verification runs described in the changelog were throwaway Node harnesses, not checked in. The docstring on this function pointing at "scripts/gas tests" is aspirational; treat it as such.
 - `BOOKING_SLOTS` — the 16 fixed CT slot labels, mirrored from `SLOTS` in `packages/brand/src/components/form/utils.ts` (must stay in sync — same drift risk as the email template mirrors).
+
+### Why the client/internal content split exists
+
+This is a **privacy** decision, not a formatting one. `createBookingEvent` adds the
+visitor to the event's `attendees` array and sends real invites
+(`sendUpdates:'all'`). That means the event's `summary` and `description` are
+rendered **inside the visitor's own Google Calendar**, and the `.ics` is delivered
+straight to their inbox. Anything written to those two surfaces is visitor-facing,
+permanently, on a system we do not control.
+
+Before the split, both surfaces rendered the full CRM dump: `Lead ID: AXP-2026-0041`,
+the raw `Source` value, asset class, and an internal `(Category)` label in the title.
+Every booked visitor was shown our internal lead record.
+
+The split is therefore enforced at the helper level, so the safe default is the one
+that's easy to reach for:
+
+| Helper | Content | Where it may appear |
+|---|---|---|
+| `bookingEventTitle(payload)` | `AxisPoint Partners intro call with <name>` — no category | Calendar event, `.ics`, (also reused internally) |
+| `bookingEventClientDescription(payload)` | Warm, minimal: what the call is, how to join, callback number if phone | Calendar event, `.ics` |
+| `bookingEventInternalDescription(payload, leadId)` | Full dump: lead ID, email, phone, callback number, asset class, source, EAO situation, message | **`partner-notification` email only** (`NOTIFY_EMAILS`) |
+
+`leadId` does still reach the visitor, but only inside the `.ics` `UID` field
+(`axp-<leadId>-<timestamp>@axispoint.llc`) — an opaque machine identifier used for
+calendar-client dedup, never rendered to a human. That is deliberate and acceptable.
+
+**Rule for future edits:** if you are adding a field to a booking event or the
+`.ics`, it must go through `bookingEventClientDescription`, and you must ask whether
+the visitor should see it. `bookingEventInternalDescription` must never be passed to
+`Calendar.Events.insert`, `CalendarApp.createEvent`, or `buildBookingIcs`.
+
+### Booking failure is fail-visible, by design
+
+`createBookingEvent` returns `{ meetLink, calendarLink, created, error }`. `created`
+is `true` only when an event was actually inserted (advanced service or the
+`CalendarApp` fallback); `error` carries the reason it was not — unset
+`BOOKING_CALENDAR_ID`, an unparseable date/time, an `insert` exception, or no
+calendar access.
+
+`handleFormSubmission` passes `bookingRequested && !calendarCreated` plus the error
+string into `sendPartnerNotification`, which renders a loud
+**"⚠ Calendar event was NOT created"** banner at the top of the booking block.
+
+This replaced a **fail-silent** design. Previously every failure path only wrote to
+`Logger.log` and returned an empty string, while the submission still returned
+`success: true` — so a booking that created no event, sent no invite, and left the
+visitor expecting a call looked *identical to a healthy one* in every surface a
+human actually reads. The submission still must never break on a calendar failure
+(that part was right), but the failure now has to announce itself. Logs nobody reads
+are not a signal.
+
+## `source` vs `heardAbout` — two different questions
+
+These are separate fields answering separate questions, and conflating them once
+already corrupted the CRM's Source column.
+
+| Field | Question it answers | Values | Where it lands |
+|---|---|---|---|
+| `payload.source` | *Through which channel did this submission physically arrive?* | `'qr'` (QR microsite) or `''` (direct site visit) | Sheet **Source** column, via `leadSource(payload)` → `QR` / blank |
+| `payload.heardAbout` | *How did the visitor say they first heard of us?* | The form's "How did you hear about us?" answer, e.g. `'LinkedIn'`, `'Referral'` | **Nowhere. Currently dropped.** |
+
+`leadSource(payload)` reads **only** `payload.source`. It deliberately does **not**
+fall back to `payload.page`: every main-site submission carries
+`page === 'axispoint.llc'`, which would stamp the domain into Source on every row.
+Any other explicit non-empty origin passes through verbatim so a future channel
+doesn't silently vanish.
+
+**Current state of `heardAbout` — verified against source, not assumed:**
+
+- `packages/brand/src/types.ts` declares it, and `buildPayload` in
+  `components/form/utils.ts` sends it **unconditionally** (`heardAbout: s.sourceSel ?? ''`)
+  on all four `buildPayload` roles.
+- `buildEAOPayload` does **not** send it (the EAO flow has no "how did you hear"
+  step).
+- `Code.gs` **never reads it.** The only two occurrences of the string `heardAbout`
+  in the backend are comments explaining that it must stay out of the Source column.
+- There is **no `Heard About` column** in `LEAD_HEADERS` and no `HEARD_ABOUT` key in
+  `COLS`.
+
+So the frontend is transmitting this data and the backend is discarding it. The
+groundwork (clean separation from `source`) is done; **persisting it is not.**
+Adding it means appending `'Heard About'` to `LEAD_HEADERS`, adding the `COLS` key,
+writing it in `buildLeadRow`, and a one-time header edit on every live lead tab —
+the same live-Sheet schema migration the `Date Submitted` removal required.
 
 ## Lead types → Category + tab mapping
 
@@ -97,6 +182,8 @@ Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
 ## `LEAD_HEADERS` — full 30-column layout
 
 Shared by every lead tab. `COLS` holds 0-based indexes; column number = index + 1.
+Re-verified against `Code.gs` on 2026-07-08: the array below is the literal current
+contents — `Date Submitted` is **gone**, and `Heard About` has **not** been added.
 
 | # | Column | Notes |
 |---|---|---|
@@ -117,7 +204,7 @@ Shared by every lead tab. `COLS` holds 0-based indexes; column number = index + 
 | 15 | Booking Time | `booking.slot || booking.time` |
 | 16 | Meet Type | `meet` / `phone` |
 | 17 | Booking Phone | |
-| 18 | Source | `leadSource(payload)` — **real origin only**: `QR` for the QR app, blank for a direct site visit. Deliberately **not** `payload.source \|\| payload.page` any more: `payload.page` (always `axispoint.llc` on the main site) is never used as a fallback, and the visitor's "How did you hear about us?" answer arrives separately as `payload.heardAbout` and is **never** written here. |
+| 18 | Source | `leadSource(payload)` — **real origin only**: `QR` for the QR app, blank for a direct site visit. Deliberately **not** `payload.source \|\| payload.page` any more. The visitor's "How did you hear about us?" answer arrives separately as `payload.heardAbout`, is **never** written here, and is currently **not stored at all** — see *`source` vs `heardAbout`* above. |
 | 19 | Status | seeded `New Lead` |
 | 20 | Referred By Lead ID | |
 | 21 | Referred By Name | |
@@ -190,10 +277,22 @@ labels used by `handleAvailability`; keep it in sync with `SLOTS` in
 Leads, Investors, Referral Partners, RE Professionals, Existing Asset Owners,
 Clients, Archive, Referrals, Subscribers.
 
-`SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` live in Script
-Properties (set by `setProperties`, read by `getProp`) so they survive redeploys.
-`CONFIG.BOOKING_CALENDAR_ID` is a getter over the property; the raw values are
-never committed as literals.
+`SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` live in Script Properties
+(read by `getProp`) so they survive redeploys, and no *consuming* function body
+hardcodes them — `CONFIG.BOOKING_CALENDAR_ID` is a getter over the property.
+
+To be precise about what this does and does not buy: **the literal values are
+committed**, inside `setProperties()` in `Code.gs`, which is how they get into
+Script Properties in the first place. The property indirection exists so the values
+survive redeploys and have exactly one definition site, **not** as a secrets
+mechanism. None of the three is a credential (the Sheet and calendar are protected
+by Google ACLs, and the `/exec` URL is intentionally public), so this is fine — but
+do not treat `setProperties()` as a safe place to put anything that *is* a secret.
+
+`CONFIG.BOOKING_CALENDAR_ID` is a **getter**, not a static value, so it re-reads the
+property on every access. An unset property therefore yields `null` at call time
+rather than at load time, which is why `createBookingEvent` and `handleAvailability`
+each guard on `if (!calId)` individually.
 
 ## OAuth scopes (`appsscript.json`)
 

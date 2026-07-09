@@ -61,6 +61,7 @@ Apps Script can't run outside its own runtime, but pure logic (routing, payload 
 - Email templates have two copies that must be kept in sync manually: the standalone HTML files under scripts/gas/emails/ are a source-of-truth mirror only — Apps Script actually renders the embedded template string constants inside Code.gs at runtime. Editing only one copy silently breaks production. Check both.
 - Display labels and wire values can differ. A frontend card or button's visible text (e.g. "RE Professional") is not necessarily the value sent in the payload (e.g. "pro"). Always verify the actual submitted value in code, don't infer it from UI copy.
 - No user-facing copy should contain em dashes. Replace with commas, periods, or rephrasing. This applies sitewide, not just to any one page — check for this as part of any content-editing task even if not explicitly asked.
+- clasp commands (push, deploy, and others) can each independently trigger invalid_grant / invalid_rapt reauth errors, and can do so multiple times in a single session even right after a successful clasp login. A successful login does not immunize the next command. This is expected Google reauth friction, not a one-off and not a broken script: re-run clasp login, then re-run the command. Never start debugging Code.gs because a clasp command failed this way.
 - The gh CLI must be authenticated for the PR and merge steps above to work — if it isn't, say so rather than silently failing partway through the git workflow.
 
 ## Verification standard

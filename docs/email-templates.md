@@ -33,11 +33,12 @@ render as empty string.
 
 ## Sync status — embedded ↔ mirror: IN SYNC ✅
 
-As of 2026-07-08 all seven embedded `TEMPLATE_*` constants match their `.html`
-mirrors byte-for-byte (verified by joining each embedded array on `\n` and
-diffing against the file — the three visitor openers were re-synced on both
-sides in the same pass). The prior address-line drift is **resolved**: the
-footer address line
+Re-verified 2026-07-08 (independently, not inherited from the prior task's claim):
+all seven embedded `TEMPLATE_*` constants match their `.html` mirrors byte-for-byte.
+Method: `eval` each `var TEMPLATE_* = [...].join('\n')` array out of `Code.gs`,
+`rstrip` one trailing newline off the mirror, compare exactly. All seven pass.
+The three visitor openers were re-synced on both sides in the same pass that warmed
+the copy. The prior address-line drift is **resolved**: the footer address line
 
 ```html
 <p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>
@@ -115,6 +116,40 @@ pieces to its booking block (both internal-only, sent to `NOTIFY_EMAILS`):
 Both are built in JS and concatenated onto the `{{bookingBlock}}` variable, so no
 new template placeholder or mirror-file change is required.
 
+### Status of the missing "View in calendar" link — ⚠️ NOT CONFIRMED RESOLVED
+
+**Do not read the changelog as saying this is fixed.** As of 2026-07-08 the
+symptom (no "View in calendar" link in the internal booking email) has **never been
+observed working in a real delivered email.** What is actually known:
+
+- ✅ **Confirmed by reading source:** `sendPartnerNotification` renders
+  `calendarLinkHtml` whenever the `calendarLink` argument is non-empty, and
+  `createBookingEvent` populates `calendarLink` from `created.htmlLink` on a
+  successful `Calendar.Events.insert`. The code path is correct.
+- ❌ **Not confirmed:** that a live booking through the deployed `/exec` endpoint
+  produces the link in the received email. No live test has been recorded.
+
+Two prior task summaries give **different root causes** for the same symptom, and
+neither was verified end-to-end:
+
+1. The `#19` entry claims the link was missing because *the pinned `/exec`
+   deployment predated `#18`* — a `clasp deploy` gap, not a code bug.
+2. The `#20` entry claims the root cause was *`createBookingEvent`'s fail-silent
+   design* — the event was never created at all, so there was no `htmlLink` to
+   render.
+
+These are not compatible. (2) is the more plausible: a stale deployment would have
+suppressed the link but still created events on the old code path, whereas a missing
+`BOOKING_CALENDAR_ID` explains an empty `calendarLink` *and* the absent calendar
+event. But (2) was reasoned about, not observed.
+
+**What would actually settle it:** confirm `BOOKING_CALENDAR_ID` is set (re-run
+`setProperties()` in the Apps Script editor), confirm the deploying account has edit
+access to that calendar, run `clasp push` + `clasp deploy -i <deploymentId>`, then
+submit a real booking and read the received partner email. Until someone does that,
+the correct state of this issue is **unknown**, and the `#20` warning banner is the
+mechanism that will tell you which cause it was: if the banner appears, it was (2).
+
 ### Plain-text emails (no HTML template)
 
 Built inline as text, not through `renderTemplate`:
@@ -122,6 +157,28 @@ Built inline as text, not through `renderTemplate`:
 - **Resubmission notice** (`sendResubmissionNotification`) → `NOTIFY_EMAILS`, on a dedupe hit.
 - **Daily digest** (`sendDailyDigest`) → `NOTIFY_EMAILS`, 6 pm CT.
 - **Cold-move summary** (`moveColdLeads`) → `NOTIFY_EMAILS`, Monday 8 am CT.
+
+## Visitor-facing opener copy (warmed 2026-07-08)
+
+The opening paragraph of each visitor confirmation — the first line under the logo,
+before `{{personalNote}}` — was rewritten from flat acknowledgement to
+solutions-oriented copy. The old opener (`We received your message. See you at the
+time below.`) confirmed receipt and said nothing about what happens next.
+
+Current openers, verified literal in both the embedded constant and the mirror:
+
+| Template | Opener |
+|---|---|
+| `visitor-phone`, `visitor-meet` | *Thanks for reaching out. Your call is set. We will review your details ahead of time and come ready to talk specifics about your situation.* |
+| `visitor-no-booking` | *Thanks for reaching out. We are reviewing your details now, and one of us will follow up personally within one business day.* |
+
+The booking pair share an identical opener by design — the meet/phone difference is
+already carried by the booking block below it, not the greeting. `{{personalNote}}`
+personalization is unchanged and still does the per-role reflection.
+
+Note that the visitor-facing openers themselves are clean, but **`buildVisitorPersonalNote`
+and two subject lines still contain em dashes**, which violates the sitewide copy
+standard in `CLAUDE.md`. See the deviations list in the docs-refresh PR.
 
 ## Visitor-facing personalized content — `{{personalNote}}` (all 5 roles)
 
