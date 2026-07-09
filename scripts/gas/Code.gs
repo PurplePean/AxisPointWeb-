@@ -1021,6 +1021,23 @@ var LEAD_HEADERS = [
    without anyone having to reason about what it does to the extra columns. */
 var REPORTS_ENABLED_HEADER = 'Reports Enabled';   // not in LEAD_HEADERS: a per-tab extra
 
+/* The exact header row a given lead tab is supposed to have, in order.
+   Every lead tab is plain LEAD_HEADERS except Referral Partners, which carries
+   the extra Reports Enabled toggle after them.
+
+   Single definition site. setupSpreadsheet() writes new tabs from this,
+   auditLeadTabHeaders() compares live tabs against it, and
+   repairLifetimeLeadsHeader() rewrites from it — so "what a healthy tab looks
+   like" can never mean three different things in three places.
+
+   NOTE: 'Heard About' is ALREADY the last element of LEAD_HEADERS. Anything that
+   concatenates it on again produces a duplicate column. */
+function expectedHeadersFor(tabName) {
+  return tabName === CONFIG.TABS.REFERRAL_PARTNERS
+    ? LEAD_HEADERS.concat([REPORTS_ENABLED_HEADER])
+    : LEAD_HEADERS.slice();
+}
+
 /* Header names DERIVED from the schema rather than re-typed. LEAD_HEADERS + COLS
    are the single source of truth for the standard layout, so any code needing a
    standard column's name reads it from there. A hand-copied literal is a second
@@ -3350,11 +3367,7 @@ function setupSpreadsheet() {
   leadTabs.forEach(function(cfg) {
     var sheet = ss.getSheetByName(cfg.name) || ss.insertSheet(cfg.name);
     if (sheet.getLastRow() === 0) {
-      // Every lead tab shares LEAD_HEADERS. The Referral Partners tab carries one
-      // extra "Reports Enabled" column (monthly-summary opt-out toggle).
-      var headers = cfg.name === CONFIG.TABS.REFERRAL_PARTNERS
-        ? LEAD_HEADERS.concat([REPORTS_ENABLED_HEADER])
-        : LEAD_HEADERS;
+      var headers = expectedHeadersFor(cfg.name);
       sheet.appendRow(headers);
       sheet.getRange(1, 1, 1, headers.length)
         .setFontWeight('bold')
@@ -3598,6 +3611,150 @@ function backfillEaoCategoryRows() {
     '  inserted: ' + plan.toInsert.length,
     '  skipped, blank Lead ID: ' + plan.blankLeadId,
     plan.toInsert.length ? '  → re-running now is a no-op.' : '  → nothing to do.',
+  ].join('\n');
+  Logger.log(out);
+  return out;
+}
+
+/* ── Read-only header audit across every lead tab ──
+   Writes nothing. For each lead tab, reports its data-row count and its live
+   header row cell by cell, diffed against expectedHeadersFor(tab).
+
+   WHY THIS EXISTS. Header drift on Lifetime Leads was found only because
+   eaoBackfillPlan() happened to throw on a missing 'Lead ID'. Every other tab was
+   assumed fine without anyone having looked. Nothing in this script had ever read
+   a header row purely to check it, so drift stayed invisible until some unrelated
+   function tripped over it. Run this before trusting any tab's layout.
+
+   The data-row count matters as much as the header diff: a mismatched header on an
+   EMPTY tab is a clean rewrite (repairLifetimeLeadsHeader), while the same mismatch
+   on a tab holding rows is a column-realignment problem, because the rows may have
+   been written under the older layout the header still describes. */
+function auditLeadTabHeaders() {
+  var ss = openCrmSpreadsheet();
+  var out = ['auditLeadTabHeaders:'];
+
+  leadTabConfigs().forEach(function(cfg) {
+    var sheet = ss.getSheetByName(cfg.name);
+    if (!sheet) { out.push('', 'MISSING  "' + cfg.name + '": tab not found'); return; }
+
+    var expected  = expectedHeadersFor(cfg.name);
+    var dataRows  = Math.max(0, sheet.getLastRow() - 1);
+    var lastCol   = sheet.getLastColumn();
+    var actual    = lastCol > 0 && sheet.getLastRow() > 0
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+      : [];
+
+    // Compare with the same normalization every runtime lookup uses, so a header
+    // this audit calls "OK" is exactly one findHeaderIndex() will resolve.
+    var diffs = [];
+    var width = Math.max(expected.length, actual.length);
+    for (var i = 0; i < width; i++) {
+      var want = i < expected.length ? expected[i] : '(none)';
+      var got  = i < actual.length   ? String(actual[i] === null || actual[i] === undefined ? '' : actual[i]) : '(none)';
+      var same = i < expected.length && i < actual.length &&
+                 normalizeHeaderName(expected[i]) === normalizeHeaderName(actual[i]);
+      if (!same) diffs.push('      col ' + (i + 1) + ': expected "' + want + '"  actual "' + got + '"');
+    }
+
+    // Headers the runtime looks up by name. Their absence is what actually breaks
+    // things, independent of ordering.
+    var missingCritical = [LEAD_ID_HEADER, CATEGORY_HEADER, HEARD_ABOUT_HEADER]
+      .filter(function(h) { return findHeaderIndex(actual, h) === -1; });
+
+    out.push('');
+    out.push((diffs.length ? 'DRIFT   ' : 'OK      ') + '"' + cfg.name + '"' +
+             '  dataRows=' + dataRows + '  cols=' + actual.length + ' (expected ' + expected.length + ')');
+    out.push('    header: ' + actual.map(function(v) {
+      var t = String(v === null || v === undefined ? '' : v);
+      return t === '' ? '(blank)' : t;
+    }).join(' | '));
+
+    if (missingCritical.length) {
+      out.push('    !! missing name-looked-up header(s): ' + missingCritical.join(', '));
+    }
+    if (diffs.length) {
+      out.push('    mismatched cells (' + diffs.length + '):');
+      out.push(diffs.join('\n'));
+      out.push(dataRows > 0
+        ? '    → HAS DATA: do NOT rewrite the header. Needs column realignment.'
+        : '    → empty: safe to rewrite the header row from expectedHeadersFor().');
+    }
+  });
+
+  var text = out.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/* ── Repair the Lifetime Leads header row ──
+   Clears row 1 across the sheet's full width and rewrites it from
+   expectedHeadersFor('Lifetime Leads'), which is exactly LEAD_HEADERS.
+
+   REFUSES TO RUN IF THE TAB HAS DATA ROWS. This is the whole safety property, and
+   it is not paranoia. leadRow() builds a positional 31-value array and appendRow()
+   writes it to Lifetime Leads on every single submission without ever consulting
+   the header row. So the header being wrong tells you nothing about whether the
+   ROWS are wrong. If rows written under an older, narrower layout are present,
+   swapping the header underneath them silently relabels every column: data that
+   was 'Date Submitted' starts reporting itself as 'Status', and name-based readers
+   like eaoBackfillPlan() would then copy the wrong cells into the category tabs
+   while looking completely healthy. That corruption is unrecoverable without a
+   backup, and it is caused BY the repair, which is why the guard throws instead of
+   warning. Realigning a data-bearing tab is a separate, careful task.
+
+   Idempotent on an empty tab: a second run rewrites the same 31 cells. */
+function repairLifetimeLeadsHeader() {
+  var ss    = openCrmSpreadsheet();
+  var name  = CONFIG.TABS.LIFETIME_LEADS;
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    throw new Error('Tab "' + name + '" does not exist. Run setupSpreadsheet() first.');
+  }
+
+  var dataRows = Math.max(0, sheet.getLastRow() - 1);
+  if (dataRows > 0) {
+    throw new Error(
+      'REFUSING to rewrite the header of "' + name + '": it has ' + dataRows + ' data row(s).\n' +
+      'A header rewrite only relabels columns, it does not move cells, so any row written\n' +
+      'under the old layout would end up silently mislabeled. Run auditLeadTabHeaders() to\n' +
+      'see the live layout, then realign the columns as its own reviewed change.');
+  }
+
+  var expected = expectedHeadersFor(name);
+  var before   = sheet.getLastColumn() > 0 && sheet.getLastRow() > 0
+    ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    : [];
+
+  // Widen if narrower than the target; the old header may also be WIDER (stray
+  // trailing cells), so clear row 1 across the full sheet width before writing.
+  if (sheet.getMaxColumns() < expected.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), expected.length - sheet.getMaxColumns());
+  }
+  sheet.getRange(1, 1, 1, sheet.getMaxColumns()).clearContent();
+
+  sheet.getRange(1, 1, 1, expected.length).setValues([expected]);
+
+  // Styling comes from the same registry entry setupSpreadsheet() would have used,
+  // rather than a colour re-typed here.
+  var cfg = leadTabConfigs().filter(function(c) { return c.name === name; })[0];
+  if (cfg) {
+    sheet.getRange(1, 1, 1, expected.length)
+      .setFontWeight('bold')
+      .setBackground(cfg.color)
+      .setFontColor('#FFFFFF');
+  }
+  sheet.setFrozenRows(1);
+
+  var out = [
+    'repairLifetimeLeadsHeader:',
+    '  tab: "' + name + '"  (0 data rows, clean rewrite)',
+    '  before (' + before.length + ' cols): ' + before.map(function(v) {
+      var t = String(v === null || v === undefined ? '' : v);
+      return t === '' ? '(blank)' : t;
+    }).join(' | '),
+    '  after  (' + expected.length + ' cols): ' + expected.join(' | '),
+    '  → verify with countMissingEaoCategoryRows()',
   ].join('\n');
   Logger.log(out);
   return out;
