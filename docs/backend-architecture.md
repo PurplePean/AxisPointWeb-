@@ -18,12 +18,12 @@ All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 
 `handleFormSubmission(payload)`:
 
-1. If `payload.role === 'existing_asset_owner'` → `normalizeEaoPayload(payload)` reshapes the flat EAO payload into the generic `{ person, message, qualData, preferences }` shape so no role branching is needed downstream.
+1. `leadTypeFor(payload.role).normalizer` — if the role's registry entry names one (today only `existing_asset_owner` → `normalizeEaoPayload`), it reshapes the flat wire payload **in place** into the generic `{ person, message, qualData, preferences }` shape so no role branching is needed downstream. Normalizers **add** the generic fields; they never strip the role-specific ones, so `payload.role` and e.g. `payload.current_situation` remain readable afterwards (`bookingEventInternalDescription` relies on this).
 2. Dedupe: `findExistingLead(email)` scans **Lifetime Leads** by lowercased email. On match → `handleResubmission` (updates empty fields, appends a resubmission note to Message, notifies partners, returns original Lead ID; **no new row / no new contact**).
 3. New lead: `nextLeadSequence()` → `buildLeadId()` (`AXP-YYYY-XXXX`), `generateReferralCode()` (`AXP-` + 6 unambiguous chars, collision-checked against Lifetime Leads).
 4. `matchReferrer(payload)` — priority **code → email → name** against Lifetime Leads.
 5. If `payload.booking.date` → `createBookingEvent(payload, leadId)` first, to capture the Google Meet link **and** the event's calendar `htmlLink`. **All booking events (Meet and phone) are written to the dedicated shared "AxisPoint Bookings" calendar** identified by `CONFIG.BOOKING_CALENDAR_ID`, not the deploying account's personal default calendar. If that property is unset or the account lacks edit access, the event is skipped and logged (the call is try/caught upstream, so submission still succeeds without a booking).
-6. `buildLeadRow(...)` → `appendRow` to **Lifetime Leads** and **Active Leads**, then to the role's category tab via `categoryTabForRole` (new Referral Partners rows get `Reports Enabled = TRUE`).
+6. `buildLeadRow(...)` → `appendRow` to **Lifetime Leads** and **Active Leads**, then to the role's category tab via `categoryTabForRole`. The tab's existence is checked first and a missing tab is logged loudly (a submission is never failed by it, but it is never silent either). Rows on a tab whose registry entry sets `seedReportsEnabled` get `Reports Enabled = TRUE`.
 7. If referral matched → `updateReferrerStats`, `logReferralEntry` (Referrals tab), `sendReferrerNotification`.
 8. `createContact(payload)`, `sendVisitorConfirmation(...)`, `sendPartnerNotification(...)` — each wrapped in try/catch so one failure can't abort the response.
 9. Returns `{ success:true, leadId, referralCode }`.
@@ -139,8 +139,15 @@ doesn't silently vanish.
 - `packages/brand/src/types.ts` declares it, and `buildPayload` in
   `components/form/utils.ts` sends it **unconditionally** (`heardAbout: s.sourceSel ?? ''`)
   on all four `buildPayload` roles.
-- `buildEAOPayload` does **not** send it (the EAO flow has no "how did you hear"
-  step), so EAO rows carry a blank **Heard About** cell.
+- `buildEAOPayload` does **not** send it, so EAO rows carry a blank **Heard About**
+  cell. This is **structural, not an oversight, and adding the field would not fix
+  it**: `buildPayload` sends `heardAbout: s.sourceSel`, and `sourceSel` is set only
+  by `Step4Contact`, which `STEP_ORDER_EAO` does not include. The EAO flow never
+  asks the question. Since `leadHeardAbout()` already yields `''` for a missing
+  field, adding `heardAbout: ''` to `buildEAOPayload` would change no cell value and
+  would only make a hardcoded blank look like a captured answer. Populating this for
+  EAO is a **product change** (add the question to the EAO step order, then thread
+  the answer through), not a plumbing one. Verified against source 2026-07-09.
 - `Code.gs` reads it through **`leadHeardAbout(payload)`** (defined next to
   `leadSource`, deliberately, so the distinction is visible at the definition site).
 - **Column 31, `Heard About`**, is the last entry in `LEAD_HEADERS`;
@@ -158,19 +165,69 @@ It sits in its own clearly-labeled row rather than being merged into `Source`,
 because they answer different questions and conflating them once already corrupted
 the Source column.
 
-## Lead types → Category + tab mapping
+## Lead types → the `LEAD_TYPES` registry
 
-Five wire `role` values. `roleToCategory()` sets the **Category** column;
-`categoryTabForRole()` picks the per-role tab. **Every** role additionally lands
-in Lifetime Leads + Active Leads.
+**`LEAD_TYPES` is the single definition site for a lead type.** Adding or changing
+one means editing that object and nothing else in `Code.gs`. Added 2026-07-09.
 
-| Wire `role` | Category | Category tab |
-|---|---|---|
-| `investor` | `Investor` | `Investors` |
-| `existing_asset_owner` | `Existing Asset Owner` | `Existing Asset Owners` |
-| `pro` | `RE Professional` | `RE Professionals` |
-| `referral` | `Referral Partner` | `Referral Partners` |
-| `submit_referral` | `Referral` | **none** — `categoryTabForRole` returns `null` by design. The submitter's lead lives in Active/Lifetime only; the referral relationship is logged to the **Referrals** tab. |
+| Wire `role` | `category` | `tab` | `contactGroup` | `normalizer` | `seedReportsEnabled` |
+|---|---|---|---|---|---|
+| `investor` | `Investor` | `Investors` | `AxisPoint Investors` | — | — |
+| `referral` | `Referral Partner` | `Referral Partners` | `AxisPoint Referral Partners` | — | ✅ |
+| `pro` | `RE Professional` | `RE Professionals` | `AxisPoint RE Professionals` | — | — |
+| `existing_asset_owner` | `Existing Asset Owner` | `Existing Asset Owners` | `AxisPoint Existing Asset Owners` | `normalizeEaoPayload` | — |
+| `submit_referral` | `Referral` | **`null`** (by design) | **`null`** (by design) | — | — |
+
+`submit_referral`'s two `null`s are **assertions, not omissions**: the submitter's
+lead lives in Active/Lifetime only, the referral relationship is logged to the
+**Referrals** tab, and submitting a referral does not itself categorize the
+submitter. **Every** role additionally lands in Lifetime Leads + Active Leads.
+
+`'Client'` is a Category value but **not** a lead type — no wire role produces it;
+it is a status a lead is promoted into. It is therefore absent from `LEAD_TYPES`
+and handled explicitly inside `contactGroupForCategory()`.
+
+### Everything derives from it
+
+| Consumer | Reads |
+|---|---|
+| `roleToCategory(role)` | `.category` (`''` for an unknown role) |
+| `categoryTabForRole(role)` | `.tab` (`null` for unknown **or** deliberately tab-less) |
+| `contactGroupForCategory(category)` | `.category` → `.contactGroup`, plus the `'Client'` special case |
+| `handleFormSubmission` | `.normalizer` (applied in place, before anything reads the payload), `.seedReportsEnabled` |
+| `setupSpreadsheet()` | `leadTabConfigs()` → `.tab` + `.tabColor` |
+| `migrateAddHeardAboutColumn()` | the same `leadTabConfigs()` |
+| `handleCategoryEdit()` | `allCategoryContactGroups()` → every `.contactGroup` + Clients |
+
+Helpers: `leadTypeFor(role)` (own-key guarded, so a POSTed `role: "constructor"`
+resolves to `null` rather than to `Object`), `leadTypeTabConfigs()`,
+`leadTabConfigs()`, `allCategoryContactGroups()`.
+
+**Why this exists.** Before the registry, those seven consumers each carried a
+hand-maintained copy of the role list and nothing kept them in sync. When
+`existing_asset_owner` shipped it was entered into some and not others:
+`CONFIG.CONTACT_GROUPS` had **no EAO entry**, so `contactGroupForCategory('Existing
+Asset Owner')` returned `null` and every EAO lead was created as a Google Contact
+with no category group. Separately, the `Existing Asset Owners` **tab was named in
+`CONFIG.TABS` and listed in `setupSpreadsheet`, but `setupSpreadsheet` was never
+re-run**, so the tab did not exist; `appendRow()` logs-and-returns on a missing
+tab, so every EAO category-tab row was silently dropped. Both are fixed. The class
+of bug is now structurally harder: omitting a field is a visible hole in one
+object, not a silent absence spread across a 3,000-line file.
+
+`handleFormSubmission` now also **checks the category tab exists before appending**
+and logs loudly when it does not, instead of relying on `appendRow`'s quiet
+`Logger.log`. A missing tab still never fails the submission (Lifetime/Active
+already hold the row) but it no longer disappears.
+
+### Adding a lead type
+
+1. Add one entry to `LEAD_TYPES` with all six fields.
+2. Add its tab name to `CONFIG.TABS` and its group to `CONFIG.CONTACT_GROUPS`.
+3. Run `setupSpreadsheet()` once from the Apps Script editor to create the tab.
+
+Step 3 is not optional and is not covered by `clasp deploy`. Skipping it is exactly
+what broke EAO.
 
 ## Time-based triggers
 
@@ -204,12 +261,28 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
-| `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column). **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
+| `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
 | `setupTriggers()` | Creates the four triggers above. |
-| `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
+| `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Reads the same `leadTabConfigs()`. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
+| `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
+| `backfillEaoCategoryRows()` | One-time (but **idempotent**) repair of the EAO rows dropped while the tab did not exist. Copies them out of Lifetime Leads. Keyed on `Lead ID`, so a second run inserts nothing; a later run picks up only genuinely-new rows. Columns are projected **by header name**, never by position, so source and destination may differ in column order/width. Throws with an actionable message if the tab does not exist yet. |
+
+**Order of operations for the EAO repair** (both manual, from the Apps Script
+editor, after `clasp push` + `clasp deploy`):
+
+1. `setupSpreadsheet()` — creates the missing `Existing Asset Owners` tab with the
+   current `LEAD_HEADERS` + `Heard About` schema. Existing tabs are untouched
+   (`getLastRow() === 0` guard).
+2. `countMissingEaoCategoryRows()` — optional dry run.
+3. `backfillEaoCategoryRows()` — copies the dropped rows in.
+
+Running (3) before (1) throws rather than silently doing nothing. This is the same
+manual-run pattern `migrateAddHeardAboutColumn()` required; a `clasp deploy` alone
+does **not** create tabs.
 
 Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
-`renderTemplate`, `templateByName`, `getProp`, `headerIndex`, `reportsEnabledIndex`.
+`renderTemplate`, `templateByName`, `getProp`, `headerIndex`, `reportsEnabledIndex`,
+`openCrmSpreadsheet`, `eaoBackfillPlan`.
 
 ## `LEAD_HEADERS` — full 31-column layout
 
@@ -406,6 +479,7 @@ CONFIG = {
     LEADS: 'AxisPoint Leads', INVESTORS: 'AxisPoint Investors',
     REFERRAL_PARTNERS: 'AxisPoint Referral Partners',
     RE_PROFESSIONALS: 'AxisPoint RE Professionals',
+    ASSET_OWNERS: 'AxisPoint Existing Asset Owners',   // added 2026-07-09
     CLIENTS: 'AxisPoint Clients', COLD: 'AxisPoint Cold',
   },
   COLD_LEAD_DAYS: 60,

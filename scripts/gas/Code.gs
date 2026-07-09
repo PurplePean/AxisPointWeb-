@@ -89,6 +89,7 @@ var CONFIG = {
     INVESTORS:         'AxisPoint Investors',
     REFERRAL_PARTNERS: 'AxisPoint Referral Partners',
     RE_PROFESSIONALS:  'AxisPoint RE Professionals',
+    ASSET_OWNERS:      'AxisPoint Existing Asset Owners',
     CLIENTS:           'AxisPoint Clients',
     COLD:              'AxisPoint Cold',
   },
@@ -106,6 +107,156 @@ var CONFIG = {
   // reference this one value, so bookings and free/busy checks can never diverge.
   get BOOKING_CALENDAR_ID() { return getProp('BOOKING_CALENDAR_ID'); },
 };
+
+
+/* ════════════════════════════════════════════════════════════
+   LEAD TYPE REGISTRY — the single definition site for a lead type
+   ════════════════════════════════════════════════════════════
+
+   Adding or changing a lead type means editing THIS OBJECT AND NOTHING ELSE
+   in Code.gs. Every consumer below derives from it:
+
+     roleToCategory()          → .category
+     categoryTabForRole()      → .tab
+     contactGroupForCategory() → .category → .contactGroup
+     handleFormSubmission()    → .normalizer, .seedReportsEnabled
+     setupSpreadsheet()        → .tab + .tabColor   (leadTabConfigs)
+     migrateAddHeardAboutColumn() → .tab            (leadTabConfigs)
+     handleCategoryEdit()      → .contactGroup      (allCategoryContactGroups)
+
+   Before this registry existed, those seven consumers each carried their own
+   hand-maintained copy of the role list, and nothing kept them in sync. When
+   `existing_asset_owner` was added, it was entered into some of them and not
+   others — most consequentially CONTACT_GROUPS, so every EAO lead was created
+   as a Google Contact with no category group. That class of bug is now
+   structurally impossible: omitting a field here is a visible hole in one
+   object, not a silent absence spread across a 3,000-line file.
+
+   Field contract, per entry:
+     category           Category column value. Also the key contactGroupForCategory
+                        and the onEdit Category handler match on.
+     tab                Per-role category tab name, or null for a role that
+                        deliberately has none. Every role additionally lands in
+                        Lifetime Leads + Active Leads regardless of this.
+     contactGroup       Google Contact group, or null if the role genuinely
+                        needs none.
+     tabColor           Header-row color used by setupSpreadsheet(). null when
+                        tab is null.
+     normalizer         Function reshaping a role-specific wire payload into the
+                        generic { person, message, qualData, preferences } shape,
+                        or null when the payload already arrives generic.
+                        Applied by handleFormSubmission before anything reads it.
+     seedReportsEnabled Whether a new row on this role's tab gets its
+                        'Reports Enabled' toggle seeded TRUE.
+
+   Declaration order is meaningful in exactly one place: setupSpreadsheet()
+   creates missing tabs in this order. It matches the pre-registry literal array
+   so a fresh spreadsheet comes out tab-for-tab identical to an existing one.
+
+   NOTE: 'Client' is a Category value too, but it is NOT a lead type — it is a
+   status a lead is promoted into via the Status column. It is therefore absent
+   here and handled explicitly in contactGroupForCategory(). */
+var LEAD_TYPES = {
+  investor: {
+    category:           'Investor',
+    tab:                CONFIG.TABS.INVESTORS,
+    contactGroup:       CONFIG.CONTACT_GROUPS.INVESTORS,
+    tabColor:           '#24A5BC',
+    normalizer:         null,
+    seedReportsEnabled: false,
+  },
+
+  referral: {
+    category:           'Referral Partner',
+    tab:                CONFIG.TABS.REFERRAL_PARTNERS,
+    contactGroup:       CONFIG.CONTACT_GROUPS.REFERRAL_PARTNERS,
+    tabColor:           '#38285D',
+    // New referral partners default to receiving the monthly referral summary
+    // until they explicitly opt out in the sheet.
+    normalizer:         null,
+    seedReportsEnabled: true,
+  },
+
+  pro: {
+    category:           'RE Professional',
+    tab:                CONFIG.TABS.RE_PROFESSIONALS,
+    contactGroup:       CONFIG.CONTACT_GROUPS.RE_PROFESSIONALS,
+    tabColor:           '#9F328C',
+    normalizer:         null,
+    seedReportsEnabled: false,
+  },
+
+  existing_asset_owner: {
+    category:           'Existing Asset Owner',
+    tab:                CONFIG.TABS.ASSET_OWNER,   // 'Existing Asset Owners'
+    contactGroup:       CONFIG.CONTACT_GROUPS.ASSET_OWNERS,
+    tabColor:           '#1A8799',
+    // Function declarations are hoisted before these var initializers run, so
+    // referencing normalizeEaoPayload here is safe despite it being defined
+    // ~1,400 lines below.
+    normalizer:         normalizeEaoPayload,
+    seedReportsEnabled: false,
+  },
+
+  submit_referral: {
+    category:           'Referral',
+    // No per-role tab BY DESIGN: the submitter's own lead lives in
+    // Active/Lifetime only, while the referral relationship is logged to the
+    // Referrals tab. null here is an assertion, not an omission.
+    tab:                null,
+    // Likewise no contact group: submitting a referral does not itself
+    // categorize the submitter.
+    contactGroup:       null,
+    tabColor:           null,
+    normalizer:         null,
+    seedReportsEnabled: false,
+  },
+};
+
+/** Registry entry for a wire role value, or null if the role is unknown. */
+function leadTypeFor(role) {
+  return (role && Object.prototype.hasOwnProperty.call(LEAD_TYPES, role))
+    ? LEAD_TYPES[role]
+    : null;
+}
+
+/** Every registry entry that owns a physical category tab, in declaration
+ *  order, as { name, color } — the shape setupSpreadsheet() consumes. */
+function leadTypeTabConfigs() {
+  return Object.keys(LEAD_TYPES)
+    .filter(function(role) { return !!LEAD_TYPES[role].tab; })
+    .map(function(role) {
+      return { name: LEAD_TYPES[role].tab, color: LEAD_TYPES[role].tabColor };
+    });
+}
+
+/** The full ordered tab list every lead tab shares LEAD_HEADERS across: the
+ *  three cross-role tabs, then each role's category tab, then the two terminal
+ *  tabs. setupSpreadsheet() and migrateAddHeardAboutColumn() both read this, so
+ *  a new lead type's tab can never be created but left un-migrated (or vice
+ *  versa) — that skew is what let the Existing Asset Owners tab go missing. */
+function leadTabConfigs() {
+  return [
+    { name: CONFIG.TABS.ACTIVE_LEADS,   color: '#24A5BC' },
+    { name: CONFIG.TABS.LIFETIME_LEADS, color: '#38285D' },
+    { name: CONFIG.TABS.COLD_LEADS,     color: '#5A5270' },
+  ].concat(leadTypeTabConfigs(), [
+    { name: CONFIG.TABS.CLIENTS,        color: '#1A8799' },
+    { name: CONFIG.TABS.ARCHIVE,        color: '#9490A8' },
+  ]);
+}
+
+/** Every category-level Google Contact group: one per registry entry that has
+ *  one, plus the status-derived Clients group. handleCategoryEdit() clears all
+ *  of these off a contact before applying the new one, so a group missing from
+ *  this list would linger on a re-categorized contact forever. */
+function allCategoryContactGroups() {
+  var groups = Object.keys(LEAD_TYPES)
+    .map(function(role) { return LEAD_TYPES[role].contactGroup; })
+    .filter(Boolean);
+  groups.push(CONFIG.CONTACT_GROUPS.CLIENTS);
+  return groups;
+}
 
 // Fixed intro-call time slots offered on the booking calendar (all Central Time).
 // MUST stay in sync with SLOTS in packages/brand/src/components/form/utils.ts —
@@ -1062,11 +1213,13 @@ function doGet(e) {
 
 function handleFormSubmission(payload) {
   try {
-    // Existing Asset Owner submissions arrive with a flat contact/property shape.
-    // Normalize them into the generic lead payload (person / message / qualData /
-    // preferences) so every downstream step below runs through the same code path
-    // as Investor / RE Professional / Referral — no per-role branching required.
-    if (payload.role === 'existing_asset_owner') normalizeEaoPayload(payload);
+    // Some roles arrive with a role-specific wire shape (Existing Asset Owner
+    // sends a flat contact/property object). Their registry entry names a
+    // normalizer that reshapes the payload IN PLACE into the generic
+    // { person, message, qualData, preferences } form, so every downstream step
+    // below runs through one code path with no per-role branching.
+    var leadType = leadTypeFor(payload.role);
+    if (leadType && leadType.normalizer) leadType.normalizer(payload);
 
     var email = ((payload.person || {}).email || '').toLowerCase().trim();
 
@@ -1117,12 +1270,21 @@ function handleFormSubmission(payload) {
 
     var categoryTab = categoryTabForRole(payload.role);
     if (categoryTab) {
-      appendRow(categoryTab, row);
-      // New referral partners default to "Reports Enabled = TRUE" so they receive
-      // the monthly referral summary until explicitly opted out in the sheet.
-      if (categoryTab === CONFIG.TABS.REFERRAL_PARTNERS) {
-        var partnerSheet = tab(categoryTab);
-        if (partnerSheet) {
+      // appendRow() logs and returns when a tab is absent, so a category tab that
+      // was never created drops this row silently. Check first and log loudly:
+      // this is exactly how every Existing Asset Owner category row was lost
+      // before the tab existed. Lifetime/Active already hold the lead, so a
+      // missing tab must not fail the submission — but it must not be quiet either.
+      if (!tab(categoryTab)) {
+        Logger.log('handleFormSubmission: category tab "' + categoryTab + '" does not exist; ' +
+                   'lead ' + leadId + ' was written to Lifetime/Active only. ' +
+                   'Run setupSpreadsheet() to create it, then backfill.');
+      } else {
+        appendRow(categoryTab, row);
+        // Registry-driven: referral partners default to "Reports Enabled = TRUE"
+        // so they receive the monthly summary until explicitly opted out.
+        if (leadType && leadType.seedReportsEnabled) {
+          var partnerSheet = tab(categoryTab);
           var reCol = reportsEnabledIndex(partnerSheet);
           if (reCol >= 0) {
             partnerSheet.getRange(partnerSheet.getLastRow(), reCol + 1).setValue(true);
@@ -1443,13 +1605,10 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meet
 }
 
 /* ── Helpers ── */
+/* Derived from LEAD_TYPES. '' for an unknown role, as before. */
 function roleToCategory(role) {
-  return {
-    investor: 'Investor', referral: 'Referral Partner',
-    pro: 'RE Professional',
-    existing_asset_owner: 'Existing Asset Owner',
-    submit_referral: 'Referral',
-  }[role] || '';
+  var t = leadTypeFor(role);
+  return t ? t.category : '';
 }
 
 function assetClassFromQualData(q) {
@@ -1487,16 +1646,11 @@ function leadHeardAbout(payload) {
   return String((payload && payload.heardAbout) || '').trim();
 }
 
+/* Derived from LEAD_TYPES. null both for an unknown role and for a role that
+   deliberately has no tab (submit_referral) — see the registry entry. */
 function categoryTabForRole(role) {
-  return {
-    investor:             CONFIG.TABS.INVESTORS,
-    referral:             CONFIG.TABS.REFERRAL_PARTNERS,
-    pro:                  CONFIG.TABS.RE_PROFESSIONALS,
-    existing_asset_owner: CONFIG.TABS.ASSET_OWNER,
-    // submit_referral intentionally has no per-role tab: the submitter's own lead
-    // lives in Active/Lifetime only, while the referral relationship is logged to
-    // the Referrals tab. Returning null here preserves that by-design behavior.
-  }[role] || null;
+  var t = leadTypeFor(role);
+  return (t && t.tab) || null;
 }
 
 /* ── Existing Asset Owner normalization ──
@@ -2322,13 +2476,9 @@ function handleCategoryEdit(rowData, newCategory) {
     if (!contacts || !contacts.length) return;
     var contact = contacts[0];
 
-    var categoryGroups = [
-      CONFIG.CONTACT_GROUPS.INVESTORS,
-      CONFIG.CONTACT_GROUPS.REFERRAL_PARTNERS,
-      CONFIG.CONTACT_GROUPS.RE_PROFESSIONALS,
-      CONFIG.CONTACT_GROUPS.CLIENTS,
-    ];
-    categoryGroups.forEach(function(gName) {
+    // Registry-derived, so a newly added lead type's group is cleared here the
+    // moment it is defined — no second list to remember to update.
+    allCategoryContactGroups().forEach(function(gName) {
       try { var g = ContactsApp.getContactGroup(gName); if (g) contact.removeFromGroup(g); } catch (e) {}
     });
 
@@ -2339,13 +2489,18 @@ function handleCategoryEdit(rowData, newCategory) {
   }
 }
 
+/* Category label → Google Contact group, derived from LEAD_TYPES.
+   'Client' is included explicitly because it is a status-derived category, not
+   a lead type (no wire role produces it) — see the note on LEAD_TYPES.
+   Returns null for a category whose lead type genuinely has no group
+   (submit_referral / 'Referral') and for any unknown category. */
 function contactGroupForCategory(category) {
-  return {
-    'Investor':         CONFIG.CONTACT_GROUPS.INVESTORS,
-    'Referral Partner': CONFIG.CONTACT_GROUPS.REFERRAL_PARTNERS,
-    'RE Professional':  CONFIG.CONTACT_GROUPS.RE_PROFESSIONALS,
-    'Client':           CONFIG.CONTACT_GROUPS.CLIENTS,
-  }[category] || null;
+  var map = { 'Client': CONFIG.CONTACT_GROUPS.CLIENTS };
+  Object.keys(LEAD_TYPES).forEach(function(role) {
+    var t = LEAD_TYPES[role];
+    if (t.contactGroup) map[t.category] = t.contactGroup;
+  });
+  return map[category] || null;
 }
 
 
@@ -2679,6 +2834,13 @@ function bookingEventInternalDescription(payload, leadId) {
   if (isPhone) lines.push('Preferred callback number: ' + (callbackNumber || 'not provided'));
   var assetClass = assetClassFromQualData(q);
   if (assetClass) lines.push('Asset class: ' + assetClass);
+  // Reading payload.role / payload.current_situation directly is correct here, not
+  // a pre-normalization leftover. Normalizers mutate the payload IN PLACE and ADD
+  // the generic fields (person/message/qualData/preferences); they never strip the
+  // role-specific ones. So by the time this runs (one call site: the partner
+  // notification, well after handleFormSubmission normalizes) both are still set.
+  // Do NOT "fix" this by parsing current_situation back out of the Preferences
+  // JSON blob — that would re-derive a value that is already sitting on the payload.
   if (payload.role === 'existing_asset_owner' && payload.current_situation) {
     lines.push('Current situation: ' + payload.current_situation);
   }
@@ -3104,17 +3266,8 @@ function setupSpreadsheet() {
   }
   var ss = SpreadsheetApp.openById(id);
 
-  var leadTabs = [
-    { name: CONFIG.TABS.ACTIVE_LEADS,      color: '#24A5BC' },
-    { name: CONFIG.TABS.LIFETIME_LEADS,    color: '#38285D' },
-    { name: CONFIG.TABS.COLD_LEADS,        color: '#5A5270' },
-    { name: CONFIG.TABS.INVESTORS,         color: '#24A5BC' },
-    { name: CONFIG.TABS.REFERRAL_PARTNERS, color: '#38285D' },
-    { name: CONFIG.TABS.RE_PROFESSIONALS,  color: '#9F328C' },
-    { name: CONFIG.TABS.ASSET_OWNER,       color: '#1A8799' },
-    { name: CONFIG.TABS.CLIENTS,           color: '#1A8799' },
-    { name: CONFIG.TABS.ARCHIVE,           color: '#9490A8' },
-  ];
+  // Registry-derived: every lead type that owns a tab gets one created here.
+  var leadTabs = leadTabConfigs();
 
   leadTabs.forEach(function(cfg) {
     var sheet = ss.getSheetByName(cfg.name) || ss.insertSheet(cfg.name);
@@ -3155,7 +3308,8 @@ function setupSpreadsheet() {
     subSheet.setFrozenRows(1);
   }
 
-  Logger.log('setupSpreadsheet: all 11 tabs ready.');
+  // Derived, not a hardcoded "11" — the count moves with the registry.
+  Logger.log('setupSpreadsheet: all ' + (leadTabs.length + 2) + ' tabs ready.');
 }
 
 /* ── One-time migration: add "Heard About" to existing lead tabs ──
@@ -3177,11 +3331,9 @@ function migrateAddHeardAboutColumn() {
   if (!id) throw new Error('Run setProperties() first to configure SPREADSHEET_ID');
   var ss = SpreadsheetApp.openById(id);
 
-  var leadTabNames = [
-    CONFIG.TABS.ACTIVE_LEADS, CONFIG.TABS.LIFETIME_LEADS, CONFIG.TABS.COLD_LEADS,
-    CONFIG.TABS.INVESTORS, CONFIG.TABS.REFERRAL_PARTNERS, CONFIG.TABS.RE_PROFESSIONALS,
-    CONFIG.TABS.ASSET_OWNER, CONFIG.TABS.CLIENTS, CONFIG.TABS.ARCHIVE,
-  ];
+  // Same registry-derived list setupSpreadsheet() creates, so the two can never
+  // disagree about which tabs exist.
+  var leadTabNames = leadTabConfigs().map(function(cfg) { return cfg.name; });
 
   var targetCol = LEAD_HEADERS.indexOf(HEARD_ABOUT_HEADER) + 1; // 1-based
   if (targetCol < 1) throw new Error('"' + HEARD_ABOUT_HEADER + '" is not in LEAD_HEADERS');
@@ -3217,6 +3369,138 @@ function migrateAddHeardAboutColumn() {
   });
 
   var out = 'migrateAddHeardAboutColumn:\n' + log.join('\n');
+  Logger.log(out);
+  return out;
+}
+
+/* ── One-time backfill: Existing Asset Owner category rows ──
+   WHY THIS IS NEEDED. appendRow() logs and returns when its target tab is
+   absent. The "Existing Asset Owners" tab was named in CONFIG but setupSpreadsheet()
+   was never re-run after the EAO lead type shipped, so the tab never existed and
+   every EAO submission's category-tab write was silently dropped. Lifetime Leads
+   and Active Leads always received the row, so nothing was truly lost — Lifetime
+   Leads is the complete record this backfill reads from.
+
+   ORDER OF OPERATIONS (both are manual, from the Apps Script editor):
+     1. setupSpreadsheet()      — creates the missing tab with the current headers
+     2. backfillEaoCategoryRows() — copies the dropped rows into it
+   Running (2) before (1) throws with that instruction rather than doing nothing.
+
+   IDEMPOTENT. Rows are keyed by Lead ID against the destination tab, so a second
+   run inserts nothing. Safe to re-run after new EAO leads arrive, too — it will
+   only ever copy rows that are genuinely absent.
+
+   Columns are mapped BY HEADER NAME from Lifetime Leads onto the destination
+   tab's real header row, never by position, so the two tabs may legitimately
+   differ in column order or width (e.g. one migrated, one not). */
+
+/** Opens the CRM spreadsheet, or throws the actionable "run setProperties" error. */
+function openCrmSpreadsheet() {
+  var id = getProp('SPREADSHEET_ID');
+  if (!id) throw new Error('Run setProperties() first to configure SPREADSHEET_ID');
+  return SpreadsheetApp.openById(id);
+}
+
+/** Pure-ish read pass shared by the count and the write, so a dry run can never
+ *  report a different number than the backfill actually inserts. Performs no
+ *  mutation. Returns { dst, matched, alreadyPresent, blankLeadId, toInsert }. */
+function eaoBackfillPlan(ss) {
+  var leadType = LEAD_TYPES.existing_asset_owner;
+  var srcName  = CONFIG.TABS.LIFETIME_LEADS;
+
+  var src = ss.getSheetByName(srcName);
+  if (!src) throw new Error('Source tab "' + srcName + '" not found.');
+
+  var dst = ss.getSheetByName(leadType.tab);
+  if (!dst) {
+    throw new Error('Tab "' + leadType.tab + '" does not exist yet. ' +
+                    'Run setupSpreadsheet() once to create it, then re-run this function.');
+  }
+  if (dst.getLastRow() < 1 || dst.getLastColumn() < 1) {
+    throw new Error('Tab "' + leadType.tab + '" has no header row. ' +
+                    'Run setupSpreadsheet() once to write its headers, then re-run this function.');
+  }
+
+  var trim = function(v) { return String(v === null || v === undefined ? '' : v).trim(); };
+
+  var srcHeaders = src.getRange(1, 1, 1, src.getLastColumn()).getValues()[0].map(trim);
+  var dstHeaders = dst.getRange(1, 1, 1, dst.getLastColumn()).getValues()[0].map(trim);
+
+  var srcCategoryIdx = srcHeaders.indexOf('Category');
+  var srcLeadIdIdx   = srcHeaders.indexOf('Lead ID');
+  var dstLeadIdIdx   = dstHeaders.indexOf('Lead ID');
+  if (srcCategoryIdx === -1) throw new Error('No "Category" header on ' + srcName);
+  if (srcLeadIdIdx === -1)   throw new Error('No "Lead ID" header on ' + srcName);
+  if (dstLeadIdIdx === -1)   throw new Error('No "Lead ID" header on ' + leadType.tab);
+
+  // Lead IDs already on the destination tab — the idempotency key.
+  var seen = {};
+  if (dst.getLastRow() > 1) {
+    dst.getRange(2, dstLeadIdIdx + 1, dst.getLastRow() - 1, 1)
+       .getValues()
+       .forEach(function(r) { var id = trim(r[0]); if (id) seen[id] = true; });
+  }
+
+  var plan = { dst: dst, matched: 0, alreadyPresent: 0, blankLeadId: 0, toInsert: [] };
+  if (src.getLastRow() < 2) return plan;
+
+  src.getRange(2, 1, src.getLastRow() - 1, src.getLastColumn())
+     .getValues()
+     .forEach(function(row) {
+       if (trim(row[srcCategoryIdx]) !== leadType.category) return;
+       plan.matched++;
+
+       var leadId = trim(row[srcLeadIdIdx]);
+       if (!leadId)     { plan.blankLeadId++;    return; }
+       if (seen[leadId]) { plan.alreadyPresent++; return; }
+       seen[leadId] = true;  // also dedupes within Lifetime Leads itself
+
+       // Name-based projection onto the destination layout. A destination column
+       // with no counterpart in the source (none today) is left blank.
+       plan.toInsert.push(dstHeaders.map(function(h) {
+         var i = srcHeaders.indexOf(h);
+         return i === -1 ? '' : row[i];
+       }));
+     });
+
+  return plan;
+}
+
+/** Read-only. Reports how many Existing Asset Owner rows in Lifetime Leads are
+ *  missing from the Existing Asset Owners tab. Writes nothing. */
+function countMissingEaoCategoryRows() {
+  var plan = eaoBackfillPlan(openCrmSpreadsheet());
+  var out = [
+    'countMissingEaoCategoryRows:',
+    '  Lifetime Leads rows with Category = "' + LEAD_TYPES.existing_asset_owner.category + '": ' + plan.matched,
+    '  already present on "' + LEAD_TYPES.existing_asset_owner.tab + '": ' + plan.alreadyPresent,
+    '  missing (would be inserted): ' + plan.toInsert.length,
+    '  skipped, blank Lead ID: ' + plan.blankLeadId,
+  ].join('\n');
+  Logger.log(out);
+  return out;
+}
+
+/** One-time (but idempotent) backfill of the dropped EAO category-tab rows.
+ *  Run setupSpreadsheet() first if the tab does not exist yet. */
+function backfillEaoCategoryRows() {
+  var plan = eaoBackfillPlan(openCrmSpreadsheet());
+
+  if (plan.toInsert.length) {
+    // Single batched write rather than N appendRow() calls.
+    plan.dst
+        .getRange(plan.dst.getLastRow() + 1, 1, plan.toInsert.length, plan.toInsert[0].length)
+        .setValues(plan.toInsert);
+  }
+
+  var out = [
+    'backfillEaoCategoryRows:',
+    '  matched in Lifetime Leads: ' + plan.matched,
+    '  already present (skipped): ' + plan.alreadyPresent,
+    '  inserted: ' + plan.toInsert.length,
+    '  skipped, blank Lead ID: ' + plan.blankLeadId,
+    plan.toInsert.length ? '  → re-running now is a no-op.' : '  → nothing to do.',
+  ].join('\n');
   Logger.log(out);
   return out;
 }
