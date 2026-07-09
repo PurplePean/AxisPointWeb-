@@ -204,11 +204,12 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
-| `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column). |
+| `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column). **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
 | `setupTriggers()` | Creates the four triggers above. |
+| `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
 
 Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
-`renderTemplate`, `templateByName`, `getProp`.
+`renderTemplate`, `templateByName`, `getProp`, `headerIndex`, `reportsEnabledIndex`.
 
 ## `LEAD_HEADERS` — full 31-column layout
 
@@ -253,11 +254,46 @@ column 31.
 
 **Added 2026-07-08:** column 31 **Heard About**. Appended at the end so no existing
 column index moves. **This is a live-Sheet schema change** on every lead tab (see the
-deploy note), and it has one non-obvious consequence: `REPORTS_ENABLED_COL` is
-defined as `LEAD_HEADERS.length`, so the **Referral Partners** tab's `Reports
-Enabled` column shifts from column 31 to **column 32**. That tab needs `Heard About`
-*inserted before* `Reports Enabled`, not appended after it, or `handleFormSubmission`
-will write its `Reports Enabled = TRUE` seed into the wrong cell.
+deploy note).
+
+**Hardened 2026-07-08 (same day, follow-up):** appending `Heard About` exposed a real
+positional-coupling bug. `REPORTS_ENABLED_COL` was defined as `LEAD_HEADERS.length`,
+which encodes the assumption *"Reports Enabled is whatever sits immediately after the
+standard headers"*. Adding a 31st header silently slid that constant from index 30 to
+31 while the live **Referral Partners** tab still had `Reports Enabled` physically at
+column 31. The consequence was not cosmetic: `appendRow` would have written the
+`heardAbout` string **into the `Reports Enabled` cell**, and the `TRUE` seed would
+have gone to unheadered column 32.
+
+That constant is gone. `Reports Enabled` is now resolved **by name at runtime**:
+
+```js
+var REPORTS_ENABLED_HEADER = 'Reports Enabled';
+function headerIndex(sheet, headerName)   // 0-based index in the sheet's real header row, or -1
+function reportsEnabledIndex(sheet)       // headerIndex(sheet, REPORTS_ENABLED_HEADER)
+```
+
+`headerIndex` reads row 1 of the actual sheet rather than trusting a compile-time
+constant, so it stays correct on tabs that have not yet been migrated. Both call
+sites (`handleFormSubmission`'s seed write, `sendMonthlyReferralSummaries`'s opt-out
+read) go through it. A `-1` return is a real state, not an error to paper over: the
+seed write is **skipped and logged** rather than aimed at a guessed cell, and the
+opt-out read treats the missing column as blank, so a layout problem can never
+silently mute every partner's summary.
+
+**Consequence for future schema edits:** a new column may now be inserted *anywhere*
+in `LEAD_HEADERS` without anyone having to reason about what it does to `Reports
+Enabled` or any other per-tab extra column. This is the pattern to follow — see
+*Architecture Decision* below.
+
+**Migration:** `setupSpreadsheet()` only writes headers into tabs where
+`getLastRow() === 0`, so tabs holding real data never received the new column.
+`migrateAddHeardAboutColumn()` backfills all nine lead tabs. It is **idempotent**
+(each tab is skipped when the header is already present) and it places the column at
+its canonical `LEAD_HEADERS` index by name: if that header cell is already occupied
+(on Referral Partners it holds `Reports Enabled`), the column is **inserted before**
+the occupant, shifting that tab's extra column *and its data* right together, rather
+than being appended after it.
 
 **Removed:** the former column 20 **Date Submitted** (`MM/dd/yyyy` CT) was
 redundant with **Timestamp** and has been deleted from the schema. `sendDailyDigest`
@@ -268,12 +304,82 @@ callers reference columns through the `COLS` map (no hardcoded positions), so th
 shift is fully absorbed. **This is a live-Sheet schema change:** see the deploy note.
 
 The **Referral Partners** tab carries one extra column past this layout,
-`Reports Enabled` (index 31, `REPORTS_ENABLED_COL` = `LEAD_HEADERS.length`):
-blank/`TRUE` = receives the monthly summary, explicit `FALSE` opts out.
+`Reports Enabled` (column 32 after migration): blank/`TRUE` = receives the monthly
+summary, explicit `FALSE` opts out. **Never reference it by a hardcoded index** —
+resolve it with `reportsEnabledIndex(sheet)`.
 
 Two other tabs use their own schemas: **Referrals** (`REFERRAL_HEADERS`, 13
 columns, IDs `REF-YYYY-XXXX`) and **Subscribers** (`SUBSCRIBER_HEADERS`, 6
 columns).
+
+## Architecture Decision: Per-Tab Schema vs. Unified Schema
+
+**Status:** decided 2026-07-08. Keep the current per-role-tab schema. Revisit only
+when `crm.axispoint.llc` or `api.axispoint.llc` become real active work.
+
+The current design gives every role its own physical tab (Investors, Referral
+Partners, RE Professionals, Existing Asset Owners, …), each sharing the wide
+`LEAD_HEADERS` column layout. The alternative evaluated was a **unified "Details
+JSON" schema**: one flat table of core columns (Lead ID, name, email, category,
+status, timestamp) plus a single structured JSON blob column carrying everything
+role-specific.
+
+The unified schema is the better data model in the abstract. It was not adopted, for
+two concrete reasons:
+
+1. **Existing automation depends on tabs physically existing as separate tabs, not
+   on a category label.** The per-category Google Contact Groups sync, the weekly
+   cold-lead sweep (`moveColdLeads`, which physically relocates rows between tabs),
+   the monthly referral summary (which reads the Referral Partners tab directly,
+   including its extra `Reports Enabled` column), and the `onEdit` row-moving logic
+   (`handleStatusEdit` moving rows to Cold Leads / Clients / Archive) are all written
+   against real tabs. A unified schema does not adjust this code; it requires
+   rebuilding all of it.
+
+2. **By the time this was seriously evaluated, the Sheet held real production data.**
+   Migrating would mean repacking live rows into a new shape, not making a free
+   greenfield choice. The `Heard About` column added on 2026-07-08 is the scale of
+   schema change this system can absorb safely; a full re-shape is not.
+
+### What is explicitly NOT a reason
+
+**Manual-editing usability is not a factor in this decision, in either direction.**
+The Sheet is backend infrastructure that happens to have a grid UI, not a hand-edited
+document. "A JSON blob would be hard to read in a cell" is **not** a valid argument
+against the unified schema, and "the tabs are easy to skim" is **not** a valid
+argument for the current one. This reasoning must never be cited when revisiting
+this. The only human-facing edits the Sheet is designed for are the three columns
+`onSheetEdit` watches (Status, Category, Referred By Email).
+
+### When to revisit
+
+Once `crm.axispoint.llc` or `api.axispoint.llc` become real active work, **a unified
+Details-JSON schema is the more natural fit at that point** — not a fallback, the
+actual right answer. A real CRM front-end reads through an API layer, so the one
+genuine friction against a JSON blob (human readability in a grid) does not apply,
+while its benefits (adding a field to one lead type without touching a shared
+31-column layout, no per-tab extra columns, no migration per field) all still do.
+Revisit **then**, not before. Do not pre-build for it.
+
+### Until then
+
+Extend the existing per-tab schema for new fields and new lead types, and do it with
+**name-based column lookups, never positional or index-derived ones**. The concrete
+cautionary example is in this document: `REPORTS_ENABLED_COL = LEAD_HEADERS.length`
+quietly aimed one cell to the right the moment a 31st header was appended, because it
+inferred a column's position from an array's length. It is now
+`reportsEnabledIndex(sheet)`, a lookup of the literal string `'Reports Enabled'` in
+the sheet's actual header row. Any future per-tab extra column gets the same
+treatment. See *Hardened 2026-07-08* above.
+
+**Middle ground, if partial flexibility is ever needed sooner than a real API:** add
+a single additional `Details JSON` overflow column to the existing tabs and let
+role-specific fields accumulate there, leaving the core columns and all the tab-based
+automation untouched. The EAO flow already follows this pattern informally — it packs
+its structured detail summary into the shared **Preferences** column (13) rather than
+claiming new columns. Formalizing that into one named overflow column is a cheap,
+reversible step. It is **not** a substitute for the unified schema, and reaching for
+it is a signal that the revisit condition above may be arriving.
 
 ## Dead-code cleanup status — VERIFIED CLEAN
 
