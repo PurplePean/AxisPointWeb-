@@ -659,6 +659,7 @@ var TEMPLATE_PARTNER_NOTIFICATION = [
   '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Source</td>',
   '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">{{source}}</td>',
   '</tr>',
+  '{{heardAboutRow}}',
   '{{referredByRow}}',
   '</table>',
   '',
@@ -839,6 +840,7 @@ var COLS = {
   TOTAL_DOWNSTREAM:   27,
   LAST_REFERRAL_DATE: 28,
   MEET_LINK:          29,   // Google Meet URL when meetType === 'meet'
+  HEARD_ABOUT:        30,   // visitor's own "How did you hear about us?" answer
 };
 
 var LEAD_HEADERS = [
@@ -850,6 +852,7 @@ var LEAD_HEADERS = [
   'Referred By Lead ID', 'Referred By Name', 'Referred By Email', 'Referred By Code',
   'Match Type', 'Referral Chain', 'Chain Depth',
   'Direct Referrals', 'Total Downstream', 'Last Referral Date', 'Meet Link',
+  'Heard About',
 ];
 
 // The Referral Partners tab carries one extra column beyond LEAD_HEADERS:
@@ -1052,18 +1055,21 @@ function handleFormSubmission(payload) {
     var meetLink = '';
     var calendarLink = '';
     var bookingRequested = !!(payload.booking && payload.booking.date);
-    var calendarCreated = false;
-    var calendarError = '';
+    // Carries the full outcome of the booking insert into the partner email, so
+    // both a hard failure (no event) and a degraded success (event created, but
+    // no calendar link / Meet conference captured) announce themselves.
+    var calendarStatus = { requested: bookingRequested, created: false, degraded: false, error: '' };
     if (bookingRequested) {
       try {
         var bookingResult = createBookingEvent(payload, leadId) || {};
-        meetLink        = bookingResult.meetLink || '';
-        calendarLink    = bookingResult.calendarLink || '';
-        calendarCreated = !!bookingResult.created;
-        calendarError   = bookingResult.error || '';
+        meetLink                 = bookingResult.meetLink || '';
+        calendarLink             = bookingResult.calendarLink || '';
+        calendarStatus.created   = !!bookingResult.created;
+        calendarStatus.degraded  = !!bookingResult.degraded;
+        calendarStatus.error     = bookingResult.error || '';
       }
       catch (err) {
-        calendarError = String(err);
+        calendarStatus.error = String(err);
         Logger.log('createBookingEvent failed: ' + err);
       }
     }
@@ -1099,7 +1105,7 @@ function handleFormSubmission(payload) {
     try { sendVisitorConfirmation(payload, referralCode, meetLink, leadId); }
     catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
 
-    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, bookingRequested && !calendarCreated, calendarError); }
+    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarStatus); }
     catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
 
     return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
@@ -1138,7 +1144,7 @@ function handleResubmission(existing, payload) {
 
   // Append resubmission note to message column
   var existingMsg   = rowData[COLS.MESSAGE] || '';
-  var resubNote     = 'Resubmission on ' + today + ' — ' + existingLeadId;
+  var resubNote     = 'Resubmission on ' + today + ' (' + existingLeadId + ')';
   if (payload.message) resubNote += '\n\nNew message: ' + payload.message;
   var newMsg = existingMsg ? existingMsg + '\n\n' + resubNote : resubNote;
   sheet.getRange(rowIndex, COLS.MESSAGE + 1).setValue(newMsg);
@@ -1319,8 +1325,8 @@ function sendResubmissionNotification(payload, existingLeadId, existingReferralC
       '',
       'Lead ID:       ' + existingLeadId,
       'Referral Code: ' + existingReferralCode,
-      'Email:         ' + (p.email   || '—'),
-      'Phone:         ' + (p.phone   || '—'),
+      'Email:         ' + (p.email   || 'n/a'),
+      'Phone:         ' + (p.phone   || 'n/a'),
       'Role:          ' + category,
       payload.message ? '\nNew message:\n' + payload.message : '',
       '',
@@ -1387,6 +1393,7 @@ function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meet
     0,                                                                 // 27 Total Downstream
     '',                                                                // 28 Last Referral Date
     meetLink || '',                                                    // 29 Meet Link
+    leadHeardAbout(payload),                                           // 30 Heard About (self-reported)
   ];
 }
 
@@ -1420,6 +1427,19 @@ function leadSource(payload) {
   if (!s) return '';
   if (s.toLowerCase() === 'qr') return 'QR';
   return s;
+}
+
+/* ── Self-reported attribution (the CRM "Heard About" column) ──
+   The visitor's own answer to "How did you hear about us?", sent by the frontend
+   as payload.heardAbout on every buildPayload role (buildEAOPayload has no such
+   step, so EAO rows are blank here). This is a separate question from
+   leadSource(): Source is the technical channel a submission physically arrived
+   through, Heard About is what the person says brought them. Never merge them.
+   Internal-only: it lands in the Sheet and the partner notification, and is
+   deliberately absent from every client-facing surface (confirmation email,
+   calendar event, .ics). */
+function leadHeardAbout(payload) {
+  return String((payload && payload.heardAbout) || '').trim();
 }
 
 function categoryTabForRole(role) {
@@ -1558,7 +1578,7 @@ function sendVisitorConfirmation(payload, referralCode, meetLink, leadId) {
       referralCode: referralCode || '',
       referralLink: referralLink,
     });
-    subject = 'We received your message — AxisPoint Partners';
+    subject = 'We received your message';
   }
 
   var mailOpts = {
@@ -1606,7 +1626,7 @@ function buildVisitorPersonalNote(payload) {
     } else if (aum) {
       body = 'You mentioned capital in the ' + escapeHtml(aum) + ' range. We will tailor the conversation to your goals and timeline.';
     } else if (exp.length) {
-      body = 'Thanks for sharing your CRE background — ' + escapeHtml(humanList(exp)) + '. We will pick up right there when we talk.';
+      body = 'Thanks for sharing your CRE background, which includes ' + escapeHtml(humanList(exp)) + '. We will pick up right there when we talk.';
     } else {
       body = 'Thanks for sharing where you are as an investor. We will tailor the conversation to your goals.';
     }
@@ -1640,9 +1660,9 @@ function buildVisitorPersonalNote(payload) {
     var issue     = String(payload.pressing_issue   || '').trim();
     var situation = String(payload.current_situation || '').trim();
     if (issue) {
-      body = 'You told us the most pressing thing on your plate is: “' + escapeHtml(issue) + '” — that is exactly where we will start.';
+      body = 'You told us the most pressing thing on your plate is: “' + escapeHtml(issue) + '”. That is exactly where we will start.';
     } else if (situation) {
-      body = 'You described your current situation as: “' + escapeHtml(situation) + '” — we will dig into that when we connect.';
+      body = 'You described your current situation as: “' + escapeHtml(situation) + '”. We will dig into that when we connect.';
     } else {
       body = 'We reviewed the details on your portfolio and situation, and we will come prepared to talk specifics.';
     }
@@ -1652,7 +1672,7 @@ function buildVisitorPersonalNote(payload) {
     var ref = payload.referred || {};
     var refName = [ref.firstName, ref.lastName].filter(Boolean).join(' ').trim() || String(ref.name || '').trim();
     if (refName) {
-      body = 'Thank you for thinking of us. We will personally reach out to ' + escapeHtml(refName) + ' and take good care of the introduction — you will not be left wondering what happened next.';
+      body = 'Thank you for thinking of us. We will personally reach out to ' + escapeHtml(refName) + ' and take good care of the introduction. You will not be left wondering what happened next.';
     } else {
       body = 'Thank you for the referral. We will personally reach out to the person you introduced and take good care of it from here.';
     }
@@ -1692,15 +1712,26 @@ function referralIntentClause(intent) {
 }
 
 /* ── Immediate partner notification (HTML template) ── */
-function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarFailed, calendarError) {
+function sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarStatus) {
   var p  = payload.person  || {};
   var b  = payload.booking || null;
   var q  = payload.qualData || {};
   var rm = referralMatch   || { found: false };
+  var cs = calendarStatus  || { requested: false, created: false, degraded: false, error: '' };
+
+  // Three distinct booking outcomes, three distinct signals in this email:
+  //   failed   → no event exists at all. Loud red banner.
+  //   degraded → an event exists but carries no link (CalendarApp fallback, or
+  //              an insert response without htmlLink). Amber notice, because the
+  //              missing "View in calendar" link is expected here, not a mystery.
+  //   healthy  → event + link. No banner.
+  var calendarFailed   = !!(cs.requested && !cs.created);
+  var calendarDegraded = !!(cs.requested && cs.created && !calendarLink);
+  var calendarError    = cs.error || '';
 
   var name     = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown';
   var category = roleToCategory(payload.role);
-  var subject  = 'New lead: ' + name + ' (' + category + ') — ' + (leadId || '');
+  var subject  = 'New lead: ' + name + ' (' + category + '), ' + (leadId || '');
 
   var initials = ((p.firstName || '').charAt(0) + (p.lastName || '').charAt(0)).toUpperCase() || '–';
   // Real origin only (QR / direct); the "how did you hear about us" answer lives
@@ -1714,6 +1745,21 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
       '<tr>' +
       '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Capital range</td>' +
       '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">' + escapeHtml(q.aum) + '</td>' +
+      '</tr>';
+  }
+
+  // ── "How did you hear about us?" row (internal only) ──
+  // Deliberately its own row, directly under Source and clearly labeled, so the
+  // person's self-reported attribution is never mistaken for the technical
+  // origin channel. Omitted entirely when the visitor did not answer (EAO has no
+  // such step). Never rendered on any client-facing surface.
+  var heardAboutRow = '';
+  var heardAbout = leadHeardAbout(payload);
+  if (heardAbout) {
+    heardAboutRow =
+      '<tr>' +
+      '<td style="padding:6px 0;font-size:12px;color:#9490A8;vertical-align:top;">Heard about us</td>' +
+      '<td style="padding:6px 0;font-size:13px;color:#1C1628;vertical-align:top;">' + escapeHtml(heardAbout) + '</td>' +
       '</tr>';
   }
 
@@ -1749,9 +1795,17 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
     var parts = bookingDateParts(b.date, b.slot || b.time || '');
     var isMeet = b.meetType === 'meet';
     var detailLabel = isMeet ? 'Google Meet' : 'Phone call';
-    var actionHtml = isMeet
-      ? '<a href="' + escapeHtml(meetLink || '') + '" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>'
-      : '<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">Call them at ' + escapeHtml(b.phone || p.phone || '') + '</span>';
+    // A Meet booking whose conference was never provisioned has no link. Render a
+    // plain marker rather than an anchor with an empty href, which looks like a
+    // working "Join Google Meet" button and silently goes nowhere.
+    var actionHtml;
+    if (isMeet && meetLink) {
+      actionHtml = '<a href="' + escapeHtml(meetLink) + '" style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;text-decoration:none;">Join Google Meet &nbsp;→</a>';
+    } else if (isMeet) {
+      actionHtml = '<span style="display:inline-block;background:#FCEEEC;border:1px solid #E7B7AF;border-radius:5px;padding:4px 10px;font-size:11px;color:#B23B2E;font-weight:500;">No Google Meet link was created</span>';
+    } else {
+      actionHtml = '<span style="display:inline-block;background:#E8F7FA;border:1px solid #B8E6EF;border-radius:5px;padding:4px 10px;font-size:11px;color:#1A8799;font-weight:500;">Call them at ' + escapeHtml(b.phone || p.phone || '') + '</span>';
+    }
 
     // Link to the actual calendar event (captured from the booking insert), so
     // a partner can open it, reschedule, or check attendee responses directly.
@@ -1772,6 +1826,20 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
         '</p></td></tr></table>'
       : '';
 
+    // The event exists and the invite went out, but no link could be captured.
+    // Distinct from the failure above: nothing needs to be created by hand, the
+    // link just has to be found in the calendar. Without this, the absent "View
+    // in calendar" link looked identical to a bug.
+    var calendarDegradedHtml = calendarDegraded
+      ? '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FDF6E7;border:1px solid #E8D3A0;border-radius:8px;margin:0 0 20px;">' +
+        '<tr><td style="padding:12px 16px;">' +
+        '<p style="font-size:11px;font-weight:700;color:#8A6516;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 4px;">⚠ Calendar event created, but no link captured</p>' +
+        '<p style="font-size:12px;color:#6B4F11;line-height:1.5;margin:0;">The event is on the shared calendar and the invite was sent, so no manual booking is needed. ' +
+        'The "View in calendar" link is unavailable for this one, open the AxisPoint Bookings calendar directly.' +
+        (calendarError ? '<br><span style="font-size:11px;color:#8A6516;">' + escapeHtml(calendarError) + '</span>' : '') +
+        '</p></td></tr></table>'
+      : '';
+
     // Internal-only detail dump (goes to NOTIFY_EMAILS only, never to the
     // visitor). Kept out of the shared Calendar event / .ics on purpose.
     var internalDetailHtml =
@@ -1784,6 +1852,7 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
 
     bookingBlock =
       calendarWarningHtml +
+      calendarDegradedHtml +
       '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 20px;">' +
       '<tr><td colspan="2" style="background:#38285D;padding:8px 14px;">' +
       '<span style="font-size:10px;font-weight:500;color:#C9C4D6;letter-spacing:0.1em;text-transform:uppercase;">Scheduled call</span>' +
@@ -1806,12 +1875,13 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
     fullName:        name,
     role:            category || (payload.role || ''),
     source:          source,
-    leadId:          leadId || '—',
-    email:           p.email || '—',
-    phone:           p.phone || '—',
-    company:         p.company || '—',
-    assetClass:      assetClassFromQualData(q) || '—',
+    leadId:          leadId || 'n/a',
+    email:           p.email || 'n/a',
+    phone:           p.phone || 'n/a',
+    company:         p.company || 'n/a',
+    assetClass:      assetClassFromQualData(q) || 'n/a',
     capitalRangeRow: capitalRangeRow,
+    heardAboutRow:   heardAboutRow,
     referredByRow:   referredByRow,
     messageBlock:    messageBlock,
     bookingBlock:    bookingBlock,
@@ -1871,7 +1941,7 @@ function sendDailyDigest() {
 
     GmailApp.sendEmail(
       CONFIG.NOTIFY_EMAILS.join(','),
-      'AxisPoint — ' + n + ' new lead' + (n > 1 ? 's' : '') + ' today (' + today + ')',
+      'AxisPoint: ' + n + ' new lead' + (n > 1 ? 's' : '') + ' today (' + today + ')',
       [
         n + ' new lead' + (n > 1 ? 's' : '') + ' submitted on ' + today + '.',
         '',
@@ -2023,7 +2093,7 @@ function moveColdLeads() {
 
     GmailApp.sendEmail(
       CONFIG.NOTIFY_EMAILS.join(','),
-      'AxisPoint — Leads moved to cold this week',
+      'AxisPoint: Leads moved to cold this week',
       [
         moved.length + ' lead' + (moved.length > 1 ? 's were' : ' was') + ' moved to Cold.',
         '',
@@ -2326,7 +2396,7 @@ function sendWelcomeEmail(email, firstName, preferences) {
 
   GmailApp.sendEmail(
     email,
-    'You are on the list — AxisPoint Partners',
+    'You are on the list',
     'You are on the list.',
     { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL, htmlBody: html, inlineImages: { logo: LOGO_BLOB } }
   );
@@ -2358,7 +2428,7 @@ function notifySubscribers(title, excerpt, url) {
     try {
       GmailApp.sendEmail(
         email,
-        'New from AxisPoint — ' + title,
+        'New from AxisPoint: ' + title,
         [
           firstName ? 'Hi ' + firstName + ',' : 'Hi,',
           '',
@@ -2368,7 +2438,7 @@ function notifySubscribers(title, excerpt, url) {
           '',
           'Read it here: ' + url,
           '',
-          '— Zachary and Ethaniel',
+          'Zachary and Ethaniel',
           'AxisPoint Partners',
           'axispoint.llc',
           '',
@@ -2409,7 +2479,7 @@ function handleUnsubscribe(rawEmail) {
           try {
             GmailApp.sendEmail(
               email,
-              'You have been unsubscribed — AxisPoint Partners',
+              'You have been unsubscribed',
               [
                 'Hi,',
                 '',
@@ -2691,11 +2761,14 @@ function createBookingEvent(payload, leadId) {
   var p = payload.person   || {};
   var b = payload.booking;
   var q = payload.qualData || {};
-  // `created` and `error` let the caller surface a real failure instead of it
-  // being swallowed silently. The fail-safe design (never break submission) had
-  // been masking config/access problems — a booking that quietly created no
-  // event looked identical to a healthy one. Callers now report the difference.
-  var result = { meetLink: '', calendarLink: '', created: false, error: '' };
+  // `created`, `degraded` and `error` let the caller distinguish three outcomes
+  // that otherwise look alike from the outside: no event at all, an event with a
+  // usable link, and an event created through the CalendarApp fallback whose
+  // htmlLink (and Meet conference) could never be captured. The fail-safe design
+  // (never break submission) had been masking config/access problems: a booking
+  // that quietly created no event looked identical to a healthy one, and so did
+  // one created without a link. Callers now report all three differently.
+  var result = { meetLink: '', calendarLink: '', created: false, degraded: false, error: '' };
 
   // All booking events go on the shared "AxisPoint Bookings" calendar, never a
   // personal default calendar. If the property isn't configured, skip cleanly
@@ -2758,6 +2831,11 @@ function createBookingEvent(payload, leadId) {
     var created = Calendar.Events.insert(eventResource, calId, insertOpts);
     result.created = true;
     result.calendarLink = (created && created.htmlLink) ? created.htmlLink : '';
+    if (!result.calendarLink) {
+      result.degraded = true;
+      result.error = 'Calendar.Events.insert succeeded but returned no htmlLink, so there is no "View in calendar" link for this event.';
+      Logger.log('createBookingEvent: ' + result.error);
+    }
 
     if (!isPhone) {
       var entryPoints = created && created.conferenceData && created.conferenceData.entryPoints;
@@ -2776,14 +2854,22 @@ function createBookingEvent(payload, leadId) {
     return result;
   } catch (err) {
     result.error = 'Calendar.Events.insert failed: ' + err;
-    Logger.log('createBookingEvent: ' + result.error + ' — falling back to CalendarApp.');
+    Logger.log('createBookingEvent: ' + result.error + '. Falling back to CalendarApp.');
   }
 
-  // ── Fallback: plain CalendarApp event (no htmlLink capture available). ──
+  // ── Fallback: plain CalendarApp event. ──
+  // CalendarApp.createEvent exposes no htmlLink and provisions no Meet
+  // conference, so an event created here is real but link-less. That is a
+  // DEGRADED success, not a healthy one: keep `degraded` set and preserve the
+  // advanced-insert error that forced us down this path, so the partner email
+  // can say why the "View in calendar" link (and, for a Meet booking, the Meet
+  // link) is missing. Clearing `error` here is what previously made this state
+  // indistinguishable from a clean insert.
+  var advancedError = result.error;
   var cal = CalendarApp.getCalendarById(calId);
   if (!cal) {
     result.error = 'No Calendar access for BOOKING_CALENDAR_ID=' + calId +
-                   ' (the deploying account needs edit access).';
+                   ' (the deploying account needs edit access). ' + advancedError;
     Logger.log('createBookingEvent: ' + result.error + ' Skipping event creation.');
     return result;
   }
@@ -2793,8 +2879,12 @@ function createBookingEvent(payload, leadId) {
     guests:      guests.join(','),
     sendInvites: true,
   });
-  result.created = true;
-  result.error = '';
+  result.created  = true;
+  result.degraded = true;
+  result.error    = 'Event was created through the CalendarApp fallback, so it has no ' +
+                    '"View in calendar" link' + (isPhone ? '' : ' and no Google Meet conference') +
+                    '. Underlying cause: ' + advancedError;
+  Logger.log('createBookingEvent: ' + result.error);
   return result;
 }
 
@@ -3061,7 +3151,7 @@ function tab(name) {
 
 function appendRow(tabName, row) {
   var sheet = tab(tabName);
-  if (!sheet) { Logger.log('appendRow: tab not found — ' + tabName); return; }
+  if (!sheet) { Logger.log('appendRow: tab not found: ' + tabName); return; }
   sheet.appendRow(row);
 }
 
