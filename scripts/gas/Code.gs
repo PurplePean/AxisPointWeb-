@@ -855,11 +855,47 @@ var LEAD_HEADERS = [
   'Heard About',
 ];
 
-// The Referral Partners tab carries one extra column beyond LEAD_HEADERS:
-// a per-partner toggle for the monthly referral-summary email. 0-based index
-// (= first column past the shared lead layout). Blank/TRUE = enabled; only an
-// explicit FALSE opts a partner out. Groundwork for a future dashboard control.
-var REPORTS_ENABLED_COL = LEAD_HEADERS.length;
+/* ── Per-tab extra columns ──
+   The Referral Partners tab carries one extra column beyond LEAD_HEADERS: a
+   per-partner toggle for the monthly referral-summary email. Blank/TRUE =
+   enabled; only an explicit FALSE opts a partner out.
+
+   This column is located by NAME at runtime (headerIndex), never by position.
+   It used to be `var REPORTS_ENABLED_COL = LEAD_HEADERS.length`, which silently
+   encoded "Reports Enabled is whatever sits right after the standard headers".
+   Appending 'Heard About' to LEAD_HEADERS therefore slid the constant from 30 to
+   31 while the live sheet still had Reports Enabled at 31 — so the seed write
+   landed one cell to the right and the appended lead row overwrote the toggle.
+   Name-based lookup means a column can now be inserted anywhere in LEAD_HEADERS
+   without anyone having to reason about what it does to the extra columns. */
+var REPORTS_ENABLED_HEADER = 'Reports Enabled';
+var HEARD_ABOUT_HEADER     = 'Heard About';
+
+/* 0-based index of `headerName` in a sheet's ACTUAL header row, or -1 if absent.
+   Reads the sheet rather than trusting a compile-time constant, so it stays
+   correct on tabs that have not yet been migrated to the current layout. */
+function headerIndex(sheet, headerName) {
+  if (!sheet) return -1;
+  if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) return -1;
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var want = String(headerName).trim();
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i]).trim() === want) return i;
+  }
+  return -1;
+}
+
+/* 0-based index of the Referral Partners "Reports Enabled" toggle, or -1.
+   -1 is a real state (un-migrated tab), and every caller treats it as
+   "cannot determine → leave the partner enabled" rather than guessing a column. */
+function reportsEnabledIndex(sheet) {
+  var idx = headerIndex(sheet, REPORTS_ENABLED_HEADER);
+  if (idx === -1) {
+    Logger.log('reportsEnabledIndex: no "' + REPORTS_ENABLED_HEADER + '" header on "' +
+               (sheet ? sheet.getName() : '(null sheet)') + '"');
+  }
+  return idx;
+}
 
 // Referrals tab columns
 var REFERRAL_HEADERS = [
@@ -1087,7 +1123,16 @@ function handleFormSubmission(payload) {
       if (categoryTab === CONFIG.TABS.REFERRAL_PARTNERS) {
         var partnerSheet = tab(categoryTab);
         if (partnerSheet) {
-          partnerSheet.getRange(partnerSheet.getLastRow(), REPORTS_ENABLED_COL + 1).setValue(true);
+          var reCol = reportsEnabledIndex(partnerSheet);
+          if (reCol >= 0) {
+            partnerSheet.getRange(partnerSheet.getLastRow(), reCol + 1).setValue(true);
+          } else {
+            // Blank reads as enabled downstream, so the partner still gets their
+            // summary; log loudly rather than writing the seed to a guessed cell.
+            Logger.log('handleFormSubmission: "' + REPORTS_ENABLED_HEADER + '" column missing on ' +
+                       categoryTab + '; skipped seeding it for lead ' + leadId +
+                       '. Run migrateAddHeardAboutColumn() to repair the tab layout.');
+          }
         }
       }
     }
@@ -1994,14 +2039,18 @@ function sendMonthlyReferralSummaries() {
     var partners = partnersSheet.getDataRange().getValues();
     var sent = 0;
 
+    // Resolved once by name, outside the loop — never derived from array length.
+    var reCol = reportsEnabledIndex(partnersSheet);
+
     for (var i = 1; i < partners.length; i++) {
       var row    = partners[i];
       var status = String(row[COLS.STATUS] || '');
       if (status === 'Cold' || status === 'Archive') continue;
 
       // Skip partners who have explicitly opted out (Reports Enabled = FALSE).
-      // Blank or TRUE keeps them enabled.
-      var reportsEnabled = row[REPORTS_ENABLED_COL];
+      // Blank or TRUE keeps them enabled; an absent column (reCol < 0) is treated
+      // as blank, so a layout problem can never silently mute every partner.
+      var reportsEnabled = reCol >= 0 ? row[reCol] : '';
       if (reportsEnabled === false || String(reportsEnabled).trim().toUpperCase() === 'FALSE') continue;
 
       var leadId = String(row[COLS.LEAD_ID] || '');
@@ -3073,7 +3122,7 @@ function setupSpreadsheet() {
       // Every lead tab shares LEAD_HEADERS. The Referral Partners tab carries one
       // extra "Reports Enabled" column (monthly-summary opt-out toggle).
       var headers = cfg.name === CONFIG.TABS.REFERRAL_PARTNERS
-        ? LEAD_HEADERS.concat(['Reports Enabled'])
+        ? LEAD_HEADERS.concat([REPORTS_ENABLED_HEADER])
         : LEAD_HEADERS;
       sheet.appendRow(headers);
       sheet.getRange(1, 1, 1, headers.length)
@@ -3107,6 +3156,69 @@ function setupSpreadsheet() {
   }
 
   Logger.log('setupSpreadsheet: all 11 tabs ready.');
+}
+
+/* ── One-time migration: add "Heard About" to existing lead tabs ──
+   setupSpreadsheet() only writes headers into tabs with getLastRow() === 0, so
+   tabs holding real data never received the column. Run this once from the Apps
+   Script editor after deploying.
+
+   Idempotent: every tab is skipped when the header is already present, so a
+   second run is a no-op rather than a second insert.
+
+   Placement is name-driven, not position math. 'Heard About' goes at its
+   canonical LEAD_HEADERS index. If something already occupies that header cell
+   (on Referral Partners it is 'Reports Enabled'), the column is INSERTED before
+   it — shifting that tab's extra column and its data right together — instead of
+   being appended after it. That is precisely the case the old
+   `REPORTS_ENABLED_COL = LEAD_HEADERS.length` constant got wrong. */
+function migrateAddHeardAboutColumn() {
+  var id = getProp('SPREADSHEET_ID');
+  if (!id) throw new Error('Run setProperties() first to configure SPREADSHEET_ID');
+  var ss = SpreadsheetApp.openById(id);
+
+  var leadTabNames = [
+    CONFIG.TABS.ACTIVE_LEADS, CONFIG.TABS.LIFETIME_LEADS, CONFIG.TABS.COLD_LEADS,
+    CONFIG.TABS.INVESTORS, CONFIG.TABS.REFERRAL_PARTNERS, CONFIG.TABS.RE_PROFESSIONALS,
+    CONFIG.TABS.ASSET_OWNER, CONFIG.TABS.CLIENTS, CONFIG.TABS.ARCHIVE,
+  ];
+
+  var targetCol = LEAD_HEADERS.indexOf(HEARD_ABOUT_HEADER) + 1; // 1-based
+  if (targetCol < 1) throw new Error('"' + HEARD_ABOUT_HEADER + '" is not in LEAD_HEADERS');
+
+  var log = [];
+
+  leadTabNames.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) { log.push('SKIP  ' + name + ': tab not found'); return; }
+
+    if (headerIndex(sheet, HEARD_ABOUT_HEADER) !== -1) {
+      log.push('SKIP  ' + name + ': already has "' + HEARD_ABOUT_HEADER + '"');
+      return;
+    }
+
+    // Guarantee the sheet is wide enough to address targetCol at all.
+    if (sheet.getMaxColumns() < targetCol) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), targetCol - sheet.getMaxColumns());
+    }
+
+    // Occupied header cell => another column already lives here; push it right.
+    var occupant = String(sheet.getRange(1, targetCol).getValue()).trim();
+    if (occupant !== '') {
+      sheet.insertColumnBefore(targetCol);
+      log.push('      ' + name + ': inserted before "' + occupant + '" (now col ' + (targetCol + 1) + ')');
+    }
+
+    sheet.getRange(1, targetCol).setValue(HEARD_ABOUT_HEADER);
+    // Match the existing header-row styling rather than hardcoding a color.
+    sheet.getRange(1, 1).copyFormatToRange(sheet, targetCol, targetCol, 1, 1);
+
+    log.push('ADDED ' + name + ': "' + HEARD_ABOUT_HEADER + '" at col ' + targetCol);
+  });
+
+  var out = 'migrateAddHeardAboutColumn:\n' + log.join('\n');
+  Logger.log(out);
+  return out;
 }
 
 function setupTriggers() {
