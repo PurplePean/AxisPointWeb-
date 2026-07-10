@@ -1,0 +1,33 @@
+name: GAS tests
+
+# Runs the committed Apps Script backend test suite (scripts/gas/tests) on every
+# push and PR. Additive and independent: does not touch ci.yml, deploy-web.yml,
+# or deploy-qr.yml. The suite has no npm dependencies (Node's built-in test
+# runner), so there is no install step.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test-gas:
+    name: Test Apps Script backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        # Node 22: the `node --test` glob (scripts/gas/tests/**/*.test.js) needs
+        # Node 21+, so this job is intentionally not pinned to the repo's Node 20.
+        with:
+          node-version: 22
+
+      - name: Run GAS test suite
+        run: pnpm test:gas
