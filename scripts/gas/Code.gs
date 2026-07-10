@@ -2396,6 +2396,13 @@ function moveColdLeads() {
     var activeSheet = tab(CONFIG.TABS.ACTIVE_LEADS);
     if (!activeSheet) return;
 
+    // Resolve the Active Leads layout by NAME once, up front. Every read of a row
+    // below indexes through C, not the compile-time COLS, so a drifted Active tab
+    // reads the right cells (or throws here, before any row is deleted) rather than
+    // silently deleting the wrong lead — the highest-risk positional read in the
+    // file, because this function both reads a Timestamp and deletes rows.
+    var C = resolveCols(activeSheet);
+
     var data   = activeSheet.getDataRange().getValues();
     var now    = new Date();
     var active = ['New Lead', 'Contacted', 'Active'];
@@ -2403,22 +2410,23 @@ function moveColdLeads() {
 
     for (var i = data.length - 1; i >= 1; i--) {
       var row    = data[i];
-      var status = String(row[COLS.STATUS] || '');
+      var status = String(row[C.STATUS] || '');
       if (active.indexOf(status) === -1) continue;
 
-      var submitted = new Date(row[COLS.TIMESTAMP]);
+      var submitted = new Date(row[C.TIMESTAMP]);
       if (isNaN(submitted)) continue;
 
       var age = (now - submitted) / 86400000;
       if (age <= CONFIG.COLD_LEAD_DAYS) continue;
 
-      row[COLS.STATUS] = 'Cold';
+      row[C.STATUS] = 'Cold';
       appendRow(CONFIG.TABS.COLD_LEADS, row);
       activeSheet.deleteRow(i + 1);
-      setCategoryTabStatus(row, 'Cold');
+      try { setCategoryTabStatus(row, 'Cold', C); }
+      catch (e) { Logger.log('setCategoryTabStatus failed for ' + row[C.EMAIL] + ': ' + e); }
 
-      try { moveContactToCold(row[COLS.EMAIL]); }
-      catch (e) { Logger.log('moveContactToCold failed for ' + row[COLS.EMAIL] + ': ' + e); }
+      try { moveContactToCold(row[C.EMAIL]); }
+      catch (e) { Logger.log('moveContactToCold failed for ' + row[C.EMAIL] + ': ' + e); }
 
       moved.push(row);
     }
@@ -2427,11 +2435,11 @@ function moveColdLeads() {
 
     var blocks = moved.map(function(r) {
       return [
-        'Lead ID:        ' + r[COLS.LEAD_ID],
-        'Name:           ' + [r[COLS.FIRST_NAME], r[COLS.LAST_NAME]].filter(Boolean).join(' '),
-        'Role:           ' + r[COLS.CATEGORY],
-        'Email:          ' + r[COLS.EMAIL],
-        'Submitted:      ' + Utilities.formatDate(new Date(r[COLS.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
+        'Lead ID:        ' + r[C.LEAD_ID],
+        'Name:           ' + [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' '),
+        'Role:           ' + r[C.CATEGORY],
+        'Email:          ' + r[C.EMAIL],
+        'Submitted:      ' + Utilities.formatDate(new Date(r[C.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
       ].join('\n');
     });
 
@@ -2456,15 +2464,20 @@ function moveColdLeads() {
   }
 }
 
-function setCategoryTabStatus(row, newStatus) {
-  var tabName = categoryTabForRole(row[COLS.ROLE]);
+/* srcCols is the resolved column map for the sheet `row` was read from (its
+   ROLE/EMAIL are read through it). The category tab is a DIFFERENT sheet and may
+   have a different live layout, so it is resolved independently here. */
+function setCategoryTabStatus(row, newStatus, srcCols) {
+  var sc = srcCols || COLS;
+  var tabName = categoryTabForRole(row[sc.ROLE]);
   if (!tabName) return;
   var sheet = tab(tabName);
   if (!sheet) return;
+  var C = resolveCols(sheet);
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][COLS.EMAIL] === row[COLS.EMAIL]) {
-      sheet.getRange(i + 1, COLS.STATUS + 1).setValue(newStatus);
+    if (rows[i][C.EMAIL] === row[sc.EMAIL]) {
+      sheet.getRange(i + 1, C.STATUS + 1).setValue(newStatus);
       break;
     }
   }
