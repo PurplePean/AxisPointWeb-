@@ -470,7 +470,8 @@ status, timestamp) plus a single structured JSON blob column carrying everything
 role-specific.
 
 The unified schema is the better data model in the abstract. It was not adopted, for
-two concrete reasons:
+one concrete reason (a second reason was cited originally and has since been
+disproven — see the correction below):
 
 1. **Existing automation depends on tabs physically existing as separate tabs, not
    on a category label.** The per-category Google Contact Groups sync, the weekly
@@ -481,10 +482,28 @@ two concrete reasons:
    against real tabs. A unified schema does not adjust this code; it requires
    rebuilding all of it.
 
-2. **By the time this was seriously evaluated, the Sheet held real production data.**
-   Migrating would mean repacking live rows into a new shape, not making a free
-   greenfield choice. The `Heard About` column added on 2026-07-08 is the scale of
-   schema change this system can absorb safely; a full re-shape is not.
+2. ~~**By the time this was seriously evaluated, the Sheet held real production
+   data.**~~ **CORRECTED 2026-07-10 — this premise is false.** It was asserted on
+   2026-07-08 without being checked. On 2026-07-09 `auditLeadTabHeadersSummary()` run
+   live reported **`rows=0` on eight of nine lead tabs, Lifetime Leads included**, and
+   on 2026-07-10 the Lifetime Leads tab was **visually confirmed empty** (zero data
+   rows below the header). The CRM holds no production lead data today. There is
+   therefore **no live-data migration cost** standing in the way of a schema change,
+   and the "we can only absorb a `Heard About`-sized change safely" argument does not
+   apply while the tabs are empty.
+
+   **Consequences of this correction, which the refactor should weigh:**
+   - `backfillEaoCategoryRows()` recovers dropped Existing Asset Owner rows *from
+     Lifetime Leads*. If Lifetime Leads is empty, there is nothing to recover — the
+     EAO category rows dropped before the tab existed are **gone, not recoverable**,
+     not merely un-backfilled. Run `countMissingEaoCategoryRows()` to confirm the
+     count is zero before retiring that tooling.
+   - The unified-schema decision was made partly on a premise that did not hold. The
+     remaining reason (#1, automation coupled to physical tabs) still stands on its
+     own, so the **decision does not automatically flip** — but the empty-Sheet window
+     is exactly when a re-shape would be cheapest, and that window closes the moment
+     real submissions land. If a unified schema is ever going to happen, now is the
+     structurally cheapest time, not "once `crm.`/`api.axispoint.llc` are real work."
 
 ### What is explicitly NOT a reason
 
