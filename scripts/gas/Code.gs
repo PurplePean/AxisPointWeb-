@@ -121,7 +121,7 @@ var CONFIG = {
      contactGroupForCategory() → .category → .contactGroup
      handleFormSubmission()    → .normalizer, .seedReportsEnabled
      setupSpreadsheet()        → .tab + .tabColor   (leadTabConfigs)
-     migrateAddHeardAboutColumn() → .tab            (leadTabConfigs)
+     updateReferrerStats()     → .tab              (leadTabConfigs)
      handleCategoryEdit()      → .contactGroup      (allCategoryContactGroups)
 
    Before this registry existed, those seven consumers each carried their own
@@ -232,9 +232,10 @@ function leadTypeTabConfigs() {
 
 /** The full ordered tab list every lead tab shares LEAD_HEADERS across: the
  *  three cross-role tabs, then each role's category tab, then the two terminal
- *  tabs. setupSpreadsheet() and migrateAddHeardAboutColumn() both read this, so
- *  a new lead type's tab can never be created but left un-migrated (or vice
- *  versa) — that skew is what let the Existing Asset Owners tab go missing. */
+ *  tabs. setupSpreadsheet(), updateReferrerStats(), the header audit/repair
+ *  functions, and onSheetEdit's lead-tab guard all read this, so the set of "lead
+ *  tabs" has exactly one definition — the skew between such lists is what let the
+ *  Existing Asset Owners tab go missing. */
 function leadTabConfigs() {
   return [
     { name: CONFIG.TABS.ACTIVE_LEADS,   color: '#24A5BC' },
@@ -1026,7 +1027,7 @@ var REPORTS_ENABLED_HEADER = 'Reports Enabled';   // not in LEAD_HEADERS: a per-
    the extra Reports Enabled toggle after them.
 
    Single definition site. setupSpreadsheet() writes new tabs from this,
-   auditLeadTabHeaders() compares live tabs against it, and
+   leadTabHeaderAudit() compares live tabs against it, and
    rewriteLeadTabHeaderRow() rewrites from it — so "what a healthy tab looks
    like" can never mean three different things in three places.
 
@@ -1116,10 +1117,10 @@ function headerLookupError(sheetName, headerRow, headerName) {
    correct on tabs that have not yet been migrated to the current layout.
 
    NOTE: this still matches on trim() + exact case, unlike findHeaderIndex above.
-   Its two callers (reportsEnabledIndex, migrateAddHeardAboutColumn) treat -1 as a
-   meaningful "column absent" state that drives a WRITE — migrate inserts a column
-   when it reads -1 — so loosening the match here changes migration behavior and is
-   deliberately left for its own change. See the PR discussion. */
+   Its remaining caller (reportsEnabledIndex) treats -1 as a meaningful "column
+   absent" state rather than an error, so the exact match is acceptable there and
+   is deliberately left as its own concern. (resolveCols, added later, uses the
+   resilient findHeaderIndex for the standard columns and THROWS on a real miss.) */
 function headerIndex(sheet, headerName) {
   if (!sheet) return -1;
   if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) return -1;
@@ -1435,7 +1436,7 @@ function handleFormSubmission(payload) {
             // summary; log loudly rather than writing the seed to a guessed cell.
             Logger.log('handleFormSubmission: "' + REPORTS_ENABLED_HEADER + '" column missing on ' +
                        categoryTab + '; skipped seeding it for lead ' + leadId +
-                       '. Run migrateAddHeardAboutColumn() to repair the tab layout.');
+                       '. Run repairAllDriftedLeadTabHeaders() to repair the tab layout.');
           }
         }
       }
@@ -3507,67 +3508,6 @@ function setupSpreadsheet() {
   Logger.log('setupSpreadsheet: all ' + (leadTabs.length + 2) + ' tabs ready.');
 }
 
-/* ── One-time migration: add "Heard About" to existing lead tabs ──
-   setupSpreadsheet() only writes headers into tabs with getLastRow() === 0, so
-   tabs holding real data never received the column. Run this once from the Apps
-   Script editor after deploying.
-
-   Idempotent: every tab is skipped when the header is already present, so a
-   second run is a no-op rather than a second insert.
-
-   Placement is name-driven, not position math. 'Heard About' goes at its
-   canonical LEAD_HEADERS index. If something already occupies that header cell
-   (on Referral Partners it is 'Reports Enabled'), the column is INSERTED before
-   it — shifting that tab's extra column and its data right together — instead of
-   being appended after it. That is precisely the case the old
-   `REPORTS_ENABLED_COL = LEAD_HEADERS.length` constant got wrong. */
-function migrateAddHeardAboutColumn() {
-  var id = getProp('SPREADSHEET_ID');
-  if (!id) throw new Error('Run setProperties() first to configure SPREADSHEET_ID');
-  var ss = SpreadsheetApp.openById(id);
-
-  // Same registry-derived list setupSpreadsheet() creates, so the two can never
-  // disagree about which tabs exist.
-  var leadTabNames = leadTabConfigs().map(function(cfg) { return cfg.name; });
-
-  var targetCol = LEAD_HEADERS.indexOf(HEARD_ABOUT_HEADER) + 1; // 1-based
-  if (targetCol < 1) throw new Error('"' + HEARD_ABOUT_HEADER + '" is not in LEAD_HEADERS');
-
-  var log = [];
-
-  leadTabNames.forEach(function(name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) { log.push('SKIP  ' + name + ': tab not found'); return; }
-
-    if (headerIndex(sheet, HEARD_ABOUT_HEADER) !== -1) {
-      log.push('SKIP  ' + name + ': already has "' + HEARD_ABOUT_HEADER + '"');
-      return;
-    }
-
-    // Guarantee the sheet is wide enough to address targetCol at all.
-    if (sheet.getMaxColumns() < targetCol) {
-      sheet.insertColumnsAfter(sheet.getMaxColumns(), targetCol - sheet.getMaxColumns());
-    }
-
-    // Occupied header cell => another column already lives here; push it right.
-    var occupant = String(sheet.getRange(1, targetCol).getValue()).trim();
-    if (occupant !== '') {
-      sheet.insertColumnBefore(targetCol);
-      log.push('      ' + name + ': inserted before "' + occupant + '" (now col ' + (targetCol + 1) + ')');
-    }
-
-    sheet.getRange(1, targetCol).setValue(HEARD_ABOUT_HEADER);
-    // Match the existing header-row styling rather than hardcoding a color.
-    sheet.getRange(1, 1).copyFormatToRange(sheet, targetCol, targetCol, 1, 1);
-
-    log.push('ADDED ' + name + ': "' + HEARD_ABOUT_HEADER + '" at col ' + targetCol);
-  });
-
-  var out = 'migrateAddHeardAboutColumn:\n' + log.join('\n');
-  Logger.log(out);
-  return out;
-}
-
 /* ── One-time backfill: Existing Asset Owner category rows ──
    WHY THIS IS NEEDED. appendRow() logs and returns when its target tab is
    absent. The "Existing Asset Owners" tab was named in CONFIG but setupSpreadsheet()
@@ -3723,11 +3663,10 @@ function backfillEaoCategoryRows() {
 /* ── Read-only header audit: the analysis, separated from its rendering ──
    Reads one lead tab and returns a structured verdict. Writes nothing.
 
-   Three functions render this: auditLeadTabHeadersSummary (one line per tab),
-   auditLeadTabHeaders (every column of every tab), and auditLeadTabHeaderDetail
-   (every column of one tab). Splitting analysis from rendering is what keeps them
-   from disagreeing — a summary that said OK while the detail said DRIFT would be
-   worse than having no summary at all.
+   Two functions render this: auditLeadTabHeadersSummary (one line per tab) and
+   auditLeadTabHeaderDetail (every column of one tab). Splitting analysis from
+   rendering is what keeps them from disagreeing — a summary that said OK while the
+   detail said DRIFT would be worse than having no summary at all.
 
    `safeToRewrite` deliberately means "drifted AND empty", not merely "empty". A
    healthy tab has nothing to rewrite, so the flag stays false and only ever points
@@ -3805,11 +3744,13 @@ function renderLeadTabHeaderDetail(a) {
 }
 
 /* ── Condensed audit: one line per tab ──
-   WHY THIS IS THE DEFAULT ONE TO RUN. auditLeadTabHeaders() emits a full 31-column
-   header row per tab, and the Apps Script log viewer truncates the message before
-   the later tabs (Referral Partners onward) are ever reached — so the tabs nobody
-   had looked at were precisely the ones the audit could not show. A summary that
-   always fits is worth more than a detailed one that silently stops early.
+   WHY THIS IS THE DEFAULT ONE TO RUN. A full per-column dump of every tab emits a
+   31-column header row per tab, and the Apps Script log viewer truncates the
+   message before the later tabs (Referral Partners onward) are ever reached — so
+   the tabs nobody had looked at were precisely the ones the audit could not show.
+   A summary that always fits is worth more than a detailed one that stops early.
+   (The all-tabs full dump was removed for that reason; use this plus the per-tab
+   detail below.)
 
    Budget: ~9 tabs at well under 200 chars each, a single Logger.log call. The
    per-column detail lives in auditLeadTabHeaderDetail(tabName), which is scoped to
@@ -3883,39 +3824,6 @@ function auditLeadTabHeaderDetail(tabName) {
   return text;
 }
 
-/* ── Read-only header audit across every lead tab, full per-column detail ──
-   Writes nothing. For each lead tab, reports its data-row count and its live header
-   row cell by cell, diffed against expectedHeadersFor(tab).
-
-   WARNING: the Apps Script log viewer truncates this before the last few tabs when
-   all nine exist. Use auditLeadTabHeadersSummary() to see every tab, then
-   auditLeadTabHeaderDetail(tabName) to drill into one. Kept because the full dump
-   is still the right thing to paste into a PR or an issue.
-
-   WHY THIS EXISTS. Header drift on Lifetime Leads was found only because
-   eaoBackfillPlan() happened to throw on a missing 'Lead ID'. Every other tab was
-   assumed fine without anyone having looked. Nothing in this script had ever read a
-   header row purely to check it, so drift stayed invisible until some unrelated
-   function tripped over it. Run this before trusting any tab's layout.
-
-   The data-row count matters as much as the header diff: a mismatched header on an
-   EMPTY tab is a clean rewrite (repairAllDriftedLeadTabHeaders), while the same
-   mismatch on a tab holding rows is a column-realignment problem, because the rows
-   may have been written under the older layout the header still describes. */
-function auditLeadTabHeaders() {
-  var ss = openCrmSpreadsheet();
-  var out = ['auditLeadTabHeaders:'];
-
-  leadTabConfigs().forEach(function(cfg) {
-    out.push('');
-    out = out.concat(renderLeadTabHeaderDetail(leadTabHeaderAudit(ss, cfg.name)));
-  });
-
-  var text = out.join('\n');
-  Logger.log(text);
-  return text;
-}
-
 /* ── Header repair ──
    WHY A HEADER REWRITE IS DANGEROUS, and therefore why everything below is built
    around one guard. leadRow() builds a positional 31-value array and appendRow()
@@ -3937,8 +3845,8 @@ function auditLeadTabHeaders() {
 function headerRewriteRefusal(tabName, dataRows) {
   return 'REFUSING to rewrite the header of "' + tabName + '": it has ' + dataRows + ' data row(s).\n' +
     'A header rewrite only relabels columns, it does not move cells, so any row written\n' +
-    'under the old layout would end up silently mislabeled. Run auditLeadTabHeaders() to\n' +
-    'see the live layout, then realign the columns as its own reviewed change.';
+    'under the old layout would end up silently mislabeled. Run auditLeadTabHeaderDetail("' + tabName + '")\n' +
+    'to see the live layout, then realign the columns as its own reviewed change.';
 }
 
 /* Mechanical rewrite of one lead tab's header row. Clears row 1 across the sheet's
@@ -4036,12 +3944,6 @@ function repairLeadTabHeader(tabName) {
   ].join('\n');
   Logger.log(out);
   return out;
-}
-
-/** Kept as the name the Lifetime Leads repair has always been run under. The logic
- *  is repairLeadTabHeader()'s; this only pins the tab. */
-function repairLifetimeLeadsHeader() {
-  return repairLeadTabHeader(CONFIG.TABS.LIFETIME_LEADS);
 }
 
 /* ── Repair EVERY drifted lead tab that is safe to repair ──
