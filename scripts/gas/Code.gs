@@ -1143,6 +1143,52 @@ function reportsEnabledIndex(sheet) {
   return idx;
 }
 
+/* ── resolveCols(sheet): name-verified column map for a live lead tab ──
+   THE STANDARD for reading a lead tab's columns. Instead of trusting the
+   compile-time COLS constant (which encodes where a column SHOULD be), this reads
+   the sheet's ACTUAL header row and returns a COLS-shaped object whose every
+   value is the column's real position on that tab, resolved by name through the
+   same normalizeHeaderName/findHeaderIndex path every other lookup uses.
+
+   WHY THIS EXISTS. Fourteen functions read live rows as row[COLS.SOMETHING] with
+   zero verification that the tab's header actually matches COLS. A drifted header
+   (a column inserted, deleted, or reordered by hand, or a tab left un-migrated)
+   makes every one of those reads silently return the wrong cell — and six of the
+   fourteen WRITE, two DELETE rows. That is the exact class of bug behind the
+   2026-07-08 header-corruption incident. Resolving by name turns "silently read
+   the wrong column" into "read the right column regardless of order".
+
+   FAILS LOUD, NEVER SILENT. If a required standard header is absent, it throws
+   headerLookupError (with the full char-by-char header dump) rather than putting a
+   -1 into a caller that never checks for it. Callers are wrapped in try/catch that
+   logs, so a drifted tab surfaces as a logged, diagnosable error instead of
+   corrupted data. Refusing to run on a broken tab is the correct outcome here.
+
+   SCOPE. Resolves the 31 standard LEAD_HEADERS columns (the COLS keys) only. The
+   Referral Partners "Reports Enabled" extra is deliberately not included — it is a
+   per-tab extra resolved separately by reportsEnabledIndex(). Not for the Referrals
+   or Subscribers tabs, which use their own schemas (REFERRAL_HEADERS / SCOLS).
+
+   COST. One getRange read of row 1, then 31 name lookups over a ~31-cell array.
+   Call it ONCE per sheet, before any row loop — never per row. */
+function resolveCols(sheet) {
+  if (!sheet) throw new Error('resolveCols: no sheet provided.');
+  var name = sheet.getName();
+  if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) {
+    throw new Error('resolveCols: "' + name + '" has no header row to resolve columns from.');
+  }
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  var resolved = {};
+  Object.keys(COLS).forEach(function(key) {
+    var headerName = LEAD_HEADERS[COLS[key]];   // canonical name for this COLS key
+    var idx = findHeaderIndex(headerRow, headerName);
+    if (idx === -1) throw headerLookupError(name, headerRow, headerName);
+    resolved[key] = idx;
+  });
+  return resolved;
+}
+
 // Referrals tab columns
 var REFERRAL_HEADERS = [
   'Referral ID', 'Referrer Lead ID', 'Referrer Name', 'Referrer Email', 'Referrer Code',
