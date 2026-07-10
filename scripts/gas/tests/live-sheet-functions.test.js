@@ -155,6 +155,72 @@ test('moveColdLeads: acts on the right cells despite a drifted Active Leads head
   assert.ok(!/AXP-2026-0002/.test(sentEmails[0].body));
 });
 
+test('findExistingLead: dedupe matches the right row despite a drifted header', () => {
+  const probe = loadWithSpreadsheet(new FakeSpreadsheet({}));
+  const LEAD_HEADERS = probe.sandbox.LEAD_HEADERS;
+  const { header, indexOf } = driftedHeader(LEAD_HEADERS);
+
+  const mkRow = (email, id) => {
+    const r = new Array(header.length).fill('');
+    r[indexOf('Email')] = email;
+    r[indexOf('Lead ID')] = id;
+    return r;
+  };
+  const life = new FakeSheet('Lifetime Leads', [header.slice(), mkRow('a@x.com', 'AXP-1'), mkRow('b@x.com', 'AXP-2')]);
+  const ss = new FakeSpreadsheet({ 'Lifetime Leads': life });
+  const { sandbox } = loadWithSpreadsheet(ss);
+
+  const hit = sandbox.findExistingLead('b@x.com');
+  assert.ok(hit, 'should find the existing lead');
+  assert.equal(hit.rowIndex, 3); // header + 2 rows, 1-based
+  assert.equal(hit.rowData[indexOf('Lead ID')], 'AXP-2');
+
+  assert.equal(sandbox.findExistingLead('nobody@x.com'), null);
+});
+
+test('onSheetEdit: Status→Cold on drifted Active Leads moves the row; non-lead tab ignored', () => {
+  const probe = loadWithSpreadsheet(new FakeSpreadsheet({}));
+  const LEAD_HEADERS = probe.sandbox.LEAD_HEADERS;
+  const { header, indexOf } = driftedHeader(LEAD_HEADERS);
+
+  const mkRow = (email, status) => {
+    const r = new Array(header.length).fill('');
+    r[indexOf('Email')] = email;
+    r[indexOf('Status')] = status;
+    r[indexOf('Role')] = 'investor';
+    return r;
+  };
+  const active = new FakeSheet('Active Leads', [header.slice(), mkRow('c@x.com', 'Cold')]);
+  const cold = new FakeSheet('Cold Leads', [header.slice()]);
+  const subscribers = new FakeSheet('Subscribers', [['Email', 'First Name', 'Date Subscribed', 'Preferences', 'Active', 'Last Emailed']]);
+  const ss = new FakeSpreadsheet({ 'Active Leads': active, 'Cold Leads': cold, 'Subscribers': subscribers });
+  const { sandbox } = loadWithSpreadsheet(ss);
+
+  // Simulate an edit of the Status cell (at its DRIFTED column) on Active Leads.
+  const statusCol1Based = indexOf('Status') + 1;
+  const fakeRange = {
+    getSheet: () => active,
+    getColumn: () => statusCol1Based,
+    getRow: () => 2,
+    getValue: () => 'Cold',
+  };
+  sandbox.onSheetEdit({ range: fakeRange });
+
+  // Row moved out of Active into Cold.
+  assert.equal(active.getLastRow(), 1, 'active row should have been deleted');
+  const coldEmails = cold.getDataRange().getValues().slice(1).map((r) => r[indexOf('Email')]);
+  assert.deepEqual(coldEmails, ['c@x.com']);
+
+  // Editing a NON-lead tab (Subscribers) must be ignored, not dispatched.
+  const subRange = {
+    getSheet: () => subscribers,
+    getColumn: () => 5, // 'Active' column on Subscribers
+    getRow: () => 2,
+    getValue: () => 'Cold',
+  };
+  assert.doesNotThrow(() => sandbox.onSheetEdit({ range: subRange }));
+});
+
 test('moveColdLeads: throws-safe on a drifted-empty tab is not needed — resolves or logs', () => {
   // A header missing a required column must not silently mis-move. resolveCols
   // throws inside the try, moveColdLeads logs and moves nothing.
