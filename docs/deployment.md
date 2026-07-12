@@ -37,6 +37,27 @@ pnpm deploy:gas     # == cd scripts/gas && clasp push
 **A `clasp push` alone will silently leave production on old code.** Always
 follow a backend change with `clasp deploy -i <deploymentId>`.
 
+### `.claspignore` controls what is allowed to reach Apps Script
+
+`scripts/gas/.claspignore` is an **allowlist**: only `appsscript.json`,
+`Code.gs`, and `emails/**` are pushed. Everything else under `scripts/gas/` is
+excluded by default.
+
+This is load-bearing, not tidiness. `.clasp.json` sets
+`skipSubdirectories: false` and lists `.js` in `scriptExtensions`, so without
+the allowlist clasp sweeps up **every** `.js` under `scripts/gas/` — including
+the Node test suite in `scripts/gas/tests/`. Apps Script runs every pushed
+file's top-level statements in one shared global scope on every invocation, and
+those tests open with `require('node:test')`; GAS has no `require`, so pushing
+them throws `ReferenceError: require is not defined` on **every** `doPost` and
+**every** trigger. That is a full backend outage caused entirely by files that
+are not `Code.gs`.
+
+Before any push that adds files under `scripts/gas/`, run `clasp status` and
+confirm the tracked list is exactly those 9 files. If new Node-only tooling is
+added there, it stays excluded automatically — do not convert `.claspignore`
+into a blocklist.
+
 ### Gotcha: the deploying account needs *edit* access to `BOOKING_CALENDAR_ID`
 
 The Web App runs as `executeAs: USER_DEPLOYING`, so every `Calendar.Events.insert`
