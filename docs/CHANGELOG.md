@@ -3,6 +3,11 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-11 (`.claspignore` — the test suite must never reach Apps Script)
+
+- **chore(gas): added `scripts/gas/.claspignore` as an allowlist** (`appsscript.json`, `Code.gs`, `emails/**` only). Caught while deploying the 2026-07-10 work: `.clasp.json` sets `skipSubdirectories: false` with `.js` in `scriptExtensions` and no ignore file existed, so `clasp status` listed all 7 files of the new `scripts/gas/tests/` suite as **tracked** — `clasp push` would have uploaded them. Apps Script executes every pushed file's top-level statements in one shared global scope per invocation, and the tests open with `require('node:test')`, so the push would have thrown `ReferenceError: require is not defined` on every `doPost` and every trigger: a full backend outage sourced entirely from non-`Code.gs` files. Written as an allowlist so future Node tooling under `scripts/gas/` is excluded by default rather than by someone remembering. See `/docs/deployment.md`.
+- **Deployed:** production deployment `AKfycbzf…IXeZgBqg` redeployed at **@23**, first version carrying `resolveCols`.
+
 ## 2026-07-10 (committed GAS test suite + resolveCols kills the positional-read bug class)
 
 - **test(gas): first committed test suite** at `scripts/gas/tests/`, run with `pnpm test:gas` and in CI via the additive `.github/workflows/test-gas.yml` (Node 22; `ci.yml`/`deploy-web.yml`/`deploy-qr.yml` untouched). `vm`-loads the real `Code.gs` with GAS globals stubbed. Covers the 25 previously-untested pure functions, the seven embedded `TEMPLATE_*` ↔ `emails/*.html` parity pairs, and the `BOOKING_SLOTS`↔frontend `SLOTS` sync. **Header fixtures are deliberately mangled away from `LEAD_HEADERS`** (reordered/re-cased/whitespace/rotated), the explicit lesson from the tautological harness that missed the 2026-07-08 bug.
