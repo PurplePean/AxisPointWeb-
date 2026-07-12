@@ -442,8 +442,8 @@ column 31.
 | 24 | Match Type | `code`/`email`/`name`/`manual`/`none` |
 | 25 | Referral Chain | pipe-separated Lead IDs |
 | 26 | Chain Depth | integer |
-| 27 | Direct Referrals | running count |
-| 28 | Total Downstream | running count (reserved; seeded 0) |
+| 27 | Direct Referrals | running count; incremented by `updateReferrerStats` |
+| 28 | Total Downstream | **Never implemented.** Seeded `0` by `buildLeadRow` and **written by nothing** — `updateReferrerStats` updates only `Direct Referrals` and `Last Referral Date`. The column is permanently `0` on every row. Verified 2026-07-12. Either implement real downstream counting or retire the column; see `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → *Open decisions*. |
 | 29 | Last Referral Date | |
 | 30 | Meet Link | Google Meet URL when `meetType === 'meet'` |
 | 31 | Heard About | `leadHeardAbout(payload)` — the visitor's own "How did you hear about us?" answer. Blank for EAO (no such step). Distinct from **Source**. |
@@ -602,7 +602,81 @@ it is a signal that the revisit condition above may be arriving.
 The pre-EAO role vocabulary is fully gone. `grep -in` over `Code.gs` for
 `curious`, `explorer`, `'refer'`, `Referrals Made`, `Explorers` returns **zero
 matches**. The only live roles are the five in the mapping table above. The
-earlier cleanup stuck.
+earlier cleanup stuck. Re-verified 2026-07-12.
+
+**The `Curious` tab is orphaned.** It is referenced by **no code**: it is not in
+`CONFIG.TABS`, not in `LEAD_TYPES`, not created by `setupSpreadsheet()` (which
+creates 11 tabs, listed below), and not read, written, swept, or audited by any
+function. If the tab still exists in the live Sheet, it is a leftover of the
+pre-EAO role vocabulary and nothing in the backend will ever touch it. Deleting it
+from the Sheet is safe from the code's point of view; it is left alone here only
+because this repo cannot read the live Sheet to confirm its contents first.
+
+## Known open defects and gaps (pre-existing — verified 2026-07-12)
+
+These are **current, real, unfixed** states of the backend. They are recorded so no
+future task assumes the opposite. None of them was introduced by, or is blocked on,
+the schema migration.
+
+### 1. `createContact` fails silently for at least one confirmed case
+
+Google Contacts creation **does not reliably work today**. At least one confirmed
+test submission produced no contact. `createContact(payload)` is called from
+`handleFormSubmission` inside a try/catch that logs and continues (deliberately — a
+contact failure must never fail a submission), so the failure is invisible from the
+frontend and produces a successful-looking response.
+
+**Do not assume Contacts creation currently works.** Anything that depends on it
+(the per-category Contact Groups sync, `moveContactToCold`, `handleCategoryEdit`'s
+re-labeling) inherits the same uncertainty.
+
+Leading suspect, **not yet confirmed**: `createContact` uses **`ContactsApp`**, the
+legacy Contacts API surface, which Google has deprecated in favour of the People
+API. That is a hypothesis to test first, not a diagnosis. Root-causing this is its
+own task and has not been done.
+
+### 2. Twelve of thirteen `qualData` fields are collected but never persisted
+
+`buildLeadRow` (the only writer of a lead row) persists exactly one `qualData`
+field: `assetClasses` → **Asset Class** (col 11). The other twelve never reach the
+Sheet:
+
+| Fate | Fields |
+|---|---|
+| **Never read at all** — asked, transmitted, read by nothing | `clients`, `proIntent`, `relationship`, `fit`, `timeline`, `awareness` |
+| **Email-only** — render a sentence in `buildVisitorPersonalNote` / `sendPartnerNotification`, then discarded | `aum`, `experience`, `proRole`, `markets`, `profession`, `referralIntent` |
+
+This is a **known, pre-existing gap, not a migration artifact.** It predates any
+schema work. The full field-by-field table and the verification method live in
+`frontend-payload-schemas.md` → *What `qualData` actually persists*. Whether the
+migration should start persisting these into a Details JSON blob is an **open
+decision** — see `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
+
+### 3. `Total Downstream` (col 28) is never written
+
+Seeded `0`, incremented by nothing. See the `LEAD_HEADERS` table above.
+
+### 4. `submit_referral`'s referred-person data is prose, not structured
+
+`buildLeadRow` folds the `referred` block (name/email/phone/notes) into the
+**Message** column as a newline-joined text block. It is not machine-readable and
+cannot be queried. Open decision for the migration.
+
+## There are NO callable admin actions — do not assume otherwise
+
+`doPost` routes to exactly two handlers (`handleSubscribe`, `handleFormSubmission`)
+and `doGet` to exactly two (`handleUnsubscribe`, `handleAvailability`). **There is
+no admin action surface of any kind.**
+
+Specifically, `setLeadStatus`, `setReportsEnabled`, `forcePartnerSummaryNow`, and
+`forceDailyDigestNow` **do not exist** — a repo-wide grep for all four returns
+**zero matches** in `Code.gs`, in the frontend, and in `/docs`. They have never been
+built. Verified 2026-07-12.
+
+The only ways to drive the backend by hand are the **AxisPoint** custom Sheet menu
+(`onOpen`: publish notification, cold sweep now, daily digest now) and running a
+function directly from the Apps Script editor. Building callable admin actions is a
+**separate, later phase** and is explicitly out of scope for the schema migration.
 
 ## `CONFIG` object
 
