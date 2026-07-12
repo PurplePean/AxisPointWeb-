@@ -13,6 +13,7 @@
     "type-check": "pnpm -r type-check",
     "lint": "pnpm -r lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test:gas": "node --test \"scripts/gas/tests/**/*.test.js\"",
     "deploy:gas": "cd scripts/gas && clasp push"
   },
   "devDependencies": {

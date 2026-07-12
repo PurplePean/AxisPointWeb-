@@ -121,7 +121,7 @@ var CONFIG = {
      contactGroupForCategory() → .category → .contactGroup
      handleFormSubmission()    → .normalizer, .seedReportsEnabled
      setupSpreadsheet()        → .tab + .tabColor   (leadTabConfigs)
-     migrateAddHeardAboutColumn() → .tab            (leadTabConfigs)
+     updateReferrerStats()     → .tab              (leadTabConfigs)
      handleCategoryEdit()      → .contactGroup      (allCategoryContactGroups)
 
    Before this registry existed, those seven consumers each carried their own
@@ -232,9 +232,10 @@ function leadTypeTabConfigs() {
 
 /** The full ordered tab list every lead tab shares LEAD_HEADERS across: the
  *  three cross-role tabs, then each role's category tab, then the two terminal
- *  tabs. setupSpreadsheet() and migrateAddHeardAboutColumn() both read this, so
- *  a new lead type's tab can never be created but left un-migrated (or vice
- *  versa) — that skew is what let the Existing Asset Owners tab go missing. */
+ *  tabs. setupSpreadsheet(), updateReferrerStats(), the header audit/repair
+ *  functions, and onSheetEdit's lead-tab guard all read this, so the set of "lead
+ *  tabs" has exactly one definition — the skew between such lists is what let the
+ *  Existing Asset Owners tab go missing. */
 function leadTabConfigs() {
   return [
     { name: CONFIG.TABS.ACTIVE_LEADS,   color: '#24A5BC' },
@@ -1026,7 +1027,7 @@ var REPORTS_ENABLED_HEADER = 'Reports Enabled';   // not in LEAD_HEADERS: a per-
    the extra Reports Enabled toggle after them.
 
    Single definition site. setupSpreadsheet() writes new tabs from this,
-   auditLeadTabHeaders() compares live tabs against it, and
+   leadTabHeaderAudit() compares live tabs against it, and
    rewriteLeadTabHeaderRow() rewrites from it — so "what a healthy tab looks
    like" can never mean three different things in three places.
 
@@ -1116,10 +1117,10 @@ function headerLookupError(sheetName, headerRow, headerName) {
    correct on tabs that have not yet been migrated to the current layout.
 
    NOTE: this still matches on trim() + exact case, unlike findHeaderIndex above.
-   Its two callers (reportsEnabledIndex, migrateAddHeardAboutColumn) treat -1 as a
-   meaningful "column absent" state that drives a WRITE — migrate inserts a column
-   when it reads -1 — so loosening the match here changes migration behavior and is
-   deliberately left for its own change. See the PR discussion. */
+   Its remaining caller (reportsEnabledIndex) treats -1 as a meaningful "column
+   absent" state rather than an error, so the exact match is acceptable there and
+   is deliberately left as its own concern. (resolveCols, added later, uses the
+   resilient findHeaderIndex for the standard columns and THROWS on a real miss.) */
 function headerIndex(sheet, headerName) {
   if (!sheet) return -1;
   if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) return -1;
@@ -1141,6 +1142,52 @@ function reportsEnabledIndex(sheet) {
                (sheet ? sheet.getName() : '(null sheet)') + '"');
   }
   return idx;
+}
+
+/* ── resolveCols(sheet): name-verified column map for a live lead tab ──
+   THE STANDARD for reading a lead tab's columns. Instead of trusting the
+   compile-time COLS constant (which encodes where a column SHOULD be), this reads
+   the sheet's ACTUAL header row and returns a COLS-shaped object whose every
+   value is the column's real position on that tab, resolved by name through the
+   same normalizeHeaderName/findHeaderIndex path every other lookup uses.
+
+   WHY THIS EXISTS. Fourteen functions read live rows as row[COLS.SOMETHING] with
+   zero verification that the tab's header actually matches COLS. A drifted header
+   (a column inserted, deleted, or reordered by hand, or a tab left un-migrated)
+   makes every one of those reads silently return the wrong cell — and six of the
+   fourteen WRITE, two DELETE rows. That is the exact class of bug behind the
+   2026-07-08 header-corruption incident. Resolving by name turns "silently read
+   the wrong column" into "read the right column regardless of order".
+
+   FAILS LOUD, NEVER SILENT. If a required standard header is absent, it throws
+   headerLookupError (with the full char-by-char header dump) rather than putting a
+   -1 into a caller that never checks for it. Callers are wrapped in try/catch that
+   logs, so a drifted tab surfaces as a logged, diagnosable error instead of
+   corrupted data. Refusing to run on a broken tab is the correct outcome here.
+
+   SCOPE. Resolves the 31 standard LEAD_HEADERS columns (the COLS keys) only. The
+   Referral Partners "Reports Enabled" extra is deliberately not included — it is a
+   per-tab extra resolved separately by reportsEnabledIndex(). Not for the Referrals
+   or Subscribers tabs, which use their own schemas (REFERRAL_HEADERS / SCOLS).
+
+   COST. One getRange read of row 1, then 31 name lookups over a ~31-cell array.
+   Call it ONCE per sheet, before any row loop — never per row. */
+function resolveCols(sheet) {
+  if (!sheet) throw new Error('resolveCols: no sheet provided.');
+  var name = sheet.getName();
+  if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) {
+    throw new Error('resolveCols: "' + name + '" has no header row to resolve columns from.');
+  }
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  var resolved = {};
+  Object.keys(COLS).forEach(function(key) {
+    var headerName = LEAD_HEADERS[COLS[key]];   // canonical name for this COLS key
+    var idx = findHeaderIndex(headerRow, headerName);
+    if (idx === -1) throw headerLookupError(name, headerRow, headerName);
+    resolved[key] = idx;
+  });
+  return resolved;
 }
 
 // Referrals tab columns
@@ -1231,10 +1278,11 @@ function generateReferralCode(leadId) {
 function existingReferralCodes() {
   var map   = {};
   var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
-  if (!sheet) return map;
+  if (!sheet || sheet.getLastRow() < 2) return map;   // no data rows → nothing to collide with
+  var C = resolveCols(sheet);
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
-    var c = String(data[i][COLS.REFERRAL_CODE] || '').toUpperCase();
+    var c = String(data[i][C.REFERRAL_CODE] || '').toUpperCase();
     if (c) map[c] = true;
   }
   return map;
@@ -1388,7 +1436,7 @@ function handleFormSubmission(payload) {
             // summary; log loudly rather than writing the seed to a guessed cell.
             Logger.log('handleFormSubmission: "' + REPORTS_ENABLED_HEADER + '" column missing on ' +
                        categoryTab + '; skipped seeding it for lead ' + leadId +
-                       '. Run migrateAddHeardAboutColumn() to repair the tab layout.');
+                       '. Run repairAllDriftedLeadTabHeaders() to repair the tab layout.');
           }
         }
       }
@@ -1422,22 +1470,25 @@ function handleResubmission(existing, payload) {
   var sheet    = tab(CONFIG.TABS.LIFETIME_LEADS);
   var rowIndex = existing.rowIndex;  // 1-based sheet row
   var rowData  = existing.rowData;
-  var existingLeadId       = rowData[COLS.LEAD_ID];
-  var existingReferralCode = rowData[COLS.REFERRAL_CODE];
+  // rowData was read from Lifetime Leads by findExistingLead; resolve the same
+  // sheet's live layout so both the reads below and the writes target real cells.
+  var C = resolveCols(sheet);
+  var existingLeadId       = rowData[C.LEAD_ID];
+  var existingReferralCode = rowData[C.REFERRAL_CODE];
   var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
   var p = payload.person || {};
 
   // Update any previously-empty fields with new info
   var updates = {};
-  if (!rowData[COLS.FIRST_NAME]   && p.firstName)   updates[COLS.FIRST_NAME]   = p.firstName;
-  if (!rowData[COLS.LAST_NAME]    && p.lastName)     updates[COLS.LAST_NAME]    = p.lastName;
-  if (!rowData[COLS.PHONE]        && p.phone)        updates[COLS.PHONE]        = p.phone;
-  if (!rowData[COLS.COMPANY]      && p.company)      updates[COLS.COMPANY]      = p.company;
-  if (!rowData[COLS.BOOKING_DATE] && payload.booking && payload.booking.date) {
-    updates[COLS.BOOKING_DATE] = payload.booking.date;
-    updates[COLS.BOOKING_TIME] = payload.booking.slot || payload.booking.time || '';
-    updates[COLS.MEET_TYPE]    = payload.booking.meetType || '';
-    updates[COLS.BOOKING_PHONE]= payload.booking.phone   || '';
+  if (!rowData[C.FIRST_NAME]   && p.firstName)   updates[C.FIRST_NAME]   = p.firstName;
+  if (!rowData[C.LAST_NAME]    && p.lastName)     updates[C.LAST_NAME]    = p.lastName;
+  if (!rowData[C.PHONE]        && p.phone)        updates[C.PHONE]        = p.phone;
+  if (!rowData[C.COMPANY]      && p.company)      updates[C.COMPANY]      = p.company;
+  if (!rowData[C.BOOKING_DATE] && payload.booking && payload.booking.date) {
+    updates[C.BOOKING_DATE] = payload.booking.date;
+    updates[C.BOOKING_TIME] = payload.booking.slot || payload.booking.time || '';
+    updates[C.MEET_TYPE]    = payload.booking.meetType || '';
+    updates[C.BOOKING_PHONE]= payload.booking.phone   || '';
   }
 
   for (var col in updates) {
@@ -1445,11 +1496,11 @@ function handleResubmission(existing, payload) {
   }
 
   // Append resubmission note to message column
-  var existingMsg   = rowData[COLS.MESSAGE] || '';
+  var existingMsg   = rowData[C.MESSAGE] || '';
   var resubNote     = 'Resubmission on ' + today + ' (' + existingLeadId + ')';
   if (payload.message) resubNote += '\n\nNew message: ' + payload.message;
   var newMsg = existingMsg ? existingMsg + '\n\n' + resubNote : resubNote;
-  sheet.getRange(rowIndex, COLS.MESSAGE + 1).setValue(newMsg);
+  sheet.getRange(rowIndex, C.MESSAGE + 1).setValue(newMsg);
 
   // Notify partners of resubmission
   try { sendResubmissionNotification(payload, existingLeadId, existingReferralCode); }
@@ -1466,10 +1517,11 @@ function handleResubmission(existing, payload) {
 function findExistingLead(email) {
   if (!email) return null;
   var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
-  if (!sheet) return null;
+  if (!sheet || sheet.getLastRow() < 2) return null;   // no data rows → no match possible
+  var C = resolveCols(sheet);
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
-    var rowEmail = String(data[i][COLS.EMAIL] || '').toLowerCase().trim();
+    var rowEmail = String(data[i][C.EMAIL] || '').toLowerCase().trim();
     if (rowEmail === email) {
       return { rowIndex: i + 1, rowData: data[i] };
     }
@@ -1488,14 +1540,15 @@ function matchReferrer(payload) {
   }
 
   var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
-  if (!sheet) return { found: false, matchType: 'none' };
+  if (!sheet || sheet.getLastRow() < 2) return { found: false, matchType: 'none' };
+  var C = resolveCols(sheet);
   var data = sheet.getDataRange().getValues();
 
   // Priority 1: code match
   if (code) {
     for (var i = 1; i < data.length; i++) {
-      if (String(data[i][COLS.REFERRAL_CODE] || '').toUpperCase() === code.toUpperCase()) {
-        return buildReferralMatch(data[i], 'code');
+      if (String(data[i][C.REFERRAL_CODE] || '').toUpperCase() === code.toUpperCase()) {
+        return buildReferralMatch(data[i], 'code', C);
       }
     }
   }
@@ -1503,9 +1556,9 @@ function matchReferrer(payload) {
   // Priority 2: email match
   if (email) {
     for (var j = 1; j < data.length; j++) {
-      var rowEmail = String(data[j][COLS.EMAIL] || '').toLowerCase().trim();
+      var rowEmail = String(data[j][C.EMAIL] || '').toLowerCase().trim();
       if (rowEmail === email) {
-        return buildReferralMatch(data[j], 'email');
+        return buildReferralMatch(data[j], 'email', C);
       }
     }
   }
@@ -1514,9 +1567,9 @@ function matchReferrer(payload) {
   if (name) {
     var nameLower = name.toLowerCase();
     for (var k = 1; k < data.length; k++) {
-      var full = (String(data[k][COLS.FIRST_NAME] || '') + ' ' + String(data[k][COLS.LAST_NAME] || '')).toLowerCase().trim();
+      var full = (String(data[k][C.FIRST_NAME] || '') + ' ' + String(data[k][C.LAST_NAME] || '')).toLowerCase().trim();
       if (full && full === nameLower) {
-        return buildReferralMatch(data[k], 'name');
+        return buildReferralMatch(data[k], 'name', C);
       }
     }
   }
@@ -1524,9 +1577,12 @@ function matchReferrer(payload) {
   return { found: false, matchType: 'none' };
 }
 
-function buildReferralMatch(referrerRow, matchType) {
-  var referrerChain = String(referrerRow[COLS.REFERRAL_CHAIN] || '').trim();
-  var referrerLeadId = String(referrerRow[COLS.LEAD_ID] || '');
+/* `cols` is the resolved column map for the sheet referrerRow was read from
+   (Lifetime Leads, via matchReferrer). Defaults to COLS only for safety. */
+function buildReferralMatch(referrerRow, matchType, cols) {
+  var C = cols || COLS;
+  var referrerChain = String(referrerRow[C.REFERRAL_CHAIN] || '').trim();
+  var referrerLeadId = String(referrerRow[C.LEAD_ID] || '');
   var chain = referrerChain
     ? referrerChain + '|' + referrerLeadId
     : referrerLeadId;
@@ -1536,10 +1592,10 @@ function buildReferralMatch(referrerRow, matchType) {
     found:             true,
     matchType:         matchType,
     referrerLeadId:    referrerLeadId,
-    referrerName:      [referrerRow[COLS.FIRST_NAME], referrerRow[COLS.LAST_NAME]].filter(Boolean).join(' '),
-    referrerFirstName: String(referrerRow[COLS.FIRST_NAME] || ''),
-    referrerEmail:     String(referrerRow[COLS.EMAIL] || ''),
-    referrerCode:      String(referrerRow[COLS.REFERRAL_CODE] || ''),
+    referrerName:      [referrerRow[C.FIRST_NAME], referrerRow[C.LAST_NAME]].filter(Boolean).join(' '),
+    referrerFirstName: String(referrerRow[C.FIRST_NAME] || ''),
+    referrerEmail:     String(referrerRow[C.EMAIL] || ''),
+    referrerCode:      String(referrerRow[C.REFERRAL_CODE] || ''),
     chain:             chain,
     depth:             depth,
   };
@@ -1548,22 +1604,29 @@ function buildReferralMatch(referrerRow, matchType) {
 function updateReferrerStats(referrerLeadId) {
   if (!referrerLeadId) return;
   var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
-  var tabsToCheck = [
-    CONFIG.TABS.LIFETIME_LEADS, CONFIG.TABS.ACTIVE_LEADS,
-    CONFIG.TABS.REFERRAL_PARTNERS, CONFIG.TABS.INVESTORS,
-    CONFIG.TABS.RE_PROFESSIONALS, CONFIG.TABS.ASSET_OWNER, CONFIG.TABS.COLD_LEADS,
-  ];
+  // Derived from the registry, not a hand-kept list. The old literal omitted
+  // Clients and Archive, so a referrer promoted to Client (or archived) stopped
+  // having their Direct Referrals / Last Referral Date updated. leadTabConfigs()
+  // is every lead tab, so a new lead type's tab is covered automatically.
+  var tabsToCheck = leadTabConfigs().map(function(cfg) { return cfg.name; });
   tabsToCheck.forEach(function(tabName) {
-    var sheet = tab(tabName);
-    if (!sheet) return;
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][COLS.LEAD_ID] || '') === referrerLeadId) {
-        var current = parseInt(data[i][COLS.DIRECT_REFERRALS] || '0', 10);
-        sheet.getRange(i + 1, COLS.DIRECT_REFERRALS + 1).setValue(current + 1);
-        sheet.getRange(i + 1, COLS.LAST_REFERRAL_DATE + 1).setValue(today);
-        break;
+    // Per-tab guard: one drifted tab (resolveCols throws) must not stop the stats
+    // update on the others. The referrer's row usually lives on several tabs.
+    try {
+      var sheet = tab(tabName);
+      if (!sheet || sheet.getLastRow() < 2) return;   // no data rows → nothing to update
+      var C = resolveCols(sheet);
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][C.LEAD_ID] || '') === referrerLeadId) {
+          var current = parseInt(data[i][C.DIRECT_REFERRALS] || '0', 10);
+          sheet.getRange(i + 1, C.DIRECT_REFERRALS + 1).setValue(current + 1);
+          sheet.getRange(i + 1, C.LAST_REFERRAL_DATE + 1).setValue(today);
+          break;
+        }
       }
+    } catch (e) {
+      Logger.log('updateReferrerStats: skipped "' + tabName + '": ' + e);
     }
   });
 }
@@ -2197,12 +2260,13 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
 function sendDailyDigest() {
   try {
     var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
-    if (!sheet) return;
+    if (!sheet || sheet.getLastRow() < 2) return;   // no data rows → nothing to digest
+    var C = resolveCols(sheet);
 
     var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
     var rows  = sheet.getDataRange().getValues().slice(1).filter(function(r) {
       // Timestamp is an ISO string; compare its CT calendar date to today's.
-      var ts = new Date(r[COLS.TIMESTAMP]);
+      var ts = new Date(r[C.TIMESTAMP]);
       if (isNaN(ts)) return false;
       return Utilities.formatDate(ts, 'America/Chicago', 'MM/dd/yyyy') === today;
     });
@@ -2214,21 +2278,21 @@ function sendDailyDigest() {
 
     var n = rows.length;
     var blocks = rows.map(function(r) {
-      var name     = [r[COLS.FIRST_NAME], r[COLS.LAST_NAME]].filter(Boolean).join(' ') || 'Unknown';
-      var refLine  = r[COLS.REF_BY_NAME]
-        ? 'Referred By: ' + r[COLS.REF_BY_NAME] + ' (' + r[COLS.MATCH_TYPE] + ')'
+      var name     = [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' ') || 'Unknown';
+      var refLine  = r[C.REF_BY_NAME]
+        ? 'Referred By: ' + r[C.REF_BY_NAME] + ' (' + r[C.MATCH_TYPE] + ')'
         : '';
       return [
-        'Lead ID:     ' + r[COLS.LEAD_ID],
+        'Lead ID:     ' + r[C.LEAD_ID],
         'Name:        ' + name,
-        'Role:        ' + r[COLS.CATEGORY],
-        'Email:       ' + r[COLS.EMAIL],
-        'Phone:       ' + r[COLS.PHONE],
-        'Asset Class: ' + r[COLS.ASSET_CLASS],
-        r[COLS.BOOKING_DATE]
-          ? 'Booking:     ' + r[COLS.BOOKING_DATE] + ' at ' + r[COLS.BOOKING_TIME]
+        'Role:        ' + r[C.CATEGORY],
+        'Email:       ' + r[C.EMAIL],
+        'Phone:       ' + r[C.PHONE],
+        'Asset Class: ' + r[C.ASSET_CLASS],
+        r[C.BOOKING_DATE]
+          ? 'Booking:     ' + r[C.BOOKING_DATE] + ' at ' + r[C.BOOKING_TIME]
           : '',
-        'Source:      ' + r[COLS.SOURCE],
+        'Source:      ' + r[C.SOURCE],
         refLine,
       ].filter(function(l) { return l && l.slice(-1) !== ':'; }).join('\n');
     });
@@ -2261,6 +2325,10 @@ function sendMonthlyReferralSummaries() {
   try {
     var partnersSheet = tab(CONFIG.TABS.REFERRAL_PARTNERS);
     if (!partnersSheet) { Logger.log('sendMonthlyReferralSummaries: no Referral Partners tab.'); return; }
+    if (partnersSheet.getLastRow() < 2) { Logger.log('sendMonthlyReferralSummaries: no partner rows.'); return; }
+    // Referral Partners layout resolved by name; the Referrals tab below uses its
+    // own schema (REFERRAL_HEADERS), so its positional reads are left as-is.
+    var C = resolveCols(partnersSheet);
 
     // Tally referrals per referrer Lead ID from the Referrals tab.
     var totals = {};   // leadId -> total count
@@ -2293,7 +2361,7 @@ function sendMonthlyReferralSummaries() {
 
     for (var i = 1; i < partners.length; i++) {
       var row    = partners[i];
-      var status = String(row[COLS.STATUS] || '');
+      var status = String(row[C.STATUS] || '');
       if (status === 'Cold' || status === 'Archive') continue;
 
       // Skip partners who have explicitly opted out (Reports Enabled = FALSE).
@@ -2302,16 +2370,16 @@ function sendMonthlyReferralSummaries() {
       var reportsEnabled = reCol >= 0 ? row[reCol] : '';
       if (reportsEnabled === false || String(reportsEnabled).trim().toUpperCase() === 'FALSE') continue;
 
-      var leadId = String(row[COLS.LEAD_ID] || '');
-      var email  = String(row[COLS.EMAIL]   || '').trim();
+      var leadId = String(row[C.LEAD_ID] || '');
+      var email  = String(row[C.EMAIL]   || '').trim();
       if (!leadId || !email) continue;
 
       var totalReferrals = totals[leadId] || 0;
       if (totalReferrals <= 0) continue;
 
       var monthReferrals = months[leadId] || 0;
-      var firstName      = String(row[COLS.FIRST_NAME] || '') || 'there';
-      var code           = String(row[COLS.REFERRAL_CODE] || '');
+      var firstName      = String(row[C.FIRST_NAME] || '') || 'there';
+      var code           = String(row[C.REFERRAL_CODE] || '');
 
       var html = renderTemplate(TEMPLATE_REFERRER_MONTHLY, {
         firstName:      firstName,
@@ -2350,6 +2418,13 @@ function moveColdLeads() {
     var activeSheet = tab(CONFIG.TABS.ACTIVE_LEADS);
     if (!activeSheet) return;
 
+    // Resolve the Active Leads layout by NAME once, up front. Every read of a row
+    // below indexes through C, not the compile-time COLS, so a drifted Active tab
+    // reads the right cells (or throws here, before any row is deleted) rather than
+    // silently deleting the wrong lead — the highest-risk positional read in the
+    // file, because this function both reads a Timestamp and deletes rows.
+    var C = resolveCols(activeSheet);
+
     var data   = activeSheet.getDataRange().getValues();
     var now    = new Date();
     var active = ['New Lead', 'Contacted', 'Active'];
@@ -2357,22 +2432,23 @@ function moveColdLeads() {
 
     for (var i = data.length - 1; i >= 1; i--) {
       var row    = data[i];
-      var status = String(row[COLS.STATUS] || '');
+      var status = String(row[C.STATUS] || '');
       if (active.indexOf(status) === -1) continue;
 
-      var submitted = new Date(row[COLS.TIMESTAMP]);
+      var submitted = new Date(row[C.TIMESTAMP]);
       if (isNaN(submitted)) continue;
 
       var age = (now - submitted) / 86400000;
       if (age <= CONFIG.COLD_LEAD_DAYS) continue;
 
-      row[COLS.STATUS] = 'Cold';
+      row[C.STATUS] = 'Cold';
       appendRow(CONFIG.TABS.COLD_LEADS, row);
       activeSheet.deleteRow(i + 1);
-      setCategoryTabStatus(row, 'Cold');
+      try { setCategoryTabStatus(row, 'Cold', C); }
+      catch (e) { Logger.log('setCategoryTabStatus failed for ' + row[C.EMAIL] + ': ' + e); }
 
-      try { moveContactToCold(row[COLS.EMAIL]); }
-      catch (e) { Logger.log('moveContactToCold failed for ' + row[COLS.EMAIL] + ': ' + e); }
+      try { moveContactToCold(row[C.EMAIL]); }
+      catch (e) { Logger.log('moveContactToCold failed for ' + row[C.EMAIL] + ': ' + e); }
 
       moved.push(row);
     }
@@ -2381,11 +2457,11 @@ function moveColdLeads() {
 
     var blocks = moved.map(function(r) {
       return [
-        'Lead ID:        ' + r[COLS.LEAD_ID],
-        'Name:           ' + [r[COLS.FIRST_NAME], r[COLS.LAST_NAME]].filter(Boolean).join(' '),
-        'Role:           ' + r[COLS.CATEGORY],
-        'Email:          ' + r[COLS.EMAIL],
-        'Submitted:      ' + Utilities.formatDate(new Date(r[COLS.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
+        'Lead ID:        ' + r[C.LEAD_ID],
+        'Name:           ' + [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' '),
+        'Role:           ' + r[C.CATEGORY],
+        'Email:          ' + r[C.EMAIL],
+        'Submitted:      ' + Utilities.formatDate(new Date(r[C.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
       ].join('\n');
     });
 
@@ -2410,15 +2486,20 @@ function moveColdLeads() {
   }
 }
 
-function setCategoryTabStatus(row, newStatus) {
-  var tabName = categoryTabForRole(row[COLS.ROLE]);
+/* srcCols is the resolved column map for the sheet `row` was read from (its
+   ROLE/EMAIL are read through it). The category tab is a DIFFERENT sheet and may
+   have a different live layout, so it is resolved independently here. */
+function setCategoryTabStatus(row, newStatus, srcCols) {
+  var sc = srcCols || COLS;
+  var tabName = categoryTabForRole(row[sc.ROLE]);
   if (!tabName) return;
   var sheet = tab(tabName);
   if (!sheet) return;
+  var C = resolveCols(sheet);
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][COLS.EMAIL] === row[COLS.EMAIL]) {
-      sheet.getRange(i + 1, COLS.STATUS + 1).setValue(newStatus);
+    if (rows[i][C.EMAIL] === row[sc.EMAIL]) {
+      sheet.getRange(i + 1, C.STATUS + 1).setValue(newStatus);
       break;
     }
   }
@@ -2449,34 +2530,50 @@ function onSheetEdit(e) {
     var row       = e.range.getRow();
     if (row <= 1) return;
 
-    var statusCol   = COLS.STATUS       + 1;
-    var categoryCol = COLS.CATEGORY     + 1;
-    var refByEmail  = COLS.REF_BY_EMAIL + 1;
+    // Only lead tabs carry the Status/Category/Referred By Email columns and the
+    // LEAD_HEADERS layout. Editing Referrals or Subscribers must not dispatch a
+    // lead handler (and resolveCols would throw on their schema). This guard was
+    // absent before: any tab wide enough was dispatched positionally.
+    var leadTabNames = leadTabConfigs().map(function(cfg) { return cfg.name; });
+    if (leadTabNames.indexOf(sheetName) === -1) return;
+
+    // Resolve the edited tab's real layout so the watched columns are matched by
+    // name, not by a compile-time position that a drifted tab would not honor.
+    var C = resolveCols(sheet);
+    var statusCol   = C.STATUS       + 1;
+    var categoryCol = C.CATEGORY     + 1;
+    var refByEmail  = C.REF_BY_EMAIL + 1;
 
     if (col !== statusCol && col !== categoryCol && col !== refByEmail) return;
 
     var newValue = String(e.range.getValue());
-    var rowData  = sheet.getRange(row, 1, 1, LEAD_HEADERS.length).getValues()[0];
+    // Read the row at the tab's real width (Referral Partners is 32 wide).
+    var rowData  = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-    if (col === statusCol)  { handleStatusEdit(sheetName, row, rowData, newValue); }
-    else if (col === categoryCol) { handleCategoryEdit(rowData, newValue); }
-    else if (col === refByEmail)  { handleManualReferralLink(sheet, row, rowData, newValue); }
+    if (col === statusCol)  { handleStatusEdit(sheetName, row, rowData, newValue, C); }
+    else if (col === categoryCol) { handleCategoryEdit(rowData, newValue, C); }
+    else if (col === refByEmail)  { handleManualReferralLink(sheet, row, rowData, newValue, C); }
   } catch (err) {
     Logger.log('onSheetEdit error: ' + err);
   }
 }
 
-function handleManualReferralLink(sheet, row, rowData, referredByEmail) {
+/* editedCols is the resolved column map for `sheet` (the edited tab) — used for
+   the writes to it and for reading rowData. The Lifetime Leads referrer lookup
+   is a different sheet and is resolved separately (LC). */
+function handleManualReferralLink(sheet, row, rowData, referredByEmail, editedCols) {
   if (!referredByEmail) return;
+  var EC = editedCols || COLS;
   var email = referredByEmail.toLowerCase().trim();
 
   var lifetimeSheet = tab(CONFIG.TABS.LIFETIME_LEADS);
-  if (!lifetimeSheet) return;
+  if (!lifetimeSheet || lifetimeSheet.getLastRow() < 2) return;
+  var LC = resolveCols(lifetimeSheet);
   var data = lifetimeSheet.getDataRange().getValues();
   var referrerRow = null;
 
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][COLS.EMAIL] || '').toLowerCase().trim() === email) {
+    if (String(data[i][LC.EMAIL] || '').toLowerCase().trim() === email) {
       referrerRow = data[i];
       break;
     }
@@ -2484,20 +2581,20 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail) {
 
   if (!referrerRow) return;
 
-  var referrerLeadId = String(referrerRow[COLS.LEAD_ID] || '');
-  var referrerName   = [referrerRow[COLS.FIRST_NAME], referrerRow[COLS.LAST_NAME]].filter(Boolean).join(' ');
-  var referrerCode   = String(referrerRow[COLS.REFERRAL_CODE] || '');
-  var referrerChain  = String(referrerRow[COLS.REFERRAL_CHAIN] || '').trim();
+  var referrerLeadId = String(referrerRow[LC.LEAD_ID] || '');
+  var referrerName   = [referrerRow[LC.FIRST_NAME], referrerRow[LC.LAST_NAME]].filter(Boolean).join(' ');
+  var referrerCode   = String(referrerRow[LC.REFERRAL_CODE] || '');
+  var referrerChain  = String(referrerRow[LC.REFERRAL_CHAIN] || '').trim();
   var chain          = referrerChain ? referrerChain + '|' + referrerLeadId : referrerLeadId;
   var depth          = chain ? chain.split('|').length : 1;
 
-  sheet.getRange(row, COLS.REF_BY_LEAD_ID + 1).setValue(referrerLeadId);
-  sheet.getRange(row, COLS.REF_BY_NAME    + 1).setValue(referrerName);
-  sheet.getRange(row, COLS.REF_BY_EMAIL   + 1).setValue(email);
-  sheet.getRange(row, COLS.REF_BY_CODE    + 1).setValue(referrerCode);
-  sheet.getRange(row, COLS.MATCH_TYPE     + 1).setValue('manual');
-  sheet.getRange(row, COLS.REFERRAL_CHAIN + 1).setValue(chain);
-  sheet.getRange(row, COLS.CHAIN_DEPTH    + 1).setValue(depth);
+  sheet.getRange(row, EC.REF_BY_LEAD_ID + 1).setValue(referrerLeadId);
+  sheet.getRange(row, EC.REF_BY_NAME    + 1).setValue(referrerName);
+  sheet.getRange(row, EC.REF_BY_EMAIL   + 1).setValue(email);
+  sheet.getRange(row, EC.REF_BY_CODE    + 1).setValue(referrerCode);
+  sheet.getRange(row, EC.MATCH_TYPE     + 1).setValue('manual');
+  sheet.getRange(row, EC.REFERRAL_CHAIN + 1).setValue(chain);
+  sheet.getRange(row, EC.CHAIN_DEPTH    + 1).setValue(depth);
 
   updateReferrerStats(referrerLeadId);
 
@@ -2507,9 +2604,9 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail) {
     var seq   = nextReferralSequence();
     var refId = buildReferralTabId(seq);
     var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
-    var referredLeadId = String(rowData[COLS.LEAD_ID] || '');
-    var referredName   = [rowData[COLS.FIRST_NAME], rowData[COLS.LAST_NAME]].filter(Boolean).join(' ');
-    var referredEmail  = String(rowData[COLS.EMAIL] || '');
+    var referredLeadId = String(rowData[EC.LEAD_ID] || '');
+    var referredName   = [rowData[EC.FIRST_NAME], rowData[EC.LAST_NAME]].filter(Boolean).join(' ');
+    var referredEmail  = String(rowData[EC.EMAIL] || '');
     refSheet.appendRow([
       refId, referrerLeadId, referrerName, email, referrerCode,
       referredLeadId, referredName, referredEmail,
@@ -2518,17 +2615,19 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail) {
   }
 
   // Send referrer notification
-  var firstName = String(referrerRow[COLS.FIRST_NAME] || '');
+  var firstName = String(referrerRow[LC.FIRST_NAME] || '');
   sendReferrerNotification(email, firstName, referrerCode);
 }
 
-function handleStatusEdit(sheetName, rowNum, rowData, newStatus) {
-  var email = rowData[COLS.EMAIL];
+/* editedCols is the resolved column map for the edited tab rowData came from. */
+function handleStatusEdit(sheetName, rowNum, rowData, newStatus, editedCols) {
+  var C = editedCols || COLS;
+  var email = rowData[C.EMAIL];
 
   switch (newStatus) {
     case 'Cold':
       if (sheetName === CONFIG.TABS.ACTIVE_LEADS) {
-        rowData[COLS.STATUS] = 'Cold';
+        rowData[C.STATUS] = 'Cold';
         appendRow(CONFIG.TABS.COLD_LEADS, rowData);
         tab(CONFIG.TABS.ACTIVE_LEADS).deleteRow(rowNum);
         try { moveContactToCold(email); } catch (e) {}
@@ -2556,7 +2655,7 @@ function handleStatusEdit(sheetName, rowNum, rowData, newStatus) {
     case 'Active':
     case 'Contacted':
       if (sheetName === CONFIG.TABS.COLD_LEADS) {
-        rowData[COLS.STATUS] = newStatus;
+        rowData[C.STATUS] = newStatus;
         appendRow(CONFIG.TABS.ACTIVE_LEADS, rowData);
         tab(CONFIG.TABS.COLD_LEADS).deleteRow(rowNum);
       }
@@ -2564,8 +2663,10 @@ function handleStatusEdit(sheetName, rowNum, rowData, newStatus) {
   }
 }
 
-function handleCategoryEdit(rowData, newCategory) {
-  var email = rowData[COLS.EMAIL];
+/* editedCols is the resolved column map for the edited tab rowData came from. */
+function handleCategoryEdit(rowData, newCategory, editedCols) {
+  var C = editedCols || COLS;
+  var email = rowData[C.EMAIL];
   try {
     var contacts = ContactsApp.getContactsByEmailAddress(email);
     if (!contacts || !contacts.length) return;
@@ -2835,7 +2936,11 @@ function createContact(payload) {
   if (p.company) contact.addOrganization(ContactsApp.Field.WORK, p.company, '', '', '', true);
 
   contact.setNotes([
-    'Source:      ' + (payload.source || payload.page || ''),
+    // Route through leadSource() like every other consumer: real origin only
+    // (QR / blank), never payload.page, which would stamp the domain into the
+    // contact's Source note on every main-site submission (the same integrity
+    // bug fixed in the Sheet's Source column).
+    'Source:      ' + leadSource(payload),
     'Role:        ' + (payload.role   || ''),
     'Category:    ' + roleToCategory(payload.role),
     'Asset Class: ' + assetClassFromQualData(q),
@@ -3403,67 +3508,6 @@ function setupSpreadsheet() {
   Logger.log('setupSpreadsheet: all ' + (leadTabs.length + 2) + ' tabs ready.');
 }
 
-/* ── One-time migration: add "Heard About" to existing lead tabs ──
-   setupSpreadsheet() only writes headers into tabs with getLastRow() === 0, so
-   tabs holding real data never received the column. Run this once from the Apps
-   Script editor after deploying.
-
-   Idempotent: every tab is skipped when the header is already present, so a
-   second run is a no-op rather than a second insert.
-
-   Placement is name-driven, not position math. 'Heard About' goes at its
-   canonical LEAD_HEADERS index. If something already occupies that header cell
-   (on Referral Partners it is 'Reports Enabled'), the column is INSERTED before
-   it — shifting that tab's extra column and its data right together — instead of
-   being appended after it. That is precisely the case the old
-   `REPORTS_ENABLED_COL = LEAD_HEADERS.length` constant got wrong. */
-function migrateAddHeardAboutColumn() {
-  var id = getProp('SPREADSHEET_ID');
-  if (!id) throw new Error('Run setProperties() first to configure SPREADSHEET_ID');
-  var ss = SpreadsheetApp.openById(id);
-
-  // Same registry-derived list setupSpreadsheet() creates, so the two can never
-  // disagree about which tabs exist.
-  var leadTabNames = leadTabConfigs().map(function(cfg) { return cfg.name; });
-
-  var targetCol = LEAD_HEADERS.indexOf(HEARD_ABOUT_HEADER) + 1; // 1-based
-  if (targetCol < 1) throw new Error('"' + HEARD_ABOUT_HEADER + '" is not in LEAD_HEADERS');
-
-  var log = [];
-
-  leadTabNames.forEach(function(name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) { log.push('SKIP  ' + name + ': tab not found'); return; }
-
-    if (headerIndex(sheet, HEARD_ABOUT_HEADER) !== -1) {
-      log.push('SKIP  ' + name + ': already has "' + HEARD_ABOUT_HEADER + '"');
-      return;
-    }
-
-    // Guarantee the sheet is wide enough to address targetCol at all.
-    if (sheet.getMaxColumns() < targetCol) {
-      sheet.insertColumnsAfter(sheet.getMaxColumns(), targetCol - sheet.getMaxColumns());
-    }
-
-    // Occupied header cell => another column already lives here; push it right.
-    var occupant = String(sheet.getRange(1, targetCol).getValue()).trim();
-    if (occupant !== '') {
-      sheet.insertColumnBefore(targetCol);
-      log.push('      ' + name + ': inserted before "' + occupant + '" (now col ' + (targetCol + 1) + ')');
-    }
-
-    sheet.getRange(1, targetCol).setValue(HEARD_ABOUT_HEADER);
-    // Match the existing header-row styling rather than hardcoding a color.
-    sheet.getRange(1, 1).copyFormatToRange(sheet, targetCol, targetCol, 1, 1);
-
-    log.push('ADDED ' + name + ': "' + HEARD_ABOUT_HEADER + '" at col ' + targetCol);
-  });
-
-  var out = 'migrateAddHeardAboutColumn:\n' + log.join('\n');
-  Logger.log(out);
-  return out;
-}
-
 /* ── One-time backfill: Existing Asset Owner category rows ──
    WHY THIS IS NEEDED. appendRow() logs and returns when its target tab is
    absent. The "Existing Asset Owners" tab was named in CONFIG but setupSpreadsheet()
@@ -3619,11 +3663,10 @@ function backfillEaoCategoryRows() {
 /* ── Read-only header audit: the analysis, separated from its rendering ──
    Reads one lead tab and returns a structured verdict. Writes nothing.
 
-   Three functions render this: auditLeadTabHeadersSummary (one line per tab),
-   auditLeadTabHeaders (every column of every tab), and auditLeadTabHeaderDetail
-   (every column of one tab). Splitting analysis from rendering is what keeps them
-   from disagreeing — a summary that said OK while the detail said DRIFT would be
-   worse than having no summary at all.
+   Two functions render this: auditLeadTabHeadersSummary (one line per tab) and
+   auditLeadTabHeaderDetail (every column of one tab). Splitting analysis from
+   rendering is what keeps them from disagreeing — a summary that said OK while the
+   detail said DRIFT would be worse than having no summary at all.
 
    `safeToRewrite` deliberately means "drifted AND empty", not merely "empty". A
    healthy tab has nothing to rewrite, so the flag stays false and only ever points
@@ -3701,11 +3744,13 @@ function renderLeadTabHeaderDetail(a) {
 }
 
 /* ── Condensed audit: one line per tab ──
-   WHY THIS IS THE DEFAULT ONE TO RUN. auditLeadTabHeaders() emits a full 31-column
-   header row per tab, and the Apps Script log viewer truncates the message before
-   the later tabs (Referral Partners onward) are ever reached — so the tabs nobody
-   had looked at were precisely the ones the audit could not show. A summary that
-   always fits is worth more than a detailed one that silently stops early.
+   WHY THIS IS THE DEFAULT ONE TO RUN. A full per-column dump of every tab emits a
+   31-column header row per tab, and the Apps Script log viewer truncates the
+   message before the later tabs (Referral Partners onward) are ever reached — so
+   the tabs nobody had looked at were precisely the ones the audit could not show.
+   A summary that always fits is worth more than a detailed one that stops early.
+   (The all-tabs full dump was removed for that reason; use this plus the per-tab
+   detail below.)
 
    Budget: ~9 tabs at well under 200 chars each, a single Logger.log call. The
    per-column detail lives in auditLeadTabHeaderDetail(tabName), which is scoped to
@@ -3779,39 +3824,6 @@ function auditLeadTabHeaderDetail(tabName) {
   return text;
 }
 
-/* ── Read-only header audit across every lead tab, full per-column detail ──
-   Writes nothing. For each lead tab, reports its data-row count and its live header
-   row cell by cell, diffed against expectedHeadersFor(tab).
-
-   WARNING: the Apps Script log viewer truncates this before the last few tabs when
-   all nine exist. Use auditLeadTabHeadersSummary() to see every tab, then
-   auditLeadTabHeaderDetail(tabName) to drill into one. Kept because the full dump
-   is still the right thing to paste into a PR or an issue.
-
-   WHY THIS EXISTS. Header drift on Lifetime Leads was found only because
-   eaoBackfillPlan() happened to throw on a missing 'Lead ID'. Every other tab was
-   assumed fine without anyone having looked. Nothing in this script had ever read a
-   header row purely to check it, so drift stayed invisible until some unrelated
-   function tripped over it. Run this before trusting any tab's layout.
-
-   The data-row count matters as much as the header diff: a mismatched header on an
-   EMPTY tab is a clean rewrite (repairAllDriftedLeadTabHeaders), while the same
-   mismatch on a tab holding rows is a column-realignment problem, because the rows
-   may have been written under the older layout the header still describes. */
-function auditLeadTabHeaders() {
-  var ss = openCrmSpreadsheet();
-  var out = ['auditLeadTabHeaders:'];
-
-  leadTabConfigs().forEach(function(cfg) {
-    out.push('');
-    out = out.concat(renderLeadTabHeaderDetail(leadTabHeaderAudit(ss, cfg.name)));
-  });
-
-  var text = out.join('\n');
-  Logger.log(text);
-  return text;
-}
-
 /* ── Header repair ──
    WHY A HEADER REWRITE IS DANGEROUS, and therefore why everything below is built
    around one guard. leadRow() builds a positional 31-value array and appendRow()
@@ -3833,8 +3845,8 @@ function auditLeadTabHeaders() {
 function headerRewriteRefusal(tabName, dataRows) {
   return 'REFUSING to rewrite the header of "' + tabName + '": it has ' + dataRows + ' data row(s).\n' +
     'A header rewrite only relabels columns, it does not move cells, so any row written\n' +
-    'under the old layout would end up silently mislabeled. Run auditLeadTabHeaders() to\n' +
-    'see the live layout, then realign the columns as its own reviewed change.';
+    'under the old layout would end up silently mislabeled. Run auditLeadTabHeaderDetail("' + tabName + '")\n' +
+    'to see the live layout, then realign the columns as its own reviewed change.';
 }
 
 /* Mechanical rewrite of one lead tab's header row. Clears row 1 across the sheet's
@@ -3932,12 +3944,6 @@ function repairLeadTabHeader(tabName) {
   ].join('\n');
   Logger.log(out);
   return out;
-}
-
-/** Kept as the name the Lifetime Leads repair has always been run under. The logic
- *  is repairLeadTabHeader()'s; this only pins the tab. */
-function repairLifetimeLeadsHeader() {
-  return repairLeadTabHeader(CONFIG.TABS.LIFETIME_LEADS);
 }
 
 /* ── Repair EVERY drifted lead tab that is safe to repair ──

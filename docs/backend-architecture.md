@@ -39,7 +39,7 @@ events actually booked can never point at different calendars.
 
 **`.ics` attachment (visitor confirmation).** `buildBookingIcs(payload, leadId, meetLink)` produces an iCalendar `VEVENT` blob (`text/calendar`, `axispoint-call.ics`) attached to the booking visitor-confirmation emails (meet + phone) via `GmailApp.sendEmail`'s `attachments` option. Because it is delivered straight to the visitor, it carries **only** the client-facing `bookingEventTitle` / `bookingEventClientDescription` (no CRM internals); `leadId` appears solely in the opaque `UID` field (a machine identifier for dedup, never displayed). It emits America/Chicago wall-clock times with a real `VTIMEZONE` block, and sets `LOCATION` to the Meet link (video) or the phone number (phone). `METHOD:PUBLISH` so clients treat it as an event to add. This is a **deliberate belt-and-suspenders backup** to Google's native attendee invite (which can be delayed, spam-filtered, or useless to a non-Google visitor): the visitor is still added as an attendee on the real event with `sendUpdates:'all'`, so both the native invite **and** the attached `.ics` reach them. Generation is wrapped in try/catch — a failure never blocks the confirmation email.
 - `handleAvailability(dateStr)` — GET endpoint. Runs `Calendar.Freebusy.query` for the calendar day against `BOOKING_CALENDAR_ID`, then `computeSlotAvailability(dateStr, busy, BOOKING_SLOTS)` marks each slot free/booked by 30-minute overlap. Returns `{ success:true, date, slots:{ "8:00 AM":true, … } }` (`true` = free) or `{ success:false, error }`. The frontend treats any non-success as "all slots available".
-- `computeSlotAvailability(dateStr, busyPeriods, slots)` — pure overlap logic (no GAS globals beyond the pure `parseBookingDateTime`), so it **can** be exercised in Node against a stubbed Freebusy response. **No committed test suite exists** — `scripts/gas/` contains only `Code.gs`, `appsscript.json`, and `emails/`. The verification runs described in the changelog were throwaway Node harnesses, not checked in. The docstring on this function pointing at "scripts/gas tests" is aspirational; treat it as such.
+- `computeSlotAvailability(dateStr, busyPeriods, slots)` — pure overlap logic (no GAS globals beyond the pure `parseBookingDateTime`), so it is exercised in Node against a stubbed Freebusy response. **A committed test suite now exists** at `scripts/gas/tests/` (added 2026-07-10), run with `pnpm test:gas` and in CI via `.github/workflows/test-gas.yml`. It `vm`-loads the real `Code.gs` with GAS globals stubbed and covers this function, the other pure functions, `resolveCols`, the seven email-template parity pairs, and the `BOOKING_SLOTS`/frontend `SLOTS` sync. Earlier changelog verification runs predating this were throwaway harnesses; those are now superseded by the committed suite.
 - `BOOKING_SLOTS` — the 16 fixed CT slot labels, mirrored from `SLOTS` in `packages/brand/src/components/form/utils.ts` (must stay in sync — same drift risk as the email template mirrors).
 
 ### Why the client/internal content split exists
@@ -196,7 +196,8 @@ and handled explicitly inside `contactGroupForCategory()`.
 | `contactGroupForCategory(category)` | `.category` → `.contactGroup`, plus the `'Client'` special case |
 | `handleFormSubmission` | `.normalizer` (applied in place, before anything reads the payload), `.seedReportsEnabled` |
 | `setupSpreadsheet()` | `leadTabConfigs()` → `.tab` + `.tabColor` |
-| `migrateAddHeardAboutColumn()` | the same `leadTabConfigs()` |
+| `updateReferrerStats()` | `leadTabConfigs()` → every lead tab's `.tab` (was a hardcoded 7-tab list; see below) |
+| `onSheetEdit()` | `leadTabConfigs()` → the lead-tab guard that gates dispatch |
 | `handleCategoryEdit()` | `allCategoryContactGroups()` → every `.contactGroup` + Clients |
 
 Helpers: `leadTypeFor(role)` (own-key guarded, so a POSTed `role: "constructor"`
@@ -262,18 +263,15 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
 | `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
-| `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `auditLeadTabHeaders`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
+| `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `leadTabHeaderAudit`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
 | `setupTriggers()` | Creates the four triggers above. |
-| `migrateAddHeardAboutColumn()` | One-time, manually run from the editor. Adds `Heard About` to the nine existing lead tabs that `setupSpreadsheet` skips. Reads the same `leadTabConfigs()`. Idempotent; name-based placement. Returns/logs a per-tab `ADDED`/`SKIP` report. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
 | `backfillEaoCategoryRows()` | One-time (but **idempotent**) repair of the EAO rows dropped while the tab did not exist. Copies them out of Lifetime Leads. Keyed on `Lead ID`, so a second run inserts nothing; a later run picks up only genuinely-new rows. Columns are projected **by header name** (resiliently — see below), never by position, so source and destination may differ in column order, width, casing, or spacing. Throws with an actionable message if the tab does not exist yet. |
 | `leadTabHeaderAudit(ss, tabName)` | **Read-only.** The analysis, separated from its rendering: returns `{ name, missing, expected, actual, dataRows, diffs, missingCritical, drift, safeToRewrite }` for one tab. All three audit renderers below read it, so a summary can never disagree with a detail. `safeToRewrite` means **drifted AND empty**, not merely empty. |
 | `auditLeadTabHeadersSummary()` | **Read-only. Start here.** One line per tab (name, `rows=`, `cols=actual/expected`, drift, `rewrite=SAFE\|NO(has data)`), plus a drifted-tab footer. ~660 chars for nine tabs vs ~6.3k for the full audit, which the Apps Script log viewer truncates before the later tabs are reached. |
-| `auditLeadTabHeaderDetail(tabName)` | **Read-only.** Full per-column diff for **one** tab, so a drifted tab's columns can be inspected without the other eight crowding it out of the log. Throws on an unknown tab name. |
-| `auditLeadTabHeaders()` | **Read-only.** Full per-column detail for every lead tab. ⚠️ **Truncated by the Apps Script log viewer** once all nine tabs exist — `Referral Partners` onward may never render. Kept for pasting into a PR or issue; use the summary + detail pair when reading the log. |
+| `auditLeadTabHeaderDetail(tabName)` | **Read-only.** Full per-column diff for **one** tab, so a drifted tab's columns can be inspected without the other eight crowding it out of the log. Throws on an unknown tab name. (The former all-tabs full dump, `auditLeadTabHeaders()`, was removed: the Apps Script log viewer truncated it before the later tabs rendered. Use the summary + this detail.) |
 | `rewriteLeadTabHeaderRow(sheet, tabName)` | The mechanical rewrite, and **the single site of the zero-data-row assert**. Clears row 1 across the full sheet width, writes `expectedHeadersFor(tabName)`, restyles from the tab's `leadTabConfigs()` colour, strips formatting off trailing cells left over from a wider old header, freezes row 1. Returns `{ before, after }`. Throws if the tab has any data rows, even though every caller has already checked, because this is the function that would do the damage. |
-| `repairLeadTabHeader(tabName)` | Repairs **one** lead tab. Takes its verdict from `leadTabHeaderAudit()` rather than re-deriving it. A healthy tab is left completely untouched (no rewrite); a drifted tab holding data throws; a drifted empty tab is rewritten. Throws on an unknown tab name. |
-| `repairLifetimeLeadsHeader()` | Thin alias for `repairLeadTabHeader(CONFIG.TABS.LIFETIME_LEADS)`, kept as the name this repair has always been run under. |
+| `repairLeadTabHeader(tabName)` | Repairs **one** lead tab. Takes its verdict from `leadTabHeaderAudit()` rather than re-deriving it. A healthy tab is left completely untouched (no rewrite); a drifted tab holding data throws; a drifted empty tab is rewritten. Throws on an unknown tab name. This is also the entry point for repairing Lifetime Leads specifically (`repairLeadTabHeader('Lifetime Leads')`). |
 | `repairAllDriftedLeadTabHeaders()` | **Bulk repair.** Same iteration as `auditLeadTabHeadersSummary()`; rewrites every tab the audit reports `rewrite=SAFE` and skips every other verdict. **The guard is `leadTabHeaderAudit().safeToRewrite` taken verbatim** (drifted AND zero data rows) — this function gets no vote of its own. Logs one line per tab: `REPAIRED`, `SKIPPED (already OK)`, `SKIPPED (unsafe: has data, needs manual review)`, or `SKIPPED (tab not found)`, then a tally. Idempotent: a second run is all-skips. |
 
 **Why a header rewrite needs a guard at all.** `leadRow()` writes a positional
@@ -334,9 +332,13 @@ now contains the entire live header row rendered character by character —
 its normalized form. No separate probe function is needed to diagnose it.
 
 **`headerIndex(sheet, name)` deliberately still matches exactly** (trim + case-
-sensitive). Its callers are `reportsEnabledIndex` and `migrateAddHeardAboutColumn`,
-and in the latter a `-1` drives a **write**: it inserts a column. Loosening that
-match changes migration behavior on live tabs, so it is left for its own change.
+sensitive). Its one remaining caller is `reportsEnabledIndex`, which treats `-1`
+as a real "column absent → leave the partner enabled" state rather than an error,
+so the exact match is acceptable there. (Its other former caller,
+`migrateAddHeardAboutColumn`, has been removed.) For reading the standard 31 lead
+columns, use `resolveCols(sheet)` — it matches resiliently via `findHeaderIndex`
+and **throws** on a genuine miss. See *`resolveCols` — the standard for live-sheet
+column reads* below.
 
 **Order of operations for the EAO repair** (both manual, from the Apps Script
 editor, after `clasp push` + `clasp deploy`):
@@ -348,13 +350,62 @@ editor, after `clasp push` + `clasp deploy`):
 3. `backfillEaoCategoryRows()` — copies the dropped rows in.
 
 Running (3) before (1) throws rather than silently doing nothing. This is the same
-manual-run pattern `migrateAddHeardAboutColumn()` required; a `clasp deploy` alone
+manual-run pattern the header repair functions require; a `clasp deploy` alone
 does **not** create tabs.
 
 Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
 `renderTemplate`, `templateByName`, `getProp`, `headerIndex`, `reportsEnabledIndex`,
-`openCrmSpreadsheet`, `eaoBackfillPlan`, `normalizeHeaderName`, `findHeaderIndex`,
-`describeHeaderRow`, `headerLookupError`.
+`resolveCols`, `openCrmSpreadsheet`, `eaoBackfillPlan`, `normalizeHeaderName`,
+`findHeaderIndex`, `describeHeaderRow`, `headerLookupError`.
+
+## `resolveCols` — the standard for live-sheet column reads
+
+**Any code that reads a lead tab's columns from the live Sheet must resolve them by
+name through `resolveCols(sheet)`, never by indexing a row with the compile-time
+`COLS` constant.** `COLS` records where a column *should* be; `resolveCols(sheet)`
+reads the tab's actual header row and returns a `COLS`-shaped object whose values
+are the columns' *real* positions, matched by name via `findHeaderIndex` (the same
+resilient, case/whitespace/zero-width-tolerant path as `eaoBackfillPlan`).
+
+Why this is mandatory and not stylistic: fourteen functions used to read live rows
+as `row[COLS.SOMETHING]` with no verification that the header matched. A drifted
+header (a column inserted, deleted, reordered by hand, or a tab left un-migrated)
+made every one of those reads return the wrong cell — and six of the fourteen
+write, two (`moveColdLeads`, `handleStatusEdit`) delete/move rows. That is the same
+class of defect as the 2026-07-08 `REPORTS_ENABLED_COL = LEAD_HEADERS.length` bug,
+just spread across the file.
+
+Contract:
+
+- Resolves the 31 standard `LEAD_HEADERS` columns (the `COLS` keys) only. The
+  Referral Partners `Reports Enabled` extra is resolved separately by
+  `reportsEnabledIndex()`; the Referrals and Subscribers tabs use their own schemas
+  (`REFERRAL_HEADERS` / `SCOLS`) and are **not** resolved through this.
+- **Throws `headerLookupError` (never returns a silent `-1`)** when a required
+  standard header is absent, so a caller that does not check cannot read a wrong
+  cell. Callers sit inside `try/catch` that logs, so a drifted tab surfaces as a
+  diagnosable logged error instead of corrupted data — refusing to run on a broken
+  tab is the intended outcome.
+- Call it **once per sheet, before any row loop**, never per row (one header read +
+  31 name lookups). Read-only loops guard on `getLastRow() < 2` first, so an empty
+  tab (the current state of every lead tab) and normal submissions never invoke it.
+
+The fourteen functions now threaded through it: `existingReferralCodes`,
+`findExistingLead`, `matchReferrer`/`buildReferralMatch`, `updateReferrerStats`,
+`handleResubmission`, `sendDailyDigest`, `sendMonthlyReferralSummaries`,
+`moveColdLeads`, `setCategoryTabStatus`, `onSheetEdit`, `handleManualReferralLink`,
+`handleStatusEdit`, `handleCategoryEdit`. **New live-sheet readers must follow the
+same pattern.**
+
+Building a *fresh* row to append (e.g. `buildLeadRow`) still uses `COLS` positional
+ordering — that is correct, because it is constructing the canonical layout, not
+reading an existing tab whose layout may have drifted.
+
+Known residual (out of scope for the resolveCols change): functions that copy a
+whole row array between tabs (`moveColdLeads`/`handleStatusEdit` appending a
+source-layout row into Cold/Clients/Archive) still write positionally into the
+destination. This is safe while all lead tabs share one layout (they do, post
+header-repair); a fully name-projected cross-tab copy is a separate change.
 
 ## `LEAD_HEADERS` — full 31-column layout
 
@@ -432,13 +483,14 @@ Enabled` or any other per-tab extra column. This is the pattern to follow — se
 *Architecture Decision* below.
 
 **Migration:** `setupSpreadsheet()` only writes headers into tabs where
-`getLastRow() === 0`, so tabs holding real data never received the new column.
-`migrateAddHeardAboutColumn()` backfills all nine lead tabs. It is **idempotent**
-(each tab is skipped when the header is already present) and it places the column at
-its canonical `LEAD_HEADERS` index by name: if that header cell is already occupied
-(on Referral Partners it holds `Reports Enabled`), the column is **inserted before**
-the occupant, shifting that tab's extra column *and its data* right together, rather
-than being appended after it.
+`getLastRow() === 0`, so tabs holding real data never received the new column. The
+one-time `migrateAddHeardAboutColumn()` that originally backfilled the `Heard
+About` column has since been **removed** (2026-07-10): it placed the column by
+`LEAD_HEADERS` index rather than truly by name, and its `headerIndex` `-1` branch
+drove a column *insert* — the shape that corrupted the Lifetime Leads header. With
+every lead tab now empty, the surviving path for a drifted-empty header is
+`repairAllDriftedLeadTabHeaders()` (rewrites the header row from
+`expectedHeadersFor()`, guarded to refuse any tab holding data).
 
 **Removed:** the former column 20 **Date Submitted** (`MM/dd/yyyy` CT) was
 redundant with **Timestamp** and has been deleted from the schema. `sendDailyDigest`
@@ -470,7 +522,8 @@ status, timestamp) plus a single structured JSON blob column carrying everything
 role-specific.
 
 The unified schema is the better data model in the abstract. It was not adopted, for
-two concrete reasons:
+one concrete reason (a second reason was cited originally and has since been
+disproven — see the correction below):
 
 1. **Existing automation depends on tabs physically existing as separate tabs, not
    on a category label.** The per-category Google Contact Groups sync, the weekly
@@ -481,10 +534,28 @@ two concrete reasons:
    against real tabs. A unified schema does not adjust this code; it requires
    rebuilding all of it.
 
-2. **By the time this was seriously evaluated, the Sheet held real production data.**
-   Migrating would mean repacking live rows into a new shape, not making a free
-   greenfield choice. The `Heard About` column added on 2026-07-08 is the scale of
-   schema change this system can absorb safely; a full re-shape is not.
+2. ~~**By the time this was seriously evaluated, the Sheet held real production
+   data.**~~ **CORRECTED 2026-07-10 — this premise is false.** It was asserted on
+   2026-07-08 without being checked. On 2026-07-09 `auditLeadTabHeadersSummary()` run
+   live reported **`rows=0` on eight of nine lead tabs, Lifetime Leads included**, and
+   on 2026-07-10 the Lifetime Leads tab was **visually confirmed empty** (zero data
+   rows below the header). The CRM holds no production lead data today. There is
+   therefore **no live-data migration cost** standing in the way of a schema change,
+   and the "we can only absorb a `Heard About`-sized change safely" argument does not
+   apply while the tabs are empty.
+
+   **Consequences of this correction, which the refactor should weigh:**
+   - `backfillEaoCategoryRows()` recovers dropped Existing Asset Owner rows *from
+     Lifetime Leads*. If Lifetime Leads is empty, there is nothing to recover — the
+     EAO category rows dropped before the tab existed are **gone, not recoverable**,
+     not merely un-backfilled. Run `countMissingEaoCategoryRows()` to confirm the
+     count is zero before retiring that tooling.
+   - The unified-schema decision was made partly on a premise that did not hold. The
+     remaining reason (#1, automation coupled to physical tabs) still stands on its
+     own, so the **decision does not automatically flip** — but the empty-Sheet window
+     is exactly when a re-shape would be cheapest, and that window closes the moment
+     real submissions land. If a unified schema is ever going to happen, now is the
+     structurally cheapest time, not "once `crm.`/`api.axispoint.llc` are real work."
 
 ### What is explicitly NOT a reason
 
