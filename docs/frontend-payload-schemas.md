@@ -103,9 +103,59 @@ conditional key.
 
 **`heardAbout` is always sent** by all four `buildPayload` roles (it is `''` when the
 visitor skipped the question), not conditionally on `source` as this document
-previously stated. **The backend currently discards it** — there is no `Heard About`
-column in `LEAD_HEADERS` and `Code.gs` never reads the field. It is transmitted and
-dropped. See `backend-architecture.md` for what adding persistence would involve.
+previously stated.
+
+**It IS persisted.** `Code.gs` reads it through `leadHeardAbout(payload)` and
+`buildLeadRow` writes it to **`Heard About`, column 31** (the last entry in
+`LEAD_HEADERS`, `COLS.HEARD_ABOUT === 30`), on every lead tab. It also gets its own
+row in the internal `partner-notification` email. Verified against
+`scripts/gas/Code.gs:1761` on 2026-07-12.
+
+> **Corrected 2026-07-12.** This document previously claimed "the backend currently
+> discards it — there is no `Heard About` column in `LEAD_HEADERS`", which directly
+> contradicted `backend-architecture.md` (which correctly documented column 31). The
+> claim was stale: it described the state before 2026-07-08, when the column was
+> added. `backend-architecture.md` was right. The two documents now agree.
+
+`buildEAOPayload` sends no `heardAbout`, so EAO rows carry a blank `Heard About`
+cell. That is structural (the EAO step order never asks the question), not an
+oversight — see the comment block above `buildEAOPayload` and
+`backend-architecture.md` → *`source` vs `heardAbout`*.
+
+## What `qualData` actually persists — a known, pre-existing gap
+
+`buildPayload` collects **13** `qualData` fields. **Exactly one of them reaches the
+Sheet.** This is a pre-existing gap, verified against source on 2026-07-12 (it is
+**not** caused by, and does not depend on, any migration):
+
+| `qualData` field | Persisted to Sheet? | Read anywhere in `Code.gs`? |
+|---|---|---|
+| `assetClasses` | ✅ **Asset Class** (col 11), via `assetClassFromQualData(q)` | ✅ |
+| `aum` | ❌ | Emails only (`buildVisitorPersonalNote`, `sendPartnerNotification`) |
+| `experience` | ❌ | Emails only (`buildVisitorPersonalNote`) |
+| `proRole` | ❌ | Emails only (`buildVisitorPersonalNote`) |
+| `markets` | ❌ | Emails only (`buildVisitorPersonalNote`) |
+| `profession` | ❌ | Emails only (`buildVisitorPersonalNote`) |
+| `referralIntent` | ❌ | Emails only (`referralIntentClause`) |
+| `clients` | ❌ | ❌ **never read at all** |
+| `proIntent` | ❌ | ❌ **never read at all** |
+| `relationship` | ❌ | ❌ **never read at all** |
+| `fit` | ❌ | ❌ **never read at all** |
+| `timeline` | ❌ | ❌ **never read at all** |
+| `awareness` | ❌ | ❌ **never read at all** |
+
+So **12 of 13 fields are collected from the visitor and never stored**. Six of those
+survive only long enough to render a sentence in an email and are then gone; six are
+asked for, transmitted, and read by nothing.
+
+Verification method (repeat it rather than trusting this table): `buildLeadRow`
+(`Code.gs:1707-1763`) is the **only** function that writes a lead row, and the only
+`qualData` value in it is `assetClassFromQualData(q)`. A grep for the other twelve
+names finds hits only inside email-copy strings and comments. Do not infer
+persistence from a field appearing in `Code.gs` — grep for `q.<field>`.
+
+Whether the schema migration should start persisting these is an **open decision**,
+deliberately not made here. See `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → *Open decisions*.
 
 ### Referral field resolution
 
