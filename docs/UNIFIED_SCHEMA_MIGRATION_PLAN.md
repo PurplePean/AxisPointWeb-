@@ -1,6 +1,8 @@
 # Unified Schema Migration Plan
 
-**Status:** PLAN ONLY. Nothing here has been executed. Created 2026-07-12.
+**Status:** PLAN ONLY — nothing here has been executed. Created 2026-07-12.
+**DECISION-COMPLETE as of 2026-07-13:** all three open decisions in §2 are resolved.
+Nothing in this document is waiting on an answer; it is ready to execute.
 
 **Scope:** the Google Sheet CRM schema, and the `Code.gs` functions that read and
 write it. Nothing else. See *Explicitly out of scope* at the bottom before assuming
@@ -74,17 +76,35 @@ move into a blob. This is the single most important constraint in the target sch
 
 ### What goes in `Details` (JSON)
 
-Everything role-specific, keyed by the field names the payload already uses:
+Everything role-specific, keyed by the field names the payload already uses.
+**Every field listed here is written — including the twelve that are silently
+dropped today** (§2a, resolved). The blob is what ends that data loss.
 
-- **Investor:** `aum`, `experience`, `assetClasses`, `timeline`, `awareness`, `fit`
-- **RE Professional:** `proRole`, `markets`, `proIntent`, `profession`
-- **Referral Partner:** `referralIntent`, `relationship`, `clients`
-- **Existing Asset Owner:** `portfolio_type`, `portfolio_composition`,
-  `property_type`, `units`, `sqft`, `asset_breakdown`, `current_situation`,
-  `pressing_issue`
-- **All:** `preferences` (comms opt-ins), `booking` (`date`, `slot`, `meetType`,
-  `phone`, `meetLink`), `message`, and — pending the decision in §2 — the referred
-  person block for `submit_referral`.
+The per-role mapping below was **re-verified against the form source on 2026-07-13**
+(`Step2Context.tsx` role gates, `Step3AssetClass.tsx`, and `ContactForm.tsx:159`) —
+an earlier draft of this document guessed it and got **four of thirteen assignments
+wrong**. Do not re-derive it from the field *names*; they do not tell you which role
+asks the question.
+
+| Lead type | `Details` keys (all persisted) | Collected by |
+|---|---|---|
+| **Investor** (`investor`) | `aum`, `experience`, `assetClasses`, `timeline` | `Step2Context` (aum, experience) + `Step3AssetClass` (assetClasses, timeline) — the `prefs` step, which **only the investor flow reaches** (`ContactForm.tsx:159`) |
+| **Referral Partner** (`referral`) | `profession`, `clients`, `referralIntent` | `Step2Context` |
+| **RE Professional** (`pro`) | `proRole`, `markets`, `proIntent` | `Step2Context` |
+| **submit_referral** | `relationship`, `fit`, `awareness`, **plus `referred`** (§2b) | `Step2Context` + the referred-person fields |
+| **Existing Asset Owner** (`existing_asset_owner`) | `portfolio_type`, `portfolio_composition`, `property_type`, `units`, `sqft`, `asset_breakdown`, `current_situation`, `pressing_issue` | its own flow (`buildEAOPayload`) |
+| **All types** | `preferences` (comms opt-ins), `booking` (`date`, `slot`, `meetType`, `phone`, `meetLink`), `message` | shared steps |
+
+That is **all 13 `qualData` fields**, each under exactly one lead type. Note that
+**every one of `submit_referral`'s three fields is currently read by nothing at
+all** — today that lead type's entire qualified data is discarded. It is the biggest
+single beneficiary of §2a.
+
+`submit_referral`'s `referred` object (§2b):
+
+```jsonc
+"referred": { "firstName": …, "lastName": …, "email": …, "phone": …, "notes": … }
+```
 
 **The proven model is already in the codebase.** `eaoDetailsSummary(payload)`
 (`Code.gs:1859`) JSON-stringifies every EAO-specific field into the shared
@@ -103,42 +123,118 @@ to eyeball it in the grid — which, per the standing rule, is **not** a valid r
 
 ---
 
-## 2. Decisions — two still open, one resolved
+## 2. Decisions — ALL THREE RESOLVED. This plan is decision-complete.
 
-Three real questions. **Two remain open and this plan deliberately does not answer
-them.** Each is a product/data call, not a mechanical one, and silently defaulting
-any of them is how the current gaps got here in the first place. Decide each one out
-loud, then record the decision in `/docs/CHANGELOG.md`.
+Three real questions were left open when this plan was written. **All three are now
+answered.** Nothing in this document is waiting on a decision; it is ready to
+execute.
 
-**§2c (`Total Downstream`) is RESOLVED as of 2026-07-13** — it is being implemented,
-not retired. Read it as a requirement, not a question.
+| # | Decision | Resolved | Outcome |
+|---|---|---|---|
+| **2a** | The 12 under-persisted `qualData` fields | 2026-07-13 | ✅ **FIX during the migration.** All 13 fields persist into `Details`. |
+| **2b** | `submit_referral`'s referred-person data | 2026-07-13 | ✅ **Structured JSON** under `Details.referred`. Not prose, not a top-level column. |
+| **2c** | `Total Downstream` | 2026-07-13 | ✅ **Implement** as real multi-level attribution. Not retired. |
 
-### 2a. The 12 under-persisted `qualData` fields
+Read all three as **requirements**, not questions. Each is recorded in
+`/docs/CHANGELOG.md`.
 
-`buildPayload` collects 13 `qualData` fields. **`buildLeadRow` persists exactly
-one** (`assetClasses`). Six more are read only to render an email sentence and are
-then discarded (`aum`, `experience`, `proRole`, `markets`, `profession`,
+### 2a. The 12 under-persisted `qualData` fields — ✅ RESOLVED 2026-07-13: fix them
+
+**Decision: the twelve dropped fields get FIXED as part of the migration. They are
+NOT ported as-is.** Every `qualData` field a lead type collects is written into that
+lead type's `Details` JSON blob going forward.
+
+**Current state (the bug being ended):** `buildPayload` collects 13 `qualData`
+fields and **`buildLeadRow` persists exactly one** (`assetClasses` → the Asset Class
+column). Six more are read only to render a sentence in an email and are then
+discarded (`aum`, `experience`, `proRole`, `markets`, `profession`,
 `referralIntent`); six are read by **nothing at all** (`clients`, `proIntent`,
 `relationship`, `fit`, `timeline`, `awareness`). Verified 2026-07-12; full table in
 `frontend-payload-schemas.md`.
 
-**Decision:** port the silent drop as-is (a faithful migration, no behavior change),
-**or** treat this as the moment to start persisting all 13 into `Details` (the blob
-makes it nearly free — that is the entire point of a blob).
+**This is a pre-existing silent data-loss bug, not something the migration
+introduces.** The visitor answers the question, the browser sends the answer, and
+the backend throws it away. The migration is where it stops — carrying it forward
+into a brand-new schema would mean deliberately re-implementing a known bug in code
+being written from scratch.
 
-Framing, not a decision: the migration makes persisting them cheap, and *not* doing
-it now means the fields stay dropped indefinitely, since no cheaper moment will come.
-But persisting them is a scope increase over a pure schema migration, and it changes
-what the Sheet contains. **Ask before doing it.**
+The per-lead-type field mapping is in §1 (*What goes in `Details`*), re-verified
+against the form source on 2026-07-13. **Use that table, not the field names** — the
+names do not tell you which role asks the question, and an earlier draft of this
+plan guessed and got four of thirteen assignments wrong.
 
-### 2b. `submit_referral`'s referred-person data
+Two consequences worth naming:
 
-Today `buildLeadRow` (`Code.gs:1715-1728`) folds the `referred` block
-(name/email/phone/notes) into the **Message** column as a newline-joined prose
-block. It is not machine-readable and cannot be queried.
+- **`submit_referral` is the biggest beneficiary.** All three of its `qualData`
+  fields (`relationship`, `fit`, `awareness`) are in the never-read-at-all group, so
+  today **100% of that lead type's qualified data is discarded.** After the
+  migration, all of it lands.
+- **Emails are unaffected.** The six email-only fields keep rendering exactly as they
+  do now. Persisting a field does not change what the email says. `buildLeadRow`
+  gains writes; `buildVisitorPersonalNote` and `sendPartnerNotification` are untouched
+  by this decision.
 
-**Decision:** keep it as prose-in-Message, **or** lift it into structured JSON under
-`Details.referred` as part of the migration.
+### 2b. `submit_referral`'s referred-person data — ✅ RESOLVED 2026-07-13: structured JSON
+
+**Decision: lift it into structured JSON under `Details.referred`. It does NOT stay
+prose, and it does NOT become a top-level column.**
+
+**Current state:** `buildLeadRow` (`Code.gs:1715-1728`) flattens `payload.referred`
+(`firstName`, `lastName`, `email`, `phone`, `notes`) into a newline-joined prose
+block and **prepends it to the Message column**:
+
+```
+Referred person:
+  Name: Jane Doe
+  Email: jane@example.com
+  Phone: 555-0100
+  Notes: interested in multifamily
+```
+
+It is unparseable, unqueryable, and interleaved with the submitter's own free-text
+message. Getting Jane's email back out means regex-ing a human-readable paragraph.
+
+**After:** a real object inside the submitting lead's `Details` blob:
+
+```jsonc
+"referred": { "firstName": "Jane", "lastName": "Doe", "email": "jane@example.com",
+              "phone": "555-0100", "notes": "interested in multifamily" }
+```
+
+The **Message** column goes back to holding only what the submitter actually typed.
+
+#### Why `Details`, and explicitly NOT a top-level column
+
+This follows the plan's established rule (§1): **a field is a top-level column if
+code must search on it across rows, or if `onSheetEdit` must detect an edit to that
+specific column.** The referred-person data satisfies **neither**:
+
+- **Nothing ever searches other leads' rows for it.** `matchReferrer` searches for a
+  *referrer* — by Referral Code, Email, or Name — against the **referrer's own lead
+  row**, which is a real, separately-created lead with its own identity columns. It
+  never scans for a referred-person block buried in some other lead's submission.
+  `findExistingLead` dedupes on the submitter's Email column. No lookup, present or
+  planned in this migration, needs this data to be searchable across rows.
+- **It is scoped to exactly one row** — the submitting lead's own. It describes a
+  person the submitter told us about, on the submitter's row. That is the textbook
+  definition of type-specific payload detail, which is what `Details` is for.
+- **It appears on one lead type out of five.** Promoting it to a top-level column
+  would add five always-blank columns to every Investor, Referral Partner, RE
+  Professional, and EAO row — reintroducing exactly the per-type-columns-on-a-shared-
+  layout problem this migration exists to delete.
+
+This is the same reasoning that keeps the referral-*identity* fields (Referral Code,
+Referred By *, Match Type, Referral Chain, Chain Depth, Direct Referrals, Total
+Downstream) as real columns while everything type-specific goes in the blob. The
+distinction is **searchability and edit-detection, not importance.** The referred
+person's details are important; they are simply never searched.
+
+**Note the asymmetry, because it is easy to misread:** if the referred person later
+submits their own form, they become their **own lead row** with their own real
+identity columns, and `matchReferrer` links them to the submitter through the normal
+referral path. The `Details.referred` block is a record of *what the submitter told
+us*, not a stand-in for a lead. It never needed to be searchable, which is exactly
+why it can live in the blob.
 
 ### 2c. `Total Downstream` — ✅ RESOLVED 2026-07-13: implement it
 
@@ -255,7 +351,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 | **`sendMonthlyReferralSummaries`** (2324) | Reads the **Referral Partners tab** and its extra `Reports Enabled` column. Becomes: filter the one table on `Category = 'Referral Partner'`, read `Reports Enabled` as a normal column, keep the existing skips (`Cold`/`Archive` status, `FALSE` opt-out, zero-referral partners). | 🟠 Medium. Currently untested, and a filter bug silently emails the wrong people — or nobody. |
 | **`onSheetEdit`** (2524) | Its **lead-tab guard** (`leadTabConfigs()` membership) becomes a single `sheet.getName() === 'Leads'` check. The three watched columns must still be resolved **by name** (`resolveCols`) so the dispatch detects *which* column changed. | 🟠 Medium. If the dispatch guard is wrong, edits are routed to the wrong handler or dropped silently. |
 | **`handleFormSubmission`** (1357) | Appends to **three tabs** (Lifetime + Active + category tab). Becomes **one append**. The category-tab-exists check, the `seedReportsEnabled` per-tab seed, and the missing-tab logging all collapse. | 🟠 Medium. Highest-traffic path in the file; end-to-end untested today (see §5). |
-| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. | 🟠 Medium. Every column's meaning changes at once. |
+| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. **Implements both §2a and §2b in this same rewrite:** it now writes **all 13 `qualData` fields** into `Details` (per the §1 per-lead-type table) instead of dropping twelve of them, and it writes `submit_referral`'s `referred` block as a **structured `Details.referred` object** instead of flattening it into prose on the Message column. **The prose-building code at `Code.gs:1715-1728` is deleted, not ported** — and Message goes back to holding only what the submitter typed. | 🟠 Medium-high. Every column's meaning changes at once, **and** this is the function where the two data-fidelity fixes actually land — if `Details` is built wrong here, the data loss the migration exists to end simply continues in a new format. |
 | **`findExistingLead`** (1517) / **`existingReferralCodes`** (1278) / **`matchReferrer`** + **`buildReferralMatch`** (1533/1582) / **`handleResubmission`** (1469) | All currently scan **Lifetime Leads**. Retarget to the one table. Logic is otherwise unchanged — this is the cheapest group. | 🟢 Low-medium, but `matchReferrer` is the reason the referral-identity fields must stay real columns. |
 | **`sendDailyDigest`** (2260) | Reads Active Leads. Retarget to the one table, filtered on Status. | 🟢 Low. |
 | **`handleCategoryEdit`** (2667) / **`handleManualReferralLink`** (2564) / **`moveContactToCold`** (2508) | Retarget from a tab to the table. Contact-group side effects unchanged. | 🟢 Low. **But see the `createContact` defect** in `backend-architecture.md` — do not assume the Contacts side of these works today. |
@@ -330,6 +426,8 @@ blamed on the schema.
 | Function | What the test must actually prove |
 |---|---|
 | `handleFormSubmission` | **End-to-end, per lead type** (all five roles): a payload in → the exact row out, `Details` blob included. Today this has **zero** end-to-end coverage. |
+| **`buildLeadRow` — `qualData` persistence** (§2a) | **The previously-dropped fields now land in `Details`, proven on at least two different lead types.** Recommended pair: **Investor** (`aum`, `experience`, `assetClasses`, `timeline`) and **submit_referral** (`relationship`, `fit`, `awareness` — the type where *all* qualData is discarded today, so it proves the fix hardest). Assert the **parsed** blob field-by-field against the input payload; asserting the blob is merely non-empty proves nothing. Include a field left blank by the visitor, to pin down whether it round-trips as `''`/`null` or is omitted — decide that once and lock it in a test. |
+| **`buildLeadRow` — `submit_referral.referred` round-trip** (§2b) | The referred-person block **round-trips as structured JSON and is retrievable**: build the row from a payload, `JSON.parse` the `Details` cell, and read back `referred.firstName` / `lastName` / `email` / `phone` / `notes` as **discrete values** — not a prose string that happens to contain them. **Assert the negative too:** the **Message column no longer contains the `Referred person:` prose block**, so a regression that keeps the old flattening alongside the new object is caught rather than silently double-writing. |
 | `matchReferrer` + `updateReferrerStats` | All four match paths (code → email → name → none) and the manual path; `Direct Referrals` increments **once**, on **one** row. This is the highest-risk rewrite (§3); test it accordingly. **Plus the two multi-level `Total Downstream` tests below — they are not optional.** |
 | **`updateReferrerStats` — multi-level chain** (§2c) | A chain **at least 3 levels deep** (John → Steven → Maria, ideally 4 to prove it is not hardcoded to one hop): when Maria is created, **every** ancestor's `Total Downstream` increments by exactly 1 — Steven **and** John. Assert the exact counter value on **each** ancestor row, not just that "something incremented". Cover a 1-deep chain (single ancestor) and a no-referrer submission (nothing increments) as the boundaries. |
 | **`updateReferrerStats` — `Direct Referrals` regression** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |

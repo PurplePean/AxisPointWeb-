@@ -664,7 +664,9 @@ read the column and do not report from it.
 
 `buildLeadRow` folds the `referred` block (name/email/phone/notes) into the
 **Message** column as a newline-joined text block. It is not machine-readable and
-cannot be queried. Open decision for the migration.
+cannot be queried. **Resolved 2026-07-13: the migration lifts it into a structured
+`Details.referred` object** (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2b). Prose until
+then.
 
 ## There are NO callable admin actions — do not assume otherwise
 

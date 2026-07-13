@@ -154,8 +154,14 @@ Verification method (repeat it rather than trusting this table): `buildLeadRow`
 names finds hits only inside email-copy strings and comments. Do not infer
 persistence from a field appearing in `Code.gs` — grep for `q.<field>`.
 
-Whether the schema migration should start persisting these is an **open decision**,
-deliberately not made here. See `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → *Open decisions*.
+**Resolved 2026-07-13: the schema migration FIXES this.** All 13 `qualData` fields
+will be persisted into the new unified table's `Details` JSON blob, per lead type —
+the twelve currently-dropped fields included. This gap is therefore **live until the
+migration ships, and closed by it.** Until then, do not build anything that assumes
+these fields are recoverable from the Sheet. See
+`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2a, which also carries the **verified**
+per-lead-type field mapping (the field names alone do not tell you which role asks
+which question).
 
 ### Referral field resolution
 
