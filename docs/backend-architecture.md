@@ -443,7 +443,7 @@ column 31.
 | 25 | Referral Chain | pipe-separated Lead IDs |
 | 26 | Chain Depth | integer |
 | 27 | Direct Referrals | running count; incremented by `updateReferrerStats` |
-| 28 | Total Downstream | **Never implemented.** Seeded `0` by `buildLeadRow` and **written by nothing** — `updateReferrerStats` updates only `Direct Referrals` and `Last Referral Date`. The column is permanently `0` on every row. Verified 2026-07-12. Either implement real downstream counting or retire the column; see `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → *Open decisions*. |
+| 28 | Total Downstream | **Not implemented *yet*.** Seeded `0` by `buildLeadRow` and **written by nothing** — `updateReferrerStats` updates only `Direct Referrals` and `Last Referral Date`. The column is permanently `0` on every row. Verified 2026-07-12. **Decided 2026-07-13: it will be built** as real multi-level attribution (every ancestor in a new lead's `Referral Chain` is credited, not just the immediate referrer), as part of the `updateReferrerStats` rewrite in the schema migration. Until that ships, treat the column as meaningless. See `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c. |
 | 29 | Last Referral Date | |
 | 30 | Meet Link | Google Meet URL when `meetType === 'meet'` |
 | 31 | Heard About | `leadHeardAbout(payload)` — the visitor's own "How did you hear about us?" answer. Blank for EAO (no such step). Distinct from **Source**. |
@@ -654,7 +654,11 @@ decision** — see `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
 
 ### 3. `Total Downstream` (col 28) is never written
 
-Seeded `0`, incremented by nothing. See the `LEAD_HEADERS` table above.
+Seeded `0`, incremented by nothing, so it is permanently zero on every row. See the
+`LEAD_HEADERS` table above. **Resolved 2026-07-13: it will be implemented** as
+multi-level referral attribution inside the schema migration's `updateReferrerStats`
+rewrite (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c). Still broken until then — do not
+read the column and do not report from it.
 
 ### 4. `submit_referral`'s referred-person data is prose, not structured
 
