@@ -53,19 +53,20 @@ to a key inside it is indistinguishable from an edit to any other key.
 | 11 | Referred By Email | Referral identity. **`onSheetEdit` watches this column** (`handleManualReferralLink`) — a human types into it to link a referral by hand. |
 | 12 | Referred By Code | Referral identity. |
 | 13 | Match Type | `code` / `email` / `name` / `manual` / `none`. |
-| 14 | Referral Chain | Pipe-separated Lead IDs. |
+| 14 | Referral Chain | Pipe-separated Lead IDs, origin → immediate referrer. **The input to multi-level `Total Downstream` attribution** (§2c) — it already holds every ancestor, so it must be readable per row. |
 | 15 | Chain Depth | Integer. |
-| 16 | Direct Referrals | Running count, incremented by `updateReferrerStats`. |
-| 17 | Last Referral Date | Written by `updateReferrerStats`. |
-| 18 | Phone | Contact identity; cheap, universal, and read by `createContact`. |
-| 19 | Company | Same. |
-| 20 | Role | The raw wire value; the key that selects how to interpret **Details**. |
-| 21 | Source | Arrival channel (`QR` / blank). **Never** the visitor's "how did you hear" answer. |
-| 22 | Heard About | The visitor's own answer. Distinct from Source — conflating them corrupted the Source column once already. |
-| 23 | Reports Enabled | The Referral Partners per-tab extra becomes a normal column on the one table. Blank/`TRUE` = receives the monthly summary, `FALSE` opts out. Its whole bug class (`REPORTS_ENABLED_COL = LEAD_HEADERS.length`) dies with the per-tab extra. |
-| 24 | Details | **The JSON blob.** Everything type-specific. See below. |
+| 16 | Direct Referrals | Running count of **immediate** referrals only. Incremented by `updateReferrerStats`. |
+| 17 | Total Downstream | Running count of the **whole downstream subtree** — every lead referred by anyone in this person's downstream, at any depth. Incremented by `updateReferrerStats` for every ancestor in a new lead's Referral Chain (§2c). **Must be a real column, not a `Details` key:** it is a counter that gets read-modify-written on rows *other than* the row being inserted. |
+| 18 | Last Referral Date | Written by `updateReferrerStats`. |
+| 19 | Phone | Contact identity; cheap, universal, and read by `createContact`. |
+| 20 | Company | Same. |
+| 21 | Role | The raw wire value; the key that selects how to interpret **Details**. |
+| 22 | Source | Arrival channel (`QR` / blank). **Never** the visitor's "how did you hear" answer. |
+| 23 | Heard About | The visitor's own answer. Distinct from Source — conflating them corrupted the Source column once already. |
+| 24 | Reports Enabled | The Referral Partners per-tab extra becomes a normal column on the one table. Blank/`TRUE` = receives the monthly summary, `FALSE` opts out. Its whole bug class (`REPORTS_ENABLED_COL = LEAD_HEADERS.length`) dies with the per-tab extra. |
+| 25 | Details | **The JSON blob.** Everything type-specific. See below. |
 
-The **ten referral-identity columns (8-17) are non-negotiable as real columns.**
+The **eleven referral-identity columns (8-18) are non-negotiable as real columns.**
 `matchReferrer` searches Referral Code, Email, and Name across all leads, and
 `onSheetEdit`'s dispatch must be able to tell that *the Referred By Email cell
 specifically* was the one edited. Both requirements die the moment those fields
@@ -102,12 +103,15 @@ to eyeball it in the grid — which, per the standing rule, is **not** a valid r
 
 ---
 
-## 2. Open decisions — make these explicitly, do not assume them
+## 2. Decisions — two still open, one resolved
 
-Three real questions. **This plan deliberately does not answer them.** Each is a
-product/data call, not a mechanical one, and silently defaulting any of them is how
-the current gaps got here in the first place. Decide each one out loud, then record
-the decision in `/docs/CHANGELOG.md`.
+Three real questions. **Two remain open and this plan deliberately does not answer
+them.** Each is a product/data call, not a mechanical one, and silently defaulting
+any of them is how the current gaps got here in the first place. Decide each one out
+loud, then record the decision in `/docs/CHANGELOG.md`.
+
+**§2c (`Total Downstream`) is RESOLVED as of 2026-07-13** — it is being implemented,
+not retired. Read it as a requirement, not a question.
 
 ### 2a. The 12 under-persisted `qualData` fields
 
@@ -136,15 +140,104 @@ block. It is not machine-readable and cannot be queried.
 **Decision:** keep it as prose-in-Message, **or** lift it into structured JSON under
 `Details.referred` as part of the migration.
 
-### 2c. `Total Downstream`
+### 2c. `Total Downstream` — ✅ RESOLVED 2026-07-13: implement it
 
-The column is seeded `0` by `buildLeadRow` and **written by nothing** —
-`updateReferrerStats` only ever touches `Direct Referrals` and `Last Referral Date`.
-It has been permanently `0` on every row since it was created. Verified 2026-07-12.
+**Decision: implement real multi-level referral attribution. The field is NOT
+retired.**
 
-**Decision:** implement real downstream-referral counting (walk `Referral Chain`),
-**or** formally retire the field. Carrying a third always-zero column into a new
-schema is the one option with nothing to recommend it.
+**The intent, stated plainly:** if John refers Steven, and Steven later refers
+Maria, then Maria counts toward **both** Steven's *and* John's Total Downstream. The
+**entire upstream chain** gets credited, not just the immediate referrer. Credit
+propagates all the way to the origin of the chain, however deep it goes.
+
+**Current state:** the column is seeded `0` by `buildLeadRow` and **written by
+nothing** — `updateReferrerStats` only ever touches `Direct Referrals` and `Last
+Referral Date`. It has been permanently `0` on every row since it was created.
+Verified 2026-07-12.
+
+#### This is a computation fix, not a data-collection gap
+
+**No new data collection is required. The `Referral Chain` field already stores
+exactly what is needed.** Verified against `Code.gs:1582-1601` on 2026-07-13:
+`buildReferralMatch` builds the new lead's chain as
+
+```js
+var chain = referrerChain ? referrerChain + '|' + referrerLeadId : referrerLeadId;
+```
+
+That is: **the referrer's own chain, plus the referrer's Lead ID appended.** Two
+properties of this fall out, and the implementation depends on both:
+
+1. **The chain is precisely the list of ancestors**, ordered origin → immediate
+   referrer, with the **immediate referrer last**.
+2. **The chain does NOT contain the new lead's own Lead ID.** It is appended to the
+   *next* lead's chain, not its own.
+
+So for Maria (referred by Steven, who was referred by John), Maria's Referral Chain
+is `AXP-2026-0001|AXP-2026-0002` (John, then Steven). Every ancestor who should be
+credited is already sitting in that one cell, and nobody who should *not* be credited
+is in it. **No walking of parent rows, no recursive lookups, no new field.**
+
+#### The fix
+
+When a new referred lead is created, **walk its entire Referral Chain and increment
+`Total Downstream` by 1 for every ancestor Lead ID in it** — not just the last entry.
+Because the chain contains ancestors only, this is a plain split-and-loop with no
+filtering:
+
+```js
+// Total Downstream: EVERY ancestor in the chain, not just the immediate referrer.
+chain.split('|').filter(Boolean).forEach(function(ancestorLeadId) {
+  incrementTotalDownstream(ancestorLeadId, 1);
+});
+```
+
+**`Direct Referrals` is unchanged and must stay unchanged.** It continues to
+increment **only** for the immediate referrer (`referralMatch.referrerLeadId`, the
+last chain entry). That distinction is correct and deliberate, and it is the whole
+reason both columns exist:
+
+| Column | Increments for | Maria's submission credits |
+|---|---|---|
+| **Direct Referrals** | the **immediate referrer only** | Steven (+1). John: **no change.** |
+| **Total Downstream** | **every ancestor** in the Referral Chain | Steven (+1) **and** John (+1). |
+
+Total Downstream is a **new, additional, multi-level count layered alongside** Direct
+Referrals. It does not replace it and does not change its semantics.
+
+#### Where it belongs: inside the `updateReferrerStats` rewrite
+
+**This is part of the `updateReferrerStats` rewrite (§3), not a separate follow-up
+task.** That function is already flagged as the **highest-risk, highest-priority**
+rewrite in the function-by-function list, and multi-level counting belongs there for
+a structural reason, not a scheduling one:
+
+- Multi-level counting means **updating potentially many ancestor rows** from a single
+  submission, not one. Under the **current** per-tab schema, each of those ancestors
+  is duplicated across up to nine tabs, so crediting a 4-deep chain could mean finding
+  and writing **dozens** of rows across nine sheets, each with its own
+  `resolveCols` + full-range read, each able to partially fail and leave counts
+  inconsistent *across tabs for the same person*. That is precisely the mess the
+  current function's per-tab loop exists to manage.
+- **Under the unified schema it collapses to what it actually is:** N single-row
+  lookups by Lead ID against one table, where N is the chain depth. One place per
+  ancestor to write, one place to be correct.
+
+So the operation only becomes safe and simple **once the unified schema removes row
+duplication** — which is exactly why it ships *with* that rewrite. Implementing
+multi-level counting against the current nine-tab schema would be building the
+hardest version of this feature immediately before deleting the reason it was hard.
+
+**Signature change both call sites must carry:** `updateReferrerStats(referrerLeadId)`
+needs the **chain** as well, e.g. `updateReferrerStats(referrerLeadId, chain)`. Both
+existing callers already have it in hand — `handleFormSubmission` (`Code.gs:1447`,
+via `referralMatch.chain`) and `handleManualReferralLink` (`Code.gs:2599`, which
+computes `chain` immediately above the call). **The manual-link path must credit the
+full chain too**; a hand-linked referral is not a second-class one.
+
+**Backfill is a non-issue:** the Sheet is empty, so there are no historical chains to
+recompute. Total Downstream starts correct rather than starting wrong and needing a
+repair tool.
 
 ---
 
@@ -155,20 +248,20 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 
 | Function | What changes | Risk |
 |---|---|---|
-| **`updateReferrerStats`** (1604) | **Loops every lead tab** and updates the referrer's row on each, because the same lead is duplicated across up to 9 tabs. Collapses to a **single-row lookup by Lead ID** on one table. The whole per-tab loop, the per-tab `try`/`resolveCols`, and the `break`-after-first-match all vanish. | 🔴 **HIGHEST.** This function *only exists in its current form because of row duplication.* It is also the least-tested write path in the file: it does a read-modify-write of a counter with no transaction, and today a partial failure leaves counts inconsistent *across tabs*. Rewrite it first, test it hardest. Get this wrong and referral stats — the thing the whole referral product is measured by — are silently wrong. |
+| **`updateReferrerStats`** (1604) | **Loops every lead tab** and updates the referrer's row on each, because the same lead is duplicated across up to 9 tabs. Collapses to a **single-row lookup by Lead ID** on one table. The whole per-tab loop, the per-tab `try`/`resolveCols`, and the `break`-after-first-match all vanish. **Also gains multi-level `Total Downstream` attribution in this same rewrite** (§2c, resolved): takes the chain as a second argument, increments `Direct Referrals` for the immediate referrer **only**, and increments `Total Downstream` for **every ancestor** in the Referral Chain. Becomes N single-row lookups, N = chain depth. | 🔴 **HIGHEST.** This function *only exists in its current form because of row duplication.* It is also the least-tested write path in the file: it does a read-modify-write of a counter with no transaction, and today a partial failure leaves counts inconsistent *across tabs*. **Multi-level counting raises the stakes further — one submission now writes to many ancestor rows** — which is exactly why it lands here, where each ancestor is one row instead of nine. Rewrite it first, test it hardest. Get this wrong and referral stats — the thing the whole referral product is measured by — are silently wrong. |
 | **`moveColdLeads`** (2416) | Stops **physically relocating rows** between tabs. Becomes: find rows whose Status ∈ {New Lead, Contacted, Active} and whose Timestamp is older than `COLD_LEAD_DAYS`, then **set Status = `Cold`**. One field write; no append, no `deleteRow`. | 🔴 High. It is one of only two functions that **delete rows** today. The rewrite removes the deletion entirely, which is a large net safety win — but the transitional version is the single most dangerous code in the migration. |
 | **`handleStatusEdit`** (2623) | Stops moving rows to Cold Leads / Clients / Archive. A status edit becomes **just a status edit** (plus its Contact-group side effects). Most of the function disappears. | 🔴 High. The other row-deleting function. Deletion logic must be *removed*, not ported. |
 | **`setCategoryTabStatus`** (2492) | **Deleted.** Its only job is keeping a duplicated row's Status in sync on the category tab. With one row, there is nothing to sync. | 🟢 Low (it stops existing). |
 | **`sendMonthlyReferralSummaries`** (2324) | Reads the **Referral Partners tab** and its extra `Reports Enabled` column. Becomes: filter the one table on `Category = 'Referral Partner'`, read `Reports Enabled` as a normal column, keep the existing skips (`Cold`/`Archive` status, `FALSE` opt-out, zero-referral partners). | 🟠 Medium. Currently untested, and a filter bug silently emails the wrong people — or nobody. |
 | **`onSheetEdit`** (2524) | Its **lead-tab guard** (`leadTabConfigs()` membership) becomes a single `sheet.getName() === 'Leads'` check. The three watched columns must still be resolved **by name** (`resolveCols`) so the dispatch detects *which* column changed. | 🟠 Medium. If the dispatch guard is wrong, edits are routed to the wrong handler or dropped silently. |
 | **`handleFormSubmission`** (1357) | Appends to **three tabs** (Lifetime + Active + category tab). Becomes **one append**. The category-tab-exists check, the `seedReportsEnabled` per-tab seed, and the missing-tab logging all collapse. | 🟠 Medium. Highest-traffic path in the file; end-to-end untested today (see §5). |
-| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 24-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. | 🟠 Medium. Every column's meaning changes at once. |
+| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. | 🟠 Medium. Every column's meaning changes at once. |
 | **`findExistingLead`** (1517) / **`existingReferralCodes`** (1278) / **`matchReferrer`** + **`buildReferralMatch`** (1533/1582) / **`handleResubmission`** (1469) | All currently scan **Lifetime Leads**. Retarget to the one table. Logic is otherwise unchanged — this is the cheapest group. | 🟢 Low-medium, but `matchReferrer` is the reason the referral-identity fields must stay real columns. |
 | **`sendDailyDigest`** (2260) | Reads Active Leads. Retarget to the one table, filtered on Status. | 🟢 Low. |
 | **`handleCategoryEdit`** (2667) / **`handleManualReferralLink`** (2564) / **`moveContactToCold`** (2508) | Retarget from a tab to the table. Contact-group side effects unchanged. | 🟢 Low. **But see the `createContact` defect** in `backend-architecture.md` — do not assume the Contacts side of these works today. |
 | **`setupSpreadsheet`** (3462) | Creates 11 tabs from `leadTabConfigs()`. Becomes: create **`Leads` + `Referrals` + `Subscribers`** (3 tabs). Keep the `getLastRow() === 0` guard. | 🟠 Medium. **This is the function that must be run manually from the Apps Script editor** to create the new tab. `clasp deploy` does not create tabs — skipping this step is exactly what broke EAO. |
 | **`LEAD_TYPES` / `leadTabConfigs` / `categoryTabForRole` / `leadTypeTabConfigs`** (146-254) | `.tab` and `.tabColor` become meaningless and come out of the registry. `.category`, `.contactGroup`, `.normalizer`, `.seedReportsEnabled` all stay. The registry itself **survives and stays the single definition site.** | 🟢 Low. |
-| **`resolveCols`** (1175) + `COLS` + `LEAD_HEADERS` | Rewritten against the new 24-column layout. **The function's contract does not change and must not be weakened:** resolve by name, **throw `headerLookupError` on a miss, never return a silent `-1`.** | 🟠 Medium. It is the safety floor the entire rewrite stands on. |
+| **`resolveCols`** (1175) + `COLS` + `LEAD_HEADERS` | Rewritten against the new 25-column layout. **The function's contract does not change and must not be weakened:** resolve by name, **throw `headerLookupError` on a miss, never return a silent `-1`.** | 🟠 Medium. It is the safety floor the entire rewrite stands on. |
 | **`reportsEnabledIndex`** (1138) / **`headerIndex`** (1124) | `Reports Enabled` becomes a standard column resolved by `resolveCols` like any other. Both helpers likely **delete outright** — `headerIndex`'s only remaining caller is `reportsEnabledIndex`. | 🟢 Low. |
 | **`scripts/gas/tests/resolve-cols.test.js`** | Rewritten against the new layout. **Keep the mangled-header fixture technique.** | 🟢 Low. |
 | **`scripts/gas/tests/live-sheet-functions.test.js`** | Substantially rewritten: its fake-sheet world is nine tabs. Becomes one table — and grows the new coverage demanded in §5. | 🟠 Medium. |
@@ -237,7 +330,9 @@ blamed on the schema.
 | Function | What the test must actually prove |
 |---|---|
 | `handleFormSubmission` | **End-to-end, per lead type** (all five roles): a payload in → the exact row out, `Details` blob included. Today this has **zero** end-to-end coverage. |
-| `matchReferrer` + `updateReferrerStats` | All four match paths (code → email → name → none) and the manual path; the counter increments **once**, on **one** row. This is the highest-risk rewrite (§3); test it accordingly. |
+| `matchReferrer` + `updateReferrerStats` | All four match paths (code → email → name → none) and the manual path; `Direct Referrals` increments **once**, on **one** row. This is the highest-risk rewrite (§3); test it accordingly. **Plus the two multi-level `Total Downstream` tests below — they are not optional.** |
+| **`updateReferrerStats` — multi-level chain** (§2c) | A chain **at least 3 levels deep** (John → Steven → Maria, ideally 4 to prove it is not hardcoded to one hop): when Maria is created, **every** ancestor's `Total Downstream` increments by exactly 1 — Steven **and** John. Assert the exact counter value on **each** ancestor row, not just that "something incremented". Cover a 1-deep chain (single ancestor) and a no-referrer submission (nothing increments) as the boundaries. |
+| **`updateReferrerStats` — `Direct Referrals` regression** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |
 | `sendMonthlyReferralSummaries` | The filter and every skip: `Cold`/`Archive` status, `Reports Enabled = FALSE`, zero-referral partners. Currently untested. |
 | `sendDailyDigest` | The today-filter against a CT calendar date boundary. Currently untested. |
 | `createContact` | Behavior under a **failing** `ContactsApp` — the confirmed pre-existing bug (see `backend-architecture.md`). At minimum: a contact failure must not fail the submission. Do not "fix" this bug inside the migration; that is a separate task. |
