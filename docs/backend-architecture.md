@@ -7,6 +7,29 @@ and runs three time-based digests plus an installable edit trigger.
 
 All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 
+## ⚠ The unified-schema migration is IN PROGRESS (Stage 1 of N done)
+
+`Code.gs` now contains **two lead schemas**, and exactly one of them is live.
+
+- **Live today:** the nine per-role lead tabs and the 31-column `LEAD_HEADERS`
+  layout that the rest of this document describes. **Everything below is still
+  accurate for production.**
+- **Being migrated in:** one `Leads` table, 25 columns + a `Details` JSON blob
+  (`UNIFIED_LEAD_HEADERS` / `UCOLS` / `resolveUnifiedCols`). See
+  `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
+
+**`var USE_UNIFIED_SCHEMA = false;` is the single switch between them, and it is
+off.** While it is off, production behavior is unchanged — a migrated function
+runs its legacy body. Migrated functions are structured as a dispatcher over an
+`xxxUnified` and an `xxxLegacy` implementation; the legacy bodies are the rollback
+path and are deleted only at cutover.
+
+**Migrated so far: `updateReferrerStats` only** (Stage 1, 2026-07-14). The `Leads`
+tab **does not exist in the live Sheet** — `setupSpreadsheet()` still creates the
+eleven legacy tabs, and creating `Leads` is part of the cutover, not of any single
+stage. Do not flip the switch, and do not create the tab by hand, until every
+function in the plan's §3 list is migrated.
+
 ## Entry points
 
 | Function | Kind | Behavior |
@@ -196,7 +219,7 @@ and handled explicitly inside `contactGroupForCategory()`.
 | `contactGroupForCategory(category)` | `.category` → `.contactGroup`, plus the `'Client'` special case |
 | `handleFormSubmission` | `.normalizer` (applied in place, before anything reads the payload), `.seedReportsEnabled` |
 | `setupSpreadsheet()` | `leadTabConfigs()` → `.tab` + `.tabColor` |
-| `updateReferrerStats()` | `leadTabConfigs()` → every lead tab's `.tab` (was a hardcoded 7-tab list; see below) |
+| `updateReferrerStatsLegacy()` | `leadTabConfigs()` → every lead tab's `.tab` (was a hardcoded 7-tab list; see below). The **unified** implementation reads no tab list at all — one table, one row per lead. |
 | `onSheetEdit()` | `leadTabConfigs()` → the lead-tab guard that gates dispatch |
 | `handleCategoryEdit()` | `allCategoryContactGroups()` → every `.contactGroup` + Clients |
 
@@ -443,7 +466,7 @@ column 31.
 | 25 | Referral Chain | pipe-separated Lead IDs |
 | 26 | Chain Depth | integer |
 | 27 | Direct Referrals | running count; incremented by `updateReferrerStats` |
-| 28 | Total Downstream | **Not implemented *yet*.** Seeded `0` by `buildLeadRow` and **written by nothing** — `updateReferrerStats` updates only `Direct Referrals` and `Last Referral Date`. The column is permanently `0` on every row. Verified 2026-07-12. **Decided 2026-07-13: it will be built** as real multi-level attribution (every ancestor in a new lead's `Referral Chain` is credited, not just the immediate referrer), as part of the `updateReferrerStats` rewrite in the schema migration. Until that ships, treat the column as meaningless. See `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c. |
+| 28 | Total Downstream | **Still permanently `0` on this (legacy) layout.** Seeded `0` by `buildLeadRow`; `updateReferrerStatsLegacy` — the body production runs — writes only `Direct Referrals` and `Last Referral Date`. The multi-level implementation was **built 2026-07-14** but targets the unified `Leads` table and is gated off (`USE_UNIFIED_SCHEMA`). Treat this column as meaningless until cutover. See *Known open defects* §3 and `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c. |
 | 29 | Last Referral Date | |
 | 30 | Meet Link | Google Meet URL when `meetType === 'meet'` |
 | 31 | Heard About | `leadHeardAbout(payload)` — the visitor's own "How did you hear about us?" answer. Blank for EAO (no such step). Distinct from **Source**. |
@@ -652,13 +675,28 @@ schema work. The full field-by-field table and the verification method live in
 migration should start persisting these into a Details JSON blob is an **open
 decision** — see `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
 
-### 3. `Total Downstream` (col 28) is never written
+### 3. `Total Downstream` (col 28) is never written — **BUILT, not yet live**
 
-Seeded `0`, incremented by nothing, so it is permanently zero on every row. See the
-`LEAD_HEADERS` table above. **Resolved 2026-07-13: it will be implemented** as
-multi-level referral attribution inside the schema migration's `updateReferrerStats`
-rewrite (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c). Still broken until then — do not
-read the column and do not report from it.
+**Still zero in production**, because production still runs the legacy schema.
+
+The multi-level implementation **exists as of 2026-07-14** (Stage 1), inside
+`updateReferrerStatsUnified`, and is fully tested — but it only runs when
+`USE_UNIFIED_SCHEMA` is on, and it writes to the `Leads` table, which does not exist
+yet. The **legacy** `updateReferrerStatsLegacy` still writes only `Direct Referrals`
+and `Last Referral Date`, exactly as before, so the live column 28 is unchanged:
+permanently `0`. **Do not read it or report from it until cutover.**
+
+How it behaves once live (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c):
+
+| Column | Increments for | John → Steven → Maria: Maria's submission credits |
+|---|---|---|
+| **Direct Referrals** | the immediate referrer **only** | Steven **+1**. John: unchanged. |
+| **Total Downstream** | **every ancestor** in the new lead's `Referral Chain` | Steven **+1** *and* John **+1**. |
+| **Last Referral Date** | the immediate referrer **only** | Steven. John: unchanged (a lead referred two levels below you is not *your* referral). |
+
+The chain already holds exactly the ancestor list needed — origin first, immediate
+referrer last, and never the new lead's own ID — so attribution is a split of one
+cell (`chainAncestors`), not a walk of parent rows.
 
 ### 4. `submit_referral`'s referred-person data is prose, not structured
 

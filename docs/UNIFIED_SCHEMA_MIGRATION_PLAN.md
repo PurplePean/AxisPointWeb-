@@ -1,8 +1,71 @@
 # Unified Schema Migration Plan
 
-**Status:** PLAN ONLY — nothing here has been executed. Created 2026-07-12.
+**Status:** IN EXECUTION. Created 2026-07-12. **Stage 1 of N shipped 2026-07-14.**
 **DECISION-COMPLETE as of 2026-07-13:** all three open decisions in §2 are resolved.
-Nothing in this document is waiting on an answer; it is ready to execute.
+Nothing in this document is waiting on an answer.
+
+## Execution status
+
+| Stage | Scope | State |
+|---|---|---|
+| **1** | The unified schema constants (`UNIFIED_LEAD_HEADERS`, `UCOLS`, `resolveUnifiedCols`, `chainAncestors`), the `USE_UNIFIED_SCHEMA` switch, and **`updateReferrerStats`** — including multi-level `Total Downstream` (§2c) | ✅ **DONE 2026-07-14.** 61/61 tests green. Not deployed; the switch is off. |
+| 2…N | Every other function in §3 | ⬜ Not started |
+| Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
+
+### The staging pattern — Stage 2 MUST follow this exactly
+
+The migration cannot flip in one commit, and the two schemas must never both be
+live (§6). The reconciliation is **one module-level switch in `Code.gs`**:
+
+```js
+var USE_UNIFIED_SCHEMA = false;   // the single cutover switch. Off = production today.
+```
+
+Every migrated function becomes **three** things:
+
+1. `xxxUnified(...)` — the new implementation, against the one `Leads` table.
+2. `xxxLegacy(...)` — the old body, **verbatim**, marked `DELETE AT CUTOVER`.
+3. `xxx(...)` — a dispatcher: `return USE_UNIFIED_SCHEMA ? xxxUnified(...) : xxxLegacy(...)`.
+
+**Both branches get tested.** The legacy test proves production is still intact at
+that commit; the unified test proves the migration is right before it ships. Tests
+flip the switch by assigning `sandbox.USE_UNIFIED_SCHEMA = true` on the loaded
+sandbox — see `scripts/gas/tests/referrer-stats.test.js`, which is the reference
+implementation of the whole pattern.
+
+**Why a switch and not "does the `Leads` tab exist?"** Tab-existence detection
+would silently flip the entire backend the moment somebody ran `setupSpreadsheet()`
+by hand, mid-migration, with half the functions still writing to the old tabs. The
+switch makes the cutover a reviewed line of code instead of a side effect.
+
+**What this buys:** every stage is independently mergeable and independently
+deployable, because with the switch off, a merged stage is a **no-op in
+production**. The migration can land over N PRs without ever leaving `main` in a
+half-broken state.
+
+**At cutover** (§6, after every stage is done): flip the switch, delete every
+`xxxLegacy` body, delete the switch itself, delete the nine tabs and the §4 list.
+Nothing is deleted before then — the legacy bodies are the rollback path.
+
+### Stage 1 notes for whoever picks up Stage 2
+
+- **`CONFIG.TABS.LEADS = 'Leads'`** exists now. `setupSpreadsheet()` still does
+  **not** create it — that is deliberate and is part of the cutover, not Stage 1.
+- **The 25-column layout is now real code** (`UNIFIED_LEAD_HEADERS` + `UCOLS`), in
+  the exact order of §1's table. `buildLeadRow`'s rewrite must build against it.
+- **`resolveUnifiedCols(sheet)` is the only sanctioned way to read a live `Leads`
+  row.** Same contract as `resolveCols`: resolve by name, **throw** on a miss,
+  never a silent `-1`. Call once per sheet, never per row.
+- **One ambiguity in this document that Stage 2 must resolve, not inherit:** §1's
+  column table has **no `Message` column** (the 25 columns are exactly as listed),
+  and §1's `Details` table puts `message` inside the blob under *All types*. But
+  §2b says "the **Message column** goes back to holding only what the submitter
+  typed". Those two readings conflict. Stage 1 implemented the column list
+  verbatim (no top-level Message; `message` lives in `Details`), because the
+  column list is normative and §2b's phrasing is about *content*, not placement.
+  **`buildLeadRow`'s author should confirm that reading before writing the row.**
+
+---
 
 **Scope:** the Google Sheet CRM schema, and the `Code.gs` functions that read and
 write it. Nothing else. See *Explicitly out of scope* at the bottom before assuming
@@ -344,7 +407,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 
 | Function | What changes | Risk |
 |---|---|---|
-| **`updateReferrerStats`** (1604) | **Loops every lead tab** and updates the referrer's row on each, because the same lead is duplicated across up to 9 tabs. Collapses to a **single-row lookup by Lead ID** on one table. The whole per-tab loop, the per-tab `try`/`resolveCols`, and the `break`-after-first-match all vanish. **Also gains multi-level `Total Downstream` attribution in this same rewrite** (§2c, resolved): takes the chain as a second argument, increments `Direct Referrals` for the immediate referrer **only**, and increments `Total Downstream` for **every ancestor** in the Referral Chain. Becomes N single-row lookups, N = chain depth. | 🔴 **HIGHEST.** This function *only exists in its current form because of row duplication.* It is also the least-tested write path in the file: it does a read-modify-write of a counter with no transaction, and today a partial failure leaves counts inconsistent *across tabs*. **Multi-level counting raises the stakes further — one submission now writes to many ancestor rows** — which is exactly why it lands here, where each ancestor is one row instead of nine. Rewrite it first, test it hardest. Get this wrong and referral stats — the thing the whole referral product is measured by — are silently wrong. |
+| ✅ **`updateReferrerStats`** — **MIGRATED 2026-07-14 (Stage 1).** Now a dispatcher over `updateReferrerStatsUnified` (new) and `updateReferrerStatsLegacy` (the old body, verbatim, delete at cutover). The unified path indexes the one table by Lead ID once, credits `Total Downstream` to every ancestor from `chainAncestors(chain)`, and credits `Direct Referrals` + `Last Referral Date` to the immediate referrer **only**. Both call sites now pass the chain. Covered by `scripts/gas/tests/referrer-stats.test.js` (11 tests: 4-deep chain, the Direct-Referrals regression, 1-deep and no-referrer boundaries, a duplicated chain entry, a chain naming a missing row, a header miss, and the legacy branch). | *Original entry, for the record:* **Loops every lead tab** and updates the referrer's row on each, because the same lead is duplicated across up to 9 tabs. Collapses to a **single-row lookup by Lead ID** on one table. The whole per-tab loop, the per-tab `try`/`resolveCols`, and the `break`-after-first-match all vanish. **Also gains multi-level `Total Downstream` attribution in this same rewrite** (§2c, resolved): takes the chain as a second argument, increments `Direct Referrals` for the immediate referrer **only**, and increments `Total Downstream` for **every ancestor** in the Referral Chain. Becomes N single-row lookups, N = chain depth. | 🔴 **HIGHEST.** This function *only exists in its current form because of row duplication.* It is also the least-tested write path in the file: it does a read-modify-write of a counter with no transaction, and today a partial failure leaves counts inconsistent *across tabs*. **Multi-level counting raises the stakes further — one submission now writes to many ancestor rows** — which is exactly why it lands here, where each ancestor is one row instead of nine. Rewrite it first, test it hardest. Get this wrong and referral stats — the thing the whole referral product is measured by — are silently wrong. |
 | **`moveColdLeads`** (2416) | Stops **physically relocating rows** between tabs. Becomes: find rows whose Status ∈ {New Lead, Contacted, Active} and whose Timestamp is older than `COLD_LEAD_DAYS`, then **set Status = `Cold`**. One field write; no append, no `deleteRow`. | 🔴 High. It is one of only two functions that **delete rows** today. The rewrite removes the deletion entirely, which is a large net safety win — but the transitional version is the single most dangerous code in the migration. |
 | **`handleStatusEdit`** (2623) | Stops moving rows to Cold Leads / Clients / Archive. A status edit becomes **just a status edit** (plus its Contact-group side effects). Most of the function disappears. | 🔴 High. The other row-deleting function. Deletion logic must be *removed*, not ported. |
 | **`setCategoryTabStatus`** (2492) | **Deleted.** Its only job is keeping a duplicated row's Status in sync on the category tab. With one row, there is nothing to sync. | 🟢 Low (it stops existing). |
@@ -429,8 +492,8 @@ blamed on the schema.
 | **`buildLeadRow` — `qualData` persistence** (§2a) | **The previously-dropped fields now land in `Details`, proven on at least two different lead types.** Recommended pair: **Investor** (`aum`, `experience`, `assetClasses`, `timeline`) and **submit_referral** (`relationship`, `fit`, `awareness` — the type where *all* qualData is discarded today, so it proves the fix hardest). Assert the **parsed** blob field-by-field against the input payload; asserting the blob is merely non-empty proves nothing. Include a field left blank by the visitor, to pin down whether it round-trips as `''`/`null` or is omitted — decide that once and lock it in a test. |
 | **`buildLeadRow` — `submit_referral.referred` round-trip** (§2b) | The referred-person block **round-trips as structured JSON and is retrievable**: build the row from a payload, `JSON.parse` the `Details` cell, and read back `referred.firstName` / `lastName` / `email` / `phone` / `notes` as **discrete values** — not a prose string that happens to contain them. **Assert the negative too:** the **Message column no longer contains the `Referred person:` prose block**, so a regression that keeps the old flattening alongside the new object is caught rather than silently double-writing. |
 | `matchReferrer` + `updateReferrerStats` | All four match paths (code → email → name → none) and the manual path; `Direct Referrals` increments **once**, on **one** row. This is the highest-risk rewrite (§3); test it accordingly. **Plus the two multi-level `Total Downstream` tests below — they are not optional.** |
-| **`updateReferrerStats` — multi-level chain** (§2c) | A chain **at least 3 levels deep** (John → Steven → Maria, ideally 4 to prove it is not hardcoded to one hop): when Maria is created, **every** ancestor's `Total Downstream` increments by exactly 1 — Steven **and** John. Assert the exact counter value on **each** ancestor row, not just that "something incremented". Cover a 1-deep chain (single ancestor) and a no-referrer submission (nothing increments) as the boundaries. |
-| **`updateReferrerStats` — `Direct Referrals` regression** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |
+| ✅ **`updateReferrerStats` — multi-level chain** (§2c) — **DONE, Stage 1.** Implemented with a **4**-deep chain (`referrer-stats.test.js`), seeded with non-zero, all-different starting counters so an assertion cannot pass by setting `1` instead of incrementing. Both boundaries covered. | A chain **at least 3 levels deep** (John → Steven → Maria, ideally 4 to prove it is not hardcoded to one hop): when Maria is created, **every** ancestor's `Total Downstream` increments by exactly 1 — Steven **and** John. Assert the exact counter value on **each** ancestor row, not just that "something incremented". Cover a 1-deep chain (single ancestor) and a no-referrer submission (nothing increments) as the boundaries. |
+| ✅ **`updateReferrerStats` — `Direct Referrals` regression** — **DONE, Stage 1.** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |
 | `sendMonthlyReferralSummaries` | The filter and every skip: `Cold`/`Archive` status, `Reports Enabled = FALSE`, zero-referral partners. Currently untested. |
 | `sendDailyDigest` | The today-filter against a CT calendar date boundary. Currently untested. |
 | `createContact` | Behavior under a **failing** `ContactsApp` — the confirmed pre-existing bug (see `backend-architecture.md`). At minimum: a contact failure must not fail the submission. Do not "fix" this bug inside the migration; that is a separate task. |
