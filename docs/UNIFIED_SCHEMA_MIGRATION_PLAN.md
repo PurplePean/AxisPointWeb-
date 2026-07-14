@@ -327,17 +327,34 @@ both `matchReferrer` branches call the same one. (Third time the plan's "retarge
 list has turned out to include a function with nothing to retarget — see also
 `handleCategoryEdit` and `moveContactToCold`.)
 
-**A REAL ASYMMETRY, now on one table — readers tolerate drift, the writer does not.**
-Every reader resolves columns **by name** (`resolveUnifiedCols`) and survives a
-hand-mangled header. But `buildLeadRow` **constructs** the canonical layout and
-`persistNewLead` appends it **positionally** — which this plan explicitly sanctions
-("it constructs the canonical layout rather than reading a possibly-drifted one"). The
-consequence, which is worth stating out loud now that there is only one table: **a
-human who reorders the live `Leads` header silently corrupts every future append** —
-new rows land under the wrong columns — even though every reader would have tolerated
-it. It was equally true of the nine-tab schema. Closing it would mean projecting the
-append by name; that is a **separate change**, not this migration's, but it should be
-considered before real submissions land.
+**✅ CLOSED 2026-07-14 — the reader/writer asymmetry is gone.** *(This section used to
+describe it as an accepted risk. It is now fixed; the history is kept because the
+reasoning matters.)*
+
+Every reader resolves columns **by name** (`resolveUnifiedCols`) and survives a drifted
+header. The writer used to be **positional**: `buildLeadRow` constructs the canonical
+layout and `persistNewLead` appended that array straight down, assuming the live header
+still matched. This plan explicitly sanctioned that ("it constructs the canonical
+layout rather than reading a possibly-drifted one") — and it was wrong to.
+
+**The bug it left open:** a human reorders or inserts a column in the live `Leads`
+header. Every reader keeps working. The writer silently puts the Timestamp under
+**Email**, the Match Type under **Category**, the company under **Phone**, and the
+`Details` blob under whatever now sits at index 24 — on every subsequent lead, with
+nothing anywhere to catch it. **The readers' own tolerance is what would have hidden
+it:** the sheet looks healthy and the code never complains.
+
+**The fix:** `persistNewLeadUnified` now resolves the live header and projects the
+canonical row onto the sheet's REAL columns by name (`projectLeadRowByName`) before
+appending. A reordered header is handled exactly as every reader handles it; a header
+missing a required column **throws `headerLookupError` and refuses the write** rather
+than guessing at a cell. A human's extra columns beyond the 25 are preserved as blanks
+rather than clipped. On a canonical header the projection is a **verified exact no-op**
+— this is a safety fix, not a behavior change.
+
+**`buildLeadRow` is unchanged and still positional, which is still correct:** it
+*constructs* the canonical layout. Knowing where the columns really are is the
+**append's** job, not the row builder's. That is where the boundary belongs.
 
 **Lock discipline held.** `handleResubmissionUnified` read-modify-writes the `Details`
 blob on a row it did not create, so it takes the shared script lock **before the read**

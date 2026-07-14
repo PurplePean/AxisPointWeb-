@@ -109,27 +109,26 @@ function jsonOf(result) {
   return JSON.parse(result._text);
 }
 
-/* ── The header, HAND-TYPED, and why it is canonical here ──
+/* ── The header, HAND-TYPED ──
  *
- * Every other suite mangles its header, because every other suite tests a READER,
- * and readers resolve by name (resolveUnifiedCols) so they must survive drift.
+ * HISTORY WORTH KEEPING, because this comment used to say the opposite: when this
+ * suite was written, the append was POSITIONAL. buildLeadRow constructed the
+ * canonical layout and persistNewLead appended that array straight down, assuming the
+ * live header still matched. So an append-target sheet HAD to carry the canonical
+ * header, and this fixture was canonical for that reason.
  *
- * This suite tests the WRITER, and the writer is positional: buildLeadRow constructs
- * the canonical layout and persistNewLead appends it. That is deliberate and the plan
- * sanctions it ("building a fresh row to append still uses positional ordering — it
- * CONSTRUCTS the canonical layout rather than reading a possibly-drifted one"), and
- * it is what setupSpreadsheet creates. Handing an append-target sheet a scrambled
- * header would be modelling a sheet that cannot exist in production, and every
- * assertion would fail for a reason that has nothing to do with this stage.
+ * That asymmetry — every reader name-resolving and tolerating drift, the one writer
+ * assuming position — was the bug. It is now closed: persistNewLeadUnified projects
+ * the row onto the sheet's REAL columns by name (projectLeadRowByName). The append
+ * survives a reordered header exactly as every reader always has, and refuses (throws
+ * headerLookupError) on a header that is genuinely broken rather than guessing.
  *
- * NOTE THE ASYMMETRY IT IMPLIES, because it is real and now sits on ONE table: a
- * human who reorders the live Leads header breaks every future append (rows land
- * under the wrong columns) even though every reader would tolerate it. Pre-existing
- * and accepted, but louder with one table than nine. Flagged in the plan.
+ * This fixture stays canonical because that is the ordinary case worth testing here —
+ * and because it must be proven that the fix changed NOTHING for it. The reordered
+ * and widened cases have their own tests below.
  *
- * The list is still HAND-TYPED, not imported from UNIFIED_LEAD_HEADERS — a fixture
- * built from the constant under test proves only that the constant equals itself.
- * The drift guard below compares the two.
+ * The list is HAND-TYPED, not imported from UNIFIED_LEAD_HEADERS — a fixture built
+ * from the constant under test proves only that the constant equals itself.
  */
 const HEADER = [
   'Lead ID', 'Timestamp', 'Category', 'Status', 'Email', 'First Name', 'Last Name',
@@ -699,6 +698,145 @@ test('a missing Leads table fails LOUDLY — it does not accept a submission and
   assert.equal(res.success, false);
   assert.match(res.error, /does not exist/);
   assert.match(res.error, /setupSpreadsheet/);
+});
+
+/* ════════════════════════════════════════════════════════════
+   THE APPEND IS NAME-PROJECTED — the reader/writer asymmetry, closed.
+
+   Until this fix, persistNewLead appended the canonical array positionally. Every
+   READER in the file resolves by name and shrugs off a reordered header; the one
+   WRITER assumed the header had not moved. So a human reordering the live Leads
+   header would have kept every read working while silently writing Email into
+   Category and the Details blob into Phone on every subsequent lead — and the
+   readers' own tolerance is what would have hidden it. Nothing would have complained.
+   ════════════════════════════════════════════════════════════ */
+
+test('APPEND BY NAME: a REORDERED live header still receives every value under its own column', () => {
+  // The header a human has rearranged. Same 25 columns, none where the code expects
+  // it. Under the old positional append, every assertion below lands in the wrong
+  // cell — this test is the proof the old behavior was wrong.
+  const leads = new FakeSheet('Leads', [MANGLED.slice()]);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads, Referrals: referralsSheet() }), true);
+
+  const res = jsonOf(sandbox.handleFormSubmission(INVESTOR()));
+  assert.equal(res.success, true);
+  assert.equal(leads.getLastRow(), 2);
+
+  // Read the appended row back through the MANGLED header, by name.
+  const row = leads.getDataRange().getValues()[1];
+  const get = (name) => row[idx(MANGLED, name)];
+
+  assert.equal(get('Lead ID'), res.leadId);
+  assert.equal(get('Email'), 'ivy@x.com');
+  assert.equal(get('First Name'), 'Ivy');
+  assert.equal(get('Last Name'), 'Investor');
+  assert.equal(get('Category'), 'Investor');
+  assert.equal(get('Status'), 'New Lead');
+  assert.equal(get('Role'), 'investor');
+  assert.equal(get('Phone'), '555-0001');
+  assert.equal(get('Company'), 'Ivy Capital');
+  assert.equal(get('Referral Code'), res.referralCode);
+  assert.equal(get('Heard About'), 'LinkedIn');
+  assert.equal(get('Match Type'), 'none');
+  assert.equal(get('Direct Referrals'), 0);
+  assert.equal(get('Total Downstream'), 0);
+  assert.equal(get('Reports Enabled'), '');
+
+  // The blob landed in Details — not in Phone, which is where a positional append
+  // would have put it under this header.
+  const d = JSON.parse(get('Details'));
+  assert.equal(d.aum, '$10-50M');
+  assert.equal(d.message, 'Looking at multifamily.');
+  assert.ok(!String(get('Phone')).startsWith('{'), 'the Details blob must not land in Phone');
+});
+
+test('APPEND BY NAME: the whole submission path still works on a reordered header — dedupe, referral, stats', () => {
+  // Not just one row: the readers and the writer must agree on the same drifted sheet.
+  const leads = new FakeSheet('Leads', [MANGLED.slice()]);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads, Referrals: referralsSheet() }), true);
+
+  const ivy = jsonOf(sandbox.handleFormSubmission(INVESTOR()));
+  const ray = REFERRAL_PARTNER();
+  ray.referralCode = ivy.referralCode;
+  const rayRes = jsonOf(sandbox.handleFormSubmission(ray));
+
+  // Dedupe still finds the lead the writer just appended.
+  const dup = INVESTOR();
+  dup.message = 'Again.';
+  const dupRes = jsonOf(sandbox.handleFormSubmission(dup));
+  assert.equal(dupRes.resubmission, true);
+  assert.equal(dupRes.leadId, ivy.leadId);
+  assert.equal(leads.getLastRow(), 3, 'two leads, no duplicate');
+
+  const rowOf = (id) => {
+    const rows = leads.getDataRange().getValues();
+    const r = rows.find((x) => x[idx(MANGLED, 'Lead ID')] === id);
+    assert.ok(r, 'no row for ' + id);
+    return (n) => r[idx(MANGLED, n)];
+  };
+
+  // The referral matched, the chain attached, the stats were credited — all through
+  // a header where nothing sits where the code would have assumed.
+  assert.equal(rowOf(rayRes.leadId)('Match Type'), 'code');
+  assert.equal(rowOf(rayRes.leadId)('Referred By Lead ID'), ivy.leadId);
+  assert.equal(rowOf(rayRes.leadId)('Referral Chain'), ivy.leadId);
+  assert.equal(rowOf(ivy.leadId)('Direct Referrals'), 1);
+  assert.equal(rowOf(ivy.leadId)('Total Downstream'), 1);
+
+  // And the resubmission's blob RMW found the right cell too.
+  assert.match(JSON.parse(rowOf(ivy.leadId)('Details')).message, /New message: Again\./);
+});
+
+test('APPEND BY NAME: this is a SAFETY fix, not a behavior change — a canonical header is byte-for-byte identical', () => {
+  // The common case must be untouched. The appended row on a canonical header must
+  // equal exactly what buildLeadRowUnified produced, cell for cell.
+  const leads = emptyLeads();
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads, Referrals: referralsSheet() }), true);
+
+  const payload = INVESTOR();
+  const res = jsonOf(sandbox.handleFormSubmission(payload));
+
+  const appended = Array.from(leads.getDataRange().getValues()[1]);
+  assert.equal(appended.length, 25, 'no padding, no widening');
+
+  // Rebuild the same row directly and compare. (Timestamp is generated per call, so
+  // pin it from the appended row; everything else must match exactly.)
+  const expected = Array.from(sandbox.buildLeadRow(
+    payload, 'New Lead', res.leadId, res.referralCode,
+    { found: false, matchType: 'none' }, '',
+  ));
+  expected[colOf('Timestamp')] = appended[colOf('Timestamp')];
+
+  assert.deepEqual(appended, expected,
+    'on a canonical header the projection must be an exact no-op');
+});
+
+test('APPEND BY NAME: a human\'s EXTRA column is preserved as a blank, not clipped', () => {
+  const wide = HEADER.concat(['Internal Notes']);   // somebody added a column
+  const leads = new FakeSheet('Leads', [wide]);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads, Referrals: referralsSheet() }), true);
+
+  sandbox.handleFormSubmission(INVESTOR());
+  const row = leads.getDataRange().getValues()[1];
+
+  assert.equal(row.length, 26, 'the row spans the sheet\'s real width');
+  assert.equal(row[idx(wide, 'Email')], 'ivy@x.com');
+  assert.equal(row[idx(wide, 'Internal Notes')], '', 'the unknown column is left blank, not overwritten');
+});
+
+test('APPEND BY NAME: a header MISSING a required column REFUSES the write — it never guesses', () => {
+  const broken = HEADER.filter((h) => h !== 'Details');
+  const leads = new FakeSheet('Leads', [broken]);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads, Referrals: referralsSheet() }), true);
+
+  const res = jsonOf(sandbox.handleFormSubmission(INVESTOR()));
+
+  // Loud, not silent: resolveUnifiedCols throws headerLookupError, handleFormSubmission
+  // catches it and reports failure. Refusing to run on a broken tab is the intended
+  // outcome — the same contract every reader already has.
+  assert.equal(res.success, false);
+  assert.match(res.error, /Details/);
+  assert.equal(leads.getLastRow(), 1, 'nothing may be appended to a header we cannot trust');
 });
 
 /* ════════════════════════════════════════════════════════════

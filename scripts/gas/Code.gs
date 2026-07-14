@@ -1685,7 +1685,46 @@ function persistNewLeadUnified(row) {
                     'Run setupSpreadsheet() from the Apps Script editor before enabling the ' +
                     'unified schema.');
   }
-  sheet.appendRow(row);
+
+  /* ── The append is NAME-PROJECTED, not positional ──
+     buildLeadRowUnified hands us the CANONICAL layout (UNIFIED_LEAD_HEADERS order).
+     Appending that array directly would assume the live header is still in that
+     order — and every reader in this file has, for good reason, refused to make that
+     assumption for years.
+
+     THE BUG THIS CLOSES: a human reorders (or inserts a column into) the live Leads
+     header. Every reader keeps working, because resolveUnifiedCols matches by name.
+     The writer, appending positionally, silently writes Email into Category, the
+     Details blob into Phone, and so on — corrupting every subsequent lead with
+     nothing anywhere to catch it. The readers' tolerance is exactly what would have
+     hidden it: the sheet looks fine and the code never complains.
+
+     resolveUnifiedCols throws headerLookupError on a genuine miss, so a header that
+     is broken rather than merely reordered REFUSES the write instead of guessing at
+     a column. Refusing to run on a broken tab is the intended outcome — the same
+     contract every reader already has. */
+  var C     = resolveUnifiedCols(sheet);
+  var width = Math.max(UNIFIED_LEAD_HEADERS.length, sheet.getLastColumn());
+  sheet.appendRow(projectLeadRowByName(row, C, width));
+}
+
+/* Re-lays a canonical lead row onto a sheet's REAL column positions.
+
+   `canonicalRow` is indexed by UCOLS (where a column SHOULD be); `cols` is a
+   resolveUnifiedCols map (where it ACTUALLY is). Every value is moved from the
+   former to the latter, so the two can differ freely.
+
+   `width` is the sheet's real width, so a human's extra columns beyond the 25 are
+   preserved as blanks rather than being clipped off the end of the appended row. */
+function projectLeadRowByName(canonicalRow, cols, width) {
+  var out = [];
+  for (var i = 0; i < width; i++) out.push('');
+
+  Object.keys(UCOLS).forEach(function(key) {
+    var value = canonicalRow[UCOLS[key]];
+    out[cols[key]] = (value === undefined || value === null) ? '' : value;
+  });
+  return out;
 }
 
 /* LEGACY — unchanged. DELETE AT CUTOVER. Appends the SAME row to Lifetime Leads,

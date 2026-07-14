@@ -93,18 +93,30 @@ deploy` does not create tabs), the `LEAD_TYPES` registry (`.tab`/`.tabColor`), a
 audit/repair family and the EAO backfill family, both of which exist *solely* to manage
 nine parallel tabs and are now obsolete, but are deleted **at cutover, not before**.
 
-### ⚠ Readers tolerate a drifted header. The writer does not.
+### ✅ The append is name-projected too — reader/writer asymmetry CLOSED (2026-07-14)
 
-Every reader resolves columns **by name** (`resolveUnifiedCols`) and survives a
-hand-mangled header. But `buildLeadRow` **constructs** the canonical layout and
-`persistNewLead` appends it **positionally** — deliberate, and what the plan sanctions.
+**Every read AND every write on the unified table now resolves columns by name.**
 
-**The consequence, now that there is only one table: a human who reorders the live
-`Leads` header silently corrupts every future append.** New rows land under the wrong
-columns, even though every reader would have tolerated the same drift. This was equally
-true of the nine-tab schema and is not introduced by the migration — but it is worth
-closing (project the append by name) **before real submissions land**. That is a
-separate change from this migration.
+Readers always did (`resolveUnifiedCols`). The writer did not: `persistNewLead`
+appended `buildLeadRow`'s canonical array **positionally**, assuming the live header
+still matched. A human reordering or inserting a column in the live `Leads` header
+would have left every reader working while the writer silently put the Timestamp under
+**Email**, the Match Type under **Category**, the company under **Phone**, and the
+`Details` blob under whatever landed at index 24 — on every subsequent lead, with
+nothing to catch it. **The readers' tolerance is exactly what would have hidden it.**
+
+`persistNewLeadUnified` now resolves the live header and projects the row onto the
+sheet's real columns (`projectLeadRowByName`) before appending:
+
+| Live header | Behavior |
+|---|---|
+| Canonical order | **Exact no-op** — byte-for-byte identical to before (verified). |
+| Reordered / columns inserted | Every value still lands under its own column. |
+| Extra columns past the 25 | Preserved as blanks, not clipped. |
+| **Missing a required column** | **Throws `headerLookupError` and refuses the write** — never guesses a cell. Same contract every reader has. |
+
+**`buildLeadRow` remains positional, and that is still right:** it *constructs* the
+canonical layout. Knowing where the columns actually are is the **append's** job.
 
 ### The script lock is NOT reentrant — a constraint every later stage inherits
 
