@@ -49,6 +49,11 @@ class FakeRange {
     return this;
   }
 
+  /** Top-left cell of the range, matching Apps Script's Range.getValue(). */
+  getValue() {
+    return this.sheet._get(this.row, this.col);
+  }
+
   setValue(value) {
     // Applies to every cell in the range (matches Apps Script).
     for (let r = 0; r < this.numRows; r++) {

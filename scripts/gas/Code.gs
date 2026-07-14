@@ -1245,6 +1245,12 @@ var REFERRAL_STATS_LOCK_MS = 10000;
    scheduled sweep picks up exactly the same leads, only staler. */
 var COLD_SWEEP_LOCK_MS = 30000;
 
+/* How long a human's Status edit waits for the same lock. Short: an onEdit trigger
+   should not sit blocked behind a long sweep. Losing the race here costs only the
+   Contacts group update — the Status edit itself is already saved in the Sheet by
+   the UI before this handler ever runs. */
+var STATUS_EDIT_LOCK_MS = 10000;
+
 /* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
    runtime — every live read resolves by NAME through resolveUnifiedCols(), and
    only a fresh row being constructed is positional. The grouping (identity, then
@@ -2872,6 +2878,28 @@ function sweepStaleLeadsToCold(sheet) {
     var ageDays = (now - submitted) / 86400000;
     if (ageDays <= CONFIG.COLD_LEAD_DAYS) continue;
 
+    /* ── Re-read the LIVE Status immediately before stamping (added Stage 3) ──
+       The snapshot above can be seconds old by the time this row is reached: one
+       full-table read, plus a write per stale lead ahead of it. A human typing
+       'Client' into this cell during that window would be silently overwritten by
+       a decision made before they typed it — and no lock can prevent that write,
+       because the SHEETS UI performs it and takes no lock.
+
+       This is the guard that actually closes that gap. It cannot be closed on the
+       handleStatusEdit side: by the time that trigger fires, the human's cell is
+       already written. Re-checking here shrinks the clobber window from "the whole
+       sweep" to the microseconds between this read and the write below.
+
+       Cost: one extra cell read per genuinely-stale lead. Not per row — only rows
+       that have already passed the status and age filters get this far. */
+    var liveStatus = String(sheet.getRange(i + 1, C.STATUS + 1).getValue() || '');
+    if (activeStatuses.indexOf(liveStatus) === -1) {
+      Logger.log('moveColdLeads: row ' + (i + 1) + ' (' + row[C.LEAD_ID] + ') changed to "' +
+                 liveStatus + '" after this sweep read the table. Leaving it alone — a human ' +
+                 'edit beats a stale sweep decision.');
+      continue;
+    }
+
     sheet.getRange(i + 1, C.STATUS + 1).setValue('Cold');
     row[C.STATUS] = 'Cold';   // keep the snapshot consistent for the caller's email
     moved.push(row);
@@ -3093,8 +3121,136 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail, editedCo
   sendReferrerNotification(email, firstName, referrerCode);
 }
 
-/* editedCols is the resolved column map for the edited tab rowData came from. */
+/* ── handleStatusEdit: a human changed a lead's Status in the Sheet ──
+   MIGRATED (Stage 3 of the unified-schema migration). Dispatcher; the two
+   implementations are below.
+
+   THE SHAPE OF THE CHANGE: legacy treats a status as a PLACE. 'Cold' means "copy
+   this row to the Cold Leads tab and delete it from Active"; 'Client' means "copy
+   it to Clients"; 'Archive' means "copy it to Archive and delete it". Unified
+   treats a status as what it is — a value in a cell, which the human has ALREADY
+   written by the time this trigger fires. So the row moves nowhere, nothing is
+   appended, nothing is deleted, and what remains is only the Google Contacts
+   side effects. Most of the function disappears, exactly as the plan says.
+
+   With this stage, NO unified path deletes a lead row anywhere in the file.
+
+   NOTE ON THE SIGNATURE: the unified branch deliberately ignores `sheetName` and
+   `editedCols`. Those come from onSheetEdit, which is NOT migrated yet (Stage 4)
+   and still resolves LEAD_HEADERS-shaped columns against a legacy tab. Feeding a
+   legacy column map to a unified reader is exactly the class of bug this
+   migration exists to end, so the unified branch resolves the Leads header itself
+   and trusts nothing it was handed. */
 function handleStatusEdit(sheetName, rowNum, rowData, newStatus, editedCols) {
+  return USE_UNIFIED_SCHEMA
+    ? handleStatusEditUnified(rowNum, newStatus)
+    : handleStatusEditLegacy(sheetName, rowNum, rowData, newStatus, editedCols);
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+
+   WHAT THE LOCK HERE DOES AND DOES NOT DO — read this before "simplifying" it.
+
+   The lock does NOT stop a sweep from overwriting a human's edit. It cannot. The
+   human's Status write is performed by the SHEETS UI, not by this code: by the
+   time this onEdit trigger fires, the cell is already changed. A lock only
+   excludes writers that take it, and the Sheets UI takes nothing. That gap is
+   closed on the sweep's side, by moveColdLeads re-reading each row's live Status
+   immediately before stamping 'Cold' (see sweepStaleLeadsToCold).
+
+   What the lock DOES do, and why it is still required:
+     1. It serializes this handler against the sweep's critical section, so the
+        Contacts side effects below can never be decided from a row the sweep is
+        halfway through rewriting.
+     2. It is the same process-wide script lock moveColdLeads and
+        updateReferrerStats take, so all three genuinely contend — there is one
+        lock in this file, not three.
+     3. Holding it lets this handler read the row's LIVE status and notice when it
+        disagrees with the status the human's edit event reported.
+
+   ON THAT DISAGREEMENT: the side effects follow the LIVE value, not the event's,
+   so Google Contacts can never disagree with the Sheet. The conflict is logged
+   loudly and the cell is deliberately NOT "restored" to the event's value —
+   nothing here can distinguish "a sweep stamped Cold over their Client" from "the
+   human made a second Status edit a second later", and auto-restoring would
+   silently revert a deliberate human edit. Trading one rare bug for a different
+   rare bug is not a fix. */
+function handleStatusEditUnified(rowNum, newStatus) {
+  var sheet = leadsTable();
+  if (!sheet) {
+    Logger.log('handleStatusEdit: no "' + CONFIG.TABS.LEADS + '" tab; nothing to do.');
+    return;
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(STATUS_EDIT_LOCK_MS)) {
+    /* Non-fatal and loud, as everywhere else. The human's Status edit is ALREADY
+       saved in the Sheet — that is what triggered this — so the record is correct
+       regardless. Only the Contacts side effect is skipped, and a contact whose
+       group is stale is a far smaller problem than a handler that throws inside an
+       onEdit trigger. */
+    Logger.log('handleStatusEdit: could not acquire the script lock within ' +
+               STATUS_EDIT_LOCK_MS + 'ms (a cold sweep or a referral credit is running). ' +
+               'The Status edit itself IS saved — the Sheet is correct. Only the Google ' +
+               'Contacts group update for row ' + rowNum + ' was skipped. Re-apply it by ' +
+               're-typing the status once the other job finishes.');
+    return;
+  }
+
+  var email, effectiveStatus;
+  try {
+    // Resolve by name, throw on a miss: never read a status out of a guessed column.
+    var C = resolveUnifiedCols(sheet);
+    var row = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    email = String(row[C.EMAIL] || '');
+    effectiveStatus = String(row[C.STATUS] || '');
+
+    if (effectiveStatus !== newStatus) {
+      Logger.log('handleStatusEdit: CONFLICT on row ' + rowNum + '. The edit event reported "' +
+                 newStatus + '" but the live cell now reads "' + effectiveStatus + '" — another ' +
+                 'writer (most likely the cold sweep) changed it, or the human edited again. ' +
+                 'Acting on the LIVE value so Contacts cannot disagree with the Sheet. The cell ' +
+                 'is NOT being auto-restored: this cannot tell a clobbered edit apart from a ' +
+                 'deliberate second one, and reverting a real human edit would be worse.');
+    }
+  } finally {
+    // finally: resolveUnifiedCols throws on a mangled header, and a leaked
+    // process-wide lock would block every sweep and every referral credit.
+    lock.releaseLock();
+  }
+
+  /* Contacts calls are OUTSIDE the lock — they are slow external round-trips, and
+     the script lock is process-wide. The sheet has not been touched by this
+     function at all, so there is nothing to flush and nothing to protect. */
+  switch (effectiveStatus) {
+    case 'Cold':
+      try { moveContactToCold(email); }
+      catch (e) { Logger.log('moveContactToCold failed for ' + email + ': ' + e); }
+      break;
+
+    case 'Client':
+      try {
+        var contacts = ContactsApp.getContactsByEmailAddress(email);
+        if (contacts && contacts.length) {
+          contacts[0].addToGroup(ensureContactGroup(CONFIG.CONTACT_GROUPS.CLIENTS));
+        }
+      } catch (e) { Logger.log('Client contact label error: ' + e); }
+      break;
+
+    /* 'Archive', 'New Lead', 'Active', 'Contacted': no Contacts side effect, which
+       matches legacy exactly — legacy's work for these statuses was ENTIRELY the
+       row move, and the row no longer moves. Listed rather than defaulted so the
+       silence is visibly deliberate. */
+    default:
+      break;
+  }
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER. Every branch below is a row copy plus, in three of them, a
+   deleteRow: the status-as-a-place model the unified schema deletes. */
+function handleStatusEditLegacy(sheetName, rowNum, rowData, newStatus, editedCols) {
   var C = editedCols || COLS;
   var email = rowData[C.EMAIL];
 
