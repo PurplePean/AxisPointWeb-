@@ -698,6 +698,22 @@ The chain already holds exactly the ancestor list needed — origin first, immed
 referrer last, and never the new lead's own ID — so attribution is a split of one
 cell (`chainAncestors`), not a walk of parent rows.
 
+**Concurrency.** Crediting a chain read-modify-writes counters on N rows, so
+`updateReferrerStatsUnified` holds `LockService.getScriptLock()` across the
+**entire** read-modify-write — the sheet read included, because locking only the
+writes would leave the race intact (both executions would already have read the
+same stale counter). It uses `tryLock(REFERRAL_STATS_LOCK_MS)` (10s), not
+`waitLock`, calls `SpreadsheetApp.flush()` before releasing, and releases in a
+`finally` so a mangled header cannot leak the lock. **A refused lock does not
+throw** — this runs inside `handleFormSubmission`'s try, and throwing would fail
+the visitor's submission because someone else happened to submit at the same
+moment. It applies **no partial credit** and logs a `MANUAL REPAIR NEEDED` line
+naming the referrer and the full chain, so the credit can be replayed by hand. If
+that line ever appears in the logs, the answer is to stop read-modify-writing the
+counters (derive them from the Referrals tab instead), not to raise the timeout.
+`updateReferrerStatsLegacy` is **not** locked — it is unchanged, and is deleted at
+cutover.
+
 ### 4. `submit_referral`'s referred-person data is prose, not structured
 
 `buildLeadRow` folds the `referred` block (name/email/phone/notes) into the

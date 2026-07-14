@@ -1231,6 +1231,13 @@ function resolveCols(sheet) {
    does not exist yet. */
 var USE_UNIFIED_SCHEMA = false;
 
+/* How long updateReferrerStats waits for the script lock before giving up and
+   logging a repairable failure. Ten seconds is far longer than the critical
+   section (one sheet read + a handful of cell writes) needs, so hitting it means
+   real contention, not slowness — while still being short enough that a jammed
+   lock cannot hold a form submission hostage. */
+var REFERRAL_STATS_LOCK_MS = 10000;
+
 /* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
    runtime — every live read resolves by NAME through resolveUnifiedCols(), and
    only a fresh row being constructed is positional. The grouping (identity, then
@@ -1787,6 +1794,64 @@ function updateReferrerStatsUnified(referrerLeadId, chain) {
     return;
   }
 
+  /* ── The lock, and why the READ is inside it ──
+     Crediting a chain is a read-modify-write of counters on N rows. Two
+     submissions landing on overlapping chains (a common case: two people
+     referred by the same partner, or anyone deep in a popular chain) can
+     interleave read-read-write-write and lose a count permanently — and the
+     counter is the number the referral product is measured by, so a lost
+     increment is silent, permanent, and unnoticeable.
+
+     The whole read-modify-write must be inside the lock, not just the writes.
+     Locking only the writes would leave the race completely intact: both
+     executions would have already read the same stale counter.
+
+     tryLock, not waitLock: a blocked execution should give up and say so, not
+     sit on a GAS execution slot indefinitely and then die on the 6-minute
+     runtime cap having done half the work. */
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(REFERRAL_STATS_LOCK_MS)) {
+    /* NOT silent, and NOT fatal.
+
+       Not fatal: this runs inside handleFormSubmission's main try, so throwing
+       would turn a contended lock into a FAILED SUBMISSION — the visitor is
+       told their form broke because someone else submitted at the same moment.
+       The lead row itself is already written and correct; only the referrer's
+       counters are behind.
+
+       Not silent: the log line below carries everything needed to replay the
+       credit by hand, which is what makes "we skipped it" recoverable rather
+       than lost. If this ever fires in practice it is the signal to move the
+       counters off read-modify-write (e.g. derive them from the Referrals tab)
+       rather than to raise the timeout. */
+    Logger.log('updateReferrerStats: MANUAL REPAIR NEEDED. Could not acquire the script lock ' +
+               'within ' + REFERRAL_STATS_LOCK_MS + 'ms, so referral credit was NOT applied. ' +
+               'Referrer: "' + referrerLeadId + '". Chain: "' + String(chain || '') + '". ' +
+               'Nothing was written — no partial credit was applied. To repair: increment ' +
+               'Total Downstream by 1 for every Lead ID in that chain, and Direct Referrals ' +
+               'by 1 for the referrer only.');
+    return;
+  }
+
+  try {
+    creditReferralChain(sheet, referrerLeadId, chain);
+    // Commit before releasing: a queued write that lands after the lock is gone
+    // is a write that happened outside it, which is the race the lock exists to
+    // prevent.
+    SpreadsheetApp.flush();
+  } finally {
+    // finally, not a trailing call: resolveUnifiedCols throws on a mangled
+    // header, and a lock leaked by that path would block every subsequent
+    // submission until the execution times out.
+    lock.releaseLock();
+  }
+}
+
+/* The critical section: the actual read-modify-write. Separated from the locking
+   so the counting logic can be read and tested without the ceremony around it.
+   MUST only be called while holding the script lock — updateReferrerStatsUnified
+   is the only caller, and that is deliberate. */
+function creditReferralChain(sheet, referrerLeadId, chain) {
   // Throws on a mangled header rather than writing a counter into a guessed
   // cell. A referral stat silently landing in the wrong column is worse than a
   // logged failure — the caller's try/catch turns this into a diagnosable error.

@@ -8,7 +8,7 @@ Nothing in this document is waiting on an answer.
 
 | Stage | Scope | State |
 |---|---|---|
-| **1** | The unified schema constants (`UNIFIED_LEAD_HEADERS`, `UCOLS`, `resolveUnifiedCols`, `chainAncestors`), the `USE_UNIFIED_SCHEMA` switch, and **`updateReferrerStats`** — including multi-level `Total Downstream` (§2c) | ✅ **DONE 2026-07-14.** 61/61 tests green. Not deployed; the switch is off. |
+| **1** | The unified schema constants (`UNIFIED_LEAD_HEADERS`, `UCOLS`, `resolveUnifiedCols`, `chainAncestors`), the `USE_UNIFIED_SCHEMA` switch, and **`updateReferrerStats`** — including multi-level `Total Downstream` (§2c) and a script lock over the counter read-modify-write | ✅ **DONE 2026-07-14.** 64/64 tests green. Not deployed; the switch is off. |
 | 2…N | Every other function in §3 | ⬜ Not started |
 | Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
 
@@ -56,14 +56,22 @@ Nothing is deleted before then — the legacy bodies are the rollback path.
 - **`resolveUnifiedCols(sheet)` is the only sanctioned way to read a live `Leads`
   row.** Same contract as `resolveCols`: resolve by name, **throw** on a miss,
   never a silent `-1`. Call once per sheet, never per row.
-- **One ambiguity in this document that Stage 2 must resolve, not inherit:** §1's
-  column table has **no `Message` column** (the 25 columns are exactly as listed),
-  and §1's `Details` table puts `message` inside the blob under *All types*. But
-  §2b says "the **Message column** goes back to holding only what the submitter
-  typed". Those two readings conflict. Stage 1 implemented the column list
-  verbatim (no top-level Message; `message` lives in `Details`), because the
-  column list is normative and §2b's phrasing is about *content*, not placement.
-  **`buildLeadRow`'s author should confirm that reading before writing the row.**
+- **There is NO top-level `Message` column. Settled 2026-07-14 — do not reopen.**
+  §1's 25-column list is normative and has never had one; `message` is a `Details`
+  key (§1's *All types* row). §2b's old phrasing ("the Message column goes back
+  to holding only what the submitter typed") read as if a Message column survived,
+  and has been rewritten — it was always about the *content*, not the placement.
+  Message fails both halves of the top-level rule: nothing searches it across rows,
+  and `onSheetEdit` does not watch it. **Two consequences for Stage 2:**
+  `buildLeadRow` writes the submitter's text to `Details.message`, and
+  `handleResubmission` — which today appends its resubmission note to the Message
+  **cell** — becomes a read-modify-write of `Details.message` (parse, append,
+  re-serialize). It must not be left writing to a column that no longer exists.
+- **`updateReferrerStatsUnified` holds a script lock across its whole
+  read-modify-write** (`REFERRAL_STATS_LOCK_MS`, 10s, `tryLock`). Any later stage
+  that read-modify-writes a counter or a `Details` blob on a row it did not just
+  create has the same race and should take the same lock — and must take it
+  **before the read**, not just before the writes.
 
 ---
 
@@ -244,7 +252,9 @@ prose, and it does NOT become a top-level column.**
 
 **Current state:** `buildLeadRow` (`Code.gs:1715-1728`) flattens `payload.referred`
 (`firstName`, `lastName`, `email`, `phone`, `notes`) into a newline-joined prose
-block and **prepends it to the Message column**:
+block and **prepends it to the legacy Message column** (col 12 of the 31-column
+per-tab layout — a column the unified schema does **not** carry; see the note
+below):
 
 ```
 Referred person:
@@ -264,9 +274,37 @@ message. Getting Jane's email back out means regex-ing a human-readable paragrap
               "phone": "555-0100", "notes": "interested in multifamily" }
 ```
 
-The **Message** column goes back to holding only what the submitter actually typed.
+…and **`Details.message` holds only what the submitter actually typed**, with the
+referred-person prose gone from it entirely.
 
-#### Why `Details`, and explicitly NOT a top-level column
+#### `message` is NOT a top-level column either — RESOLVED 2026-07-14
+
+An earlier draft of this section said "the **Message column** goes back to holding
+only what the submitter typed", which read as if the unified schema kept a
+top-level **Message** column. **It does not, and §1's 25-column list — which has
+no Message column — is correct and normative.** `message` is a `Details` key,
+listed under *All types* in §1's `Details` table. The two statements are now
+reconciled: the fix in this section was always about the *content* (structured
+`referred` object instead of prose glued onto free text), never about which
+physical column that content lands in.
+
+**Why `message` stays in the blob, by the same rule as everything else:** a field
+earns a real column only if code must **search it across rows** or `onSheetEdit`
+must **detect an edit to that specific column**. Nothing searches Message —
+`findExistingLead` dedupes on Email, `matchReferrer` matches on Referral Code /
+Email / Name — and `onSheetEdit` watches Status, Category, and Referred By Email,
+never Message. It fails both halves of the test, so it goes in `Details`. That it
+is *important*, and that a human might like to read it in the grid, are explicitly
+**not** reasons (see *What is explicitly NOT a reason* in
+`backend-architecture.md`).
+
+**One live consumer to carry over, not drop:** `handleResubmission` currently
+**appends a resubmission note to the Message cell** (`Code.gs`, `C.MESSAGE`). Under
+the unified schema that becomes a read-modify-write of `Details.message` — parse
+the blob, append, re-serialize. Whoever migrates `handleResubmission` must not
+leave it writing to a column that no longer exists.
+
+#### Why `Details` for `referred`, and explicitly NOT a top-level column
 
 This follows the plan's established rule (§1): **a field is a top-level column if
 code must search on it across rows, or if `onSheetEdit` must detect an edit to that
@@ -414,7 +452,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 | **`sendMonthlyReferralSummaries`** (2324) | Reads the **Referral Partners tab** and its extra `Reports Enabled` column. Becomes: filter the one table on `Category = 'Referral Partner'`, read `Reports Enabled` as a normal column, keep the existing skips (`Cold`/`Archive` status, `FALSE` opt-out, zero-referral partners). | 🟠 Medium. Currently untested, and a filter bug silently emails the wrong people — or nobody. |
 | **`onSheetEdit`** (2524) | Its **lead-tab guard** (`leadTabConfigs()` membership) becomes a single `sheet.getName() === 'Leads'` check. The three watched columns must still be resolved **by name** (`resolveCols`) so the dispatch detects *which* column changed. | 🟠 Medium. If the dispatch guard is wrong, edits are routed to the wrong handler or dropped silently. |
 | **`handleFormSubmission`** (1357) | Appends to **three tabs** (Lifetime + Active + category tab). Becomes **one append**. The category-tab-exists check, the `seedReportsEnabled` per-tab seed, and the missing-tab logging all collapse. | 🟠 Medium. Highest-traffic path in the file; end-to-end untested today (see §5). |
-| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. **Implements both §2a and §2b in this same rewrite:** it now writes **all 13 `qualData` fields** into `Details` (per the §1 per-lead-type table) instead of dropping twelve of them, and it writes `submit_referral`'s `referred` block as a **structured `Details.referred` object** instead of flattening it into prose on the Message column. **The prose-building code at `Code.gs:1715-1728` is deleted, not ported** — and Message goes back to holding only what the submitter typed. | 🟠 Medium-high. Every column's meaning changes at once, **and** this is the function where the two data-fidelity fixes actually land — if `Details` is built wrong here, the data loss the migration exists to end simply continues in a new format. |
+| **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. **Implements both §2a and §2b in this same rewrite:** it now writes **all 13 `qualData` fields** into `Details` (per the §1 per-lead-type table) instead of dropping twelve of them, and it writes `submit_referral`'s `referred` block as a **structured `Details.referred` object** instead of flattening it into prose on the Message column. **The prose-building code at `Code.gs:1715-1728` is deleted, not ported** — and `Details.message` holds only what the submitter typed. **There is no top-level Message column in the unified schema** (§2b); `message` is a `Details` key. | 🟠 Medium-high. Every column's meaning changes at once, **and** this is the function where the two data-fidelity fixes actually land — if `Details` is built wrong here, the data loss the migration exists to end simply continues in a new format. |
 | **`findExistingLead`** (1517) / **`existingReferralCodes`** (1278) / **`matchReferrer`** + **`buildReferralMatch`** (1533/1582) / **`handleResubmission`** (1469) | All currently scan **Lifetime Leads**. Retarget to the one table. Logic is otherwise unchanged — this is the cheapest group. | 🟢 Low-medium, but `matchReferrer` is the reason the referral-identity fields must stay real columns. |
 | **`sendDailyDigest`** (2260) | Reads Active Leads. Retarget to the one table, filtered on Status. | 🟢 Low. |
 | **`handleCategoryEdit`** (2667) / **`handleManualReferralLink`** (2564) / **`moveContactToCold`** (2508) | Retarget from a tab to the table. Contact-group side effects unchanged. | 🟢 Low. **But see the `createContact` defect** in `backend-architecture.md` — do not assume the Contacts side of these works today. |
@@ -490,7 +528,7 @@ blamed on the schema.
 |---|---|
 | `handleFormSubmission` | **End-to-end, per lead type** (all five roles): a payload in → the exact row out, `Details` blob included. Today this has **zero** end-to-end coverage. |
 | **`buildLeadRow` — `qualData` persistence** (§2a) | **The previously-dropped fields now land in `Details`, proven on at least two different lead types.** Recommended pair: **Investor** (`aum`, `experience`, `assetClasses`, `timeline`) and **submit_referral** (`relationship`, `fit`, `awareness` — the type where *all* qualData is discarded today, so it proves the fix hardest). Assert the **parsed** blob field-by-field against the input payload; asserting the blob is merely non-empty proves nothing. Include a field left blank by the visitor, to pin down whether it round-trips as `''`/`null` or is omitted — decide that once and lock it in a test. |
-| **`buildLeadRow` — `submit_referral.referred` round-trip** (§2b) | The referred-person block **round-trips as structured JSON and is retrievable**: build the row from a payload, `JSON.parse` the `Details` cell, and read back `referred.firstName` / `lastName` / `email` / `phone` / `notes` as **discrete values** — not a prose string that happens to contain them. **Assert the negative too:** the **Message column no longer contains the `Referred person:` prose block**, so a regression that keeps the old flattening alongside the new object is caught rather than silently double-writing. |
+| **`buildLeadRow` — `submit_referral.referred` round-trip** (§2b) | The referred-person block **round-trips as structured JSON and is retrievable**: build the row from a payload, `JSON.parse` the `Details` cell, and read back `referred.firstName` / `lastName` / `email` / `phone` / `notes` as **discrete values** — not a prose string that happens to contain them. **Assert the negative too:** **`Details.message` no longer contains the `Referred person:` prose block** (there is no top-level Message column to check — §2b), so a regression that keeps the old flattening alongside the new object is caught rather than silently double-writing. |
 | `matchReferrer` + `updateReferrerStats` | All four match paths (code → email → name → none) and the manual path; `Direct Referrals` increments **once**, on **one** row. This is the highest-risk rewrite (§3); test it accordingly. **Plus the two multi-level `Total Downstream` tests below — they are not optional.** |
 | ✅ **`updateReferrerStats` — multi-level chain** (§2c) — **DONE, Stage 1.** Implemented with a **4**-deep chain (`referrer-stats.test.js`), seeded with non-zero, all-different starting counters so an assertion cannot pass by setting `1` instead of incrementing. Both boundaries covered. | A chain **at least 3 levels deep** (John → Steven → Maria, ideally 4 to prove it is not hardcoded to one hop): when Maria is created, **every** ancestor's `Total Downstream` increments by exactly 1 — Steven **and** John. Assert the exact counter value on **each** ancestor row, not just that "something incremented". Cover a 1-deep chain (single ancestor) and a no-referrer submission (nothing increments) as the boundaries. |
 | ✅ **`updateReferrerStats` — `Direct Referrals` regression** — **DONE, Stage 1.** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |

@@ -35,9 +35,17 @@ const CODE_SRC = fs.readFileSync(CODE_PATH, 'utf8');
 /** Loads Code.gs against a FakeSpreadsheet. `unified` flips USE_UNIFIED_SCHEMA,
  *  the migration's single switch, so both branches of the dispatcher are
  *  testable: the legacy one proves production is still intact today, the unified
- *  one proves the migration is right before it ships. */
-function load(spreadsheet, unified) {
+ *  one proves the migration is right before it ships.
+ *
+ *  `opts.lockGranted` (default true) decides what LockService.tryLock returns.
+ *  `opts.events` is an ordered trace of lock/flush calls — see the locking tests
+ *  at the bottom of this file for what that can and cannot prove. */
+function load(spreadsheet, unified, opts) {
+  opts = opts || {};
   const logs = [];
+  const events = opts.events || [];
+  const lockGranted = opts.lockGranted !== false;
+
   const sandbox = {
     console, JSON, Math, Date, Array, Object, String, Number, Boolean, RegExp,
     isNaN, parseInt, parseFloat,
@@ -59,17 +67,44 @@ function load(spreadsheet, unified) {
         setProperty() {}, setProperties() {},
       }),
     },
-    SpreadsheetApp: { openById: () => spreadsheet },
+    SpreadsheetApp: {
+      openById: () => spreadsheet,
+      flush: () => { events.push('flush'); },
+    },
+    LockService: {
+      getScriptLock: () => ({
+        tryLock: (ms) => { events.push('tryLock(' + ms + ')'); return lockGranted; },
+        releaseLock: () => { events.push('releaseLock'); },
+        waitLock: () => { throw new Error('updateReferrerStats must use tryLock, never waitLock'); },
+      }),
+    },
     GmailApp: { sendEmail() {} },
     ContactsApp: {}, Calendar: {}, CalendarApp: {},
-    ContentService: {}, HtmlService: {}, LockService: {}, ScriptApp: {},
+    ContentService: {}, HtmlService: {}, ScriptApp: {},
   };
   sandbox.global = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(CODE_SRC, sandbox, { filename: 'Code.gs' });
   sandbox.USE_UNIFIED_SCHEMA = !!unified;
-  return { sandbox, logs };
+  return { sandbox, logs, events };
+}
+
+/** A FakeSheet that appends every read and write it serves to a shared trace, so
+ *  a test can prove WHERE those calls sit relative to the lock. */
+function recordingSheet(name, grid, events) {
+  const sheet = new FakeSheet(name, grid);
+  const realGetRange = sheet.getRange.bind(sheet);
+  const realGetDataRange = sheet.getDataRange.bind(sheet);
+
+  sheet.getDataRange = () => { events.push('read'); return realGetDataRange(); };
+  sheet.getRange = (...args) => {
+    const range = realGetRange(...args);
+    const realSetValue = range.setValue.bind(range);
+    range.setValue = (v) => { events.push('write'); return realSetValue(v); };
+    return range;
+  };
+  return sheet;
 }
 
 /* ── The mangled header fixture ──
@@ -146,8 +181,8 @@ function todayCT() {
    and her immediate referrer is CARLA. */
 const CHAIN_4 = 'AXP-2026-0001|AXP-2026-0002|AXP-2026-0003|AXP-2026-0004';
 
-function fourDeepSheet() {
-  return new FakeSheet('Leads', [
+function fourDeepGrid() {
+  return [
     MANGLED_HEADER.slice(),
     mkLead({ 'Lead ID': 'AXP-2026-0001', 'First Name': 'Origin', Email: 'origin@x.com',
              'Referral Chain': '', 'Chain Depth': 0, 'Direct Referrals': 2, 'Total Downstream': 7 }),
@@ -163,7 +198,11 @@ function fourDeepSheet() {
     // counters must not move — she has referred nobody.
     mkLead({ 'Lead ID': 'AXP-2026-0005', 'First Name': 'Dana', Email: 'dana@x.com',
              'Referral Chain': CHAIN_4, 'Chain Depth': 4, 'Direct Referrals': 0, 'Total Downstream': 0 }),
-  ]);
+  ];
+}
+
+function fourDeepSheet() {
+  return new FakeSheet('Leads', fourDeepGrid());
 }
 
 test('fixture header is genuinely drifted from the constants it is testing', () => {
@@ -310,6 +349,103 @@ test('an absent Leads tab logs and writes nothing (it does not exist pre-cutover
   const { sandbox, logs } = load(new FakeSpreadsheet({}), true);
   assert.doesNotThrow(() => sandbox.updateReferrerStats('AXP-2026-0001', 'AXP-2026-0001'));
   assert.ok(logs.some((l) => l.includes('Leads')));
+});
+
+/* ════════════════════════════════════════════════════════════
+   THE SCRIPT LOCK — and an honest statement of what these tests prove.
+
+   Crediting a chain is a read-modify-write of counters on N rows, so two
+   concurrent submissions on overlapping chains can interleave and permanently
+   lose an increment. updateReferrerStatsUnified therefore holds a script lock
+   across the WHOLE read-modify-write.
+
+   WHAT THESE TESTS CANNOT PROVE: that Apps Script's LockService actually
+   provides mutual exclusion. There is no concurrency in this harness — Node runs
+   one execution, and a stubbed lock is not a lock. Writing a test that "proves"
+   two racing submissions are serialized here would be testing the stub, i.e.
+   theatre. The real guarantee is Google's, and it is verifiable only in the live
+   runtime.
+
+   WHAT THEY DO PROVE — the half that is actually ours to get wrong, and that a
+   future refactor can silently break:
+     1. The lock is acquired BEFORE the read, not merely before the writes. This
+        is the one that matters: locking only the writes leaves the race entirely
+        intact, because both executions would already have read the same stale
+        counter. It is also the easiest thing to break while "tidying up".
+     2. tryLock is used, never waitLock (the stub throws on waitLock).
+     3. Writes are flushed before the lock is released, so no write escapes it.
+     4. The lock is ALWAYS released, including on the throwing path — a leaked
+        lock would block every later submission.
+     5. A refused lock drops NO partial credit and logs a repairable message.
+   ════════════════════════════════════════════════════════════ */
+
+test('lock: the whole read-modify-write happens inside the lock, and it is flushed before release', () => {
+  const events = [];
+  const leads = recordingSheet('Leads', fourDeepGrid(), events);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads }), true, { events });
+
+  sandbox.updateReferrerStats('AXP-2026-0004', CHAIN_4);
+  const trace = events.slice();   // snapshot: the assertions below read the sheet too
+
+  assert.equal(trace[0], 'tryLock(10000)', 'the lock must be taken first, with a bounded timeout');
+  assert.equal(trace[trace.length - 1], 'releaseLock', 'and released last');
+
+  const read = trace.indexOf('read');
+  const flush = trace.indexOf('flush');
+  const release = trace.indexOf('releaseLock');
+  const firstWrite = trace.indexOf('write');
+  const lastWrite = trace.lastIndexOf('write');
+
+  // THE assertion. A lock that starts after the read protects nothing.
+  assert.ok(read > 0 && read < firstWrite, 'the READ must be inside the lock, before any write');
+  assert.ok(firstWrite > 0, 'sanity: the credit actually wrote something');
+  assert.ok(lastWrite < flush, 'every write must land before the flush');
+  assert.ok(flush < release, 'the flush must happen before the lock is released');
+
+  // 6 writes: 4 ancestors × Total Downstream, + Direct Referrals + Last Referral
+  // Date on the immediate referrer only.
+  assert.equal(trace.filter((e) => e === 'write').length, 6);
+});
+
+test('lock: refused → no partial credit, nothing thrown, and a repairable log line', () => {
+  const events = [];
+  const leads = recordingSheet('Leads', fourDeepGrid(), events);
+  const before = JSON.stringify(leads.getDataRange().getValues());
+  const { sandbox, logs } = load(new FakeSpreadsheet({ Leads: leads }), true,
+    { events, lockGranted: false });
+
+  // It must NOT throw: this runs inside handleFormSubmission's try, so throwing
+  // would fail the visitor's whole submission because someone else submitted at
+  // the same moment.
+  assert.doesNotThrow(() => sandbox.updateReferrerStats('AXP-2026-0004', CHAIN_4));
+
+  assert.equal(JSON.stringify(leads.getDataRange().getValues()), before,
+    'a refused lock must leave the counters completely untouched — no half-credited chain');
+  assert.ok(!events.includes('write'), 'and must not have written at all');
+  assert.ok(!events.includes('releaseLock'), 'a lock that was never acquired must not be released');
+
+  // Not silent: the log has to carry enough to replay the credit by hand.
+  const log = logs.join('\n');
+  assert.match(log, /MANUAL REPAIR NEEDED/);
+  assert.match(log, /AXP-2026-0004/, 'names the referrer');
+  assert.match(log, /AXP-2026-0001\|AXP-2026-0002/, 'names the chain to be replayed');
+});
+
+test('lock: released even when the header is mangled and the credit throws', () => {
+  const events = [];
+  const broken = MANGLED_HEADER.filter((h) => h.trim().toLowerCase() !== 'direct referrals');
+  const row = new Array(broken.length).fill('');
+  row[broken.findIndex((h) => h.trim().toLowerCase() === 'lead id')] = 'AXP-2026-0001';
+
+  const leads = recordingSheet('Leads', [broken, row], events);
+  const { sandbox } = load(new FakeSpreadsheet({ Leads: leads }), true, { events });
+
+  assert.throws(() => sandbox.updateReferrerStats('AXP-2026-0001', 'AXP-2026-0001'), /Direct Referrals/);
+
+  // A lock leaked by the throwing path would jam every subsequent submission
+  // until the execution times out. This is what the finally block is for.
+  assert.ok(events.includes('tryLock(10000)'));
+  assert.equal(events[events.length - 1], 'releaseLock', 'the lock must be released on the throwing path');
 });
 
 /* ── The legacy branch: proof that production, which is still on the nine-tab
