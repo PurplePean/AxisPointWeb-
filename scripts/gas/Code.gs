@@ -1251,6 +1251,12 @@ var COLD_SWEEP_LOCK_MS = 30000;
    the UI before this handler ever runs. */
 var STATUS_EDIT_LOCK_MS = 10000;
 
+/* How long a hand-linked referral waits for the same lock before giving up. Like
+   the status edit, this is an onEdit trigger with a human watching, so it should
+   not sit blocked behind a long sweep. Losing the race costs nothing permanent:
+   nothing partial is written, and re-typing the email in the cell retries. */
+var MANUAL_LINK_LOCK_MS = 10000;
+
 /* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
    runtime — every live read resolves by NAME through resolveUnifiedCols(), and
    only a fresh row being constructed is positional. The grouping (identity, then
@@ -3046,16 +3052,14 @@ function onSheetEdit(e) {
                          UCOLS. It is schema-agnostic and needs no migration.
                          (The plan lists it as needing a retarget. The plan is wrong;
                          see the Stage-4 notes in UNIFIED_SCHEMA_MIGRATION_PLAN.md.)
-     Referred By Email → handleManualReferralLink  ❌ NOT MIGRATED. Deliberately NOT
-                         called here — see the refusal below.
+     Referred By Email → handleManualReferralLink  ✅ migrated (Stage 5). Fully wired.
 
-   The manual-link path is refused rather than called because
-   handleManualReferralLink scans Lifetime Leads, which does not exist under the
-   unified schema. Its own guard (`if (!lifetimeSheet ...) return;`) would return
-   SILENTLY, so a human hand-linking a referral would watch their edit do nothing,
-   with no error anywhere. Silently swallowing a human's edit is the exact failure
-   class this migration exists to end. It refuses loudly instead, and Stage 5
-   migrates it. */
+   All three handlers are now live under the unified schema. Between Stages 4 and 5
+   this dispatcher deliberately REFUSED the manual-link path and logged loudly,
+   because handleManualReferralLink still scanned Lifetime Leads and its missing-tab
+   guard returned SILENTLY — a handler that looked connected and dropped every
+   hand-linked referral. Stage 5 retargeted it to the Leads table and the refusal
+   was deleted. */
 function onSheetEditUnified(e) {
   try {
     if (!e || !e.range) return;
@@ -3086,19 +3090,9 @@ function onSheetEditUnified(e) {
     } else if (col === categoryCol) {
       handleCategoryEdit(rowData, newValue, C);
     } else if (col === refByEmail) {
-      /* NOT WIRED UNTIL STAGE 5. Calling handleManualReferralLink here would look
-         like it worked and do nothing: it scans Lifetime Leads, which no longer
-         exists, and returns silently. Refuse out loud and tell the human exactly
-         what did not happen, so a hand-linked referral cannot vanish quietly.
-
-         STAGE 5: delete this branch's body and call handleManualReferralLink,
-         which by then dispatches to a unified implementation. */
-      Logger.log('onSheetEdit: a "Referred By Email" edit on row ' + row + ' ("' + newValue +
-                 '") was NOT processed. handleManualReferralLink still scans the Lifetime ' +
-                 'Leads tab, which does not exist under the unified schema, so it would have ' +
-                 'silently done nothing. The referral was NOT linked: no referral columns were ' +
-                 'back-filled, no referrer stats updated, no Referrals row logged, no referrer ' +
-                 'notified. This is Stage 5 of the schema migration.');
+      // WIRED as of Stage 5. The Stage-4 refusal that used to sit here is gone:
+      // handleManualReferralLink now scans the Leads table, not Lifetime Leads.
+      handleManualReferralLink(sheet, row, rowData, newValue, C);
     }
   } catch (err) {
     Logger.log('onSheetEdit error: ' + err);
@@ -3145,10 +3139,171 @@ function onSheetEditLegacy(e) {
   }
 }
 
-/* editedCols is the resolved column map for `sheet` (the edited tab) — used for
+/* ── handleManualReferralLink: a human hand-links a referral ──
+   MIGRATED (Stage 5). Dispatcher; the two implementations are below.
+
+   A human types a referrer's email into the Referred By Email cell. We find that
+   referrer, back-fill the seven referral columns on the edited row, credit the
+   chain, log the relationship, and notify the referrer.
+
+   THE SHAPE OF THE CHANGE: the referrer lookup moves from a Lifetime Leads scan to
+   a scan of the one Leads table. That is the whole difference — and it is exactly
+   why Stage 4 had to REFUSE to call this function: under the unified schema
+   Lifetime Leads does not exist, and this function's own missing-tab guard returns
+   SILENTLY, so a hand-linked referral would have been accepted and dropped with no
+   error anywhere. That refusal is deleted with this stage. */
+function handleManualReferralLink(sheet, row, rowData, referredByEmail, editedCols) {
+  return USE_UNIFIED_SCHEMA
+    ? handleManualReferralLinkUnified(row, referredByEmail)
+    : handleManualReferralLinkLegacy(sheet, row, rowData, referredByEmail, editedCols);
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+
+   WHY THE LOCK IS SCOPED THE WAY IT IS — this is the load-bearing detail, and
+   widening it would be a real bug, not a tightening.
+
+   The critical section is ONLY the read-modify-write of the edited row: resolve the
+   header, scan for the referrer, and back-fill the seven referral columns. That is a
+   read-decide-write on a row this function did not create, so it takes the same
+   process-wide script lock every other migrated writer takes, before the read.
+
+   Everything downstream runs OUTSIDE the lock, and MUST:
+     - updateReferrerStats() takes the script lock itself (Stage 1).
+     - The Referrals append calls nextReferralSequence(), which calls waitLock() on
+       the SAME script lock.
+   Apps Script does not document the script lock as reentrant. Holding it across
+   either call would be a second acquisition of a lock this execution already holds
+   — a deadlock or a spurious refusal, and one that would only ever show itself in
+   production. Keeping the lock tight around the row write sidesteps the question
+   entirely, and matches the "slow side effects outside the lock" rule from Stages
+   2 and 3 (Gmail and the Contacts API have no business inside a global lock). */
+function handleManualReferralLinkUnified(row, referredByEmail) {
+  if (!referredByEmail) return;
+  var email = String(referredByEmail).toLowerCase().trim();
+
+  var sheet = leadsTable();
+  if (!sheet || sheet.getLastRow() < 2) {
+    Logger.log('handleManualReferralLink: no "' + CONFIG.TABS.LEADS + '" rows; cannot link.');
+    return;
+  }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(MANUAL_LINK_LOCK_MS)) {
+    /* Non-fatal and loud, and NOTHING was half-written. The human's typed email is
+       already in the cell (the Sheets UI put it there — that is what fired this
+       trigger), so the record of their intent survives; only the link was not
+       built. Re-typing the email re-fires the trigger and retries the whole thing. */
+    Logger.log('handleManualReferralLink: could not acquire the script lock within ' +
+               MANUAL_LINK_LOCK_MS + 'ms (a cold sweep or a referral credit is running). ' +
+               'Row ' + row + ' was NOT linked to "' + email + '": no referral columns ' +
+               'back-filled, no stats credited, no Referrals row logged, no referrer ' +
+               'notified. Nothing partial was written. Re-type the email in the cell to retry.');
+    return;
+  }
+
+  var linked = null;
+  try {
+    // Resolve by name and throw on a miss: never write a referral chain into a
+    // guessed column.
+    var C = resolveUnifiedCols(sheet);
+    var data = sheet.getDataRange().getValues();
+
+    var referrerRow = null;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][C.EMAIL] || '').toLowerCase().trim() === email) {
+        referrerRow = data[i];
+        break;
+      }
+    }
+
+    if (!referrerRow) {
+      // Legacy returns silently here. Under one table this is a real, diagnosable
+      // state — the human typed an email that belongs to no lead — so say so.
+      Logger.log('handleManualReferralLink: no lead in "' + CONFIG.TABS.LEADS +
+                 '" has the email "' + email + '". Row ' + row + ' was not linked.');
+      return;   // the finally below still releases the lock
+    }
+
+    var referrerLeadId    = String(referrerRow[C.LEAD_ID] || '');
+    var referrerFirstName = String(referrerRow[C.FIRST_NAME] || '');
+    var referrerName      = [referrerRow[C.FIRST_NAME], referrerRow[C.LAST_NAME]].filter(Boolean).join(' ');
+    var referrerCode      = String(referrerRow[C.REFERRAL_CODE] || '');
+    var referrerChain     = String(referrerRow[C.REFERRAL_CHAIN] || '').trim();
+
+    // Identical chain construction to buildReferralMatch: the referrer's own chain
+    // plus the referrer's Lead ID. So the ancestors are all present and the new
+    // lead's own ID is not — which is what makes multi-level Total Downstream work.
+    var chain = referrerChain ? referrerChain + '|' + referrerLeadId : referrerLeadId;
+    var depth = chain ? chain.split('|').length : 1;
+
+    // Re-read the edited row under the lock rather than trusting the snapshot
+    // onSheetEdit captured before we took it.
+    var referredRow = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    sheet.getRange(row, C.REF_BY_LEAD_ID + 1).setValue(referrerLeadId);
+    sheet.getRange(row, C.REF_BY_NAME    + 1).setValue(referrerName);
+    sheet.getRange(row, C.REF_BY_EMAIL   + 1).setValue(email);
+    sheet.getRange(row, C.REF_BY_CODE    + 1).setValue(referrerCode);
+    sheet.getRange(row, C.MATCH_TYPE     + 1).setValue('manual');
+    sheet.getRange(row, C.REFERRAL_CHAIN + 1).setValue(chain);
+    sheet.getRange(row, C.CHAIN_DEPTH    + 1).setValue(depth);
+    SpreadsheetApp.flush();   // commit before the lock is released
+
+    linked = {
+      email:             email,
+      referrerLeadId:    referrerLeadId,
+      referrerName:      referrerName,
+      referrerFirstName: referrerFirstName,
+      referrerCode:      referrerCode,
+      chain:             chain,
+      depth:             depth,
+      referredLeadId:    String(referredRow[C.LEAD_ID] || ''),
+      referredName:      [referredRow[C.FIRST_NAME], referredRow[C.LAST_NAME]].filter(Boolean).join(' '),
+      referredEmail:     String(referredRow[C.EMAIL] || ''),
+    };
+  } finally {
+    // finally: resolveUnifiedCols throws on a mangled header, and a leaked
+    // process-wide lock would block every sweep, every status edit, and every
+    // referral credit until the execution times out.
+    lock.releaseLock();
+  }
+
+  if (!linked) return;
+
+  /* ── Everything below is OUTSIDE the lock, deliberately (see the note above) ── */
+
+  // A hand-linked referral is not a second-class one: it credits the full chain
+  // exactly as an auto-matched one does. Takes the script lock itself.
+  updateReferrerStats(linked.referrerLeadId, linked.chain);
+
+  /* Log to the Referrals tab. Written inline rather than through logReferralEntry
+     ON PURPOSE: that helper derives the row's Status as `matchType === 'name' ?
+     'pending' : 'linked'`, so routing this through it would silently rewrite the
+     Referrals Status column from 'manual' to 'linked' for every hand-linked
+     referral. It also takes a `payload`, which an edit trigger does not have. The
+     row below is byte-for-byte what the legacy path writes. */
+  var refSheet = tab(CONFIG.TABS.REFERRALS);
+  if (refSheet) {
+    var refId = buildReferralTabId(nextReferralSequence());   // takes the lock itself
+    var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
+    refSheet.appendRow([
+      refId, linked.referrerLeadId, linked.referrerName, linked.email, linked.referrerCode,
+      linked.referredLeadId, linked.referredName, linked.referredEmail,
+      'manual', linked.depth, linked.chain, today, 'manual',
+    ]);
+  }
+
+  sendReferrerNotification(linked.email, linked.referrerFirstName, linked.referrerCode);
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER. Its referrer lookup scans Lifetime Leads.
+
+   editedCols is the resolved column map for `sheet` (the edited tab) — used for
    the writes to it and for reading rowData. The Lifetime Leads referrer lookup
    is a different sheet and is resolved separately (LC). */
-function handleManualReferralLink(sheet, row, rowData, referredByEmail, editedCols) {
+function handleManualReferralLinkLegacy(sheet, row, rowData, referredByEmail, editedCols) {
   if (!referredByEmail) return;
   var EC = editedCols || COLS;
   var email = referredByEmail.toLowerCase().trim();
