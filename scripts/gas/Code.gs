@@ -71,6 +71,13 @@ var CONFIG = {
   SENDER_NAME:   'AxisPoint Partners',
 
   TABS: {
+    // The unified schema's one lead table (UNIFIED_LEAD_HEADERS). It does NOT
+    // exist in the live Sheet yet: setupSpreadsheet() still creates the nine
+    // legacy tabs below, and creating this one is a later stage of the
+    // migration. Named here so the migrated functions have one definition site
+    // for it rather than a literal 'Leads' scattered through the file.
+    LEADS:             'Leads',
+
     ACTIVE_LEADS:      'Active Leads',
     LIFETIME_LEADS:    'Lifetime Leads',
     COLD_LEADS:        'Cold Leads',
@@ -121,7 +128,7 @@ var CONFIG = {
      contactGroupForCategory() → .category → .contactGroup
      handleFormSubmission()    → .normalizer, .seedReportsEnabled
      setupSpreadsheet()        → .tab + .tabColor   (leadTabConfigs)
-     updateReferrerStats()     → .tab              (leadTabConfigs)
+     updateReferrerStatsLegacy() → .tab            (leadTabConfigs)
      handleCategoryEdit()      → .contactGroup      (allCategoryContactGroups)
 
    Before this registry existed, those seven consumers each carried their own
@@ -232,10 +239,12 @@ function leadTypeTabConfigs() {
 
 /** The full ordered tab list every lead tab shares LEAD_HEADERS across: the
  *  three cross-role tabs, then each role's category tab, then the two terminal
- *  tabs. setupSpreadsheet(), updateReferrerStats(), the header audit/repair
+ *  tabs. setupSpreadsheet(), updateReferrerStatsLegacy(), the header audit/repair
  *  functions, and onSheetEdit's lead-tab guard all read this, so the set of "lead
  *  tabs" has exactly one definition — the skew between such lists is what let the
- *  Existing Asset Owners tab go missing. */
+ *  Existing Asset Owners tab go missing.
+ *
+ *  This whole list dies at the unified-schema cutover: one table, no tab list. */
 function leadTabConfigs() {
   return [
     { name: CONFIG.TABS.ACTIVE_LEADS,   color: '#24A5BC' },
@@ -1190,6 +1199,148 @@ function resolveCols(sheet) {
   return resolved;
 }
 
+/* ════════════════════════════════════════════════════════════
+   UNIFIED SCHEMA  —  the one "Leads" table
+   See /docs/UNIFIED_SCHEMA_MIGRATION_PLAN.md. Being migrated in stages.
+
+   MIGRATION STATE (Stage 1 of N): the constants below and updateReferrerStats
+   are the only things that speak this schema so far. Everything else in this
+   file still reads and writes the nine legacy lead tabs. The two schemas are
+   NOT both live: USE_UNIFIED_SCHEMA below is the single switch, and it is off.
+
+   THE STAGING PATTERN, for whoever writes Stage 2 — follow it exactly:
+     1. Add the unified implementation as its own function (xxxUnified).
+     2. Keep the legacy body verbatim, renamed xxxLegacy, marked DELETE-AT-CUTOVER.
+     3. Turn the original name into a dispatcher on USE_UNIFIED_SCHEMA.
+     4. Test BOTH branches. The legacy test proves prod is still intact today;
+        the unified test proves the migration is right before it ships.
+   The cutover (final stage) flips this one flag, then deletes every xxxLegacy
+   body and this comment. Nothing is deleted before then — that is the rollback
+   path (plan §6).
+
+   WHY A FLAG AND NOT "does the Leads tab exist?": tab-existence would silently
+   flip the whole backend the moment somebody ran setupSpreadsheet() by hand,
+   mid-migration, with half the functions still writing to the old tabs. A flag
+   makes the cutover a reviewed line of code instead of a side effect.
+   ════════════════════════════════════════════════════════════ */
+
+/* THE SWITCH. false = every function reads/writes the legacy per-role tabs
+   (current production). Flip to true ONLY at the cutover, when every function
+   in the plan's §3 list has been migrated AND setupSpreadsheet() has created
+   the Leads tab. Flipping it early points migrated functions at a table that
+   does not exist yet. */
+var USE_UNIFIED_SCHEMA = false;
+
+/* How long updateReferrerStats waits for the script lock before giving up and
+   logging a repairable failure. Ten seconds is far longer than the critical
+   section (one sheet read + a handful of cell writes) needs, so hitting it means
+   real contention, not slowness — while still being short enough that a jammed
+   lock cannot hold a form submission hostage. */
+var REFERRAL_STATS_LOCK_MS = 10000;
+
+/* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
+   runtime — every live read resolves by NAME through resolveUnifiedCols(), and
+   only a fresh row being constructed is positional. The grouping (identity, then
+   the referral block that must stay searchable, then contact/context, then the
+   blob) is for the reader of THIS file, not for anyone eyeballing the Sheet:
+   grid legibility is explicitly not a design input here (see the Architecture
+   Decision in backend-architecture.md). */
+var UNIFIED_LEAD_HEADERS = [
+  'Lead ID', 'Timestamp', 'Category', 'Status',
+  'Email', 'First Name', 'Last Name',
+  'Referral Code',
+  'Referred By Lead ID', 'Referred By Name', 'Referred By Email', 'Referred By Code',
+  'Match Type', 'Referral Chain', 'Chain Depth',
+  'Direct Referrals', 'Total Downstream', 'Last Referral Date',
+  'Phone', 'Company', 'Role', 'Source', 'Heard About',
+  'Reports Enabled',
+  'Details',
+];
+
+/* 0-based indexes into UNIFIED_LEAD_HEADERS. Like COLS, this records where a
+   column SHOULD be — it is the layout builder (a future buildLeadRow) writes,
+   never how a live row is read. Live reads go through resolveUnifiedCols(). */
+var UCOLS = {
+  LEAD_ID:            0,
+  TIMESTAMP:          1,
+  CATEGORY:           2,
+  STATUS:             3,
+  EMAIL:              4,
+  FIRST_NAME:         5,
+  LAST_NAME:          6,
+  REFERRAL_CODE:      7,
+  REF_BY_LEAD_ID:     8,
+  REF_BY_NAME:        9,
+  REF_BY_EMAIL:       10,
+  REF_BY_CODE:        11,
+  MATCH_TYPE:         12,
+  REFERRAL_CHAIN:     13,
+  CHAIN_DEPTH:        14,
+  DIRECT_REFERRALS:   15,
+  TOTAL_DOWNSTREAM:   16,
+  LAST_REFERRAL_DATE: 17,
+  PHONE:              18,
+  COMPANY:            19,
+  ROLE:               20,
+  SOURCE:             21,
+  HEARD_ABOUT:        22,
+  REPORTS_ENABLED:    23,
+  DETAILS:            24,
+};
+
+/* resolveCols() for the unified table. Identical contract, deliberately:
+   resolve every column by NAME through the same resilient findHeaderIndex path,
+   and THROW headerLookupError on a genuine miss — never return a silent -1 that
+   a caller will happily use as a column index. One table does not mean a trusted
+   header row; a human can still mangle it in the live Sheet.
+
+   Call once per sheet, before any row loop. Never per row. */
+function resolveUnifiedCols(sheet) {
+  if (!sheet) throw new Error('resolveUnifiedCols: no sheet provided.');
+  var name = sheet.getName();
+  if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 1) {
+    throw new Error('resolveUnifiedCols: "' + name + '" has no header row to resolve columns from.');
+  }
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  var resolved = {};
+  Object.keys(UCOLS).forEach(function(key) {
+    var headerName = UNIFIED_LEAD_HEADERS[UCOLS[key]];
+    var idx = findHeaderIndex(headerRow, headerName);
+    if (idx === -1) throw headerLookupError(name, headerRow, headerName);
+    resolved[key] = idx;
+  });
+  return resolved;
+}
+
+/** The one lead table. null when it does not exist (i.e. before the cutover). */
+function leadsTable() {
+  return tab(CONFIG.TABS.LEADS);
+}
+
+/* The ancestors of a lead, from its Referral Chain cell: origin first, IMMEDIATE
+   REFERRER LAST. The chain is built as `referrer's chain + '|' + referrer's Lead
+   ID` (buildReferralMatch), so it holds every ancestor and nobody else — in
+   particular NOT the lead's own ID, which is only appended to the NEXT lead's
+   chain. That is what makes multi-level attribution a plain split, with no
+   filtering and no walking of parent rows.
+
+   Deduped: a hand-edited or malformed chain that repeats an ID must still credit
+   that ancestor exactly once, because the counter is a count of downstream leads,
+   not a count of chain entries. */
+function chainAncestors(chain) {
+  var seen = {};
+  return String(chain || '')
+    .split('|')
+    .map(function(id) { return String(id || '').trim(); })
+    .filter(function(id) {
+      if (!id) return false;
+      if (Object.prototype.hasOwnProperty.call(seen, id)) return false;
+      seen[id] = true;
+      return true;
+    });
+}
+
 // Referrals tab columns
 var REFERRAL_HEADERS = [
   'Referral ID', 'Referrer Lead ID', 'Referrer Name', 'Referrer Email', 'Referrer Code',
@@ -1444,7 +1595,9 @@ function handleFormSubmission(payload) {
 
     // Update referrer stats if matched
     if (referralMatch.found) {
-      updateReferrerStats(referralMatch.referrerLeadId);
+      // The chain is the new lead's ancestors — every one of them is credited a
+      // Total Downstream, not just referrerLeadId. See updateReferrerStats.
+      updateReferrerStats(referralMatch.referrerLeadId, referralMatch.chain);
       logReferralEntry(referralMatch, leadId, payload, row);
       sendReferrerNotification(referralMatch.referrerEmail, referralMatch.referrerFirstName, referralMatch.referrerCode);
     }
@@ -1601,7 +1754,158 @@ function buildReferralMatch(referrerRow, matchType, cols) {
   };
 }
 
-function updateReferrerStats(referrerLeadId) {
+/* ── updateReferrerStats: credit a new referral up the chain ──
+   MIGRATED (Stage 1 of the unified-schema migration). This is a dispatcher; the
+   two implementations below are the real thing. See the UNIFIED SCHEMA block
+   above for the staging pattern and the cutover procedure.
+
+   `chain` is the NEW LEAD's Referral Chain — its ancestors, origin first,
+   immediate referrer last (buildReferralMatch / handleManualReferralLink both
+   build it that way). It is what makes multi-level Total Downstream possible.
+
+   The two counters mean different things, and conflating them is THE
+   implementation slip to avoid:
+     Direct Referrals  → the IMMEDIATE referrer only. Never propagates up.
+     Total Downstream  → EVERY ancestor in the chain, at any depth.
+   John refers Steven; Steven refers Maria. Maria's submission gives Steven +1
+   Direct and +1 Downstream, and John +1 Downstream ONLY. */
+function updateReferrerStats(referrerLeadId, chain) {
+  return USE_UNIFIED_SCHEMA
+    ? updateReferrerStatsUnified(referrerLeadId, chain)
+    : updateReferrerStatsLegacy(referrerLeadId);
+}
+
+/* THE UNIFIED IMPLEMENTATION. One row per lead, so crediting an ancestor is a
+   single-row lookup by Lead ID — N lookups for a chain of depth N, against one
+   table read once. The nine-tab loop, the per-tab resolveCols, the per-tab
+   try/catch and the break-after-first-match all vanish with the duplication that
+   forced them.
+
+   Last Referral Date tracks the immediate referrer only, deliberately: a lead
+   referred by someone three levels below you is not YOUR referral, and dating it
+   as one would make the cold-lead and partner-summary reads lie. Total Downstream
+   is the field that says "something happened in your subtree". */
+function updateReferrerStatsUnified(referrerLeadId, chain) {
+  if (!referrerLeadId) return;
+
+  var sheet = leadsTable();
+  if (!sheet || sheet.getLastRow() < 2) {
+    Logger.log('updateReferrerStats: no "' + CONFIG.TABS.LEADS + '" rows; nothing to credit.');
+    return;
+  }
+
+  /* ── The lock, and why the READ is inside it ──
+     Crediting a chain is a read-modify-write of counters on N rows. Two
+     submissions landing on overlapping chains (a common case: two people
+     referred by the same partner, or anyone deep in a popular chain) can
+     interleave read-read-write-write and lose a count permanently — and the
+     counter is the number the referral product is measured by, so a lost
+     increment is silent, permanent, and unnoticeable.
+
+     The whole read-modify-write must be inside the lock, not just the writes.
+     Locking only the writes would leave the race completely intact: both
+     executions would have already read the same stale counter.
+
+     tryLock, not waitLock: a blocked execution should give up and say so, not
+     sit on a GAS execution slot indefinitely and then die on the 6-minute
+     runtime cap having done half the work. */
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(REFERRAL_STATS_LOCK_MS)) {
+    /* NOT silent, and NOT fatal.
+
+       Not fatal: this runs inside handleFormSubmission's main try, so throwing
+       would turn a contended lock into a FAILED SUBMISSION — the visitor is
+       told their form broke because someone else submitted at the same moment.
+       The lead row itself is already written and correct; only the referrer's
+       counters are behind.
+
+       Not silent: the log line below carries everything needed to replay the
+       credit by hand, which is what makes "we skipped it" recoverable rather
+       than lost. If this ever fires in practice it is the signal to move the
+       counters off read-modify-write (e.g. derive them from the Referrals tab)
+       rather than to raise the timeout. */
+    Logger.log('updateReferrerStats: MANUAL REPAIR NEEDED. Could not acquire the script lock ' +
+               'within ' + REFERRAL_STATS_LOCK_MS + 'ms, so referral credit was NOT applied. ' +
+               'Referrer: "' + referrerLeadId + '". Chain: "' + String(chain || '') + '". ' +
+               'Nothing was written — no partial credit was applied. To repair: increment ' +
+               'Total Downstream by 1 for every Lead ID in that chain, and Direct Referrals ' +
+               'by 1 for the referrer only.');
+    return;
+  }
+
+  try {
+    creditReferralChain(sheet, referrerLeadId, chain);
+    // Commit before releasing: a queued write that lands after the lock is gone
+    // is a write that happened outside it, which is the race the lock exists to
+    // prevent.
+    SpreadsheetApp.flush();
+  } finally {
+    // finally, not a trailing call: resolveUnifiedCols throws on a mangled
+    // header, and a lock leaked by that path would block every subsequent
+    // submission until the execution times out.
+    lock.releaseLock();
+  }
+}
+
+/* The critical section: the actual read-modify-write. Separated from the locking
+   so the counting logic can be read and tested without the ceremony around it.
+   MUST only be called while holding the script lock — updateReferrerStatsUnified
+   is the only caller, and that is deliberate. */
+function creditReferralChain(sheet, referrerLeadId, chain) {
+  // Throws on a mangled header rather than writing a counter into a guessed
+  // cell. A referral stat silently landing in the wrong column is worse than a
+  // logged failure — the caller's try/catch turns this into a diagnosable error.
+  var C = resolveUnifiedCols(sheet);
+  var data = sheet.getDataRange().getValues();
+  var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
+
+  // Index once. A 4-deep chain would otherwise re-scan the table four times.
+  var rowByLeadId = {};
+  for (var i = 1; i < data.length; i++) {
+    var id = String(data[i][C.LEAD_ID] || '').trim();
+    if (!id) continue;
+    // Own-key guarded: a Lead ID of 'constructor' must not resolve to Object's.
+    if (Object.prototype.hasOwnProperty.call(rowByLeadId, id)) continue;   // first row wins
+    rowByLeadId[id] = i;
+  }
+
+  // Every ancestor, not just the last one. An empty/absent chain (a caller that
+  // has a referrer but no chain — defensive) still credits the referrer, who is
+  // by definition their own chain's last entry.
+  var ancestors = chainAncestors(chain);
+  if (ancestors.indexOf(referrerLeadId) === -1) ancestors.push(referrerLeadId);
+
+  ancestors.forEach(function(ancestorLeadId) {
+    var rowIdx = rowByLeadId[ancestorLeadId];
+    if (rowIdx === undefined) {
+      // A chain naming a lead that is not in the table is a data-integrity
+      // problem, not a reason to abandon the ancestors that ARE there.
+      Logger.log('updateReferrerStats: chain ancestor "' + ancestorLeadId +
+                 '" has no row in "' + CONFIG.TABS.LEADS + '"; skipped crediting it.');
+      return;
+    }
+    var row = data[rowIdx];
+    var sheetRow = rowIdx + 1;   // 1-based, header included
+
+    var downstream = parseInt(row[C.TOTAL_DOWNSTREAM] || '0', 10) || 0;
+    sheet.getRange(sheetRow, C.TOTAL_DOWNSTREAM + 1).setValue(downstream + 1);
+
+    // The immediate referrer, and ONLY the immediate referrer, also gets the
+    // direct count and the date. This is the line the multi-level change must
+    // not "helpfully" hoist out of the guard.
+    if (ancestorLeadId === referrerLeadId) {
+      var direct = parseInt(row[C.DIRECT_REFERRALS] || '0', 10) || 0;
+      sheet.getRange(sheetRow, C.DIRECT_REFERRALS   + 1).setValue(direct + 1);
+      sheet.getRange(sheetRow, C.LAST_REFERRAL_DATE + 1).setValue(today);
+    }
+  });
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER, together with USE_UNIFIED_SCHEMA and this comment.
+   It credits Direct Referrals only, on up to nine duplicate copies of the
+   referrer's row, and has never written Total Downstream. */
+function updateReferrerStatsLegacy(referrerLeadId) {
   if (!referrerLeadId) return;
   var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
   // Derived from the registry, not a hand-kept list. The old literal omitted
@@ -2596,7 +2900,9 @@ function handleManualReferralLink(sheet, row, rowData, referredByEmail, editedCo
   sheet.getRange(row, EC.REFERRAL_CHAIN + 1).setValue(chain);
   sheet.getRange(row, EC.CHAIN_DEPTH    + 1).setValue(depth);
 
-  updateReferrerStats(referrerLeadId);
+  // A hand-linked referral is not a second-class one: it credits the full chain
+  // exactly as an auto-matched one does. `chain` is computed just above.
+  updateReferrerStats(referrerLeadId, chain);
 
   // Log to Referrals tab
   var refSheet = tab(CONFIG.TABS.REFERRALS);
