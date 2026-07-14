@@ -10,8 +10,10 @@ Nothing in this document is waiting on an answer.
 |---|---|---|
 | **1** | The unified schema constants (`UNIFIED_LEAD_HEADERS`, `UCOLS`, `resolveUnifiedCols`, `chainAncestors`), the `USE_UNIFIED_SCHEMA` switch, and **`updateReferrerStats`** — including multi-level `Total Downstream` (§2c) and a script lock over the counter read-modify-write | ✅ **DONE 2026-07-14.** 64/64 tests green. Not deployed; the switch is off. |
 | **2** | **`moveColdLeads`** — stops physically relocating rows; a cold lead is now a `Status = 'Cold'` write. **Row deletion is removed, not ported.** Takes the script lock (two entry points can sweep concurrently) | ✅ **DONE 2026-07-14.** 75/75 tests green. Not deployed; the switch is off. |
-| **3 — NEXT** | **`handleStatusEdit`** — the *other* row-deleting function (§3, 🔴 High). A status edit becomes just a status edit plus its Contact-group side effects; the moves to Cold Leads / Clients / Archive are **deleted, not ported**. **It must also take the same script lock** — see the Stage-2 notes below, this is what closes the sweep-vs-human-edit gap. | ⬜ Not started |
-| 4…N | Everything else in §3, in that table's risk order | ⬜ Not started |
+| **3** | **`handleStatusEdit`** — the *other* row-deleting function. A status edit is now **just a status edit** plus its Contact side effects. **No unified path in the file deletes a lead row any more.** Takes the same script lock; **plus a pre-write re-read in `sweepStaleLeadsToCold`**, which is what actually closes the Stage-2 clobber gap | ✅ **DONE 2026-07-14.** 87/87 tests green. Not deployed; the switch is off. |
+| **4 — NEXT** | **`onSheetEdit`** — its lead-tab guard becomes `sheet.getName() === 'Leads'` and it resolves through `resolveUnifiedCols`. **Deliberately taken out of §3's table order** (which would put `sendMonthlyReferralSummaries` next): `onSheetEdit` is the **sole caller** of all three edit handlers, and until it is migrated `handleStatusEditUnified` is unreachable — Stage 3's code cannot be exercised at all. Migrating a caller in the same breath as the handler it feeds is lower-risk than leaving them split across four stages. | ⬜ Not started |
+| 5…N | Everything else in §3, in that table's risk order: `sendMonthlyReferralSummaries`, `handleFormSubmission`, `buildLeadRow`, the `findExistingLead` group, `sendDailyDigest`, `setupSpreadsheet`, the registry, `resolveCols`/`COLS`/`LEAD_HEADERS` | ⬜ Not started |
+| — | **`setCategoryTabStatus` is NOT a stage.** It is a §4 delete-outright, and it cannot be deleted before the cutover removes `moveColdLeadsLegacy`, which still calls it. Skip it in the sequence; do not "migrate" it. | ⬜ At cutover |
 | Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
 
 ### The staging pattern — Stage 2 MUST follow this exactly
@@ -75,15 +77,41 @@ Nothing is deleted before then — the legacy bodies are the rollback path.
   create has the same race and should take the same lock — and must take it
   **before the read**, not just before the writes.
 
-### Stage 2 notes for whoever picks up Stage 3 (`handleStatusEdit`)
+### Stage 3 notes — and a CORRECTION to what Stage 2 predicted
 
-- **Stage 3 must take the script lock, and this is not optional.** `moveColdLeads`
-  now locks, but a lock only excludes writers that *take* it. `handleStatusEdit`
-  does not, so **a human promoting a lead to `Client` during a sweep can still be
-  clobbered by the sweep's stale `Cold` write.** That gap is real, it is documented
-  in the code, and **Stage 3 is where it closes** — have `handleStatusEditUnified`
-  take the same `LockService.getScriptLock()` around its read-decide-write. Until
-  it does, the sweep's lock protects sweep-vs-sweep only.
+**Stage 2 said the sweep-vs-human-edit gap would close when `handleStatusEdit` took
+the lock. That was half right, and the half it got wrong matters.**
+
+**A lock could never have closed it.** The human's `Status` write is performed by
+the **Sheets UI**, which takes no lock and cannot be made to. `handleStatusEdit` is
+an `onEdit` trigger: by the time it runs, the cell is *already* written. So giving
+it the lock lets it *notice* a clobber — it cannot *prevent* one.
+
+**What actually closed the gap** was a second, separate mechanism, added in Stage 3
+inside `sweepStaleLeadsToCold`: the sweep now **re-reads each row's live `Status`
+immediately before stamping `'Cold'`**, and skips the row if it is no longer an
+active status. That shrinks the clobber window from "the entire sweep" (a full table
+read plus a write per stale lead) to the microseconds between that re-read and the
+write. **The lock and the re-read are both required; neither alone is sufficient.**
+
+The general lesson, which the remaining stages should carry: **a lock only protects
+against writers that take it.** Any race whose other party is a human in the Sheets
+UI, an Apps Script `onEdit`, or anything else outside our code cannot be locked away
+— it has to be handled by re-validating at the point of write.
+
+- **Every locked path shares ONE lock.** `getScriptLock()` is process-wide, so
+  `updateReferrerStats`, `moveColdLeads`, and `handleStatusEdit` all genuinely
+  contend. Keep every future stage on that same lock. Two locks would serialize
+  nothing while looking like they did.
+- **On a status conflict, act on the LIVE value and do NOT auto-restore.**
+  `handleStatusEditUnified` drives its Contacts side effects off the status it reads
+  under the lock, not off the (possibly stale) edit event, so Contacts can never
+  disagree with the Sheet. It deliberately does **not** write the event's value
+  back: nothing can distinguish "a sweep stamped Cold over their Client" from "the
+  human edited again a second later", and auto-restoring would silently revert a
+  deliberate human edit. That is trading one rare bug for another, not fixing one.
+- **Slow side effects belong OUTSIDE the lock** (Contacts, email). Both migrated
+  handlers follow this.
 - **The GAS script lock is process-wide.** `getScriptLock()` returns *the* lock, so
   the cold sweep and the referral-credit critical section already serialize against
   each other for free. Keep every stage on that one lock rather than inventing a
@@ -478,7 +506,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 |---|---|---|
 | ✅ **`updateReferrerStats`** — **MIGRATED 2026-07-14 (Stage 1).** Now a dispatcher over `updateReferrerStatsUnified` (new) and `updateReferrerStatsLegacy` (the old body, verbatim, delete at cutover). The unified path indexes the one table by Lead ID once, credits `Total Downstream` to every ancestor from `chainAncestors(chain)`, and credits `Direct Referrals` + `Last Referral Date` to the immediate referrer **only**. Both call sites now pass the chain. Covered by `scripts/gas/tests/referrer-stats.test.js` (11 tests: 4-deep chain, the Direct-Referrals regression, 1-deep and no-referrer boundaries, a duplicated chain entry, a chain naming a missing row, a header miss, and the legacy branch). | *Original entry, for the record:* **Loops every lead tab** and updates the referrer's row on each, because the same lead is duplicated across up to 9 tabs. Collapses to a **single-row lookup by Lead ID** on one table. The whole per-tab loop, the per-tab `try`/`resolveCols`, and the `break`-after-first-match all vanish. **Also gains multi-level `Total Downstream` attribution in this same rewrite** (§2c, resolved): takes the chain as a second argument, increments `Direct Referrals` for the immediate referrer **only**, and increments `Total Downstream` for **every ancestor** in the Referral Chain. Becomes N single-row lookups, N = chain depth. | 🔴 **HIGHEST.** This function *only exists in its current form because of row duplication.* It is also the least-tested write path in the file: it does a read-modify-write of a counter with no transaction, and today a partial failure leaves counts inconsistent *across tabs*. **Multi-level counting raises the stakes further — one submission now writes to many ancestor rows** — which is exactly why it lands here, where each ancestor is one row instead of nine. Rewrite it first, test it hardest. Get this wrong and referral stats — the thing the whole referral product is measured by — are silently wrong. |
 | ✅ **`moveColdLeads`** — **MIGRATED 2026-07-14 (Stage 2).** Dispatcher over `moveColdLeadsUnified` (new) and `moveColdLeadsLegacy` (old body, verbatim, delete at cutover). The unified path resolves the header by name, sweeps stale active leads with a single `Status = 'Cold'` write per lead (critical section extracted as `sweepStaleLeadsToCold`), and **deletes nothing and appends nothing**. Takes the script lock (`COLD_SWEEP_LOCK_MS`, 30s, `tryLock`) around the read-decide-write, because the sweep has **two entry points** — the Monday trigger and the "Run Cold Lead Sweep Now" menu item — so two sweeps can genuinely run at once; Contacts calls and the summary email happen **outside** the lock. Covered by `scripts/gas/tests/cold-sweep.test.js` (11 tests). **Known gap, closing in Stage 3:** the lock does not protect against a human's `Status` edit, because `handleStatusEdit` does not yet take it. | *Original entry, for the record:* Stops **physically relocating rows** between tabs. Becomes: find rows whose Status ∈ {New Lead, Contacted, Active} and whose Timestamp is older than `COLD_LEAD_DAYS`, then **set Status = `Cold`**. One field write; no append, no `deleteRow`. | 🔴 High. It is one of only two functions that **delete rows** today. The rewrite removes the deletion entirely, which is a large net safety win — but the transitional version is the single most dangerous code in the migration. |
-| **`handleStatusEdit`** (2623) | Stops moving rows to Cold Leads / Clients / Archive. A status edit becomes **just a status edit** (plus its Contact-group side effects). Most of the function disappears. | 🔴 High. The other row-deleting function. Deletion logic must be *removed*, not ported. |
+| ✅ **`handleStatusEdit`** — **MIGRATED 2026-07-14 (Stage 3).** Dispatcher over `handleStatusEditUnified` / `handleStatusEditLegacy` (verbatim, delete at cutover). The unified branch appends nothing, deletes nothing, and writes no cell — the human's `Status` edit is already saved by the Sheets UI before the trigger fires — so all that remains is the Contacts side effect. It takes the shared script lock, reads the **live** row under it, and logs a CONFLICT (without auto-restoring) when the live status disagrees with the edit event. It deliberately ignores the `sheetName`/`editedCols` it is handed, because those come from the not-yet-migrated `onSheetEdit` and are `LEAD_HEADERS`-shaped. **`sweepStaleLeadsToCold` also gained a pre-write live re-read** — the guard that actually closes the Stage-2 clobber gap. Covered by `scripts/gas/tests/status-edit.test.js` (12 tests, incl. the shared-lock contention proofs). | *Original entry, for the record:* Stops moving rows to Cold Leads / Clients / Archive. A status edit becomes **just a status edit** (plus its Contact-group side effects). Most of the function disappears. | 🔴 High. The other row-deleting function. Deletion logic must be *removed*, not ported. |
 | **`setCategoryTabStatus`** (2492) | **Deleted.** Its only job is keeping a duplicated row's Status in sync on the category tab. With one row, there is nothing to sync. | 🟢 Low (it stops existing). |
 | **`sendMonthlyReferralSummaries`** (2324) | Reads the **Referral Partners tab** and its extra `Reports Enabled` column. Becomes: filter the one table on `Category = 'Referral Partner'`, read `Reports Enabled` as a normal column, keep the existing skips (`Cold`/`Archive` status, `FALSE` opt-out, zero-referral partners). | 🟠 Medium. Currently untested, and a filter bug silently emails the wrong people — or nobody. |
 | **`onSheetEdit`** (2524) | Its **lead-tab guard** (`leadTabConfigs()` membership) becomes a single `sheet.getName() === 'Leads'` check. The three watched columns must still be resolved **by name** (`resolveCols`) so the dispatch detects *which* column changed. | 🟠 Medium. If the dispatch guard is wrong, edits are routed to the wrong handler or dropped silently. |
