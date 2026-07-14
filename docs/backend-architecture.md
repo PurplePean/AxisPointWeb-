@@ -33,6 +33,7 @@ path and are deleted only at cutover.
 | 3 | `handleStatusEdit` | A status edit is **just a status edit** — the human's cell write already happened, so the row moves nowhere and only the Contacts side effect remains. Script-locked, acts on the **live** status, logs conflicts. |
 | 4 | `onSheetEdit` | The nine-tab membership guard becomes one string compare against `Leads`. The three watched columns still resolve **by name**. |
 | 5 | `handleManualReferralLink` | The referrer lookup scans the one `Leads` table instead of Lifetime Leads. Script-locked around the row write only (the lock is **not** reentrant — see below). |
+| 6 | `buildLeadRow` | Builds the 25-column row + the `Details` JSON blob. **This is where the two data-fidelity fixes shipped** — see below. |
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
@@ -46,23 +47,43 @@ ported. The legacy bodies still delete, and still run in production, until cutov
 | Category | `handleCategoryEdit` | ✅ Works **unchanged**. It reads no tab — only `rowData` + `EMAIL`, a key in both `COLS` and `UCOLS` — so it is schema-agnostic and needs **no migration at all**. |
 | Referred By Email | `handleManualReferralLink` | ✅ Migrated (Stage 5). Scans `leadsTable()` instead of Lifetime Leads. The Stage-4 refusal branch is deleted. |
 
-### ⚠ The unified path is fully wired and completely UNFED
+### The two data-fidelity fixes are now CODE (Stage 6), not just decisions
 
-**Do not read "all the edit handlers work" as "we can flip the switch."**
+`buildLeadRowUnified` + `buildLeadDetails` implement both. **They still do not run in
+production** (the switch is off), but they exist and are tested:
 
-**Nothing writes to the `Leads` table yet.** `buildLeadRow` and `handleFormSubmission`
-are unmigrated, and they are the **only** creators of a lead row. Every migrated
-function today reads and writes a table that is permanently empty.
+- **§2a — all 13 `qualData` fields persist.** Legacy writes exactly **one**
+  (`assetClasses` → the Asset Class column) and silently discards the other twelve.
+  Every field a lead type collects now lands in `Details`, keyed per the **registry**
+  (`LEAD_TYPES.detailsFields`), never re-derived from field names.
+- **§2b — `submit_referral.referred` is a structured object**
+  (`{firstName, lastName, email, phone, notes}`), not a prose block prepended to the
+  message. The prose builder is **deleted, not ported**.
 
-Still unmigrated: `buildLeadRow`, `handleFormSubmission`, `findExistingLead`,
+**The `Details` contract:** a field the lead type **asks** is always **present** (`''`
+or `[]` when blank); a field it does **not** ask is **absent**. So "asked and not
+answered" is distinguishable from "never asked". `message`, `preferences`, and
+`booking` (incl. `meetLink`) are on every type. **`Reports Enabled` is seeded by the
+row builder** from `LEAD_TYPES.seedReportsEnabled`.
+
+### ⚠ Still UNFED: nothing has *called* the new row builder yet
+
+**Do not read "the row builder is migrated" as "we can flip the switch."**
+`handleFormSubmission` — the only caller that appends a lead row — is still
+unmigrated, so the `Leads` table is still permanently empty.
+
+Still unmigrated: `handleFormSubmission`, `findExistingLead`, `existingReferralCodes`,
+`matchReferrer`/`buildReferralMatch`, `handleResubmission`, `sendDailyDigest`,
+`sendMonthlyReferralSummaries`, `setupSpreadsheet`, the `LEAD_TYPES` registry
+(`.tab`/`.tabColor`), and `resolveCols`/`COLS`/`LEAD_HEADERS`.
+
+**Next: Stage 7, the submission path as ONE stage** — `findExistingLead`,
 `existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`,
-`sendDailyDigest`, `sendMonthlyReferralSummaries`, `setupSpreadsheet`, the
-`LEAD_TYPES` registry, and `resolveCols`/`COLS`/`LEAD_HEADERS`.
-
-**Next: Stage 6, `buildLeadRow`** — the 25-column layout + the `Details` blob, where
-the two data-fidelity fixes (all 13 `qualData` fields; `submit_referral.referred` as
-structured JSON) actually land. Everything else in the writer path depends on its
-`Details` format.
+and `handleFormSubmission` together. `handleFormSubmission` **cannot** go alone: it
+calls `findExistingLead` (dedupe) and `existingReferralCodes` (collision check), both
+of which scan **Lifetime Leads** and would **silently return "no match"** under the
+unified schema — producing duplicate leads on every resubmission and un-collision-
+checked referral codes. Both failures are silent.
 
 ### The script lock is NOT reentrant — a constraint every later stage inherits
 
