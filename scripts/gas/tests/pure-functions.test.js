@@ -59,7 +59,7 @@ test('normalizeHeaderName: distinct headers stay distinct', () => {
 test('findHeaderIndex: resilient match against a deliberately mangled header row', () => {
   // Fixture is intentionally NOT LEAD_HEADERS: reordered, re-cased, whitespaced.
   const mangled = ['e-mail?', 'lead  id', 'TIMESTAMP', 'Referred By Lead ID', 'cat'];
-  assert.notDeepEqual(mangled, S.LEAD_HEADERS);
+  assert.notDeepEqual(mangled, Array.from(S.LEAD_HEADERS));
 
   assert.equal(S.findHeaderIndex(mangled, 'Lead ID'), 1); // 'lead  id' matches
   assert.equal(S.findHeaderIndex(mangled, 'Timestamp'), 2); // case-insensitive

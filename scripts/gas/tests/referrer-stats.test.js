@@ -210,7 +210,7 @@ test('fixture header is genuinely drifted from the constants it is testing', () 
   const { UNIFIED_LEAD_HEADERS, UCOLS } = sandbox;
 
   assert.equal(MANGLED_HEADER.length, UNIFIED_LEAD_HEADERS.length, 'fixture must cover every column');
-  assert.notDeepEqual(MANGLED_HEADER, UNIFIED_LEAD_HEADERS, 'fixture must not equal the constant');
+  assert.notDeepEqual(MANGLED_HEADER, Array.from(UNIFIED_LEAD_HEADERS), 'fixture must not equal the constant');
 
   // And no column happens to sit at its canonical index, so a positional read
   // cannot accidentally pass any test in this file.
@@ -458,7 +458,7 @@ test('legacy branch (flag off): still updates the per-tab duplicates, Direct Ref
   // Rotate the legacy header so nothing sits at its COLS index either.
   const header = LEAD_HEADERS.slice(7).concat(LEAD_HEADERS.slice(0, 7));
   const at = (name) => header.indexOf(name);
-  assert.notDeepEqual(header, LEAD_HEADERS);
+  assert.notDeepEqual(Array.from(header), Array.from(LEAD_HEADERS));
 
   const mk = (vals) => {
     const r = new Array(header.length).fill('');

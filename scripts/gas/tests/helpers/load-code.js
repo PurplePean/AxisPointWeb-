@@ -145,6 +145,33 @@ function formatDateImpl(date, tz, fmt) {
   return out;
 }
 
+/* ── THE CROSS-REALM TRAP — read this before writing a deepEqual against Code.gs ──
+ *
+ * Code.gs runs in a vm context with its OWN intrinsics. An array or object created
+ * inside it (LEAD_HEADERS, UNIFIED_LEAD_HEADERS, anything buildLeadRow returns)
+ * carries that context's Array.prototype, NOT the host's. `assert/strict`'s
+ * deepEqual is deepStrictEqual, which compares prototypes with ===, so:
+ *
+ *   assert.deepEqual(hostArray, vmArray)      // THROWS even when the contents match
+ *   assert.notDeepEqual(hostArray, vmArray)   // PASSES even when the contents are IDENTICAL
+ *
+ * The first is loud and self-correcting. The second is the dangerous one: it is
+ * exactly the tautology this suite's core rule exists to prevent. A fixture-drift
+ * guard written as `assert.notDeepEqual(myHandTypedFixture, UNIFIED_LEAD_HEADERS)`
+ * passes whether or not the fixture is drifted — including when it is a byte-for-byte
+ * copy of the constant it is supposed to differ from. It looks like coverage and is
+ * not.
+ *
+ * NOTE the asymmetry that makes this easy to miss: a fixture built by TRANSFORMING a
+ * sandbox constant (`LEAD_HEADERS.slice(5).concat(...)`) stays in the vm realm, so it
+ * compares correctly. A fixture typed out BY HAND in the test file is a host array,
+ * and does not. Same-looking assertions, opposite behavior.
+ *
+ * THE RULE: lift the sandbox value into the host realm before any deep comparison —
+ * `Array.from(sandbox.LEAD_HEADERS)`, or `JSON.parse(JSON.stringify(x))` for a nested
+ * object. Every deep comparison against a sandbox value in this suite does this.
+ */
+
 /** Loads Code.gs fresh into a new sandbox and returns it. Each call is isolated. */
 function loadCode() {
   const source = fs.readFileSync(CODE_PATH, 'utf8');

@@ -199,7 +199,7 @@ test('fixture header is genuinely drifted, and differs from the Stage 1 fixture'
   const { UNIFIED_LEAD_HEADERS, UCOLS } = sandbox;
 
   assert.equal(MANGLED.length, UNIFIED_LEAD_HEADERS.length);
-  assert.notDeepEqual(MANGLED, UNIFIED_LEAD_HEADERS);
+  assert.notDeepEqual(MANGLED, Array.from(UNIFIED_LEAD_HEADERS));
   Object.keys(UCOLS).forEach((key) => {
     const canonical = UCOLS[key];
     assert.notEqual(colOf(UNIFIED_LEAD_HEADERS[canonical]), canonical,
@@ -435,7 +435,7 @@ test('legacy branch (flag off): still appends to Cold, DELETES from Active, and 
   // Rotate the 31-column legacy header so nothing sits at its COLS index either.
   const header = LEAD_HEADERS.slice(11).concat(LEAD_HEADERS.slice(0, 11));
   const at = (n) => header.indexOf(n);
-  assert.notDeepEqual(header, LEAD_HEADERS);
+  assert.notDeepEqual(Array.from(header), Array.from(LEAD_HEADERS));
 
   const mk = (vals) => {
     const r = new Array(header.length).fill('');
