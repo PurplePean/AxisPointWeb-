@@ -240,30 +240,31 @@ test('unified: a Category edit routes to handleCategoryEdit, which needs no migr
   assert.ok(groupRemoves.some((g) => g.group === 'AxisPoint Investors'));
 });
 
-test('unified: a Referred By Email edit is REFUSED LOUDLY, not silently swallowed', () => {
-  /* THE POINT OF THIS TEST. handleManualReferralLink still scans Lifetime Leads,
-     which does not exist under the unified schema. Its own guard returns SILENTLY
-     when the tab is missing — so wiring it up here would produce a handler that
-     looks connected and does nothing: the human types a referrer's email, watches
-     it be accepted, and no referral is ever linked. Refusing out loud is the only
-     honest option until Stage 5 migrates it. */
-  const leads = leadsSheet();
-  const { sandbox, contactCalls, logs } = load(new FakeSpreadsheet({ Leads: leads }), true);
+test('unified: a Referred By Email edit routes to handleManualReferralLink and LINKS (Stage 5)', () => {
+  /* Between Stages 4 and 5 this route was deliberately REFUSED and logged loudly,
+     because handleManualReferralLink still scanned Lifetime Leads and would have
+     failed SILENTLY. Stage 5 retargeted it, and the refusal is gone. This test now
+     asserts the opposite of what it used to: the route is live, and it completes.
+     (The full end-to-end coverage lives in manual-referral-link.test.js; this is the
+     dispatcher's half — that the edit reaches the handler at all.) */
+  const leads = new FakeSheet('Leads', [
+    MANGLED.slice(),
+    mkLead({ 'Lead ID': 'AXP-REF-1', Email: 'referrer@x.com', 'First Name': 'Rita',
+             'Last Name': 'Referrer', 'Referral Code': 'AXP-RRR222', Status: 'Active' }),
+    mkLead({ 'Lead ID': 'AXP-NEW-1', Email: 'new@x.com', 'First Name': 'Nate',
+             'Last Name': 'Newlead', Status: 'New Lead' }),
+  ]);
+  const { sandbox, logs } = load(new FakeSpreadsheet({ Leads: leads }), true);
 
-  sandbox.onSheetEdit(editEvent(leads, 2, col1('Referred By Email'), 'referrer@x.com'));
+  sandbox.onSheetEdit(editEvent(leads, 3, col1('Referred By Email'), 'referrer@x.com'));
 
-  const log = logs.join('\n');
-  assert.match(log, /was NOT processed/);
-  assert.match(log, /referrer@x\.com/, 'the log must name the value that was dropped');
-  assert.match(log, /Stage 5/, 'and say what will fix it');
-  assert.match(log, /no referrer notified/i, 'and spell out exactly what did not happen');
+  const row = leads.getDataRange().getValues()[2];
+  assert.equal(row[colOf('Referred By Lead ID')], 'AXP-REF-1', 'the referral was actually linked');
+  assert.equal(row[colOf('Match Type')], 'manual');
+  assert.equal(row[colOf('Referral Chain')], 'AXP-REF-1');
 
-  // Nothing was half-done: no referral columns back-filled, no contact touched.
-  const row = leads.getDataRange().getValues()[1];
-  assert.equal(row[colOf('Referred By Lead ID')], '', 'no referral column may be back-filled');
-  assert.equal(row[colOf('Match Type')], '');
-  assert.equal(row[colOf('Referral Chain')], '');
-  assert.deepEqual(contactCalls, []);
+  // The Stage-4 refusal must be gone, not merely bypassed.
+  assert.ok(!logs.join('\n').includes('was NOT processed'), 'the refusal branch is deleted');
 });
 
 test('unified: routing is BY NAME — a drifted header cannot send a Status edit to the wrong handler', () => {

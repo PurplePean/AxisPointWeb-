@@ -32,22 +32,47 @@ path and are deleted only at cutover.
 | 2 | `moveColdLeads` | A cold lead is a `Status = 'Cold'` **write**, not a relocated row. **No `deleteRow`, no `appendRow`.** Script-locked, and (as of Stage 3) it re-reads each row's live Status immediately before stamping. |
 | 3 | `handleStatusEdit` | A status edit is **just a status edit** — the human's cell write already happened, so the row moves nowhere and only the Contacts side effect remains. Script-locked, acts on the **live** status, logs conflicts. |
 | 4 | `onSheetEdit` | The nine-tab membership guard becomes one string compare against `Leads`. The three watched columns still resolve **by name**. |
+| 5 | `handleManualReferralLink` | The referrer lookup scans the one `Leads` table instead of Lifetime Leads. Script-locked around the row write only (the lock is **not** reentrant — see below). |
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
 ported. The legacy bodies still delete, and still run in production, until cutover.
 
-**What Stage 4 actually wired up — the edit trigger is only 2/3 connected:**
+**The edit trigger is now fully wired (Stage 5):**
 
 | Watched column | Handler | State under the unified schema |
 |---|---|---|
-| Status | `handleStatusEdit` | ✅ Migrated (Stage 3) and fully wired. |
-| Category | `handleCategoryEdit` | ✅ Works **unchanged**. It reads no tab — only `rowData` + `EMAIL`, a key in both `COLS` and `UCOLS` — so it is schema-agnostic and needs no migration at all. |
-| Referred By Email | `handleManualReferralLink` | ❌ **NOT migrated, and deliberately NOT called.** It scans Lifetime Leads, which does not exist under the unified schema, and its missing-tab guard returns **silently** — so wiring it up would produce a handler that looks connected and quietly drops every hand-linked referral. `onSheetEditUnified` refuses it and logs loudly instead. |
+| Status | `handleStatusEdit` | ✅ Migrated (Stage 3). |
+| Category | `handleCategoryEdit` | ✅ Works **unchanged**. It reads no tab — only `rowData` + `EMAIL`, a key in both `COLS` and `UCOLS` — so it is schema-agnostic and needs **no migration at all**. |
+| Referred By Email | `handleManualReferralLink` | ✅ Migrated (Stage 5). Scans `leadsTable()` instead of Lifetime Leads. The Stage-4 refusal branch is deleted. |
 
-**Next: Stage 5, `handleManualReferralLink`** — a **cutover blocker**, taken next as a
-*dependency*, not by risk rank: until it lands, `Referred By Email` edits do nothing
-under the unified schema.
+### ⚠ The unified path is fully wired and completely UNFED
+
+**Do not read "all the edit handlers work" as "we can flip the switch."**
+
+**Nothing writes to the `Leads` table yet.** `buildLeadRow` and `handleFormSubmission`
+are unmigrated, and they are the **only** creators of a lead row. Every migrated
+function today reads and writes a table that is permanently empty.
+
+Still unmigrated: `buildLeadRow`, `handleFormSubmission`, `findExistingLead`,
+`existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`,
+`sendDailyDigest`, `sendMonthlyReferralSummaries`, `setupSpreadsheet`, the
+`LEAD_TYPES` registry, and `resolveCols`/`COLS`/`LEAD_HEADERS`.
+
+**Next: Stage 6, `buildLeadRow`** — the 25-column layout + the `Details` blob, where
+the two data-fidelity fixes (all 13 `qualData` fields; `submit_referral.referred` as
+structured JSON) actually land. Everything else in the writer path depends on its
+`Details` format.
+
+### The script lock is NOT reentrant — a constraint every later stage inherits
+
+`updateReferrerStats` takes the script lock itself, and `nextLeadSequence` /
+`nextReferralSequence` call **`waitLock()` on the same lock**. Apps Script does not
+document the script lock as reentrant, so **a function must release the lock before
+calling any of those three.** `handleManualReferralLinkUnified` is scoped exactly this
+way: the lock covers its own row read-modify-write and nothing else. Widening it would
+be a production-only deadlock. The suite's lock stub throws on a reentrant `waitLock`,
+so this fails a test rather than shipping.
 
 The `Leads` tab **does not exist in the live Sheet** — `setupSpreadsheet()` still
 creates the eleven legacy tabs, and creating `Leads` is part of the cutover, not of

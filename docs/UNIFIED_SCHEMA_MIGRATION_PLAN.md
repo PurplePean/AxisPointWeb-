@@ -12,8 +12,11 @@ Nothing in this document is waiting on an answer.
 | **2** | **`moveColdLeads`** — stops physically relocating rows; a cold lead is now a `Status = 'Cold'` write. **Row deletion is removed, not ported.** Takes the script lock (two entry points can sweep concurrently) | ✅ **DONE 2026-07-14.** 75/75 tests green. Not deployed; the switch is off. |
 | **3** | **`handleStatusEdit`** — the *other* row-deleting function. A status edit is now **just a status edit** plus its Contact side effects. **No unified path in the file deletes a lead row any more.** Takes the same script lock; **plus a pre-write re-read in `sweepStaleLeadsToCold`**, which is what actually closes the Stage-2 clobber gap | ✅ **DONE 2026-07-14.** 87/87 tests green. Not deployed; the switch is off. |
 | **4** | **`onSheetEdit`** — the nine-tab membership guard collapses to `sheet.getName() === 'Leads'`; the three watched columns still resolve **by name**, now via `resolveUnifiedCols`. Makes `handleStatusEditUnified` reachable. **Wires up 2 of the 3 handlers; refuses the third loudly** (see Stage-4 notes) | ✅ **DONE 2026-07-14.** 96/96 tests green. Not deployed; the switch is off. |
-| **5 — NEXT** | **`handleManualReferralLink`** — **a dependency, not a risk-ranking.** Stage 4 opened a real hole: this handler still scans **Lifetime Leads**, which does not exist under the unified schema, and its own missing-tab guard returns **silently**. `onSheetEditUnified` therefore **refuses to call it** and logs loudly instead, so a hand-linked referral cannot vanish quietly — but that means **`Referred By Email` edits do nothing under the unified schema until this stage lands.** It is a **cutover blocker**, so it goes next. (§3 would have said `sendMonthlyReferralSummaries`.) | ⬜ Not started |
-| 6…N | Everything else in §3, in that table's risk order: the Lifetime-Leads reader group (`findExistingLead`, `existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`), `sendMonthlyReferralSummaries`, `handleFormSubmission`, `buildLeadRow`, `sendDailyDigest`, `setupSpreadsheet`, the registry, `resolveCols`/`COLS`/`LEAD_HEADERS`. **Note `handleResubmission` is coupled to `buildLeadRow`:** it appends to `Details.message`, so it cannot be finished until the `Details` format exists. | ⬜ Not started |
+| **5** | **`handleManualReferralLink`** — the referrer lookup moves from a Lifetime Leads scan to a `leadsTable()` scan. **The Stage-4 refusal branch in `onSheetEditUnified` is deleted and the handler is wired in for real**, so all three edit routes are now live. Script-locked (scoped tight — see the Stage-5 notes) | ✅ **DONE 2026-07-14.** 105/105 tests green. Not deployed; the switch is off. |
+| **6 — NEXT** | **`buildLeadRow`** — the 31-value positional array becomes the 25-column layout + the serialized `Details` blob. **This is where the two data-fidelity decisions actually land** (§2a: all 13 `qualData` fields persist; §2b: `submit_referral.referred` becomes structured JSON, and the prose block is deleted, not ported). Self-contained and pure (payload → array), so it is testable without a live sheet, and **everything else in the writer path depends on its `Details` format.** | ⬜ Not started |
+| 7 | **The submission path:** `findExistingLead`, `existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`, then **`handleFormSubmission`** itself (three appends collapse to one). `handleResubmission` needs Stage 6 first — it appends to `Details.message`. | ⬜ Not started |
+| 8 | `sendDailyDigest`, `sendMonthlyReferralSummaries` (the two readers of Active Leads / Referral Partners) | ⬜ Not started |
+| 9 | `setupSpreadsheet` (creates `Leads` + `Referrals` + `Subscribers`), the `LEAD_TYPES` registry (`.tab`/`.tabColor` come out), and `resolveCols`/`COLS`/`LEAD_HEADERS` | ⬜ Not started |
 | — | **`setCategoryTabStatus` is NOT a stage.** It is a §4 delete-outright, and it cannot be deleted before the cutover removes `moveColdLeadsLegacy`, which still calls it. Skip it in the sequence; do not "migrate" it. | ⬜ At cutover |
 | Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
 
@@ -176,6 +179,64 @@ has overruled §3's risk order (Stage 4 itself was the first). §3 ranks by *bla
 radius if wrong*, which is the right way to rank **risk** but not to rank **order**.
 Order is set by *what is unreachable or broken until X lands*. Keep using §3 for the
 first question and the dependency graph for the second.
+
+### Stage 5 notes — what is and is NOT resolved, and the lock-scoping trap
+
+**RESOLVED: the Stage-4 hole.** `onSheetEditUnified`'s refusal branch is gone; all
+three edit routes (Status, Category, Referred By Email) are live under the unified
+schema. **That was the only *dependency-driven* blocker the migration had created for
+itself.**
+
+**NOT RESOLVED: the cutover.** It would be easy to read "the last blocker is gone" as
+"we can flip the switch". **We cannot, and it is not close.** The most important thing
+still missing:
+
+> **Nothing writes to the `Leads` table yet.** `buildLeadRow` and
+> `handleFormSubmission` are unmigrated, and they are the *only* creators of a lead
+> row. **Every migrated function today reads and writes a table that is permanently
+> empty.** The unified path is fully wired and completely unfed.
+
+Still unmigrated, verified by grep against `Code.gs` (not inherited from this list):
+`buildLeadRow`, `handleFormSubmission`, `findExistingLead`, `existingReferralCodes`,
+`matchReferrer`/`buildReferralMatch`, `handleResubmission`, `sendDailyDigest`,
+`sendMonthlyReferralSummaries`, `setupSpreadsheet`, the `LEAD_TYPES` registry, and
+`resolveCols`/`COLS`/`LEAD_HEADERS`. Plus the §4 delete-outright families. **The
+cutover checklist in §6 is unchanged and every step of it still stands.**
+
+**THE LOCK-SCOPING TRAP — do not "tidy this up".**
+
+`handleManualReferralLinkUnified` holds the script lock around **only** the
+read-modify-write of the edited row. Its downstream calls run **outside** it, and
+that is not laziness:
+
+- `updateReferrerStats()` takes the script lock **itself** (Stage 1).
+- The Referrals append calls `nextReferralSequence()`, which calls **`waitLock()` on
+  the same script lock**.
+
+**Apps Script does not document the script lock as reentrant.** Widening the lock to
+wrap the whole function would be a second acquisition of a lock the execution already
+holds — a deadlock or a spurious refusal, and one that would surface **only in
+production**. The suite guards this: the lock stub's `waitLock()` **throws** if the
+lock is already held, so a refactor that widens the scope fails the test rather than
+shipping.
+
+**Every future stage that calls `updateReferrerStats`, `nextLeadSequence`, or
+`nextReferralSequence` inherits this constraint.** Take the lock for your own
+read-modify-write; release it before calling anything that locks on its own.
+
+**One more thing not routed through `logReferralEntry`, deliberately.**
+`handleManualReferralLink` writes its Referrals row inline. It looks like duplication
+and it is not: `logReferralEntry` derives the row's Status as
+`matchType === 'name' ? 'pending' : 'linked'`, so routing a manual link through it
+would silently rewrite the Referrals **Status** column from `'manual'` to `'linked'`
+on every hand-linked referral. It also takes a `payload`, which an edit trigger does
+not have. The inline row is byte-for-byte what legacy writes.
+
+**Pre-existing quirk, unchanged (not introduced here):** nothing stops a human typing
+a lead's *own* email into their *own* `Referred By Email` cell, self-linking them.
+Legacy has the same behavior (Lifetime Leads contains that lead too), so this
+migration preserves it rather than quietly changing it. Worth a guard someday; it is
+not this migration's business.
 
 ---
 
@@ -559,7 +620,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 | **`buildLeadRow`** (1707) | Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. **Implements both §2a and §2b in this same rewrite:** it now writes **all 13 `qualData` fields** into `Details` (per the §1 per-lead-type table) instead of dropping twelve of them, and it writes `submit_referral`'s `referred` block as a **structured `Details.referred` object** instead of flattening it into prose on the Message column. **The prose-building code at `Code.gs:1715-1728` is deleted, not ported** — and `Details.message` holds only what the submitter typed. **There is no top-level Message column in the unified schema** (§2b); `message` is a `Details` key. | 🟠 Medium-high. Every column's meaning changes at once, **and** this is the function where the two data-fidelity fixes actually land — if `Details` is built wrong here, the data loss the migration exists to end simply continues in a new format. |
 | **`findExistingLead`** (1517) / **`existingReferralCodes`** (1278) / **`matchReferrer`** + **`buildReferralMatch`** (1533/1582) / **`handleResubmission`** (1469) | All currently scan **Lifetime Leads**. Retarget to the one table. Logic is otherwise unchanged — this is the cheapest group. | 🟢 Low-medium, but `matchReferrer` is the reason the referral-identity fields must stay real columns. |
 | **`sendDailyDigest`** (2260) | Reads Active Leads. Retarget to the one table, filtered on Status. | 🟢 Low. |
-| ⚠️ **CORRECTED 2026-07-14 (Stage 4).** ~~`handleCategoryEdit` (2667) / `handleManualReferralLink` (2564) / `moveContactToCold` (2508) — retarget from a tab to the table.~~ **These three are not one group and two of them need no retarget at all.** • **`handleCategoryEdit` — NO MIGRATION NEEDED.** It reads no tab: its inputs are `rowData` + a column map, its only column is `EMAIL` (a key in both `COLS` and `UCOLS`), and its body is pure `ContactsApp`. Already schema-agnostic; verified through `onSheetEditUnified`. • **`moveContactToCold` — likewise**, it takes an email and touches only Contacts. • **`handleManualReferralLink` — the ONLY real one, and it is now STAGE 5**, because it scans Lifetime Leads and would fail *silently*. See the Stage-4 notes. | 🟢 Low for the two that need nothing. 🟠 **Medium and urgent for `handleManualReferralLink`** — it is a cutover blocker. **The `createContact` defect** in `backend-architecture.md` still applies to the Contacts side of all of them. |
+| ⚠️ **CORRECTED 2026-07-14 (Stage 4). `handleManualReferralLink` ✅ MIGRATED (Stage 5).** ~~`handleCategoryEdit` (2667) / `handleManualReferralLink` (2564) / `moveContactToCold` (2508) — retarget from a tab to the table.~~ **These three are not one group and two of them need no retarget at all.** • **`handleCategoryEdit` — NO MIGRATION NEEDED.** It reads no tab: its inputs are `rowData` + a column map, its only column is `EMAIL` (a key in both `COLS` and `UCOLS`), and its body is pure `ContactsApp`. Already schema-agnostic; verified through `onSheetEditUnified`. • **`moveContactToCold` — likewise**, it takes an email and touches only Contacts. • ✅ **`handleManualReferralLink` — the ONLY real one. Migrated 2026-07-14 (Stage 5):** dispatcher over `handleManualReferralLinkUnified` / `…Legacy`; the referrer lookup scans `leadsTable()` via `resolveUnifiedCols`; script-locked **around the row write only** (its downstream calls take the same lock themselves — see the Stage-5 notes on reentrancy). Covered by `manual-referral-link.test.js` (9 tests). | 🟢 Low for the two that need nothing. ✅ Done for the one that did. **The `createContact` defect** in `backend-architecture.md` still applies to the Contacts side of all of them. |
 | **`setupSpreadsheet`** (3462) | Creates 11 tabs from `leadTabConfigs()`. Becomes: create **`Leads` + `Referrals` + `Subscribers`** (3 tabs). Keep the `getLastRow() === 0` guard. | 🟠 Medium. **This is the function that must be run manually from the Apps Script editor** to create the new tab. `clasp deploy` does not create tabs — skipping this step is exactly what broke EAO. |
 | **`LEAD_TYPES` / `leadTabConfigs` / `categoryTabForRole` / `leadTypeTabConfigs`** (146-254) | `.tab` and `.tabColor` become meaningless and come out of the registry. `.category`, `.contactGroup`, `.normalizer`, `.seedReportsEnabled` all stay. The registry itself **survives and stays the single definition site.** | 🟢 Low. |
 | **`resolveCols`** (1175) + `COLS` + `LEAD_HEADERS` | Rewritten against the new 25-column layout. **The function's contract does not change and must not be weakened:** resolve by name, **throw `headerLookupError` on a miss, never return a silent `-1`.** | 🟠 Medium. It is the safety floor the entire rewrite stands on. |
