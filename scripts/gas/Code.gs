@@ -171,6 +171,10 @@ var LEAD_TYPES = {
     tabColor:           '#24A5BC',
     normalizer:         null,
     seedReportsEnabled: false,
+    // assetClasses + timeline come from the prefs step, which ONLY the investor
+    // flow reaches (ContactForm.tsx:159). aum + experience come from Step2Context.
+    detailsFields:      ['aum', 'experience', 'assetClasses', 'timeline'],
+    detailsFrom:        'qualData',
   },
 
   referral: {
@@ -182,6 +186,8 @@ var LEAD_TYPES = {
     // until they explicitly opt out in the sheet.
     normalizer:         null,
     seedReportsEnabled: true,
+    detailsFields:      ['profession', 'clients', 'referralIntent'],
+    detailsFrom:        'qualData',
   },
 
   pro: {
@@ -191,6 +197,8 @@ var LEAD_TYPES = {
     tabColor:           '#9F328C',
     normalizer:         null,
     seedReportsEnabled: false,
+    detailsFields:      ['proRole', 'markets', 'proIntent'],
+    detailsFrom:        'qualData',
   },
 
   existing_asset_owner: {
@@ -203,6 +211,14 @@ var LEAD_TYPES = {
     // ~1,400 lines below.
     normalizer:         normalizeEaoPayload,
     seedReportsEnabled: false,
+    // EAO is the ONE type whose detail fields live on the payload's TOP LEVEL, not
+    // in qualData — its flow (buildEAOPayload) never had a qualData step. The
+    // normalizer adds the generic fields and never strips these, so they are still
+    // readable here.
+    detailsFields:      ['portfolio_type', 'portfolio_composition', 'property_type',
+                         'units', 'sqft', 'asset_breakdown', 'current_situation',
+                         'pressing_issue'],
+    detailsFrom:        'payload',
   },
 
   submit_referral: {
@@ -217,6 +233,12 @@ var LEAD_TYPES = {
     tabColor:           null,
     normalizer:         null,
     seedReportsEnabled: false,
+    // Every one of these three is read by NOTHING today — 100% of this lead type's
+    // qualified data is discarded by the legacy row builder. It is the biggest
+    // single beneficiary of the unified Details blob. Plus `referred` (see
+    // buildLeadDetails), which stops being prose glued onto the message.
+    detailsFields:      ['relationship', 'fit', 'awareness'],
+    detailsFrom:        'qualData',
   },
 };
 
@@ -2026,8 +2048,162 @@ function sendResubmissionNotification(payload, existingLeadId, existingReferralC
   );
 }
 
-/* ── Row builder ── */
+/* ── Row builder ──
+   MIGRATED (Stage 6). Dispatcher; the two implementations are below.
+
+   THIS IS WHERE THE TWO DATA-FIDELITY FIXES ACTUALLY SHIP. They were decided in
+   docs on 2026-07-13 and, until this stage, existed nowhere in code:
+
+     §2a  All 13 qualData fields persist. Legacy writes exactly ONE (assetClasses →
+          the Asset Class column) and silently discards the other twelve: six render
+          a sentence in an email and are thrown away, six are read by nothing at all.
+          The visitor answers the question, the browser sends the answer, and the
+          backend drops it. That ends here.
+     §2b  submit_referral's referred-person block becomes a structured
+          Details.referred object instead of a newline-joined prose paragraph
+          prepended to the Message column. The prose builder is DELETED, not ported.
+
+   A row is still built POSITIONALLY, and that is still correct: this function
+   CONSTRUCTS the canonical layout rather than reading a possibly-drifted one.
+   Reading a live row still goes through resolveUnifiedCols. */
 function buildLeadRow(payload, status, leadId, referralCode, referralMatch, meetLink) {
+  return USE_UNIFIED_SCHEMA
+    ? buildLeadRowUnified(payload, status, leadId, referralCode, referralMatch, meetLink)
+    : buildLeadRowLegacy(payload, status, leadId, referralCode, referralMatch, meetLink);
+}
+
+/* The Details blob: everything type-specific, keyed by the names the payload
+   already uses. Generalizes the pattern eaoDetailsSummary() has been running in
+   production — JSON-stringify the role-specific fields into one cell — from the one
+   lead type that needed it to all five.
+
+   WHICH FIELDS BELONG TO WHICH ROLE COMES FROM THE REGISTRY (LEAD_TYPES.detailsFields),
+   not from the field names. An earlier draft of the migration plan derived the
+   mapping from the names and got FOUR OF THIRTEEN wrong — `awareness` and `fit` are
+   submit_referral's, not the investor's; `profession` is the referral partner's, not
+   the RE pro's. The registry is the single definition site; do not re-derive it.
+
+   BLANK-FIELD CONTRACT, decided once and pinned by a test: a field the lead type
+   ASKS is always PRESENT as a key, holding '' (or [] for a list) when the visitor
+   left it blank. A field the lead type does not ask is ABSENT. So "asked and not
+   answered" is distinguishable from "never asked" — which is the whole reason for
+   putting this in a queryable blob rather than a paragraph. */
+function buildLeadDetails(payload, meetLink) {
+  var lt      = leadTypeFor(payload.role);
+  var q       = payload.qualData || {};
+  var b       = payload.booking  || null;
+  var details = {};
+
+  if (lt && lt.detailsFields) {
+    // EAO's fields sit on the payload's top level; every other type's sit in qualData.
+    var src = lt.detailsFrom === 'payload' ? payload : q;
+    lt.detailsFields.forEach(function(field) {
+      var v = src ? src[field] : undefined;
+      if (Array.isArray(v))            details[field] = v.slice();
+      else if (v === undefined || v === null) details[field] = '';   // asked, not answered
+      else                             details[field] = v;
+    });
+  }
+
+  /* §2b — the referred person, as a real object. Legacy flattened this into a prose
+     block and PREPENDED it to the message, which made getting Jane's email back out
+     a regex problem. The keys are always present so a partially-filled referral is
+     still machine-readable. */
+  if (payload.role === 'submit_referral') {
+    var r = payload.referred || {};
+    details.referred = {
+      firstName: r.firstName || '',
+      lastName:  r.lastName  || '',
+      email:     r.email     || '',
+      phone:     r.phone     || '',
+      notes:     r.notes     || '',
+    };
+  }
+
+  /* Shared across every type. `message` lives HERE, not in a top-level column:
+     nothing searches it across rows and onSheetEdit does not watch it, so it fails
+     both halves of the top-level-column rule (plan §2b, settled 2026-07-14). */
+  details.message = payload.message || '';
+
+  /* Comms opt-ins. EAO is a deliberate exception: normalizeEaoPayload OVERWRITES
+     payload.preferences with [eaoDetailsSummary(payload)] — a JSON string, not a
+     list of opt-ins — because the legacy schema gave EAO nowhere else to put its
+     detail fields. Under the unified schema those fields have real Details keys of
+     their own (above), so that synthetic entry is dropped rather than embedded as a
+     double-encoded string masquerading as a preference. It is filtered by exact
+     value, not by sniffing at the string, so a real preference can never be eaten.
+     (buildEAOPayload sends no preferences at all today — verified against the form
+     source — so this drops nothing real. The normalizer's hack is now obsolete and
+     should be removed when handleFormSubmission is migrated.) */
+  var prefs = (payload.preferences || []).slice();
+  if (payload.role === 'existing_asset_owner') {
+    var synthetic = eaoDetailsSummary(payload);
+    prefs = prefs.filter(function(pref) { return String(pref) !== synthetic; });
+  }
+  details.preferences = prefs;
+
+  details.booking = b ? {
+    date:     b.date     || '',
+    slot:     b.slot     || b.time || '',
+    meetType: b.meetType || '',
+    phone:    b.phone    || '',
+    meetLink: meetLink   || '',
+  } : null;
+
+  /* The derived Asset Class label. It was column 11 in the legacy layout; the plan
+     recommends it move into Details, because it is DERIVED (not collected) and
+     nothing searches on it — and "so a human can eyeball it in the grid" is
+     explicitly not a valid reason for a column. Written only when non-empty. */
+  var assetClass = assetClassFromQualData(q);
+  if (assetClass) details.assetClass = assetClass;
+
+  return details;
+}
+
+/* THE UNIFIED IMPLEMENTATION: the 25-column layout of plan §1, in that exact order,
+   plus the serialized Details blob in the last cell. */
+function buildLeadRowUnified(payload, status, leadId, referralCode, referralMatch, meetLink) {
+  var p  = payload.person || {};
+  var lt = leadTypeFor(payload.role);
+  var rm = referralMatch || { found: false, matchType: 'none' };
+
+  return [
+    leadId       || '',                                   //  1 Lead ID
+    payload.timestamp || new Date().toISOString(),        //  2 Timestamp
+    roleToCategory(payload.role),                         //  3 Category
+    status,                                               //  4 Status
+    p.email      || '',                                   //  5 Email
+    p.firstName  || '',                                   //  6 First Name
+    p.lastName   || '',                                   //  7 Last Name
+    referralCode || '',                                   //  8 Referral Code
+    rm.found ? rm.referrerLeadId : '',                    //  9 Referred By Lead ID
+    rm.found ? rm.referrerName   : '',                    // 10 Referred By Name
+    rm.found ? rm.referrerEmail  : '',                    // 11 Referred By Email
+    rm.found ? rm.referrerCode   : '',                    // 12 Referred By Code
+    rm.matchType || 'none',                               // 13 Match Type
+    rm.found ? rm.chain : '',                             // 14 Referral Chain
+    rm.found ? rm.depth : 0,                              // 15 Chain Depth
+    0,                                                    // 16 Direct Referrals
+    0,                                                    // 17 Total Downstream
+    '',                                                   // 18 Last Referral Date
+    p.phone      || '',                                   // 19 Phone
+    p.company    || '',                                   // 20 Company
+    payload.role || '',                                   // 21 Role
+    leadSource(payload),                                  // 22 Source (arrival channel only)
+    leadHeardAbout(payload),                              // 23 Heard About (the visitor's answer)
+    // The per-tab extra becomes a normal column, seeded from the registry. The whole
+    // REPORTS_ENABLED_COL = LEAD_HEADERS.length bug class dies with the per-tab extra.
+    (lt && lt.seedReportsEnabled) ? true : '',            // 24 Reports Enabled
+    JSON.stringify(buildLeadDetails(payload, meetLink)),  // 25 Details
+  ];
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER. It persists ONE of thirteen qualData fields and flattens the
+   referred person into prose on the Message column. Both defects are preserved here
+   deliberately: this is what is live, and a migration stage must not quietly change
+   production behavior. */
+function buildLeadRowLegacy(payload, status, leadId, referralCode, referralMatch, meetLink) {
   var p   = payload.person   || {};
   var b   = payload.booking  || null;
   var q   = payload.qualData || {};
