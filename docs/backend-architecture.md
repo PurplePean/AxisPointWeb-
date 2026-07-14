@@ -34,6 +34,7 @@ path and are deleted only at cutover.
 | 4 | `onSheetEdit` | The nine-tab membership guard becomes one string compare against `Leads`. The three watched columns still resolve **by name**. |
 | 5 | `handleManualReferralLink` | The referrer lookup scans the one `Leads` table instead of Lifetime Leads. Script-locked around the row write only (the lock is **not** reentrant — see below). |
 | 6 | `buildLeadRow` | Builds the 25-column row + the `Details` JSON blob. **This is where the two data-fidelity fixes shipped** — see below. |
+| 7 | `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (+ `handleFormSubmission` orchestrating) | The whole submission path. Three appends become **one**. `handleResubmission` read-modify-writes `Details.message` under the shared lock. **`buildReferralMatch` needed no migration** — schema-agnostic. |
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
@@ -66,24 +67,44 @@ answered" is distinguishable from "never asked". `message`, `preferences`, and
 `booking` (incl. `meetLink`) are on every type. **`Reports Enabled` is seeded by the
 row builder** from `LEAD_TYPES.seedReportsEnabled`.
 
-### ⚠ Still UNFED: nothing has *called* the new row builder yet
+### ✅ The unified path is now FED — a complete submission works end to end (Stage 7)
 
-**Do not read "the row builder is migrated" as "we can flip the switch."**
-`handleFormSubmission` — the only caller that appends a lead row — is still
-unmigrated, so the `Leads` table is still permanently empty.
+**Payload in → dedupe → collision-checked referral code → referrer match → 25-column
+row + `Details` blob → ONE append → referral stats credited up the whole chain →
+Referrals row → Contacts → visitor + partner emails → JSON response.** All five lead
+types, driven for real in `submission-path.test.js`. This is the first stage where any
+of that was true: every earlier one read or edited a table nothing ever wrote to.
 
-Still unmigrated: `handleFormSubmission`, `findExistingLead`, `existingReferralCodes`,
-`matchReferrer`/`buildReferralMatch`, `handleResubmission`, `sendDailyDigest`,
-`sendMonthlyReferralSummaries`, `setupSpreadsheet`, the `LEAD_TYPES` registry
-(`.tab`/`.tabColor`), and `resolveCols`/`COLS`/`LEAD_HEADERS`.
+**It still does not run in production** — the switch is off, and the `Leads` tab does
+not exist in the Sheet.
 
-**Next: Stage 7, the submission path as ONE stage** — `findExistingLead`,
-`existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`,
-and `handleFormSubmission` together. `handleFormSubmission` **cannot** go alone: it
-calls `findExistingLead` (dedupe) and `existingReferralCodes` (collision check), both
-of which scan **Lifetime Leads** and would **silently return "no match"** under the
-unified schema — producing duplicate leads on every resubmission and un-collision-
-checked referral codes. Both failures are silent.
+**Where the switch boundary sits.** `handleFormSubmission` is **not** duplicated. Only
+one block of it is schema-dependent (the three appends + category-tab check +
+`seedReportsEnabled` seed), so that block was extracted as **`persistNewLead`** and
+*that* is the Unified/Legacy dispatcher. The normalizer, booking, Contacts, emails and
+response are identical under both schemas. Duplicating the whole function would have
+meant two copies of the booking/email orchestration to hand-sync until cutover —
+this project's most-documented failure mode.
+
+**Genuinely left before cutover:** `sendDailyDigest`, `sendMonthlyReferralSummaries`,
+`setupSpreadsheet` (**must be run by hand from the Apps Script editor** — `clasp
+deploy` does not create tabs), the `LEAD_TYPES` registry (`.tab`/`.tabColor`), and
+`resolveCols`/`COLS`/`LEAD_HEADERS`. Then §4's delete-outright list — the header
+audit/repair family and the EAO backfill family, both of which exist *solely* to manage
+nine parallel tabs and are now obsolete, but are deleted **at cutover, not before**.
+
+### ⚠ Readers tolerate a drifted header. The writer does not.
+
+Every reader resolves columns **by name** (`resolveUnifiedCols`) and survives a
+hand-mangled header. But `buildLeadRow` **constructs** the canonical layout and
+`persistNewLead` appends it **positionally** — deliberate, and what the plan sanctions.
+
+**The consequence, now that there is only one table: a human who reorders the live
+`Leads` header silently corrupts every future append.** New rows land under the wrong
+columns, even though every reader would have tolerated the same drift. This was equally
+true of the nine-tab schema and is not introduced by the migration — but it is worth
+closing (project the append by name) **before real submissions land**. That is a
+separate change from this migration.
 
 ### The script lock is NOT reentrant — a constraint every later stage inherits
 

@@ -14,9 +14,9 @@ Nothing in this document is waiting on an answer.
 | **4** | **`onSheetEdit`** — the nine-tab membership guard collapses to `sheet.getName() === 'Leads'`; the three watched columns still resolve **by name**, now via `resolveUnifiedCols`. Makes `handleStatusEditUnified` reachable. **Wires up 2 of the 3 handlers; refuses the third loudly** (see Stage-4 notes) | ✅ **DONE 2026-07-14.** 96/96 tests green. Not deployed; the switch is off. |
 | **5** | **`handleManualReferralLink`** — the referrer lookup moves from a Lifetime Leads scan to a `leadsTable()` scan. **The Stage-4 refusal branch in `onSheetEditUnified` is deleted and the handler is wired in for real**, so all three edit routes are now live. Script-locked (scoped tight — see the Stage-5 notes) | ✅ **DONE 2026-07-14.** 105/105 tests green. Not deployed; the switch is off. |
 | **6** | **`buildLeadRow`** — the 25-column layout + the serialized `Details` blob. **§2a AND §2b SHIPPED IN CODE HERE** (they had been decisions in this document and nothing more): all 13 `qualData` fields persist per lead type, and `submit_referral.referred` is structured JSON with the prose builder **deleted, not ported**. The per-role field lists live in `LEAD_TYPES.detailsFields` — the registry, so there is no second list to drift | ✅ **DONE 2026-07-14.** 124/124 tests green. Not deployed; the switch is off. |
-| **7 — NEXT** | **The submission path, as ONE stage** — `findExistingLead`, `existingReferralCodes`, `matchReferrer`/`buildReferralMatch`, `handleResubmission`, then **`handleFormSubmission`** (three appends collapse to one). **Confirmed against the dependency graph, not assumed:** `handleFormSubmission` *cannot* be migrated alone. It calls `findExistingLead` (dedupe) and `existingReferralCodes` (collision check), both of which scan **Lifetime Leads** — under the unified schema they would find an empty/absent tab and **silently return "no match"**, so every resubmission would create a **duplicate lead** and referral codes would stop being collision-checked. Both failures are silent. They ship together. `handleResubmission` is now unblocked: Stage 6 defined the `Details` format it must read-modify-write (`Details.message`). | ⬜ Not started |
-| 8 | `sendDailyDigest`, `sendMonthlyReferralSummaries` (the two readers of Active Leads / Referral Partners) | ⬜ Not started |
-| 9 | `setupSpreadsheet` (creates `Leads` + `Referrals` + `Subscribers`), the `LEAD_TYPES` registry (`.tab`/`.tabColor` come out), and `resolveCols`/`COLS`/`LEAD_HEADERS` | ⬜ Not started |
+| **7** | **The submission path** — `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (the extracted append block), with `handleFormSubmission` orchestrating. **The unified path can now handle a COMPLETE REAL SUBMISSION end to end for all five lead types** — the first stage where that is true. `buildReferralMatch` needed no migration (schema-agnostic: row + column map, and every key it uses is in both `COLS` and `UCOLS`) | ✅ **DONE 2026-07-14.** 145/145 tests green. Not deployed; the switch is off. |
+| **8 — NEXT** | **`sendDailyDigest` + `sendMonthlyReferralSummaries`** — the last two readers of the legacy tabs. The digest reads Active Leads → filter the one table on Status. The summary reads the Referral Partners tab and its per-tab `Reports Enabled` extra → filter on `Category = 'Referral Partner'` and read `Reports Enabled` as an ordinary column (`buildLeadRowUnified` already seeds it). Both are currently **untested**, and a filter bug silently emails the wrong people — or nobody. | ⬜ Not started |
+| 9 | **`setupSpreadsheet`** (creates `Leads` + `Referrals` + `Subscribers` instead of 11 tabs), the **`LEAD_TYPES` registry** (`.tab`/`.tabColor` come out), and **`resolveCols`/`COLS`/`LEAD_HEADERS`**. `setupSpreadsheet` is the one that **must be run by hand from the Apps Script editor** — `clasp deploy` does not create tabs, and skipping it is exactly what broke EAO. | ⬜ Not started |
 | — | **`setCategoryTabStatus` is NOT a stage.** It is a §4 delete-outright, and it cannot be deleted before the cutover removes `moveColdLeadsLegacy`, which still calls it. Skip it in the sequence; do not "migrate" it. | ⬜ At cutover |
 | Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
 
@@ -283,6 +283,69 @@ now has no purpose.
 `payload.message = payload.pressing_issue`. That is the normalizer's existing
 behavior, preserved rather than quietly changed. Worth revisiting with the normalizer
 in Stage 7.
+
+### Stage 7 notes — the unified path is now FED, and what is genuinely left
+
+**YES: the unified path can handle a complete real submission, end to end, for all
+five lead types.** Payload in → dedupe → referral code (collision-checked) → referrer
+match → 25-column row + `Details` blob → **one** append → referral stats credited up
+the whole chain → Referrals row → Contacts → visitor + partner emails → JSON response.
+Driven for real in `submission-path.test.js`, not reasoned about. That was not true of
+any previous stage: every one of them read or edited a table nothing ever wrote to.
+
+**Genuinely left before cutover** (nothing else — verified by grep, not inherited):
+
+1. **`sendDailyDigest`** — reads Active Leads. Retarget to the one table, filter on Status.
+2. **`sendMonthlyReferralSummaries`** — reads the Referral Partners tab + its per-tab
+   `Reports Enabled` extra. Filter on `Category = 'Referral Partner'`; `Reports
+   Enabled` is now an ordinary column that `buildLeadRowUnified` already seeds.
+3. **`setupSpreadsheet`** — creates 11 tabs; must create `Leads` + `Referrals` +
+   `Subscribers`. **This is the one that must be RUN BY HAND from the Apps Script
+   editor.** `clasp deploy` does not create tabs. Skipping it is exactly what broke EAO.
+4. **The registry + `resolveCols`/`COLS`/`LEAD_HEADERS`** — `.tab`/`.tabColor` come out.
+5. **Then §4's delete-outright list**, which is now *fully obsolete but not yet deleted*:
+   the **header audit/repair family** existed because nine tabs could each drift
+   independently (one table, one header), and the **EAO backfill family** existed
+   because rows fell into the gap between Lifetime Leads and a missing category tab
+   (no category tabs, no gap). Both die at cutover, per §6 — **not before.**
+
+**Where the switch boundary went, and why it is not where the task described.**
+`handleFormSubmission` was **not** duplicated into Unified/Legacy. Only **one block of
+it is schema-dependent** (the three appends + category-tab check + `seedReportsEnabled`
+seed); the normalizer, booking, Contacts, both emails and the response are identical
+under both schemas, and its other schema-dependent calls are already dispatchers. So
+the block was extracted as **`persistNewLead`** and *that* got the three-part
+treatment. Duplicating the whole function would have meant **two copies of the booking
+and email orchestration to hand-sync until cutover** — which is this project's single
+most-documented failure mode (the email-template mirrors). Every schema-dependent line
+is still behind the switch; there is just no duplicated orchestration.
+
+**`buildReferralMatch` needed no migration.** It takes a row plus a **column map**, and
+every key it touches (`LEAD_ID`, `FIRST_NAME`, `LAST_NAME`, `EMAIL`, `REFERRAL_CODE`,
+`REFERRAL_CHAIN`) exists in **both** `COLS` and `UCOLS`. It is schema-agnostic already;
+both `matchReferrer` branches call the same one. (Third time the plan's "retarget this"
+list has turned out to include a function with nothing to retarget — see also
+`handleCategoryEdit` and `moveContactToCold`.)
+
+**A REAL ASYMMETRY, now on one table — readers tolerate drift, the writer does not.**
+Every reader resolves columns **by name** (`resolveUnifiedCols`) and survives a
+hand-mangled header. But `buildLeadRow` **constructs** the canonical layout and
+`persistNewLead` appends it **positionally** — which this plan explicitly sanctions
+("it constructs the canonical layout rather than reading a possibly-drifted one"). The
+consequence, which is worth stating out loud now that there is only one table: **a
+human who reorders the live `Leads` header silently corrupts every future append** —
+new rows land under the wrong columns — even though every reader would have tolerated
+it. It was equally true of the nine-tab schema. Closing it would mean projecting the
+append by name; that is a **separate change**, not this migration's, but it should be
+considered before real submissions land.
+
+**Lock discipline held.** `handleResubmissionUnified` read-modify-writes the `Details`
+blob on a row it did not create, so it takes the shared script lock **before the read**
+and releases it in a `finally` — a lost blob write is a lost paragraph the visitor
+actually typed. The lock stays **out** of the path that calls `nextLeadSequence()`
+(`waitLock` on the same lock) and `updateReferrerStats()` (`tryLock`), per the Stage-5
+reentrancy rule. A test models `waitLock` as throwing when the lock is already held, so
+a future refactor that widens the scope fails a test instead of deadlocking in prod.
 
 ---
 
@@ -662,9 +725,9 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 | **`setCategoryTabStatus`** (2492) | **Deleted.** Its only job is keeping a duplicated row's Status in sync on the category tab. With one row, there is nothing to sync. | 🟢 Low (it stops existing). |
 | **`sendMonthlyReferralSummaries`** (2324) | Reads the **Referral Partners tab** and its extra `Reports Enabled` column. Becomes: filter the one table on `Category = 'Referral Partner'`, read `Reports Enabled` as a normal column, keep the existing skips (`Cold`/`Archive` status, `FALSE` opt-out, zero-referral partners). | 🟠 Medium. Currently untested, and a filter bug silently emails the wrong people — or nobody. |
 | ✅ **`onSheetEdit`** — **MIGRATED 2026-07-14 (Stage 4).** Dispatcher over `onSheetEditUnified` / `onSheetEditLegacy` (verbatim, delete at cutover). The guard is now one string compare; the three watched columns still resolve **by name** through `resolveUnifiedCols`, so a drifted header cannot route a Status edit into the referral handler. **Wires Status → `handleStatusEdit` (migrated) and Category → `handleCategoryEdit` (needs no migration), and REFUSES `Referred By Email` loudly** until Stage 5 — see the Stage-4 notes. Covered by `scripts/gas/tests/on-sheet-edit.test.js` (9 tests). | *Original entry, for the record:* Its **lead-tab guard** (`leadTabConfigs()` membership) becomes a single `sheet.getName() === 'Leads'` check. The three watched columns must still be resolved **by name** (`resolveCols`) so the dispatch detects *which* column changed. | 🟠 Medium. If the dispatch guard is wrong, edits are routed to the wrong handler or dropped silently. |
-| **`handleFormSubmission`** (1357) | Appends to **three tabs** (Lifetime + Active + category tab). Becomes **one append**. The category-tab-exists check, the `seedReportsEnabled` per-tab seed, and the missing-tab logging all collapse. | 🟠 Medium. Highest-traffic path in the file; end-to-end untested today (see §5). |
+| ✅ **`handleFormSubmission`** — **MIGRATED 2026-07-14 (Stage 7).** The switch boundary is **`persistNewLead`** (Unified/Legacy/dispatcher), not a duplicated copy of the whole function: only the append block is schema-dependent, and duplicating the booking/email orchestration would be two copies to hand-sync until cutover. Three appends → **one**. *Original entry:* Appends to **three tabs** (Lifetime + Active + category tab). Becomes **one append**. The category-tab-exists check, the `seedReportsEnabled` per-tab seed, and the missing-tab logging all collapse. | 🟠 Medium. Highest-traffic path in the file; end-to-end untested today (see §5). |
 | ✅ **`buildLeadRow`** — **MIGRATED 2026-07-14 (Stage 6).** Dispatcher over `buildLeadRowUnified` / `buildLeadRowLegacy` (verbatim, delete at cutover). Builds the 25-column layout + `JSON.stringify(buildLeadDetails(...))`. **§2a and §2b ship here.** Per-role field lists live in `LEAD_TYPES.detailsFields`. Covered by `build-lead-row.test.js` (18 tests: one per lead type, all 13 qualData fields named individually, the `Details.referred` round-trip, the prose-block negative, the blank-field contract, and the legacy branch still dropping twelve fields). | *Original entry, for the record:* Builds a positional 31-value array from `COLS`. Becomes a 25-column array + a serialized `Details` blob. Still correctly positional — it *constructs* the canonical layout rather than reading a possibly-drifted one. **Implements both §2a and §2b in this same rewrite:** it now writes **all 13 `qualData` fields** into `Details` (per the §1 per-lead-type table) instead of dropping twelve of them, and it writes `submit_referral`'s `referred` block as a **structured `Details.referred` object** instead of flattening it into prose on the Message column. **The prose-building code at `Code.gs:1715-1728` is deleted, not ported** — and `Details.message` holds only what the submitter typed. **There is no top-level Message column in the unified schema** (§2b); `message` is a `Details` key. | 🟠 Medium-high. Every column's meaning changes at once, **and** this is the function where the two data-fidelity fixes actually land — if `Details` is built wrong here, the data loss the migration exists to end simply continues in a new format. |
-| **`findExistingLead`** (1517) / **`existingReferralCodes`** (1278) / **`matchReferrer`** + **`buildReferralMatch`** (1533/1582) / **`handleResubmission`** (1469) | All currently scan **Lifetime Leads**. Retarget to the one table. Logic is otherwise unchanged — this is the cheapest group. | 🟢 Low-medium, but `matchReferrer` is the reason the referral-identity fields must stay real columns. |
+| ✅ **`findExistingLead` / `existingReferralCodes` / `matchReferrer` / `handleResubmission`** — **MIGRATED 2026-07-14 (Stage 7).** All now scan `leadsTable()` via `resolveUnifiedCols`. **`buildReferralMatch` needed NO migration** — it takes a row + a column map and every key it uses is in both `COLS` and `UCOLS`, so both branches call the same one. **`handleResubmission` is the exception to "logic otherwise unchanged":** it appended to the Message *cell*, and Message is now a `Details` key, so it became a **read-modify-write of the JSON blob** — and therefore takes the shared script lock. | 🟢 Was rated low-medium. **`handleResubmission` was not:** a silent `findExistingLead` miss duplicates a lead on every resubmission, and a lost blob write loses a paragraph the visitor typed. |
 | **`sendDailyDigest`** (2260) | Reads Active Leads. Retarget to the one table, filtered on Status. | 🟢 Low. |
 | ⚠️ **CORRECTED 2026-07-14 (Stage 4). `handleManualReferralLink` ✅ MIGRATED (Stage 5).** ~~`handleCategoryEdit` (2667) / `handleManualReferralLink` (2564) / `moveContactToCold` (2508) — retarget from a tab to the table.~~ **These three are not one group and two of them need no retarget at all.** • **`handleCategoryEdit` — NO MIGRATION NEEDED.** It reads no tab: its inputs are `rowData` + a column map, its only column is `EMAIL` (a key in both `COLS` and `UCOLS`), and its body is pure `ContactsApp`. Already schema-agnostic; verified through `onSheetEditUnified`. • **`moveContactToCold` — likewise**, it takes an email and touches only Contacts. • ✅ **`handleManualReferralLink` — the ONLY real one. Migrated 2026-07-14 (Stage 5):** dispatcher over `handleManualReferralLinkUnified` / `…Legacy`; the referrer lookup scans `leadsTable()` via `resolveUnifiedCols`; script-locked **around the row write only** (its downstream calls take the same lock themselves — see the Stage-5 notes on reentrancy). Covered by `manual-referral-link.test.js` (9 tests). | 🟢 Low for the two that need nothing. ✅ Done for the one that did. **The `createContact` defect** in `backend-architecture.md` still applies to the Contacts side of all of them. |
 | **`setupSpreadsheet`** (3462) | Creates 11 tabs from `leadTabConfigs()`. Becomes: create **`Leads` + `Referrals` + `Subscribers`** (3 tabs). Keep the `getLastRow() === 0` guard. | 🟠 Medium. **This is the function that must be run manually from the Apps Script editor** to create the new tab. `clasp deploy` does not create tabs — skipping this step is exactly what broke EAO. |
