@@ -24,11 +24,21 @@ runs its legacy body. Migrated functions are structured as a dispatcher over an
 `xxxUnified` and an `xxxLegacy` implementation; the legacy bodies are the rollback
 path and are deleted only at cutover.
 
-**Migrated so far: `updateReferrerStats` only** (Stage 1, 2026-07-14). The `Leads`
-tab **does not exist in the live Sheet** — `setupSpreadsheet()` still creates the
-eleven legacy tabs, and creating `Leads` is part of the cutover, not of any single
-stage. Do not flip the switch, and do not create the tab by hand, until every
-function in the plan's §3 list is migrated.
+**Migrated so far:**
+
+| Stage | Function | What it does under the unified schema |
+|---|---|---|
+| 1 | `updateReferrerStats` | One-row lookup by Lead ID; multi-level `Total Downstream`; script-locked. |
+| 2 | `moveColdLeads` | A cold lead is a `Status = 'Cold'` **write**, not a relocated row. **No `deleteRow`, no `appendRow`.** Script-locked. |
+
+**Next: Stage 3, `handleStatusEdit`** — the other row-deleting function, and the
+stage that must take the same script lock (see the concurrency note under *Known
+open defects* §3).
+
+The `Leads` tab **does not exist in the live Sheet** — `setupSpreadsheet()` still
+creates the eleven legacy tabs, and creating `Leads` is part of the cutover, not of
+any single stage. Do not flip the switch, and do not create the tab by hand, until
+every function in the plan's §3 list is migrated.
 
 ## Entry points
 
@@ -260,7 +270,7 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | Function | Schedule | Purpose |
 |---|---|---|
 | `sendDailyDigest` | daily, `atHour(18)` (6 pm CT) | Plain-text digest of leads whose **Timestamp** falls on today's CT calendar date (ISO parsed, formatted to CT `MM/dd/yyyy`), to `NOTIFY_EMAILS`. Silent if none. |
-| `moveColdLeads` | weekly, Monday `atHour(8)` | Sweeps Active-Leads rows with status in `[New Lead, Contacted, Active]` whose **Timestamp** is older than `COLD_LEAD_DAYS` (60) → Cold Leads tab, updates category tab status, moves Google Contact to Cold group, emails a summary. |
+| `moveColdLeads` | weekly, Monday `atHour(8)` **+ the "Run Cold Lead Sweep Now" menu item** | **Legacy (live today):** sweeps Active-Leads rows with status in `[New Lead, Contacted, Active]` whose **Timestamp** is older than `COLD_LEAD_DAYS` (60) → **appends the row to Cold Leads and deletes it from Active**, updates category tab status, moves the Google Contact to the Cold group, emails a summary. **Unified (migrated Stage 2, gated off):** identical selection, but sets `Status = 'Cold'` in place — **no append, no `deleteRow`, no category-tab sync** — then does the Contact move and summary email outside the script lock. |
 | `sendMonthlyReferralSummaries` | `onMonthDay(1)` `atHour(9)` | Tallies per-referrer totals from the Referrals tab, emails each Referral Partner (skips `Cold`/`Archive` status, skips `Reports Enabled = FALSE`, skips zero-referral partners). |
 
 ## `onEdit` trigger
@@ -721,6 +731,25 @@ cutover.
 cannot be queried. **Resolved 2026-07-13: the migration lifts it into a structured
 `Details.referred` object** (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2b). Prose until
 then.
+
+### 5. The cold sweep can clobber a concurrent human Status edit — closes in Stage 3
+
+**Scope: the unified path only** (gated off today), and it is documented rather than
+hidden because a lock that is described as more protective than it is, is worse than
+no lock.
+
+`moveColdLeadsUnified` holds the script lock across its read-decide-write, which
+serializes **sweep vs sweep** — a real case, since the sweep has two entry points
+(the Monday trigger and the "Run Cold Lead Sweep Now" menu item), and two concurrent
+sweeps would otherwise send two summary emails claiming the same leads went cold.
+
+It does **not** serialize **sweep vs a human's Status edit.** `handleStatusEdit` does
+not take the lock, and a lock only excludes writers that take it. So a human
+promoting a lead to `Client` while a sweep is mid-flight can still be overwritten by
+the sweep's stale `Cold` decision. **Stage 3 migrates `handleStatusEdit` and has it
+take the same lock, which is what actually closes this.** The GAS script lock is
+process-wide, so every locked path serializes against every other one for free —
+keep all stages on that one lock rather than adding a second.
 
 ## There are NO callable admin actions — do not assume otherwise
 

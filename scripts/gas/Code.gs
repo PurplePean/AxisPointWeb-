@@ -1238,6 +1238,13 @@ var USE_UNIFIED_SCHEMA = false;
    lock cannot hold a form submission hostage. */
 var REFERRAL_STATS_LOCK_MS = 10000;
 
+/* How long the cold sweep waits for the same script lock. Longer than the
+   referral-credit timeout because the sweep is a background job that nobody is
+   waiting on, and because its critical section is genuinely bigger (a full table
+   read plus a Status write per stale lead). Giving up is cheap and safe: the next
+   scheduled sweep picks up exactly the same leads, only staler. */
+var COLD_SWEEP_LOCK_MS = 30000;
+
 /* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
    runtime — every live read resolves by NAME through resolveUnifiedCols(), and
    only a fresh row being constructed is positional. The grouping (identity, then
@@ -2717,7 +2724,168 @@ function sendMonthlyReferralSummaries() {
    JOB 3 — COLD LEAD MIGRATION  (Monday 8 am CT)
    ════════════════════════════════════════════════════════════ */
 
+/* ── moveColdLeads: sweep stale Active leads to Cold ──
+   MIGRATED (Stage 2 of the unified-schema migration). Dispatcher; the two
+   implementations are below. See the UNIFIED SCHEMA block at the top of the file
+   for the staging pattern and the cutover procedure.
+
+   THE SHAPE OF THE CHANGE: legacy PHYSICALLY RELOCATES a row — append it to Cold
+   Leads, deleteRow() it from Active Leads, then re-sync the duplicate on the
+   category tab. Unified sets one cell: Status = 'Cold'. The row never moves,
+   because there is nowhere to move it to. Row deletion — the most dangerous
+   operation in this file — is REMOVED, not ported. */
 function moveColdLeads() {
+  return USE_UNIFIED_SCHEMA ? moveColdLeadsUnified() : moveColdLeadsLegacy();
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+   One table, one row per lead, so "move to cold" is what it always actually was:
+   a status change. No append, no deleteRow, no setCategoryTabStatus (there is no
+   duplicate to keep in sync). The Contact-group side effect and the summary email
+   are unchanged. */
+function moveColdLeadsUnified() {
+  try {
+    var sheet = leadsTable();
+    if (!sheet || sheet.getLastRow() < 2) {
+      Logger.log('moveColdLeads: no "' + CONFIG.TABS.LEADS + '" rows; nothing to sweep.');
+      return;
+    }
+
+    /* ── The lock, and an honest account of what it does and does not protect ──
+       This sweep has TWO entry points: the weekly Monday trigger, and the
+       "Run Cold Lead Sweep Now" menu item. Both can be in flight at once — a
+       human clicking the menu while the trigger runs is not hypothetical, it is
+       one click. Two concurrent sweeps read the same snapshot, both decide the
+       same rows are stale, and both do the follow-on work: two Contacts writes
+       per lead and TWO summary emails claiming the same leads went cold.
+
+       PROTECTS: sweep vs sweep. Both entry points reach this same lock, and the
+       GAS script lock is process-wide, so it also serializes against
+       updateReferrerStats' critical section.
+
+       DOES NOT PROTECT: sweep vs a human's Status edit. handleStatusEdit does not
+       take this lock (it is not migrated yet — Stage 3), so a human promoting a
+       lead to 'Client' during the sweep's window can still be clobbered by a
+       stale 'Cold' write. A lock only excludes writers that take it. THAT GAP
+       CLOSES WHEN STAGE 3 MIGRATES handleStatusEdit AND HAS IT TAKE THIS LOCK —
+       it is written into the plan's Stage-3 notes, and is called out here so it
+       cannot be mistaken for a guarantee this stage already provides.
+
+       The sheet read is inside the lock, for the same reason as Stage 1: a lock
+       taken after the read protects nothing, because the stale snapshot has
+       already been taken. */
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(COLD_SWEEP_LOCK_MS)) {
+      /* Non-fatal and loud. Nothing partial happened: the sweep either ran or it
+         did not. This is a background job, not a visitor-facing path, so the
+         correct response is to skip this run — the next Monday trigger sweeps the
+         same leads, which are only staler by then. Nothing is lost. */
+      Logger.log('moveColdLeads: could not acquire the script lock within ' +
+                 COLD_SWEEP_LOCK_MS + 'ms — another sweep (or a referral-stats update) is ' +
+                 'already running. Skipped this run entirely; NOTHING was swept and no ' +
+                 'email was sent. The next scheduled sweep picks up the same leads.');
+      return;
+    }
+
+    var swept;
+    try {
+      swept = sweepStaleLeadsToCold(sheet);
+      // Commit before releasing: a write that lands after the lock is gone is a
+      // write that happened outside it.
+      SpreadsheetApp.flush();
+    } finally {
+      // finally, not a trailing call: resolveUnifiedCols throws on a mangled
+      // header, and a leaked lock would block every later sweep and every
+      // referral credit until the execution times out.
+      lock.releaseLock();
+    }
+
+    var C = swept.cols;
+    var moved = swept.moved;
+    if (moved.length === 0) { Logger.log('moveColdLeads: nothing to move.'); return; }
+
+    /* The Contacts writes and the summary email are deliberately OUTSIDE the
+       lock. They are slow external calls (one Contacts round-trip per lead), and
+       the lock exists to protect the sheet's read-decide-write, not the downstream
+       notifications. Holding a process-wide lock across a Contacts API call would
+       block every submission's referral credit for as long as Google takes to
+       answer. The sheet is already correct and committed by this point. */
+    moved.forEach(function(r) {
+      try { moveContactToCold(r[C.EMAIL]); }
+      catch (e) { Logger.log('moveContactToCold failed for ' + r[C.EMAIL] + ': ' + e); }
+    });
+
+    var blocks = moved.map(function(r) {
+      return [
+        'Lead ID:        ' + r[C.LEAD_ID],
+        'Name:           ' + [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' '),
+        'Role:           ' + r[C.CATEGORY],
+        'Email:          ' + r[C.EMAIL],
+        'Submitted:      ' + Utilities.formatDate(new Date(r[C.TIMESTAMP]), 'America/Chicago', 'MM/dd/yyyy'),
+      ].join('\n');
+    });
+
+    GmailApp.sendEmail(
+      CONFIG.NOTIFY_EMAILS.join(','),
+      'AxisPoint: Leads moved to cold this week',
+      [
+        moved.length + ' lead' + (moved.length > 1 ? 's were' : ' was') + ' moved to Cold.',
+        '',
+        blocks.join('\n\n───────────────────────────\n\n'),
+        '',
+        'Update their status in the Sheet to move them back to Active at any time.',
+        '',
+        'Sheet: https://docs.google.com/spreadsheets/d/' + getProp('SPREADSHEET_ID'),
+      ].join('\n'),
+      { name: CONFIG.SENDER_NAME }
+    );
+
+    Logger.log('moveColdLeads: moved ' + moved.length + ' lead(s).');
+  } catch (err) {
+    Logger.log('moveColdLeads error: ' + err);
+  }
+}
+
+/* The critical section: read the table, decide who is stale, write Status.
+   MUST only be called while holding the script lock — moveColdLeadsUnified is the
+   only caller, deliberately. Returns the resolved column map and the moved rows
+   (as snapshots) so the caller can do the slow side effects outside the lock.
+
+   Nothing is deleted and nothing is appended. The loop runs FORWARD, unlike the
+   legacy one, which had to run backward only because deleteRow() reindexes every
+   row beneath it. */
+function sweepStaleLeadsToCold(sheet) {
+  // Throws on a mangled header rather than stamping 'Cold' into a guessed column.
+  var C = resolveUnifiedCols(sheet);
+  var data = sheet.getDataRange().getValues();
+  var now = new Date();
+  var activeStatuses = ['New Lead', 'Contacted', 'Active'];
+  var moved = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (activeStatuses.indexOf(String(row[C.STATUS] || '')) === -1) continue;
+
+    var submitted = new Date(row[C.TIMESTAMP]);
+    if (isNaN(submitted)) continue;   // an unreadable timestamp is not an old lead
+
+    var ageDays = (now - submitted) / 86400000;
+    if (ageDays <= CONFIG.COLD_LEAD_DAYS) continue;
+
+    sheet.getRange(i + 1, C.STATUS + 1).setValue('Cold');
+    row[C.STATUS] = 'Cold';   // keep the snapshot consistent for the caller's email
+    moved.push(row);
+  }
+
+  return { cols: C, moved: moved };
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER. It appends the row to Cold Leads, DELETES it from Active
+   Leads, and re-syncs the duplicate on the category tab: three writes across
+   three tabs to express one status change, and the row-deletion path that makes
+   this the most dangerous function in the file. */
+function moveColdLeadsLegacy() {
   try {
     var activeSheet = tab(CONFIG.TABS.ACTIVE_LEADS);
     if (!activeSheet) return;
