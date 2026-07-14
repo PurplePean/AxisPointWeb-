@@ -1279,6 +1279,12 @@ var STATUS_EDIT_LOCK_MS = 10000;
    nothing partial is written, and re-typing the email in the cell retries. */
 var MANUAL_LINK_LOCK_MS = 10000;
 
+/* How long a resubmission waits for the same lock before giving up. A visitor is
+   waiting on this request, so it must not block for long. Losing the race costs the
+   new message (logged for manual repair), never the lead itself — the row already
+   exists and its ID is still returned. */
+var RESUBMISSION_LOCK_MS = 10000;
+
 /* Column order is the plan's §1 table, verbatim. Order carries NO meaning at
    runtime — every live read resolves by NAME through resolveUnifiedCols(), and
    only a fresh row being constructed is positional. The grouping (identity, then
@@ -1467,7 +1473,29 @@ function generateReferralCode(leadId) {
  * Returns a lookup map of all referral codes currently in the Lifetime Leads
  * sheet so generateReferralCode can detect collisions.
  */
+/* ── existingReferralCodes: the collision set ── MIGRATED (Stage 7).
+   generateReferralCode() collision-checks against this. If it silently returns an
+   empty map (missing tab), codes stop being collision-checked — a silent failure,
+   and the second reason handleFormSubmission could not migrate alone. */
 function existingReferralCodes() {
+  return USE_UNIFIED_SCHEMA ? existingReferralCodesUnified() : existingReferralCodesLegacy();
+}
+
+function existingReferralCodesUnified() {
+  var map   = {};
+  var sheet = leadsTable();
+  if (!sheet || sheet.getLastRow() < 2) return map;   // no data rows → nothing to collide with
+  var C = resolveUnifiedCols(sheet);
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var code = String(data[i][C.REFERRAL_CODE] || '').toUpperCase();
+    if (code) map[code] = true;
+  }
+  return map;
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. */
+function existingReferralCodesLegacy() {
   var map   = {};
   var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
   if (!sheet || sheet.getLastRow() < 2) return map;   // no data rows → nothing to collide with
@@ -1600,11 +1628,75 @@ function handleFormSubmission(payload) {
 
     var row = buildLeadRow(payload, 'New Lead', leadId, referralCode, referralMatch, meetLink);
 
-    appendRow(CONFIG.TABS.LIFETIME_LEADS, row);
-    appendRow(CONFIG.TABS.ACTIVE_LEADS,   row);
+    /* The ONLY schema-dependent step in this function. Everything else here — the
+       normalizer, the booking event, Contacts, both emails, the JSON response — is
+       identical under both schemas, and the other schema-dependent calls
+       (findExistingLead, matchReferrer, buildLeadRow, updateReferrerStats) are
+       already dispatchers of their own. So the switch lives on the persistence
+       block rather than on a duplicated copy of this whole orchestration: two
+       copies of the booking/email logic to hand-sync until cutover is precisely
+       the failure mode that keeps biting this project (see the email-template
+       mirrors in CLAUDE.md). */
+    persistNewLead(row, leadId, leadType);
 
-    var categoryTab = categoryTabForRole(payload.role);
-    if (categoryTab) {
+    // Update referrer stats if matched
+    if (referralMatch.found) {
+      // The chain is the new lead's ancestors — every one of them is credited a
+      // Total Downstream, not just referrerLeadId. See updateReferrerStats.
+      updateReferrerStats(referralMatch.referrerLeadId, referralMatch.chain);
+      logReferralEntry(referralMatch, leadId, payload, row);
+      sendReferrerNotification(referralMatch.referrerEmail, referralMatch.referrerFirstName, referralMatch.referrerCode);
+    }
+
+    try { createContact(payload); }
+    catch (err) { Logger.log('createContact failed: ' + err); }
+
+    try { sendVisitorConfirmation(payload, referralCode, meetLink, leadId); }
+    catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
+
+    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarStatus); }
+    catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
+
+    return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
+  } catch (err) {
+    Logger.log('handleFormSubmission error: ' + err);
+    return jsonResponse({ success: false, error: err.toString() });
+  }
+}
+
+/* ── persistNewLead: write the new lead row ── MIGRATED (Stage 7).
+   This is the schema boundary inside the submission path. */
+function persistNewLead(row, leadId, leadType) {
+  return USE_UNIFIED_SCHEMA
+    ? persistNewLeadUnified(row)
+    : persistNewLeadLegacy(row, leadId, leadType);
+}
+
+/* ONE row, ONE table, ONE append. The whole reason this migration exists.
+   No Lifetime + Active + category-tab triplication, no category-tab-exists check, no
+   seedReportsEnabled seed (buildLeadRowUnified already wrote Reports Enabled as an
+   ordinary column, Stage 6), and therefore none of the ways those could silently
+   drop a row — which is exactly how every EAO category row was lost. */
+function persistNewLeadUnified(row) {
+  var sheet = leadsTable();
+  if (!sheet) {
+    // Never silent: with one table there is no second copy to fall back on.
+    throw new Error('persistNewLead: the "' + CONFIG.TABS.LEADS + '" table does not exist. ' +
+                    'Run setupSpreadsheet() from the Apps Script editor before enabling the ' +
+                    'unified schema.');
+  }
+  sheet.appendRow(row);
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. Appends the SAME row to Lifetime Leads,
+   Active Leads, and the role's category tab: three copies of one lead. */
+function persistNewLeadLegacy(row, leadId, leadType) {
+  appendRow(CONFIG.TABS.LIFETIME_LEADS, row);
+  appendRow(CONFIG.TABS.ACTIVE_LEADS,   row);
+
+  // Same value categoryTabForRole(payload.role) returned: the registry's .tab.
+  var categoryTab = leadType ? leadType.tab : null;
+  if (categoryTab) {
       // appendRow() logs and returns when a tab is absent, so a category tab that
       // was never created drops this row silently. Check first and log loudly:
       // this is exactly how every Existing Asset Owner category row was lost
@@ -1632,35 +1724,139 @@ function handleFormSubmission(payload) {
           }
         }
       }
-    }
-
-    // Update referrer stats if matched
-    if (referralMatch.found) {
-      // The chain is the new lead's ancestors — every one of them is credited a
-      // Total Downstream, not just referrerLeadId. See updateReferrerStats.
-      updateReferrerStats(referralMatch.referrerLeadId, referralMatch.chain);
-      logReferralEntry(referralMatch, leadId, payload, row);
-      sendReferrerNotification(referralMatch.referrerEmail, referralMatch.referrerFirstName, referralMatch.referrerCode);
-    }
-
-    try { createContact(payload); }
-    catch (err) { Logger.log('createContact failed: ' + err); }
-
-    try { sendVisitorConfirmation(payload, referralCode, meetLink, leadId); }
-    catch (err) { Logger.log('sendVisitorConfirmation failed: ' + err); }
-
-    try { sendPartnerNotification(payload, leadId, referralCode, referralMatch, meetLink, calendarLink, calendarStatus); }
-    catch (err) { Logger.log('sendPartnerNotification failed: ' + err); }
-
-    return jsonResponse({ success: true, leadId: leadId, referralCode: referralCode });
-  } catch (err) {
-    Logger.log('handleFormSubmission error: ' + err);
-    return jsonResponse({ success: false, error: err.toString() });
   }
 }
 
 /* ── Dedupe handler ── */
+/* ── handleResubmission ── MIGRATED (Stage 7).
+   The other branch of handleFormSubmission's dedupe decision: a known email came
+   back, so update the row it already has instead of creating a second one. */
 function handleResubmission(existing, payload) {
+  return USE_UNIFIED_SCHEMA
+    ? handleResubmissionUnified(existing, payload)
+    : handleResubmissionLegacy(existing, payload);
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+
+   WHY THIS TAKES THE LOCK, even though it "looks like a simple append":
+   it is a READ-MODIFY-WRITE OF THE DETAILS JSON BLOB on a row it did not create.
+   Parse the blob, append to Details.message, re-stringify, write it back. Two
+   resubmissions landing together — or a resubmission racing the cold sweep — can
+   interleave read-read-write-write and LOSE one of the messages entirely, silently.
+   That is the same shape as the counter race in Stage 1, and a blob is worse than a
+   counter: a lost increment is a wrong number, a lost blob write is a lost paragraph
+   the visitor actually typed.
+
+   The lock is scoped to the read-modify-write ONLY, per the Stage-5 reentrancy rule:
+   the Gmail notification happens after it is released, and nothing inside the
+   critical section takes the script lock again. */
+function handleResubmissionUnified(existing, payload) {
+  var sheet = leadsTable();
+  if (!sheet) {
+    Logger.log('handleResubmission: no "' + CONFIG.TABS.LEADS + '" tab.');
+    return jsonResponse({ success: false, error: 'Leads table not found.' });
+  }
+
+  var rowIndex = existing.rowIndex;   // 1-based sheet row
+  var today    = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
+  var p        = payload.person || {};
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(RESUBMISSION_LOCK_MS)) {
+    /* Non-fatal, loud, and honest to the VISITOR too. The submission is not lost as
+       far as they are concerned — their original lead row still exists and we still
+       return its Lead ID — but their new message did NOT land, so say so in the log
+       with everything needed to re-apply it by hand. Failing the request outright
+       would tell a returning visitor their form is broken because somebody else
+       submitted at the same moment. */
+    Logger.log('handleResubmission: MANUAL REPAIR NEEDED. Could not acquire the script lock ' +
+               'within ' + RESUBMISSION_LOCK_MS + 'ms, so row ' + rowIndex + ' was NOT updated. ' +
+               'The lead already exists and its ID is being returned, but this resubmission\'s ' +
+               'new details were dropped. Message that did not land: "' +
+               String(payload.message || '(none)') + '"');
+    var known = existing.rowData || [];
+    var kc    = existing.cols || UCOLS;
+    return jsonResponse({
+      success: true,
+      leadId: known[kc.LEAD_ID] || '',
+      referralCode: known[kc.REFERRAL_CODE] || '',
+      resubmission: true,
+    });
+  }
+
+  var leadId, referralCode;
+  try {
+    // Re-read the row UNDER the lock. `existing.rowData` was read before we held it,
+    // so treating it as current is exactly the stale-snapshot bug this lock exists
+    // to prevent.
+    var C   = resolveUnifiedCols(sheet);
+    var row = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    leadId       = String(row[C.LEAD_ID] || '');
+    referralCode = String(row[C.REFERRAL_CODE] || '');
+
+    // Fill in fields that were previously blank. A resubmission adds information;
+    // it never overwrites what we already knew.
+    if (!row[C.FIRST_NAME] && p.firstName) sheet.getRange(rowIndex, C.FIRST_NAME + 1).setValue(p.firstName);
+    if (!row[C.LAST_NAME]  && p.lastName)  sheet.getRange(rowIndex, C.LAST_NAME  + 1).setValue(p.lastName);
+    if (!row[C.PHONE]      && p.phone)     sheet.getRange(rowIndex, C.PHONE      + 1).setValue(p.phone);
+    if (!row[C.COMPANY]    && p.company)   sheet.getRange(rowIndex, C.COMPANY    + 1).setValue(p.company);
+
+    /* ── The Details read-modify-write ──
+       Message is a Details key now, not a column (settled 2026-07-14), and so is
+       booking. A malformed blob must not destroy a resubmission: parse defensively
+       and rebuild rather than throwing away the visitor's new message. */
+    var details = {};
+    var raw = row[C.DETAILS];
+    if (raw) {
+      try { details = JSON.parse(raw) || {}; }
+      catch (e) {
+        Logger.log('handleResubmission: Details on row ' + rowIndex + ' is not valid JSON (' + e +
+                   '). Preserving it under Details._unparsed rather than discarding it.');
+        details = { _unparsed: String(raw) };
+      }
+    }
+
+    var note = 'Resubmission on ' + today + ' (' + leadId + ')';
+    if (payload.message) note += '\n\nNew message: ' + payload.message;
+    var prior = details.message || '';
+    details.message = prior ? prior + '\n\n' + note : note;
+
+    // A booking only lands if we did not already have one — same "add, never
+    // overwrite" rule as the columns above.
+    var hasBooking = details.booking && details.booking.date;
+    if (!hasBooking && payload.booking && payload.booking.date) {
+      details.booking = {
+        date:     payload.booking.date     || '',
+        slot:     payload.booking.slot     || payload.booking.time || '',
+        meetType: payload.booking.meetType || '',
+        phone:    payload.booking.phone    || '',
+        meetLink: (details.booking && details.booking.meetLink) || '',
+      };
+    }
+
+    sheet.getRange(rowIndex, C.DETAILS + 1).setValue(JSON.stringify(details));
+    SpreadsheetApp.flush();   // commit before the lock goes
+  } finally {
+    lock.releaseLock();
+  }
+
+  // Outside the lock: Gmail is slow and the script lock is process-wide.
+  try { sendResubmissionNotification(payload, leadId, referralCode); }
+  catch (err) { Logger.log('sendResubmissionNotification failed: ' + err); }
+
+  return jsonResponse({
+    success: true,
+    leadId: leadId,
+    referralCode: referralCode,
+    resubmission: true,
+  });
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. It appends the note to the Message COLUMN,
+   which the unified schema does not have. */
+function handleResubmissionLegacy(existing, payload) {
   var sheet    = tab(CONFIG.TABS.LIFETIME_LEADS);
   var rowIndex = existing.rowIndex;  // 1-based sheet row
   var rowData  = existing.rowData;
@@ -1708,7 +1904,30 @@ function handleResubmission(existing, payload) {
   });
 }
 
+/* ── findExistingLead: the dedupe key ── MIGRATED (Stage 7). */
 function findExistingLead(email) {
+  return USE_UNIFIED_SCHEMA ? findExistingLeadUnified(email) : findExistingLeadLegacy(email);
+}
+
+/* Scans the ONE table instead of Lifetime Leads. If this ever silently returns null
+   because the tab is missing, EVERY resubmission becomes a duplicate lead — which is
+   exactly why handleFormSubmission could not be migrated before this function was. */
+function findExistingLeadUnified(email) {
+  if (!email) return null;
+  var sheet = leadsTable();
+  if (!sheet || sheet.getLastRow() < 2) return null;   // no data rows → no match possible
+  var C = resolveUnifiedCols(sheet);
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][C.EMAIL] || '').toLowerCase().trim() === email) {
+      return { rowIndex: i + 1, rowData: data[i], cols: C };
+    }
+  }
+  return null;
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. */
+function findExistingLeadLegacy(email) {
   if (!email) return null;
   var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
   if (!sheet || sheet.getLastRow() < 2) return null;   // no data rows → no match possible
@@ -1723,8 +1942,65 @@ function findExistingLead(email) {
   return null;
 }
 
-/* ── Referral matching ── */
+/* ── Referral matching ── MIGRATED (Stage 7).
+
+   buildReferralMatch is deliberately NOT migrated and NOT duplicated: it takes a row
+   plus a COLUMN MAP, and every key it touches (LEAD_ID, FIRST_NAME, LAST_NAME, EMAIL,
+   REFERRAL_CODE, REFERRAL_CHAIN) exists in BOTH COLS and UCOLS. It is schema-agnostic
+   already, so both branches below call the same one. */
 function matchReferrer(payload) {
+  return USE_UNIFIED_SCHEMA ? matchReferrerUnified(payload) : matchReferrerLegacy(payload);
+}
+
+/* Priority is unchanged and load-bearing: code → email → name. A name match is the
+   weakest and is flagged 'pending' downstream, so it must stay last. */
+function matchReferrerUnified(payload) {
+  var code  = (payload.referralCode    || '').trim();
+  var email = (payload.referredByEmail || '').toLowerCase().trim();
+  var name  = (payload.referredByName  || '').trim();
+
+  if (!code && !email && !name) return { found: false, matchType: 'none' };
+
+  var sheet = leadsTable();
+  if (!sheet || sheet.getLastRow() < 2) return { found: false, matchType: 'none' };
+  var C = resolveUnifiedCols(sheet);
+  var data = sheet.getDataRange().getValues();
+
+  // 1: referral code
+  if (code) {
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][C.REFERRAL_CODE] || '').toUpperCase() === code.toUpperCase()) {
+        return buildReferralMatch(data[i], 'code', C);
+      }
+    }
+  }
+
+  // 2: email
+  if (email) {
+    for (var j = 1; j < data.length; j++) {
+      if (String(data[j][C.EMAIL] || '').toLowerCase().trim() === email) {
+        return buildReferralMatch(data[j], 'email', C);
+      }
+    }
+  }
+
+  // 3: name (weakest — flagged for review downstream)
+  if (name) {
+    var wanted = name.toLowerCase();
+    for (var k = 1; k < data.length; k++) {
+      var full = (String(data[k][C.FIRST_NAME] || '') + ' ' +
+                  String(data[k][C.LAST_NAME]  || '')).toLowerCase().trim();
+      if (full && full === wanted) {
+        return buildReferralMatch(data[k], 'name', C);
+      }
+    }
+  }
+
+  return { found: false, matchType: 'none' };
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. */
+function matchReferrerLegacy(payload) {
   var code  = (payload.referralCode    || '').trim();
   var email = (payload.referredByEmail || '').toLowerCase().trim();
   var name  = (payload.referredByName  || '').trim();
