@@ -33,7 +33,7 @@ function mangledHeaderRow() {
 test('resolveCols: resolves every COLS key to its REAL position on a mangled header', () => {
   const header = mangledHeaderRow();
   // Prove the fixture is not accidentally canonical.
-  assert.notDeepEqual(header, LEAD_HEADERS);
+  assert.notDeepEqual(Array.from(header), Array.from(LEAD_HEADERS));
 
   const sheet = new FakeSheet('Lifetime Leads', [header, ['some', 'data', 'row']]);
   const C = S.resolveCols(sheet);

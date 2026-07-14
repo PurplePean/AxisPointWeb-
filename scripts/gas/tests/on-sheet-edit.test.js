@@ -158,7 +158,7 @@ test('fixture header is genuinely drifted from the constants', () => {
   const { sandbox } = load(new FakeSpreadsheet({}), true);
   const { UNIFIED_LEAD_HEADERS, UCOLS } = sandbox;
   assert.equal(MANGLED.length, UNIFIED_LEAD_HEADERS.length);
-  assert.notDeepEqual(MANGLED, UNIFIED_LEAD_HEADERS);
+  assert.notDeepEqual(MANGLED, Array.from(UNIFIED_LEAD_HEADERS));
   Object.keys(UCOLS).forEach((k) => {
     assert.notEqual(colOf(UNIFIED_LEAD_HEADERS[UCOLS[k]]), UCOLS[k],
       `"${UNIFIED_LEAD_HEADERS[UCOLS[k]]}" must not sit at its canonical index`);
@@ -307,7 +307,7 @@ test('legacy branch (flag off): dispatches on the nine-tab guard, exactly as pro
   const header = LEAD_HEADERS.slice(23).concat(LEAD_HEADERS.slice(0, 23));
   const at = (n) => header.indexOf(n);
   const at1 = (n) => at(n) + 1;
-  assert.notDeepEqual(header, LEAD_HEADERS);
+  assert.notDeepEqual(Array.from(header), Array.from(LEAD_HEADERS));
 
   const mk = (vals) => {
     const r = new Array(header.length).fill('');

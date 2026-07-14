@@ -101,7 +101,7 @@ test('moveColdLeads: acts on the right cells despite a drifted Active Leads head
   const COLD_DAYS = probe.sandbox.CONFIG.COLD_LEAD_DAYS;
 
   const { header, indexOf } = driftedHeader(LEAD_HEADERS);
-  assert.notDeepEqual(header, LEAD_HEADERS, 'fixture header must be drifted');
+  assert.notDeepEqual(Array.from(header), Array.from(LEAD_HEADERS), 'fixture header must be drifted');
 
   // Build two Active rows against the DRIFTED layout.
   const oldIso = new Date(Date.now() - (COLD_DAYS + 10) * 86400000).toISOString();
