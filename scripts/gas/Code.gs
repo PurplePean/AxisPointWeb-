@@ -3021,7 +3021,94 @@ function moveContactToCold(email) {
    Watches Status, Category, and Referred By Email columns.
    ════════════════════════════════════════════════════════════ */
 
+/* ── onSheetEdit: the installable edit trigger ──
+   MIGRATED (Stage 4). Dispatcher; the two implementations are below.
+
+   THE SHAPE OF THE CHANGE: the lead-tab guard. Legacy has to ask "is this one of
+   the NINE tabs a lead can be duplicated onto?" (leadTabConfigs membership),
+   because a lead's Status column exists in nine places. Unified asks "is this the
+   Leads table?" — one string compare. Everything else about the dispatch (resolve
+   the three watched columns BY NAME, ignore the header row, ignore every other
+   column) is deliberately identical: that logic was already right, and the plan
+   says not to weaken it. */
 function onSheetEdit(e) {
+  return USE_UNIFIED_SCHEMA ? onSheetEditUnified(e) : onSheetEditLegacy(e);
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+
+   WHAT THIS ACTUALLY WIRES UP — read this before assuming all three handlers work:
+
+     Status            → handleStatusEdit       ✅ migrated (Stage 3). Fully wired.
+     Category          → handleCategoryEdit     ✅ works unchanged. It reads NO tab —
+                         its only inputs are rowData and a column map, and the only
+                         column it touches is EMAIL, a key present in both COLS and
+                         UCOLS. It is schema-agnostic and needs no migration.
+                         (The plan lists it as needing a retarget. The plan is wrong;
+                         see the Stage-4 notes in UNIFIED_SCHEMA_MIGRATION_PLAN.md.)
+     Referred By Email → handleManualReferralLink  ❌ NOT MIGRATED. Deliberately NOT
+                         called here — see the refusal below.
+
+   The manual-link path is refused rather than called because
+   handleManualReferralLink scans Lifetime Leads, which does not exist under the
+   unified schema. Its own guard (`if (!lifetimeSheet ...) return;`) would return
+   SILENTLY, so a human hand-linking a referral would watch their edit do nothing,
+   with no error anywhere. Silently swallowing a human's edit is the exact failure
+   class this migration exists to end. It refuses loudly instead, and Stage 5
+   migrates it. */
+function onSheetEditUnified(e) {
+  try {
+    if (!e || !e.range) return;
+    var sheet = e.range.getSheet();
+
+    // The entire nine-tab membership guard, collapsed. One table, one check.
+    if (sheet.getName() !== CONFIG.TABS.LEADS) return;
+
+    var col = e.range.getColumn();   // 1-indexed
+    var row = e.range.getRow();
+    if (row <= 1) return;            // the header row is not a lead
+
+    // Resolve the watched columns BY NAME. The dispatch has to know WHICH column
+    // changed, so a drifted header must not be able to route a Status edit into
+    // the referral handler. resolveUnifiedCols throws rather than returning -1.
+    var C = resolveUnifiedCols(sheet);
+    var statusCol   = C.STATUS         + 1;
+    var categoryCol = C.CATEGORY       + 1;
+    var refByEmail  = C.REF_BY_EMAIL   + 1;
+
+    if (col !== statusCol && col !== categoryCol && col !== refByEmail) return;
+
+    var newValue = String(e.range.getValue());
+    var rowData  = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    if (col === statusCol) {
+      handleStatusEdit(sheet.getName(), row, rowData, newValue, C);
+    } else if (col === categoryCol) {
+      handleCategoryEdit(rowData, newValue, C);
+    } else if (col === refByEmail) {
+      /* NOT WIRED UNTIL STAGE 5. Calling handleManualReferralLink here would look
+         like it worked and do nothing: it scans Lifetime Leads, which no longer
+         exists, and returns silently. Refuse out loud and tell the human exactly
+         what did not happen, so a hand-linked referral cannot vanish quietly.
+
+         STAGE 5: delete this branch's body and call handleManualReferralLink,
+         which by then dispatches to a unified implementation. */
+      Logger.log('onSheetEdit: a "Referred By Email" edit on row ' + row + ' ("' + newValue +
+                 '") was NOT processed. handleManualReferralLink still scans the Lifetime ' +
+                 'Leads tab, which does not exist under the unified schema, so it would have ' +
+                 'silently done nothing. The referral was NOT linked: no referral columns were ' +
+                 'back-filled, no referrer stats updated, no Referrals row logged, no referrer ' +
+                 'notified. This is Stage 5 of the schema migration.');
+    }
+  } catch (err) {
+    Logger.log('onSheetEdit error: ' + err);
+  }
+}
+
+/* THE LEGACY IMPLEMENTATION — unchanged, still what production runs.
+   DELETE AT CUTOVER. Its guard exists only because a lead is duplicated across
+   nine tabs. */
+function onSheetEditLegacy(e) {
   try {
     if (!e || !e.range) return;
     var sheet     = e.range.getSheet();

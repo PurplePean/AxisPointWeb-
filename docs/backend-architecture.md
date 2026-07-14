@@ -31,15 +31,23 @@ path and are deleted only at cutover.
 | 1 | `updateReferrerStats` | One-row lookup by Lead ID; multi-level `Total Downstream`; script-locked. |
 | 2 | `moveColdLeads` | A cold lead is a `Status = 'Cold'` **write**, not a relocated row. **No `deleteRow`, no `appendRow`.** Script-locked, and (as of Stage 3) it re-reads each row's live Status immediately before stamping. |
 | 3 | `handleStatusEdit` | A status edit is **just a status edit** — the human's cell write already happened, so the row moves nowhere and only the Contacts side effect remains. Script-locked, acts on the **live** status, logs conflicts. |
+| 4 | `onSheetEdit` | The nine-tab membership guard becomes one string compare against `Leads`. The three watched columns still resolve **by name**. |
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
 ported. The legacy bodies still delete, and still run in production, until cutover.
 
-**Next: Stage 4, `onSheetEdit`** — the sole caller of the three edit handlers. Its
-lead-tab guard becomes a single `Leads` check and it resolves through
-`resolveUnifiedCols`. Taken out of the plan's table order deliberately: until it is
-migrated, `handleStatusEditUnified` is unreachable.
+**What Stage 4 actually wired up — the edit trigger is only 2/3 connected:**
+
+| Watched column | Handler | State under the unified schema |
+|---|---|---|
+| Status | `handleStatusEdit` | ✅ Migrated (Stage 3) and fully wired. |
+| Category | `handleCategoryEdit` | ✅ Works **unchanged**. It reads no tab — only `rowData` + `EMAIL`, a key in both `COLS` and `UCOLS` — so it is schema-agnostic and needs no migration at all. |
+| Referred By Email | `handleManualReferralLink` | ❌ **NOT migrated, and deliberately NOT called.** It scans Lifetime Leads, which does not exist under the unified schema, and its missing-tab guard returns **silently** — so wiring it up would produce a handler that looks connected and quietly drops every hand-linked referral. `onSheetEditUnified` refuses it and logs loudly instead. |
+
+**Next: Stage 5, `handleManualReferralLink`** — a **cutover blocker**, taken next as a
+*dependency*, not by risk rank: until it lands, `Referred By Email` edits do nothing
+under the unified schema.
 
 The `Leads` tab **does not exist in the live Sheet** — `setupSpreadsheet()` still
 creates the eleven legacy tabs, and creating `Leads` is part of the cutover, not of
@@ -281,7 +289,7 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 
 ## `onEdit` trigger
 
-`onSheetEdit(e)` — installable trigger (`forSpreadsheet(...).onEdit()`), created by `setupTriggers`. Watches three columns on any lead tab and ignores the header row:
+`onSheetEdit(e)` — installable trigger (`forSpreadsheet(...).onEdit()`), created by `setupTriggers`. **Migrated in Stage 4** (`onSheetEditUnified` / `onSheetEditLegacy` / dispatcher). Under the **unified** schema its tab guard is a single `sheet.getName() === 'Leads'` check and columns resolve through `resolveUnifiedCols`; the `Referred By Email` route is refused loudly pending Stage 5 (see the migration banner above). **Legacy — what production runs — watches three columns on any of the nine lead tabs and ignores the header row:**
 
 - **Status** (`handleStatusEdit`): `Cold`/`Archive` move a row out of Active; `Client` appends to Clients + labels the contact; `New Lead`/`Active`/`Contacted` restore a Cold row to Active.
 - **Category** (`handleCategoryEdit`): re-labels the Google Contact's category group.
