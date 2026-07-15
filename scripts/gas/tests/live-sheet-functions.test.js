@@ -80,6 +80,12 @@ function loadWithSpreadsheet(spreadsheet, opts) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(CODE_SRC, sandbox, { filename: 'Code.gs' });
+  // Every test here asserts LEGACY tab behavior (moveColdLeads relocating rows,
+  // findExistingLead on Lifetime Leads, onSheetEdit on the nine tabs). They predate
+  // the USE_UNIFIED_SCHEMA switch and relied on its module default being false; the
+  // cutover flip (2026-07-15) changed that default, so pin the legacy branch
+  // explicitly, as every newer test file does. Deleted/rewritten at Phase D.
+  sandbox.USE_UNIFIED_SCHEMA = false;
 
   return { sandbox, sentEmails, contactCalls };
 }

@@ -1,8 +1,10 @@
 # Unified Schema Migration Plan
 
-**Status:** IN EXECUTION. Created 2026-07-12. **Stage 1 of N shipped 2026-07-14.**
+**Status:** CUTOVER IN PROGRESS. Created 2026-07-12. All 9 stages shipped 2026-07-14.
+**Switch flipped in code 2026-07-15** (`USE_UNIFIED_SCHEMA = true`) — §8 Phase B step 4.
+**Not yet live:** the manual `setupSpreadsheetUnified()` run (§8 Phase A) and the deploy
+(§8 Phase B step 5) are still pending. See the execution-status table and §8.
 **DECISION-COMPLETE as of 2026-07-13:** all three open decisions in §2 are resolved.
-Nothing in this document is waiting on an answer.
 
 ## Execution status
 
@@ -18,7 +20,8 @@ Nothing in this document is waiting on an answer.
 | **8** | **`sendDailyDigest` + `sendMonthlyReferralSummaries`** — the last two readers of the legacy tabs. **Also their first test coverage of any kind** (12 tests). The digest filters the one table by today's CT date (it read **Lifetime Leads**, not Active Leads — the plan's §3 was wrong; corrected) and pulls Asset Class + Booking out of `Details`. The summary filters on `Category = 'Referral Partner'` and reads `Reports Enabled` as an ordinary column via `resolveUnifiedCols` — so `reportsEnabledIndex`/`headerIndex` are no longer needed on the unified path. Both **read-only → no lock** (confirmed). | ✅ **DONE 2026-07-14.** 162/162 tests green. Not deployed; the switch is off. |
 | **9** | **`setupSpreadsheetUnified`** — a SEPARATE explicit entry point (deliberately **not** a switch dispatcher: the `Leads` tab must exist *before* the switch flips, so a gated setup would create legacy tabs while the switch is still off). Creates **exactly** `Leads` (25-col unified schema) + `Referrals` + `Subscribers` (both unchanged), empty-tab guard kept. **Must be run by hand from the Apps Script editor** at cutover — `clasp deploy` does not create tabs; this is what makes `Leads` exist for the first time. **FINDING: `.tab`/`.tabColor` do NOT come out of the registry yet** — every reader is a legacy body or a §4 delete-at-cutover function, all surviving until cutover, so removing them now breaks the legacy branch. Their removal is a cutover line item, not Stage 9. | ✅ **DONE 2026-07-14.** 171/171 tests green. Not deployed; the switch is off. |
 | — | **`setCategoryTabStatus` is NOT a stage.** It is a §4 delete-outright, and it cannot be deleted before the cutover removes `moveColdLeadsLegacy`, which still calls it. Skip it in the sequence; do not "migrate" it. | ⬜ At cutover |
-| **CUTOVER** | **All 9 stages complete.** Flip the switch, run setup by hand, deploy, verify live, then delete the legacy code. Executable step-by-step in **§8 Cutover checklist** below. | ⬜ Ready, not started |
+| **CUTOVER — IN PROGRESS** | **All 9 stages complete.** Executed step-by-step per **§8** below. **Switch flipped in code (`USE_UNIFIED_SCHEMA = true`) 2026-07-15** — §8 Phase B step 4, the repo side only. Suite green (171/171) with the flip. **This ships NOTHING on its own:** it is not deployed, and merging it deploys nothing (GAS goes live only via manual `clasp push` + `clasp deploy -i`). | 🔶 Switch flipped in code; **NOT live**. |
+| ⚠️ CUTOVER — REMAINING (ordered, do not reorder) | **§8 Phase A must precede the deploy:** run `setupSpreadsheetUnified()` **by hand** from the Apps Script editor to create the `Leads` tab — the flipped switch points migrated functions at that tab, and deploying before it exists throws on every request. **Then** §8 Phase B step 5 (`clasp push` + `clasp deploy -i <prod id>`), **then** Phase C (verify one live submission per lead type + the live-concurrency checks). Phase D (delete legacy) only after C passes. | ⬜ Pending — manual |
 
 ### The staging pattern — Stage 2 MUST follow this exactly
 
@@ -992,9 +995,19 @@ and stays that way.**
 
 ## 8. Cutover checklist — ALL 9 STAGES DONE, this is the executable runbook
 
-Every stage (1-9) is merged. `USE_UNIFIED_SCHEMA` is `false`, so nothing above has
-changed production; every dispatcher runs its `xxxLegacy` body. This section is the
-one remaining action, written as a checklist so it is **executed, not re-derived.**
+Every stage (1-9) is merged. **`USE_UNIFIED_SCHEMA` was flipped to `true` in code on
+2026-07-15 (Phase B step 4).** Nothing is live yet — a merge deploys nothing, and the
+manual Phase A + deploy are still pending (see below). This section is written as a
+checklist so it is **executed, not re-derived.**
+
+> **STATE AS OF 2026-07-15:** ✅ Phase B step 4 (flip the switch in code) done, suite
+> green. ⬜ Phase A (`clasp push` + run `setupSpreadsheetUnified()` by hand) — **NOT
+> done, and it must happen BEFORE the deploy below.** ⬜ Phase B step 5 (deploy). ⬜
+> Phase C (verify live). ⬜ Phase D (delete legacy). The flip and Phase A are written
+> out of numeric order here — **do Phase A first regardless.** The switch is now `true`
+> in the repo, so the *only* thing standing between the current state and a live
+> unified backend is someone running the manual steps; do not deploy until Phase A's
+> tab creation is confirmed.
 
 **Read this whole section before starting. Steps are ordered; the order is the safety.**
 

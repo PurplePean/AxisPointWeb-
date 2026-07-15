@@ -1256,12 +1256,23 @@ function resolveCols(sheet) {
    makes the cutover a reviewed line of code instead of a side effect.
    ════════════════════════════════════════════════════════════ */
 
-/* THE SWITCH. false = every function reads/writes the legacy per-role tabs
-   (current production). Flip to true ONLY at the cutover, when every function
-   in the plan's §3 list has been migrated AND setupSpreadsheet() has created
-   the Leads tab. Flipping it early points migrated functions at a table that
-   does not exist yet. */
-var USE_UNIFIED_SCHEMA = false;
+/* THE SWITCH. true = every function reads/writes the one unified Leads table.
+   false = the legacy per-role tabs.
+
+   FLIPPED TO true 2026-07-15 — cutover Phase B, step 4 (plan §8). All 9 stages are
+   migrated. This is a code change only; it ships NOTHING on its own — the live
+   /exec endpoint is a pinned deployment, so this goes live only via
+   `clasp push` + `clasp deploy -i <prod id>`.
+
+   ⚠️ ORDERING, DO NOT SKIP (plan §8 Phase A precedes Phase B): before that deploy,
+   `setupSpreadsheetUnified()` MUST be run by hand from the Apps Script editor to
+   create the Leads tab. With the switch true and the tab absent, every migrated
+   function points at a table that does not exist and throws. As of this commit that
+   manual run has NOT happened, so this must not be deployed until it has.
+
+   ROLLBACK: set back to false, `clasp push` + `clasp deploy -i`. The legacy tabs and
+   xxxLegacy bodies are intact until Phase D. */
+var USE_UNIFIED_SCHEMA = true;
 
 /* How long updateReferrerStats waits for the script lock before giving up and
    logging a repairable failure. Ten seconds is far longer than the critical
