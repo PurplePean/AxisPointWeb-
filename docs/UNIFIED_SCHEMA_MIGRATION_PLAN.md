@@ -267,24 +267,37 @@ rather than in `qualData` (`detailsFrom: 'payload'`), because its flow never had
 `LEAD_TYPES.seedReportsEnabled`, as a normal column. The whole
 `REPORTS_ENABLED_COL = LEAD_HEADERS.length` bug class dies with the per-tab extra.
 
-**A normalizer hack is now obsolete — remove it in Stage 7.** `normalizeEaoPayload`
-**overwrites** `payload.preferences` with `[eaoDetailsSummary(payload)]` — a JSON
-*string*, not a list of opt-ins — purely because the legacy schema gave EAO nowhere
-else to put its detail fields. Under the unified schema those fields have real
-`Details` keys, so `buildLeadDetails` **filters that synthetic entry out by exact
-value** (never by sniffing the string, so a real preference can never be eaten).
-Verified against the form source: `buildEAOPayload` sends **no** `preferences` at all
-today, so nothing real is dropped. **`normalizeEaoPayload` should stop doing this when
-`handleFormSubmission` is migrated** — the normalizer is applied there, and the hack
-now has no purpose.
+**A normalizer hack is now obsolete — was flagged for Stage 7, and STILL OPEN (not
+done).** `normalizeEaoPayload` **overwrites** `payload.preferences` with
+`[eaoDetailsSummary(payload)]` — a JSON *string*, not a list of opt-ins — purely
+because the legacy schema gave EAO nowhere else to put its detail fields. Under the
+unified schema those fields have real `Details` keys, so `buildLeadDetails`
+**filters that synthetic entry out by exact value** (never by sniffing the string, so
+a real preference can never be eaten). Verified against the form source:
+`buildEAOPayload` sends **no** `preferences` at all today, so nothing real is dropped.
+This hack now has no purpose. **It was flagged for removal in Stage 7 and was NOT
+removed — Stage 7 never touched `normalizeEaoPayload`.** It is currently **harmless**
+(the filter neutralizes it) but remains a real, still-open cleanup: `normalizeEaoPayload`
+should stop building `preferences` from `eaoDetailsSummary`. Do it with the normalizer,
+not the row builder. *(Audited 2026-07-15.)*
 
-**One faithful oddity, left alone:** EAO's `Details.message` duplicates
+**One faithful oddity, STILL OPEN:** EAO's `Details.message` duplicates
 `Details.pressing_issue`, because `normalizeEaoPayload` sets
-`payload.message = payload.pressing_issue`. That is the normalizer's existing
-behavior, preserved rather than quietly changed. Worth revisiting with the normalizer
-in Stage 7.
+`payload.message = payload.pressing_issue`. That is the normalizer's existing behavior,
+preserved rather than quietly changed. It was flagged "worth revisiting with the
+normalizer in Stage 7" and was **not** revisited — Stage 7 left the normalizer alone.
+Harmless (a duplicated string, not a lost one) but unresolved. *(Audited 2026-07-15.)*
 
 ### Stage 7 notes — the unified path is now FED, and what is genuinely left
+
+**Two Stage-6 cleanups were carried into Stage 7 and NOT done — correcting the record
+(audited 2026-07-15).** Stage 6 flagged two EAO normalizer items "for Stage 7": the
+`payload.preferences = [eaoDetailsSummary(...)]` hack, and `Details.message`
+duplicating `Details.pressing_issue`. Stage 7 migrated `handleFormSubmission` via the
+`persistNewLead` extraction and **never touched `normalizeEaoPayload`**, so both remain
+open. Both are harmless today (the first is neutralized by `buildLeadDetails`'s filter;
+the second is a duplicated string, not a lost one), but neither was executed — see the
+Stage-6 notes above, now corrected.
 
 **YES: the unified path can handle a complete real submission, end to end, for all
 five lead types.** Payload in → dedupe → referral code (collision-checked) → referrer
@@ -904,8 +917,8 @@ blamed on the schema.
 | ✅ **`updateReferrerStats` — `Direct Referrals` regression** — **DONE, Stage 1.** | The distinction that makes the two columns mean different things: on that same 3-deep chain, `Direct Referrals` increments **only for the immediate referrer** (Steven **+1**; **John unchanged**). This test exists specifically to catch the obvious implementation slip of crediting Direct Referrals to the whole chain along with Total Downstream. |
 | `sendMonthlyReferralSummaries` | The filter and every skip: `Cold`/`Archive` status, `Reports Enabled = FALSE`, zero-referral partners. Currently untested. |
 | `sendDailyDigest` | The today-filter against a CT calendar date boundary. Currently untested. |
-| `createContact` | Behavior under a **failing** `ContactsApp` — the confirmed pre-existing bug (see `backend-architecture.md`). At minimum: a contact failure must not fail the submission. Do not "fix" this bug inside the migration; that is a separate task. |
-| `createBookingEvent` | **All three** outcomes — healthy, degraded (event exists, no link), failed (no event) — and the correct banner in the partner email for each. The three-state design exists precisely because a two-state one was silently wrong. |
+| ~~`createContact`~~ **— NOT BUILT, and correctly so (closed 2026-07-15).** | This was listed as coverage for the failing-`ContactsApp` case. It was **never built**, and that is the right call: `createContact` is **schema-agnostic** — it takes a payload, touches only `ContactsApp`, reads no lead tab — so the migration called it **unchanged** and never had reason to test it. This coverage is **intentionally not part of this migration.** It belongs to the separate, already-tracked **`createContact` failing-silently investigation** (`backend-architecture.md` → *Known open defects* §1), which owns both the root-cause and the test. This §5 line is retracted, not deferred. |
+| ~~`createBookingEvent`~~ **— NOT BUILT, and correctly so (closed 2026-07-15).** | Same reasoning: `createBookingEvent`'s three-state design (healthy / degraded / failed) is **schema-agnostic** and was called unchanged throughout the migration. Its three-state coverage was never built and is **intentionally out of scope** for the schema migration. If that coverage is wanted, it is a standalone test task against the existing (unchanged) function, not a migration deliverable. This §5 line is retracted, not deferred. |
 
 ### The suite's core rule, restated because it is the one that matters
 
@@ -1021,6 +1034,32 @@ Do it deliberately.
 7. Edit a `Status` cell by hand and confirm the Contacts side effect; type an email
    into `Referred By Email` and confirm the referral links. Exercise the two triggers
    (`moveColdLeads`, the digests) via the **AxisPoint** menu if convenient.
+8. **Test real CONCURRENCY against the shared lock — the one thing the test suite
+   cannot prove.** Every lock's tests are honest that they verify only *where* the lock
+   sits (before the read, released on every path, refused-lock behavior); they cannot
+   prove `LockService` actually serializes concurrent executions, because there is no
+   concurrency in the Node harness — that guarantee is Google's and is observable
+   **only in the live runtime**. So deliberately exercise it here:
+   - **Two near-simultaneous cold sweeps** — fire the **AxisPoint → Run Cold Lead
+     Sweep Now** menu item twice in quick succession (or while the Monday trigger is
+     due). Confirm the second run is cleanly refused (its log line), that **exactly one
+     summary email** goes out, and that no lead is swept twice or left half-swept.
+   - **A `Status` edit during a running sweep** — with several stale leads queued,
+     start a sweep and hand-edit a lead's `Status` to `Client` mid-run. Confirm the
+     sweep's pre-write re-read leaves that lead alone and does not clobber the human
+     edit with a stale `Cold`.
+   - **Two rapid submissions on the same referral chain** (e.g. two people submitting
+     with the same referrer's code within a second) — confirm **no lost counter
+     update**: the referrer's `Direct Referrals` / `Total Downstream` reflect **both**,
+     and no ancestor is under-credited.
+   - **A resubmission racing a sweep** — resubmit an existing lead while a sweep runs;
+     confirm the `Details` blob is **not corrupted** and the resubmission's message
+     either lands intact or is cleanly skipped with the `MANUAL REPAIR NEEDED` log — never
+     a half-written blob.
+   A green suite passing all lock tests is **necessary and not sufficient** for any of
+   this. If a lost update or a corrupted blob shows up here, the shared-lock model
+   needs live rework (e.g. deriving counters from the Referrals tab) — do **not** treat
+   a clean deploy as proof the concurrency is correct.
 
 **If anything in Phase C fails:** set `USE_UNIFIED_SCHEMA = false`, `clasp push` +
 `clasp deploy -i` again. The legacy tabs and bodies are intact; production is restored.
