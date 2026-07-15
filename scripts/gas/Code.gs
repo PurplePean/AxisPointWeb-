@@ -1834,7 +1834,7 @@ function handleResubmissionUnified(existing, payload) {
                'within ' + RESUBMISSION_LOCK_MS + 'ms, so row ' + rowIndex + ' was NOT updated. ' +
                'The lead already exists and its ID is being returned, but this resubmission\'s ' +
                'new details were dropped. Message that did not land: "' +
-               String(payload.message || '(none)') + '"');
+               String(leadMessageText(payload) || '(none)') + '"');
     var known = existing.rowData || [];
     var kc    = existing.cols || UCOLS;
     return jsonResponse({
@@ -1879,7 +1879,8 @@ function handleResubmissionUnified(existing, payload) {
     }
 
     var note = 'Resubmission on ' + today + ' (' + leadId + ')';
-    if (payload.message) note += '\n\nNew message: ' + payload.message;
+    var newMsg = leadMessageText(payload);   // EAO's is pressing_issue; see helper
+    if (newMsg) note += '\n\nNew message: ' + newMsg;
     var prior = details.message || '';
     details.message = prior ? prior + '\n\n' + note : note;
 
@@ -2362,6 +2363,7 @@ function sendResubmissionNotification(payload, existingLeadId, existingReferralC
   var name     = [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown';
   var category = roleToCategory(payload.role);
   var today    = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
+  var message  = leadMessageText(payload);   // EAO's free text is pressing_issue
 
   GmailApp.sendEmail(
     CONFIG.NOTIFY_EMAILS.join(','),
@@ -2374,7 +2376,7 @@ function sendResubmissionNotification(payload, existingLeadId, existingReferralC
       'Email:         ' + (p.email   || 'n/a'),
       'Phone:         ' + (p.phone   || 'n/a'),
       'Role:          ' + category,
-      payload.message ? '\nNew message:\n' + payload.message : '',
+      message ? '\nNew message:\n' + message : '',
       '',
       'The existing record has been updated. No duplicate row was created.',
       '',
@@ -2461,22 +2463,12 @@ function buildLeadDetails(payload, meetLink) {
      both halves of the top-level-column rule (plan §2b, settled 2026-07-14). */
   details.message = payload.message || '';
 
-  /* Comms opt-ins. EAO is a deliberate exception: normalizeEaoPayload OVERWRITES
-     payload.preferences with [eaoDetailsSummary(payload)] — a JSON string, not a
-     list of opt-ins — because the legacy schema gave EAO nowhere else to put its
-     detail fields. Under the unified schema those fields have real Details keys of
-     their own (above), so that synthetic entry is dropped rather than embedded as a
-     double-encoded string masquerading as a preference. It is filtered by exact
-     value, not by sniffing at the string, so a real preference can never be eaten.
-     (buildEAOPayload sends no preferences at all today — verified against the form
-     source — so this drops nothing real. The normalizer's hack is now obsolete and
-     should be removed when handleFormSubmission is migrated.) */
-  var prefs = (payload.preferences || []).slice();
-  if (payload.role === 'existing_asset_owner') {
-    var synthetic = eaoDetailsSummary(payload);
-    prefs = prefs.filter(function(pref) { return String(pref) !== synthetic; });
-  }
-  details.preferences = prefs;
+  /* Comms opt-ins, exactly as the visitor selected them. EAO used to arrive here
+     with a synthetic JSON entry that normalizeEaoPayload stuffed into preferences
+     (because the legacy schema gave EAO nowhere else to put its detail fields); that
+     hack is gone — EAO's detail fields now have real Details keys above — so there is
+     no longer any EAO-specific entry to filter out. */
+  details.preferences = (payload.preferences || []).slice();
 
   details.booking = b ? {
     date:     b.date     || '',
@@ -2650,10 +2642,20 @@ function categoryTabForRole(role) {
    Reshapes the flat EAO payload emitted by buildEAOPayload (frontend) into the
    generic lead payload every other role uses, so buildLeadRow, dedupe, the
    partner notification and the booking flow all work with zero role branching.
-     • person       ← name (split into first/last) + email + phone
-     • message      ← pressing_issue        (renders in the Message column + email)
-     • qualData     ← { assetClasses: [readable one-line asset summary] }
-     • preferences  ← [JSON summary of every property/situation field]  (nothing lost) */
+     • person   ← name (split into first/last) + email + phone
+     • qualData ← { assetClasses: [readable one-line asset summary] }
+
+   The EAO detail fields (portfolio_type, pressing_issue, current_situation, …)
+   stay on the payload's TOP LEVEL and are persisted into the Details blob by name
+   via the registry (detailsFrom: 'payload'). Two copies this used to make are gone:
+     • It no longer sets `message = pressing_issue`. That copy made Details.message
+       duplicate Details.pressing_issue on every EAO lead. The visitor's free text is
+       `pressing_issue`; the internal email + booking dump read it via leadMessageText(),
+       and the visitor note reads it directly (buildVisitorPersonalNote's EAO branch).
+     • It no longer stuffs `preferences = [eaoDetailsSummary(...)]`. Those fields now
+       have real Details keys of their own, so the synthetic JSON-string entry — which
+       also used to land verbatim in the Google Contact's "Preferences:" note — is
+       simply not created. */
 function normalizeEaoPayload(payload) {
   var fullName  = String(payload.name || '').trim();
   var nameParts = fullName ? fullName.split(/\s+/) : [];
@@ -2667,9 +2669,7 @@ function normalizeEaoPayload(payload) {
     phone:     payload.phone || '',
     company:   '',
   };
-  payload.message     = payload.pressing_issue || payload.message || '';
-  payload.qualData    = { assetClasses: [eaoAssetClassLabel(payload)].filter(Boolean) };
-  payload.preferences = [eaoDetailsSummary(payload)];
+  payload.qualData = { assetClasses: [eaoAssetClassLabel(payload)].filter(Boolean) };
   return payload;
 }
 
@@ -2688,9 +2688,13 @@ function eaoAssetClassLabel(payload) {
   return label ? 'Single: ' + label : '';
 }
 
-/** JSON-stringified capture of every EAO-specific field, stored in the
- *  Preferences column so no detail is lost despite there being no dedicated
- *  column per EAO field. */
+/** JSON-stringified capture of every EAO-specific field. This was the legacy
+ *  device for persisting EAO detail — normalizeEaoPayload stuffed its output into
+ *  the Preferences column because the per-tab schema gave EAO no dedicated columns.
+ *  Under the unified schema those fields have real Details keys (LEAD_TYPES
+ *  detailsFields, detailsFrom: 'payload'), so NOTHING wires this into a live path any
+ *  more. Retained with its unit test as the reference pattern the Details blob
+ *  generalized from; a candidate for deletion in the cutover cleanup. */
 function eaoDetailsSummary(payload) {
   var summary = { portfolio_type: payload.portfolio_type || '' };
   if (payload.portfolio_composition) summary.portfolio_composition = payload.portfolio_composition;
@@ -2885,6 +2889,20 @@ function buildVisitorPersonalNote(payload) {
   ].join('');
 }
 
+/** The visitor's free-text message, for INTERNAL DISPLAY and the resubmission audit
+ *  note. Every role except EAO collects a dedicated `message` (buildPayload); the EAO
+ *  flow (buildEAOPayload) has no message step — its free text is `pressing_issue` —
+ *  so that stands in. This mirrors buildVisitorPersonalNote, whose EAO branch already
+ *  reads pressing_issue directly. Non-EAO behavior is unchanged: it returns
+ *  payload.message verbatim. Storage is deliberately NOT routed through this — the
+ *  stored Details.message stays '' for EAO so it never duplicates Details.pressing_issue
+ *  (buildLeadDetails reads payload.message raw); only the display surfaces fall back. */
+function leadMessageText(payload) {
+  if (payload && payload.message) return payload.message;
+  if (payload && payload.role === 'existing_asset_owner') return payload.pressing_issue || '';
+  return '';
+}
+
 /** Joins a list into readable prose: "A", "A and B", "A, B and C". */
 function humanList(arr) {
   var a = (arr || []).filter(Boolean);
@@ -2971,13 +2989,16 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
   }
 
   // ── Message block ──
+  // EAO has no dedicated message field; its free text is pressing_issue, so
+  // leadMessageText() supplies it here (see helper). Every other role is unchanged.
+  var messageText = leadMessageText(payload);
   var messageBlock = '';
-  if (payload.message) {
+  if (messageText) {
     messageBlock =
       '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5FB;border:1px solid #E8E4F0;border-radius:8px;margin:0 0 20px;">' +
       '<tr><td style="padding:14px 16px;">' +
       '<p style="font-size:10px;font-weight:600;color:#9490A8;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 6px;">Message</p>' +
-      '<p style="font-size:13px;color:#1C1628;line-height:1.6;margin:0;white-space:pre-wrap;">' + escapeHtml(payload.message) + '</p>' +
+      '<p style="font-size:13px;color:#1C1628;line-height:1.6;margin:0;white-space:pre-wrap;">' + escapeHtml(messageText) + '</p>' +
       '</td></tr></table>';
   }
 
@@ -4621,10 +4642,13 @@ function bookingEventInternalDescription(payload, leadId) {
   }
   var origin = leadSource(payload) || payload.page;
   if (origin) lines.push('Source: ' + origin);
-  if (payload.message) {
+  // For EAO the free text is pressing_issue (no dedicated message field); the label
+  // already reads "Message / pressing issue" for exactly this reason.
+  var messageText = leadMessageText(payload);
+  if (messageText) {
     lines.push('');
     lines.push('Message / pressing issue:');
-    lines.push(payload.message);
+    lines.push(messageText);
   }
   return lines.join('\n');
 }

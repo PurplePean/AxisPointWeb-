@@ -315,12 +315,28 @@ test('normalizeEaoPayload: reshapes in place, preserves role-specific fields', (
   assert.equal(payload.person.firstName, 'Grace');
   assert.equal(payload.person.lastName, 'Hopper');
   assert.equal(payload.person.email, 'grace@navy.mil');
-  assert.equal(payload.message, 'Vacancy climbing');
   assert.ok(Array.isArray(payload.qualData.assetClasses));
-  assert.equal(payload.preferences.length, 1);
+  // It no longer copies pressing_issue onto message (that made Details.message
+  // duplicate Details.pressing_issue), nor stuffs a synthetic JSON blob into
+  // preferences (EAO's fields have real Details keys now). pressing_issue itself
+  // is untouched on the payload, and reaches the internal email via leadMessageText.
+  assert.ok(!payload.message, 'message is NOT populated from pressing_issue any more');
+  assert.ok(!payload.preferences, 'preferences is NOT synthesized from eaoDetailsSummary any more');
+  assert.equal(payload.pressing_issue, 'Vacancy climbing', 'the real field is left intact');
   // Role-specific fields must survive normalization (bookingEventInternalDescription reads them).
   assert.equal(payload.role, 'existing_asset_owner');
   assert.equal(payload.current_situation, 'Two office towers underperforming');
+});
+
+test('leadMessageText: EAO falls back to pressing_issue; every other role uses message', () => {
+  // EAO has no dedicated message field, so its free text is pressing_issue.
+  assert.equal(S.leadMessageText({ role: 'existing_asset_owner', pressing_issue: 'Debt maturing' }), 'Debt maturing');
+  assert.equal(S.leadMessageText({ role: 'existing_asset_owner' }), '');
+  // Non-EAO roles are unchanged: message verbatim, pressing_issue never consulted.
+  assert.equal(S.leadMessageText({ role: 'investor', message: 'Hi there' }), 'Hi there');
+  assert.equal(S.leadMessageText({ role: 'investor' }), '');
+  // An explicit message always wins, even for EAO.
+  assert.equal(S.leadMessageText({ role: 'existing_asset_owner', message: 'typed', pressing_issue: 'x' }), 'typed');
 });
 
 test('eaoAssetClassLabel: mixed portfolio, portfolio, single', () => {
@@ -400,7 +416,9 @@ test('bookingEventInternalDescription: full dump incl leadId, reads EAO fields p
     booking: { meetType: 'phone', phone: '555-9' },
     qualData: { assetClasses: ['Office'] },
     current_situation: 'Underperforming towers',
-    message: 'Vacancy climbing',
+    // EAO carries no `message`; its free text is pressing_issue, and the dump reads
+    // it via leadMessageText() under the "Message / pressing issue" heading.
+    pressing_issue: 'Vacancy climbing',
     source: 'qr',
   };
   const out = S.bookingEventInternalDescription(payload, 'AXP-2026-0007');
@@ -409,5 +427,6 @@ test('bookingEventInternalDescription: full dump incl leadId, reads EAO fields p
   assert.match(out, /Asset class: Office/);
   assert.match(out, /Current situation: Underperforming towers/); // role-specific field readable
   assert.match(out, /Source: QR/);
-  assert.match(out, /Vacancy climbing/);
+  assert.match(out, /Message \/ pressing issue:/);
+  assert.match(out, /Vacancy climbing/); // pressing_issue surfaces even with no message field
 });

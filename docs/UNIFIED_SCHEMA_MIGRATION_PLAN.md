@@ -270,37 +270,51 @@ rather than in `qualData` (`detailsFrom: 'payload'`), because its flow never had
 `LEAD_TYPES.seedReportsEnabled`, as a normal column. The whole
 `REPORTS_ENABLED_COL = LEAD_HEADERS.length` bug class dies with the per-tab extra.
 
-**A normalizer hack is now obsolete — was flagged for Stage 7, and STILL OPEN (not
-done).** `normalizeEaoPayload` **overwrites** `payload.preferences` with
+**A1 — the `preferences` JSON-string hack — ✅ RESOLVED 2026-07-15 (post-cutover).**
+`normalizeEaoPayload` used to **overwrite** `payload.preferences` with
 `[eaoDetailsSummary(payload)]` — a JSON *string*, not a list of opt-ins — purely
 because the legacy schema gave EAO nowhere else to put its detail fields. Under the
 unified schema those fields have real `Details` keys, so `buildLeadDetails`
-**filters that synthetic entry out by exact value** (never by sniffing the string, so
-a real preference can never be eaten). Verified against the form source:
-`buildEAOPayload` sends **no** `preferences` at all today, so nothing real is dropped.
-This hack now has no purpose. **It was flagged for removal in Stage 7 and was NOT
-removed — Stage 7 never touched `normalizeEaoPayload`.** It is currently **harmless**
-(the filter neutralizes it) but remains a real, still-open cleanup: `normalizeEaoPayload`
-should stop building `preferences` from `eaoDetailsSummary`. Do it with the normalizer,
-not the row builder. *(Audited 2026-07-15.)*
+**filtered that synthetic entry out by exact value**. That was the only reason the
+filter existed. **Now removed at the source:** the normalizer no longer builds
+`preferences` from `eaoDetailsSummary`, and the exact-value filter in
+`buildLeadDetails` is deleted with it. Re-verified against the actual current code, not
+the Stage-6 note: EAO's eight detail fields (`portfolio_type` … `pressing_issue`) each
+have a real `Details` key via the registry (`detailsFrom: 'payload'`), so nothing is
+lost. **One live consumer the "harmless" framing had missed:** `createContact` writes
+`payload.preferences` into the Google Contact's "Preferences:" note, so for EAO that
+note used to carry the raw JSON blob; it is now empty (the data lives in the Sheet's
+`Details`). `eaoDetailsSummary` is left in place with its unit test as the reference
+pattern the `Details` blob generalized from, but is now **wired into nothing** — a
+candidate for deletion in the cutover cleanup.
 
-**One faithful oddity, STILL OPEN:** EAO's `Details.message` duplicates
-`Details.pressing_issue`, because `normalizeEaoPayload` sets
-`payload.message = payload.pressing_issue`. That is the normalizer's existing behavior,
-preserved rather than quietly changed. It was flagged "worth revisiting with the
-normalizer in Stage 7" and was **not** revisited — Stage 7 left the normalizer alone.
-Harmless (a duplicated string, not a lost one) but unresolved. *(Audited 2026-07-15.)*
+**A2 — `Details.message` duplicating `Details.pressing_issue` — ✅ RESOLVED 2026-07-15
+(post-cutover).** `normalizeEaoPayload` used to set `payload.message =
+payload.pressing_issue`, so every EAO lead's `Details.message` and
+`Details.pressing_issue` carried identical text. That copy is removed:
+`Details.message` is now `''` for EAO, and `pressing_issue` lives once, in its own key.
+**This was NOT a two-line deletion:** EAO's `payload.message` was the *only* path
+`pressing_issue` reached four internal-email surfaces (partner-notification Message
+block + internal booking dump, and both resubmission notices), so a naive removal would
+have dropped it from the internal email. The holistic fix added a `leadMessageText()`
+helper that returns `payload.message` for every role (unchanged) but falls back to
+`pressing_issue` for EAO — mirroring `buildVisitorPersonalNote`, which already read
+`pressing_issue` directly. Those internal surfaces now read through the helper, so
+`pressing_issue` still surfaces everywhere it did; only the redundant *stored* copy is
+gone. Verified end-to-end by driving a real EAO submission + resubmission (Sheet,
+internal email HTML, contact note, visitor note).
 
 ### Stage 7 notes — the unified path is now FED, and what is genuinely left
 
-**Two Stage-6 cleanups were carried into Stage 7 and NOT done — correcting the record
-(audited 2026-07-15).** Stage 6 flagged two EAO normalizer items "for Stage 7": the
-`payload.preferences = [eaoDetailsSummary(...)]` hack, and `Details.message`
-duplicating `Details.pressing_issue`. Stage 7 migrated `handleFormSubmission` via the
-`persistNewLead` extraction and **never touched `normalizeEaoPayload`**, so both remain
-open. Both are harmless today (the first is neutralized by `buildLeadDetails`'s filter;
-the second is a duplicated string, not a lost one), but neither was executed — see the
-Stage-6 notes above, now corrected.
+**Two Stage-6 cleanups were carried into Stage 7 and NOT done at the time — now
+RESOLVED 2026-07-15, post-cutover.** Stage 6 flagged two EAO normalizer items "for
+Stage 7": the `payload.preferences = [eaoDetailsSummary(...)]` hack (**A1**), and
+`Details.message` duplicating `Details.pressing_issue` (**A2**). Stage 7 migrated
+`handleFormSubmission` via the `persistNewLead` extraction and **never touched
+`normalizeEaoPayload`**, so both stayed open through cutover. They were finally
+addressed in a dedicated follow-up: see the **A1/A2 RESOLVED** entries in the Stage-6
+notes above for exactly what changed. Because the switch is now live, that follow-up
+was treated as a real production change (deploy + live EAO re-test), not a tidy-up.
 
 **YES: the unified path can handle a complete real submission, end to end, for all
 five lead types.** Payload in → dedupe → referral code (collision-checked) → referrer
