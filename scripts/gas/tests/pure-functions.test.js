@@ -19,6 +19,13 @@ const assert = require('node:assert/strict');
 const { loadCode } = require('./helpers/load-code.js');
 
 const S = loadCode();
+// These are pre-dispatcher tests that assert LEGACY behavior (e.g. buildLeadRow's
+// 31-column positional row, submit_referral prose in Message). They predate the
+// USE_UNIFIED_SCHEMA switch and used to rely on its module default being false. The
+// cutover flip (2026-07-15) made false no longer the default, so pin the legacy
+// branch explicitly, exactly as every newer test file does. Deleted/rewritten for the
+// unified schema at Phase D, with the legacy bodies these exercise.
+S.USE_UNIFIED_SCHEMA = false;
 
 /* ── vm sanity guard ──────────────────────────────────────────────────────── */
 

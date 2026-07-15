@@ -3,6 +3,15 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-15 (unified-schema migration CUTOVER: switch flipped in code — Phase B step 4)
+
+- **feat(gas): `USE_UNIFIED_SCHEMA` flipped `false` → `true`** (`Code.gs`). One-value change; this is §8 Phase B step 4, the repo side of the cutover. Every dispatcher now routes to its `xxxUnified` body. **No legacy code deleted** — that is Phase D, later and separate.
+- **This ships NOTHING on its own.** GAS goes live only via manual `clasp push` + `clasp deploy -i <prod id>`; a merge deploys nothing. As of this commit **nothing is deployed and the unified path is not live.**
+- **⚠️ ORDERING — the manual steps are still pending and MUST run in §8 order:** (1) §8 **Phase A** — `clasp push`, then run **`setupSpreadsheetUnified()` by hand** from the Apps Script editor to create the `Leads` tab. **This must happen before the deploy** — with the switch `true` and the tab absent, every migrated function points at a table that does not exist and throws. (2) §8 **Phase B step 5** — deploy. (3) §8 **Phase C** — verify one live submission per lead type + the live-concurrency checks. Rollback at any point: set the switch back to `false`, push + deploy; legacy tabs and bodies are intact until Phase D.
+- **Test hygiene surfaced by the flip (necessary for a green cutover PR):** two pre-dispatcher test files — `live-sheet-functions.test.js` and `pure-functions.test.js` — asserted **legacy** behavior but never set `USE_UNIFIED_SCHEMA`, relying on its module default being `false`. Flipping the default routed their `buildLeadRow`/`moveColdLeads`/`findExistingLead`/`onSheetEdit` calls to the unified path and failed 5 tests. **Not a real regression** — the unified behavior is correct (e.g. `submit_referral`'s referred person now lands in `Details.referred`, not a Message prose block). Fixed by pinning both files to the legacy branch explicitly (`USE_UNIFIED_SCHEMA = false`), exactly as every newer test file already does; these files are deleted/rewritten at Phase D with the legacy bodies they exercise. Test-only; no production code touched beyond the one-value flip.
+- **Suite: 171/171 green with the switch flipped.** The switch comment in `Code.gs` was updated to reflect the flip and to carry the "run `setupSpreadsheetUnified()` before deploying" ordering warning inline.
+- **NOTE ON NAMING:** the task that drove this called it "Phase A," but per §8 the switch flip is **Phase B step 4**; §8's Phase A is the manual tab creation, which is still pending. The plan's execution-status and §8 intro are updated to reflect the true state.
+
 ## 2026-07-14 (unified-schema migration STAGE 9: setup — ALL 9 STAGES DONE, cutover-ready)
 
 - **refactor(gas): Stage 9 adds `setupSpreadsheetUnified` — the last stage before cutover.** With it, the migration is **code-complete**: every lead-data function is migrated (Stages 1-8) and the setup path that makes the `Leads` tab exist now exists too. `USE_UNIFIED_SCHEMA` is still **off**; nothing has changed in production.
