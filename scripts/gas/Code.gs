@@ -162,7 +162,17 @@ var CONFIG = {
 
    NOTE: 'Client' is a Category value too, but it is NOT a lead type — it is a
    status a lead is promoted into via the Status column. It is therefore absent
-   here and handled explicitly in contactGroupForCategory(). */
+   here and handled explicitly in contactGroupForCategory().
+
+   .tab / .tabColor — DO NOT REMOVE YET (verified Stage 9, 2026-07-14). These become
+   meaningless under the unified schema, but they are STILL READ by code that survives
+   until cutover: the legacy bodies (persistNewLeadLegacy, onSheetEditLegacy, legacy
+   setupSpreadsheet, updateReferrerStatsLegacy) and every §4 delete-at-cutover function
+   (the header audit/repair family, eaoBackfillPlan, categoryTabForRole →
+   setCategoryTabStatus). Removing these fields now would break the legacy branch the
+   staging pattern requires to stay byte-for-byte intact. They come out AT CUTOVER,
+   together with the code that reads them — it is a line item on the cutover checklist
+   in UNIFIED_SCHEMA_MIGRATION_PLAN.md, not a Stage 9 change. */
 var LEAD_TYPES = {
   investor: {
     category:           'Investor',
@@ -5011,6 +5021,61 @@ function setProperties() {
     'BOOKING_CALENDAR_ID': 'c_c6da83c28bffd2cb7bb374dc8376bbc54d31eac404f3b26023d82e42dffae709@group.calendar.google.com'
   });
   Logger.log('Properties set successfully');
+}
+
+/* ── setupSpreadsheetUnified: create the ONE lead table + Referrals + Subscribers ──
+   MIGRATED (Stage 9). Deliberately NOT a dispatcher on USE_UNIFIED_SCHEMA, and NOT a
+   rewrite of setupSpreadsheet — it is a SEPARATE, explicitly-named entry point. Two
+   reasons, both about how this function is actually used:
+
+   1. It is a MANUAL admin action, run by hand from the Apps Script editor — never
+      from a request path. `clasp deploy` does not create tabs; running this is what
+      makes the Leads tab exist for the first time.
+
+   2. Chicken-and-egg with the switch. The Leads tab must exist BEFORE
+      USE_UNIFIED_SCHEMA flips (a migrated function pointed at a missing tab throws).
+      So at cutover you run THIS, and only then flip the switch. A switch-gated setup
+      function would create the LEGACY tabs while the switch is still off — exactly
+      backwards. A separate name means the operator calls the thing they mean.
+
+   The legacy setupSpreadsheet() below is left completely untouched: it still creates
+   and repairs the 11 legacy tabs, which is needed right up until cutover.
+
+   THE EMPTY-TAB GUARD IS KEPT (getLastRow() === 0). Never touch a tab that already
+   holds data — the same hard-won Sheet-safety rule the legacy function follows. On a
+   second run this is all no-ops. */
+function setupSpreadsheetUnified() {
+  var id = getProp('SPREADSHEET_ID');
+  if (!id) {
+    throw new Error('Run setProperties() first to configure SPREADSHEET_ID and SCRIPT_URL');
+  }
+  var ss = SpreadsheetApp.openById(id);
+
+  /* Exactly three tabs. Referrals and Subscribers keep their OWN schemas
+     (REFERRAL_HEADERS / SUBSCRIBER_HEADERS) — verified against §1 of the migration
+     plan: they were never part of this migration, so their headers here are the same
+     literals the legacy setup writes. Only the lead table changes: nine tabs sharing
+     LEAD_HEADERS collapse to one Leads tab on UNIFIED_LEAD_HEADERS (25 cols incl.
+     Details). */
+  var specs = [
+    { name: CONFIG.TABS.LEADS,       headers: UNIFIED_LEAD_HEADERS, color: '#24A5BC' },
+    { name: CONFIG.TABS.REFERRALS,   headers: REFERRAL_HEADERS,     color: '#38285D' },
+    { name: CONFIG.TABS.SUBSCRIBERS, headers: SUBSCRIBER_HEADERS,   color: '#9F328C' },
+  ];
+
+  specs.forEach(function(spec) {
+    var sheet = ss.getSheetByName(spec.name) || ss.insertSheet(spec.name);
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(spec.headers);
+      sheet.getRange(1, 1, 1, spec.headers.length)
+        .setFontWeight('bold')
+        .setBackground(spec.color)
+        .setFontColor('#FFFFFF');
+      sheet.setFrozenRows(1);
+    }
+  });
+
+  Logger.log('setupSpreadsheetUnified: Leads + Referrals + Subscribers ready (3 tabs).');
 }
 
 function setupSpreadsheet() {

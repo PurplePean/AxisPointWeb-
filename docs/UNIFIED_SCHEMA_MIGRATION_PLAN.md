@@ -16,9 +16,9 @@ Nothing in this document is waiting on an answer.
 | **6** | **`buildLeadRow`** — the 25-column layout + the serialized `Details` blob. **§2a AND §2b SHIPPED IN CODE HERE** (they had been decisions in this document and nothing more): all 13 `qualData` fields persist per lead type, and `submit_referral.referred` is structured JSON with the prose builder **deleted, not ported**. The per-role field lists live in `LEAD_TYPES.detailsFields` — the registry, so there is no second list to drift | ✅ **DONE 2026-07-14.** 124/124 tests green. Not deployed; the switch is off. |
 | **7** | **The submission path** — `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (the extracted append block), with `handleFormSubmission` orchestrating. **The unified path can now handle a COMPLETE REAL SUBMISSION end to end for all five lead types** — the first stage where that is true. `buildReferralMatch` needed no migration (schema-agnostic: row + column map, and every key it uses is in both `COLS` and `UCOLS`) | ✅ **DONE 2026-07-14.** 145/145 tests green. Not deployed; the switch is off. |
 | **8** | **`sendDailyDigest` + `sendMonthlyReferralSummaries`** — the last two readers of the legacy tabs. **Also their first test coverage of any kind** (12 tests). The digest filters the one table by today's CT date (it read **Lifetime Leads**, not Active Leads — the plan's §3 was wrong; corrected) and pulls Asset Class + Booking out of `Details`. The summary filters on `Category = 'Referral Partner'` and reads `Reports Enabled` as an ordinary column via `resolveUnifiedCols` — so `reportsEnabledIndex`/`headerIndex` are no longer needed on the unified path. Both **read-only → no lock** (confirmed). | ✅ **DONE 2026-07-14.** 162/162 tests green. Not deployed; the switch is off. |
-| 9 | **`setupSpreadsheet`** (creates `Leads` + `Referrals` + `Subscribers` instead of 11 tabs), the **`LEAD_TYPES` registry** (`.tab`/`.tabColor` come out), and **`resolveCols`/`COLS`/`LEAD_HEADERS`**. `setupSpreadsheet` is the one that **must be run by hand from the Apps Script editor** — `clasp deploy` does not create tabs, and skipping it is exactly what broke EAO. | ⬜ Not started |
+| **9** | **`setupSpreadsheetUnified`** — a SEPARATE explicit entry point (deliberately **not** a switch dispatcher: the `Leads` tab must exist *before* the switch flips, so a gated setup would create legacy tabs while the switch is still off). Creates **exactly** `Leads` (25-col unified schema) + `Referrals` + `Subscribers` (both unchanged), empty-tab guard kept. **Must be run by hand from the Apps Script editor** at cutover — `clasp deploy` does not create tabs; this is what makes `Leads` exist for the first time. **FINDING: `.tab`/`.tabColor` do NOT come out of the registry yet** — every reader is a legacy body or a §4 delete-at-cutover function, all surviving until cutover, so removing them now breaks the legacy branch. Their removal is a cutover line item, not Stage 9. | ✅ **DONE 2026-07-14.** 171/171 tests green. Not deployed; the switch is off. |
 | — | **`setCategoryTabStatus` is NOT a stage.** It is a §4 delete-outright, and it cannot be deleted before the cutover removes `moveColdLeadsLegacy`, which still calls it. Skip it in the sequence; do not "migrate" it. | ⬜ At cutover |
-| Cutover | Flip `USE_UNIFIED_SCHEMA`, run `setupSpreadsheet()`, deploy, delete the legacy bodies (§6) | ⬜ Not started |
+| **CUTOVER** | **All 9 stages complete.** Flip the switch, run setup by hand, deploy, verify live, then delete the legacy code. Executable step-by-step in **§8 Cutover checklist** below. | ⬜ Ready, not started |
 
 ### The staging pattern — Stage 2 MUST follow this exactly
 
@@ -412,6 +412,37 @@ Booking Time were top-level columns in the legacy schema but are `Details` keys 
 positionally would have silently dropped them from every digest line, which no test
 would have caught before this stage, because there were no tests.
 
+### Stage 9 notes — setup is done; ALL NINE STAGES COMPLETE
+
+**`setupSpreadsheetUnified` is a new, separate function — NOT a dispatcher, and NOT a
+rewrite of `setupSpreadsheet`.** Two reasons, both about how it is used:
+
+- It is a **manual admin action**, run by hand from the Apps Script editor, never from
+  a request path. Running it is what makes the `Leads` tab *exist*.
+- **Chicken-and-egg with the switch.** The `Leads` tab must exist **before**
+  `USE_UNIFIED_SCHEMA` flips (a migrated function pointed at a missing tab throws). If
+  setup were gated on the switch, running it while the switch is still off would create
+  the **legacy** tabs — exactly backwards. A separate name means the operator calls the
+  thing they mean, and the cutover order is unambiguous: run this, *then* flip.
+
+Legacy `setupSpreadsheet()` is **untouched** and still creates/repairs the 11 legacy
+tabs, which is needed right up until cutover.
+
+**`.tab`/`.tabColor` did NOT come out of the registry — and the task's own verification
+step is why.** "Confirm nothing else still reads them" was the instruction; the answer
+is that **many things do**: the legacy bodies (`persistNewLeadLegacy`,
+`onSheetEditLegacy`, `updateReferrerStatsLegacy`, legacy `setupSpreadsheet`) and every
+§4 delete-at-cutover function (the header audit/repair family, `eaoBackfillPlan`,
+`categoryTabForRole` → `setCategoryTabStatus`). All of them survive until cutover as the
+rollback path, so removing the fields now would break the legacy branch the staging
+pattern requires to stay byte-for-byte intact. **The fields come out AT CUTOVER, with
+the code that reads them** — it is a line item in §8, and a test asserts they are still
+present so an early cleanup fails loudly rather than silently breaking the legacy tests.
+
+**Referrals and Subscribers are genuinely unchanged**, re-confirmed against §1: they
+keep `REFERRAL_HEADERS` / `SUBSCRIBER_HEADERS`, and `setupSpreadsheetUnified` writes the
+same header literals the legacy setup does. They were never part of this migration.
+
 ---
 
 **Scope:** the Google Sheet CRM schema, and the `Code.gs` functions that read and
@@ -795,7 +826,7 @@ Every function below reads or writes the lead tabs and therefore changes. Risk i
 | ✅ **`findExistingLead` / `existingReferralCodes` / `matchReferrer` / `handleResubmission`** — **MIGRATED 2026-07-14 (Stage 7).** All now scan `leadsTable()` via `resolveUnifiedCols`. **`buildReferralMatch` needed NO migration** — it takes a row + a column map and every key it uses is in both `COLS` and `UCOLS`, so both branches call the same one. **`handleResubmission` is the exception to "logic otherwise unchanged":** it appended to the Message *cell*, and Message is now a `Details` key, so it became a **read-modify-write of the JSON blob** — and therefore takes the shared script lock. | 🟢 Was rated low-medium. **`handleResubmission` was not:** a silent `findExistingLead` miss duplicates a lead on every resubmission, and a lost blob write loses a paragraph the visitor typed. |
 | ✅ **`sendDailyDigest`** — **MIGRATED 2026-07-14 (Stage 8).** Retargets to the one table, same today's-CT-date filter, and reads Asset Class + Booking out of `Details` (no longer columns). **CORRECTION:** it reads **Lifetime Leads**, not Active Leads as this row claimed — verified against the code. First-ever test coverage. | 🟢 Low. |
 | ⚠️ **CORRECTED 2026-07-14 (Stage 4). `handleManualReferralLink` ✅ MIGRATED (Stage 5).** ~~`handleCategoryEdit` (2667) / `handleManualReferralLink` (2564) / `moveContactToCold` (2508) — retarget from a tab to the table.~~ **These three are not one group and two of them need no retarget at all.** • **`handleCategoryEdit` — NO MIGRATION NEEDED.** It reads no tab: its inputs are `rowData` + a column map, its only column is `EMAIL` (a key in both `COLS` and `UCOLS`), and its body is pure `ContactsApp`. Already schema-agnostic; verified through `onSheetEditUnified`. • **`moveContactToCold` — likewise**, it takes an email and touches only Contacts. • ✅ **`handleManualReferralLink` — the ONLY real one. Migrated 2026-07-14 (Stage 5):** dispatcher over `handleManualReferralLinkUnified` / `…Legacy`; the referrer lookup scans `leadsTable()` via `resolveUnifiedCols`; script-locked **around the row write only** (its downstream calls take the same lock themselves — see the Stage-5 notes on reentrancy). Covered by `manual-referral-link.test.js` (9 tests). | 🟢 Low for the two that need nothing. ✅ Done for the one that did. **The `createContact` defect** in `backend-architecture.md` still applies to the Contacts side of all of them. |
-| **`setupSpreadsheet`** (3462) | Creates 11 tabs from `leadTabConfigs()`. Becomes: create **`Leads` + `Referrals` + `Subscribers`** (3 tabs). Keep the `getLastRow() === 0` guard. | 🟠 Medium. **This is the function that must be run manually from the Apps Script editor** to create the new tab. `clasp deploy` does not create tabs — skipping this step is exactly what broke EAO. |
+| ✅ **`setupSpreadsheet`** — **MIGRATED 2026-07-14 (Stage 9)** as a NEW separate function `setupSpreadsheetUnified` (not a switch dispatcher — see the Stage-9 notes for the chicken-and-egg reason). Creates `Leads` + `Referrals` + `Subscribers`, empty-tab guard kept. Legacy `setupSpreadsheet` untouched, still creates 11 tabs until cutover. | 🟠 Medium. **This is the function that must be run manually from the Apps Script editor** to create the new tab. `clasp deploy` does not create tabs — skipping this step is exactly what broke EAO. |
 | **`LEAD_TYPES` / `leadTabConfigs` / `categoryTabForRole` / `leadTypeTabConfigs`** (146-254) | `.tab` and `.tabColor` become meaningless and come out of the registry. `.category`, `.contactGroup`, `.normalizer`, `.seedReportsEnabled` all stay. The registry itself **survives and stays the single definition site.** | 🟢 Low. |
 | **`resolveCols`** (1175) + `COLS` + `LEAD_HEADERS` | Rewritten against the new 25-column layout. **The function's contract does not change and must not be weakened:** resolve by name, **throw `headerLookupError` on a miss, never return a silent `-1`.** | 🟠 Medium. It is the safety floor the entire rewrite stands on. |
 | **`reportsEnabledIndex`** (1138) / **`headerIndex`** (1124) | `Reports Enabled` becomes a standard column resolved by `resolveCols` like any other. Both helpers likely **delete outright** — `headerIndex`'s only remaining caller is `reportsEnabledIndex`. | 🟢 Low. |
@@ -943,3 +974,109 @@ not grow to include:
 
 Those are later phases with their own plans. **This file is schema-migration-specific
 and stays that way.**
+
+---
+
+## 8. Cutover checklist — ALL 9 STAGES DONE, this is the executable runbook
+
+Every stage (1-9) is merged. `USE_UNIFIED_SCHEMA` is `false`, so nothing above has
+changed production; every dispatcher runs its `xxxLegacy` body. This section is the
+one remaining action, written as a checklist so it is **executed, not re-derived.**
+
+**Read this whole section before starting. Steps are ordered; the order is the safety.**
+
+⚠️ **This is the step where the migration stops being a no-op and ships toward
+production.** Per `CLAUDE.md` there is no staging gate — once deployed, this is live.
+Do it deliberately.
+
+### Phase A — make the new tab exist (no code change, fully reversible)
+
+1. **`clasp push`** the current `main` (all 9 stages) to Apps Script HEAD. This does
+   **not** touch the live `/exec` endpoint yet — HEAD only.
+2. From the **Apps Script editor**, run **`setupSpreadsheetUnified()`** by hand. This
+   creates `Leads` + `Referrals` + `Subscribers`. `clasp deploy` does **not** create
+   tabs — this manual run is the only thing that does, and skipping it is exactly what
+   broke EAO. The empty-tab guard means it is safe to re-run.
+3. Confirm the `Leads` tab exists with the 25-column header (`Details` last). The nine
+   legacy lead tabs still exist and are untouched — that is the rollback path.
+
+### Phase B — flip the switch and deploy
+
+4. In `Code.gs`, set **`var USE_UNIFIED_SCHEMA = true;`**. Commit on a branch, PR,
+   merge (the suite must be green — every unified branch is already tested).
+5. **`clasp push`** then **`clasp deploy -i <PROD_DEPLOYMENT_ID>`** (the pinned
+   production deployment in `deployment.md`). **Both steps** — pushing alone updates
+   HEAD only; the live `/exec` URL is a pinned version, so a merge ships nothing until
+   the `deploy -i`. If `clasp` throws `invalid_grant`/`invalid_rapt`, that is Google
+   reauth, not a real error: `clasp login` and re-run.
+
+### Phase C — verify live, per lead type (the only proof that counts)
+
+6. Submit **one real form per lead type** — Investor, Referral Partner, RE
+   Professional, Existing Asset Owner, submit_referral — against the live endpoint.
+   For each, confirm on the real `Leads` tab: the row landed, `Details` is a readable
+   blob with that type's fields, referral columns populated where applicable, and the
+   confirmation + partner emails sent. A green suite is necessary and **not
+   sufficient** — this is the step that proves it actually works.
+7. Edit a `Status` cell by hand and confirm the Contacts side effect; type an email
+   into `Referred By Email` and confirm the referral links. Exercise the two triggers
+   (`moveColdLeads`, the digests) via the **AxisPoint** menu if convenient.
+
+**If anything in Phase C fails:** set `USE_UNIFIED_SCHEMA = false`, `clasp push` +
+`clasp deploy -i` again. The legacy tabs and bodies are intact; production is restored.
+**Do not proceed to Phase D until Phase C has passed for every lead type.**
+
+### Phase D — delete the legacy code (only after Phase C passes)
+
+This is the teardown. Nothing here runs while `USE_UNIFIED_SCHEMA` is `true`, but it is
+dead weight and a footgun until removed. Delete, in one PR:
+
+**The 13 `xxxLegacy` bodies** (and collapse each dispatcher to call the unified body
+directly, then drop the `xxxUnified` name if you like — or leave it):
+`updateReferrerStatsLegacy`, `moveColdLeadsLegacy`, `handleStatusEditLegacy`,
+`onSheetEditLegacy`, `handleManualReferralLinkLegacy`, `buildLeadRowLegacy`,
+`findExistingLeadLegacy`, `existingReferralCodesLegacy`, `matchReferrerLegacy`,
+`handleResubmissionLegacy`, `persistNewLeadLegacy`, `sendDailyDigestLegacy`,
+`sendMonthlyReferralSummariesLegacy`. Then delete the `USE_UNIFIED_SCHEMA` switch
+itself and the `RETIRE THIS` timeouts if they are no longer referenced.
+
+**The header audit/repair family** (existed only because nine tabs could drift
+independently): `expectedHeadersFor`, `leadTabHeaderAudit`, `renderLeadTabHeaderDetail`,
+`auditLeadTabHeadersSummary`, `auditLeadTabHeaderDetail`, `headerRewriteRefusal`,
+`rewriteLeadTabHeaderRow`, `formatHeaderRowForLog`, `repairLeadTabHeader`,
+`repairAllDriftedLeadTabHeaders`. *(Optionally run `auditLeadTabHeadersSummary()` one
+last time before deleting, as a read-only diagnostic.)*
+
+**The EAO backfill family** (existed only because rows fell into the gap between
+Lifetime Leads and a missing category tab — no category tabs now, no gap):
+`eaoBackfillPlan`, `countMissingEaoCategoryRows`, `backfillEaoCategoryRows`, and
+`openCrmSpreadsheet` (grep first — delete only if it has no other caller at that
+moment).
+
+**The per-tab-extra resolvers**, now that `Reports Enabled` is a standard column:
+`reportsEnabledIndex` and `headerIndex` (`headerIndex`'s only caller is
+`reportsEnabledIndex`).
+
+**`setCategoryTabStatus`** — its only job was syncing a duplicated row's Status across
+tabs; with one row there is nothing to sync. Its only caller was `moveColdLeadsLegacy`,
+now deleted.
+
+**The legacy column layer:** `resolveCols`, `COLS`, `LEAD_HEADERS`, and the legacy
+`setupSpreadsheet`. Once every `xxxLegacy` body above is gone, these have no readers.
+Keep the resilient-matching helpers (`normalizeHeaderName`, `findHeaderIndex`,
+`describeHeaderRow`, `headerLookupError`) — `resolveUnifiedCols` still uses them.
+
+**The registry fields:** remove `.tab` and `.tabColor` from `LEAD_TYPES`, and the
+helpers that exist only to read them (`leadTabConfigs`, `leadTypeTabConfigs`,
+`categoryTabForRole`) — grep each for remaining callers first. Keep `.category`,
+`.contactGroup`, `.normalizer`, `.seedReportsEnabled`, `.detailsFields`, `.detailsFrom`.
+
+**The tests:** delete every `legacy branch (flag off)` test (they assert behavior that
+no longer exists), and the Stage-9 test asserting `.tab`/`.tabColor` are still present.
+The unified tests become the whole suite.
+
+### Phase E — remove the old tabs (optional, last)
+
+8. Once Phase D has shipped and run clean for a while, the nine legacy lead tabs in the
+   Sheet can be deleted by hand. They hold no data (they never did — the migration ran
+   on an empty Sheet) and nothing reads them. This is cosmetic; there is no rush.
