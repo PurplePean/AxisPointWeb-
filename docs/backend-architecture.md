@@ -36,10 +36,17 @@ path and are deleted only at cutover.
 | 6 | `buildLeadRow` | Builds the 25-column row + the `Details` JSON blob. **This is where the two data-fidelity fixes shipped** — see below. |
 | 7 | `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (+ `handleFormSubmission` orchestrating) | The whole submission path. Three appends become **one**. `handleResubmission` read-modify-writes `Details.message` under the shared lock. **`buildReferralMatch` needed no migration** — schema-agnostic. |
 | 8 | `sendDailyDigest`, `sendMonthlyReferralSummaries` | The last two legacy-tab readers. Digest filters the one table by today's CT date; summary filters on `Category = 'Referral Partner'` and reads `Reports Enabled` as a standard column. **Read-only → no lock.** First test coverage either function has ever had. |
+| 9 | `setupSpreadsheetUnified` (new, separate) | Creates `Leads` + `Referrals` + `Subscribers`. **Not** switch-gated (the `Leads` tab must exist *before* the switch flips). Run by hand at cutover. `.tab`/`.tabColor` stay in the registry until cutover — the legacy branch still reads them. |
 
-**As of Stage 8, every function that reads or writes lead DATA is migrated.** What
-remains is setup/teardown (Stage 9: `setupSpreadsheet`, the `LEAD_TYPES` registry,
-`resolveCols`/`COLS`/`LEAD_HEADERS`) and the cutover itself.
+**ALL 9 STAGES COMPLETE. The migration is code-complete and cutover-ready.** Every
+function that reads or writes lead data is migrated, and the setup path to create the
+`Leads` tab exists. `USE_UNIFIED_SCHEMA` is still `false` — nothing has changed in
+production. The remaining action is the **cutover**, a step-by-step runbook in
+`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → **§8**: `clasp push` → run
+`setupSpreadsheetUnified()` by hand → flip the switch → `clasp push` + `clasp deploy -i`
+→ verify one live submission per lead type → then delete every `xxxLegacy` body, the
+header audit/repair family, the EAO backfill family, `setCategoryTabStatus`,
+`reportsEnabledIndex`/`headerIndex`, and the legacy column layer.
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
@@ -393,7 +400,8 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
-| `setupSpreadsheet()` | Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. |
+| `setupSpreadsheet()` | **Legacy.** Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. Kept until cutover. |
+| `setupSpreadsheetUnified()` | **Stage 9.** The unified counterpart: creates **exactly** `Leads` (25-col `UNIFIED_LEAD_HEADERS`, `Details` last) + `Referrals` + `Subscribers` (both unchanged schemas). Same `getLastRow() === 0` guard. **Separate function, not switch-gated** — the `Leads` tab must exist before `USE_UNIFIED_SCHEMA` flips, so at cutover you run this by hand *then* flip. |
 | `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `leadTabHeaderAudit`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
 | `setupTriggers()` | Creates the four triggers above. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
