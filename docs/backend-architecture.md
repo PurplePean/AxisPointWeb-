@@ -35,6 +35,11 @@ path and are deleted only at cutover.
 | 5 | `handleManualReferralLink` | The referrer lookup scans the one `Leads` table instead of Lifetime Leads. Script-locked around the row write only (the lock is **not** reentrant — see below). |
 | 6 | `buildLeadRow` | Builds the 25-column row + the `Details` JSON blob. **This is where the two data-fidelity fixes shipped** — see below. |
 | 7 | `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (+ `handleFormSubmission` orchestrating) | The whole submission path. Three appends become **one**. `handleResubmission` read-modify-writes `Details.message` under the shared lock. **`buildReferralMatch` needed no migration** — schema-agnostic. |
+| 8 | `sendDailyDigest`, `sendMonthlyReferralSummaries` | The last two legacy-tab readers. Digest filters the one table by today's CT date; summary filters on `Category = 'Referral Partner'` and reads `Reports Enabled` as a standard column. **Read-only → no lock.** First test coverage either function has ever had. |
+
+**As of Stage 8, every function that reads or writes lead DATA is migrated.** What
+remains is setup/teardown (Stage 9: `setupSpreadsheet`, the `LEAD_TYPES` registry,
+`resolveCols`/`COLS`/`LEAD_HEADERS`) and the cutover itself.
 
 **As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
 row-deleting functions are migrated; their deletion logic was removed rather than
@@ -362,9 +367,9 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 
 | Function | Schedule | Purpose |
 |---|---|---|
-| `sendDailyDigest` | daily, `atHour(18)` (6 pm CT) | Plain-text digest of leads whose **Timestamp** falls on today's CT calendar date (ISO parsed, formatted to CT `MM/dd/yyyy`), to `NOTIFY_EMAILS`. Silent if none. |
+| `sendDailyDigest` | daily, `atHour(18)` (6 pm CT) | Plain-text digest of leads whose **Timestamp** falls on today's CT calendar date (ISO parsed, formatted to CT `MM/dd/yyyy`), to `NOTIFY_EMAILS`. Silent if none. **Reads Lifetime Leads** (not Active Leads — an earlier version of this doc misstated that). Migrated Stage 8; the unified path reads the one table and pulls Asset Class + Booking out of `Details`. |
 | `moveColdLeads` | weekly, Monday `atHour(8)` **+ the "Run Cold Lead Sweep Now" menu item** | **Legacy (live today):** sweeps Active-Leads rows with status in `[New Lead, Contacted, Active]` whose **Timestamp** is older than `COLD_LEAD_DAYS` (60) → **appends the row to Cold Leads and deletes it from Active**, updates category tab status, moves the Google Contact to the Cold group, emails a summary. **Unified (migrated Stage 2, gated off):** identical selection, but sets `Status = 'Cold'` in place — **no append, no `deleteRow`, no category-tab sync** — then does the Contact move and summary email outside the script lock. |
-| `sendMonthlyReferralSummaries` | `onMonthDay(1)` `atHour(9)` | Tallies per-referrer totals from the Referrals tab, emails each Referral Partner (skips `Cold`/`Archive` status, skips `Reports Enabled = FALSE`, skips zero-referral partners). |
+| `sendMonthlyReferralSummaries` | `onMonthDay(1)` `atHour(9)` | Tallies per-referrer totals from the Referrals tab, emails each Referral Partner (skips `Cold`/`Archive` status, skips `Reports Enabled = FALSE`, skips zero-referral partners). Migrated Stage 8; the unified path filters the one table on `Category = 'Referral Partner'` and reads `Reports Enabled` as a standard column (no `reportsEnabledIndex`). |
 
 ## `onEdit` trigger
 
