@@ -3071,7 +3071,90 @@ function sendPartnerNotification(payload, leadId, referralCode, referralMatch, m
    JOB 2 — DAILY DIGEST  (6 pm CT)
    ════════════════════════════════════════════════════════════ */
 
+/* ── sendDailyDigest ── MIGRATED (Stage 8).
+   Read-only: it reads lead rows and emails a digest, writing no cell. So NO lock —
+   there is no row it could race anyone on. (Confirmed, not assumed.) */
 function sendDailyDigest() {
+  return USE_UNIFIED_SCHEMA ? sendDailyDigestUnified() : sendDailyDigestLegacy();
+}
+
+/* THE UNIFIED IMPLEMENTATION. Same today-filter, one table instead of Lifetime Leads.
+
+   THE ONE REAL DIFFERENCE beyond the tab: Asset Class and Booking are no longer
+   top-level columns — they live in the Details blob (Stage 6). Reading them
+   positionally would silently drop them from every digest line, so they are parsed
+   back out of Details here. Everything else (name, category, email, phone, source,
+   referred-by) is still a real column. */
+function sendDailyDigestUnified() {
+  try {
+    var sheet = leadsTable();
+    if (!sheet || sheet.getLastRow() < 2) return;   // no data rows → nothing to digest
+    var C = resolveUnifiedCols(sheet);
+
+    var today = Utilities.formatDate(new Date(), 'America/Chicago', 'MM/dd/yyyy');
+    var rows  = sheet.getDataRange().getValues().slice(1).filter(function(r) {
+      var ts = new Date(r[C.TIMESTAMP]);
+      if (isNaN(ts)) return false;
+      return Utilities.formatDate(ts, 'America/Chicago', 'MM/dd/yyyy') === today;
+    });
+
+    if (rows.length === 0) {
+      Logger.log('sendDailyDigest: no new leads today.');
+      return;
+    }
+
+    var n = rows.length;
+    var blocks = rows.map(function(r) {
+      var name = [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' ') || 'Unknown';
+      var refLine = r[C.REF_BY_NAME]
+        ? 'Referred By: ' + r[C.REF_BY_NAME] + ' (' + r[C.MATCH_TYPE] + ')'
+        : '';
+
+      // Asset Class + Booking come out of Details now, not columns. A malformed blob
+      // must not break the whole digest, so parse defensively.
+      var details = {};
+      try { details = JSON.parse(r[C.DETAILS] || '{}') || {}; } catch (e) { details = {}; }
+      var assetClass = details.assetClass || '';
+      var booking    = details.booking || null;
+      var bookingLine = (booking && booking.date)
+        ? 'Booking:     ' + booking.date + ' at ' + (booking.slot || '')
+        : '';
+
+      return [
+        'Lead ID:     ' + r[C.LEAD_ID],
+        'Name:        ' + name,
+        'Role:        ' + r[C.CATEGORY],
+        'Email:       ' + r[C.EMAIL],
+        'Phone:       ' + r[C.PHONE],
+        assetClass ? 'Asset Class: ' + assetClass : '',
+        bookingLine,
+        'Source:      ' + r[C.SOURCE],
+        refLine,
+      ].filter(function(l) { return l && l.slice(-1) !== ':'; }).join('\n');
+    });
+
+    GmailApp.sendEmail(
+      CONFIG.NOTIFY_EMAILS.join(','),
+      'AxisPoint: ' + n + ' new lead' + (n > 1 ? 's' : '') + ' today (' + today + ')',
+      [
+        n + ' new lead' + (n > 1 ? 's' : '') + ' submitted on ' + today + '.',
+        '',
+        blocks.join('\n\n───────────────────────────\n\n'),
+        '',
+        'Sheet: https://docs.google.com/spreadsheets/d/' + getProp('SPREADSHEET_ID'),
+      ].join('\n'),
+      { name: CONFIG.SENDER_NAME }
+    );
+
+    Logger.log('sendDailyDigest: emailed digest for ' + n + ' lead(s).');
+  } catch (err) {
+    Logger.log('sendDailyDigest error: ' + err);
+  }
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. Reads Lifetime Leads; Asset Class and
+   Booking are still top-level columns here. */
+function sendDailyDigestLegacy() {
   try {
     var sheet = tab(CONFIG.TABS.LIFETIME_LEADS);
     if (!sheet || sheet.getLastRow() < 2) return;   // no data rows → nothing to digest
@@ -3135,7 +3218,115 @@ function sendDailyDigest() {
    JOB 2b — MONTHLY REFERRAL SUMMARIES  (1st of month, 9 am CT)
    ════════════════════════════════════════════════════════════ */
 
+/* ── sendMonthlyReferralSummaries ── MIGRATED (Stage 8).
+   Read-only (reads partners + the Referrals tab, emails each partner). NO lock. */
 function sendMonthlyReferralSummaries() {
+  return USE_UNIFIED_SCHEMA
+    ? sendMonthlyReferralSummariesUnified()
+    : sendMonthlyReferralSummariesLegacy();
+}
+
+/* THE UNIFIED IMPLEMENTATION.
+
+   Two changes from legacy, both consequences of one table:
+     1. Partners are not a TAB, they are the rows of the one table where
+        Category === 'Referral Partner'. So it reads leadsTable() and filters, rather
+        than reading a Referral Partners tab that no longer exists.
+     2. Reports Enabled is a STANDARD column now (UNIFIED_LEAD_HEADERS), resolved by
+        resolveUnifiedCols like every other. The legacy path used reportsEnabledIndex
+        / headerIndex precisely because it was a per-tab EXTRA outside LEAD_HEADERS;
+        that whole helper pair exists only for that case and is deleted at cutover.
+
+   The Referrals-tab tally is UNCHANGED — that tab keeps its own schema
+   (REFERRAL_HEADERS) and is not part of this migration. Its positional reads stay. */
+function sendMonthlyReferralSummariesUnified() {
+  try {
+    var sheet = leadsTable();
+    if (!sheet) { Logger.log('sendMonthlyReferralSummaries: no "' + CONFIG.TABS.LEADS + '" tab.'); return; }
+    if (sheet.getLastRow() < 2) { Logger.log('sendMonthlyReferralSummaries: no lead rows.'); return; }
+    var C = resolveUnifiedCols(sheet);
+
+    // Tally referrals per referrer Lead ID from the Referrals tab (its own schema).
+    var totals = {};
+    var months = {};
+    var now    = new Date();
+    var curMon = now.getMonth();
+    var curYr  = now.getFullYear();
+
+    var refSheet = tab(CONFIG.TABS.REFERRALS);
+    if (refSheet) {
+      var refData = refSheet.getDataRange().getValues();
+      for (var r = 1; r < refData.length; r++) {
+        var referrerLeadId = String(refData[r][1] || '');   // Referrer Lead ID
+        if (!referrerLeadId) continue;
+        totals[referrerLeadId] = (totals[referrerLeadId] || 0) + 1;
+
+        var dateVal = refData[r][11];   // Date column
+        var d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+        if (!isNaN(d) && d.getMonth() === curMon && d.getFullYear() === curYr) {
+          months[referrerLeadId] = (months[referrerLeadId] || 0) + 1;
+        }
+      }
+    }
+
+    var rows = sheet.getDataRange().getValues();
+    var sent = 0;
+
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+
+      // The tab membership test becomes a category test.
+      if (String(row[C.CATEGORY] || '') !== 'Referral Partner') continue;
+
+      var status = String(row[C.STATUS] || '');
+      if (status === 'Cold' || status === 'Archive') continue;
+
+      // Reports Enabled is an ordinary resolved column. Blank or TRUE = enabled;
+      // only an explicit FALSE opts out — identical rule to legacy.
+      var reportsEnabled = row[C.REPORTS_ENABLED];
+      if (reportsEnabled === false || String(reportsEnabled).trim().toUpperCase() === 'FALSE') continue;
+
+      var leadId = String(row[C.LEAD_ID] || '');
+      var email  = String(row[C.EMAIL]   || '').trim();
+      if (!leadId || !email) continue;
+
+      var totalReferrals = totals[leadId] || 0;
+      if (totalReferrals <= 0) continue;
+
+      var monthReferrals = months[leadId] || 0;
+      var firstName      = String(row[C.FIRST_NAME] || '') || 'there';
+      var code           = String(row[C.REFERRAL_CODE] || '');
+
+      var html = renderTemplate(TEMPLATE_REFERRER_MONTHLY, {
+        firstName:      firstName,
+        totalReferrals: totalReferrals,
+        monthReferrals: monthReferrals,
+        referralLink:   referralLinkFor(code),
+        sharePageUrl:   sharePageUrlFor(code),
+      });
+
+      try {
+        GmailApp.sendEmail(
+          email,
+          'Your AxisPoint referral summary',
+          'Here is a quick look at your referral activity with AxisPoint.',
+          { name: CONFIG.SENDER_NAME, replyTo: CONFIG.FROM_EMAIL, htmlBody: html, inlineImages: { logo: LOGO_BLOB } }
+        );
+        sent++;
+      } catch (e) {
+        Logger.log('sendMonthlyReferralSummaries: failed for ' + email + ': ' + e);
+      }
+    }
+
+    Logger.log('sendMonthlyReferralSummaries: sent ' + sent + ' summary email(s).');
+  } catch (err) {
+    Logger.log('sendMonthlyReferralSummaries error: ' + err);
+  }
+}
+
+/* LEGACY — unchanged. DELETE AT CUTOVER. Reads the Referral Partners tab and its
+   per-tab Reports Enabled extra via reportsEnabledIndex. */
+function sendMonthlyReferralSummariesLegacy() {
   try {
     var partnersSheet = tab(CONFIG.TABS.REFERRAL_PARTNERS);
     if (!partnersSheet) { Logger.log('sendMonthlyReferralSummaries: no Referral Partners tab.'); return; }
