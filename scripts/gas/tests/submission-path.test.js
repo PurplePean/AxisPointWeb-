@@ -399,6 +399,11 @@ test('E2E existing asset owner: the normalizer runs, and its 8 fields land in De
   assert.equal(d.pressing_issue, 'Debt maturing in 2027');
   // The normalizer's JSON-into-Preferences hack must not leak through.
   assert.deepEqual(d.preferences, []);
+  // Details.message must NOT duplicate pressing_issue. The normalizer no longer
+  // copies pressing_issue onto message; the free text lives once, in pressing_issue,
+  // and reaches the internal email/note via leadMessageText — not by being stored twice.
+  assert.equal(d.message, '', 'message is blank, not a copy of pressing_issue');
+  assert.notEqual(d.message, d.pressing_issue, 'message and pressing_issue no longer carry identical text');
 });
 
 /* ════════════════════════════════════════════════════════════

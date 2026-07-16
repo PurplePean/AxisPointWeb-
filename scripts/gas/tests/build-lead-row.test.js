@@ -389,16 +389,16 @@ test('EAO: all eight detail fields land as real Details keys, read off the paylo
   assert.equal(at(row, 'Heard About'), '', 'the EAO flow never asks the question');
 });
 
-test('EAO: the normalizer\'s JSON-into-Preferences hack does NOT leak into Details.preferences', () => {
+test('EAO: no JSON blob lands in Details.preferences', () => {
   const sandbox = unified();
   const row = build(sandbox, eaoPayload(sandbox));
   const d = details(row);
 
-  // normalizeEaoPayload sets payload.preferences = [eaoDetailsSummary(payload)] — a
-  // JSON STRING — because the legacy schema gave EAO nowhere else to put its fields.
-  // Under the unified schema they have real keys, so that synthetic entry must be
-  // dropped, not embedded as a double-encoded string masquerading as an opt-in.
-  assert.deepEqual(d.preferences, [], 'the synthetic entry is filtered out');
+  // normalizeEaoPayload used to set payload.preferences = [eaoDetailsSummary(payload)]
+  // — a JSON STRING — because the legacy schema gave EAO nowhere else to put its
+  // fields. That hack is gone: EAO's fields have real Details keys now, so the
+  // normalizer creates no synthetic entry and preferences is simply empty.
+  assert.deepEqual(d.preferences, [], 'no synthetic entry is created');
   d.preferences.forEach((p) => {
     assert.ok(!String(p).startsWith('{'), 'no preference may be a JSON blob');
   });
@@ -407,14 +407,15 @@ test('EAO: the normalizer\'s JSON-into-Preferences hack does NOT leak into Detai
   assert.equal(d.portfolio_type, 'Mixed');
 });
 
-test('EAO: a genuine preference would survive the filter — it matches by exact value, not by sniffing', () => {
+test('EAO: a real preference the flow might someday collect flows straight into Details', () => {
   const sandbox = unified();
   const p = eaoPayload(sandbox);
-  p.preferences.push('Market updates');   // as if the EAO flow started collecting them
+  p.preferences = ['Market updates'];   // as if the EAO flow started collecting them
 
   const d = details(build(sandbox, p));
-  assert.deepEqual(d.preferences, ['Market updates'],
-    'the synthetic entry is dropped and the real one is kept');
+  // With the synthetic-entry filter removed, an opt-in flows straight through —
+  // there is no longer anything for it to survive.
+  assert.deepEqual(d.preferences, ['Market updates']);
 });
 
 /* ════════════════════════════════════════════════════════════
