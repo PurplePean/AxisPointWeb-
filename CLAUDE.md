@@ -34,9 +34,11 @@ Every task: create a feature branch (never commit directly to main), stage chang
 
 Push the branch, open a PR (title matches the commit format, description uses sections "What changed", "Why", "Testing").
 
-PENDING DECISION — current state described here, will change once a staging environment exists: Currently, merge the PR yourself directly to main (squash merge, delete the branch), then switch local repo back to main and pull, leaving no local/remote branches behind. This means every merge currently ships toward production once FTP secrets are configured — there is no staging gate yet. Do not build or assume a staging branch/environment exists until this section is explicitly updated.
+**Auto-merge is the default for EVERY task, with no carve-out exceptions.** After opening the PR, merge it yourself directly to main (squash merge, delete the branch), then switch the local repo back to main and pull, leaving no local/remote branches behind. This is not limited to "safe" or "small" changes — there is no category of change that is exempted from the default. **The only time you do not auto-merge is when a task explicitly asks you to leave the PR open** (as the EAO-cleanup tasks did, for a human review of live-affecting backend code). Absent that explicit instruction, leaving a PR open for manual merge is wrong.
 
-Never leave a PR open for manual merge unless a task explicitly asks for that.
+PENDING DECISION — will change once a staging environment exists: there is **no staging gate yet.** Every merge currently ships toward production (once FTP secrets are configured for the web apps; GAS still requires the separate manual `clasp push` + `clasp deploy -i` step, see below). Do not build or assume a staging branch/environment exists until this section is explicitly updated.
+
+**Caveat — one class of change is NOT git-revertible, and merging does not undo it: destructive edits to the live Google Sheet.** Deleting a Sheet tab (or its data) is an action taken by hand in the Sheet or by a GAS function run against it, not a commit — so reverting the PR that removed the *code* does not bring the tab or its rows back. This matters for the unified-schema migration's **Phase D** (deleting the nine legacy lead tabs and the `xxxLegacy` bodies): the code deletion is revertible, but once the legacy tabs themselves are removed from the live Sheet, the rollback path they provide is gone for good. Treat any task that deletes a live Sheet tab as irreversible regardless of the git workflow around it, and confirm before doing so.
 
 ## Dev server hygiene
 
