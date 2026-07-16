@@ -33,18 +33,17 @@ Phase D, with no fixed timeline** — and per `CLAUDE.md`, deleting a live Sheet
 not git-revertible, so it destroys the rollback path for good. Until then, both schemas
 coexist in the source and exactly one (unified) is active.
 
-> **⚠ Two operational steps are NOT verifiable from this repo and must be confirmed
-> against the live Sheet before relying on them.** The cutover runbook
-> (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` §8) requires **Phase A** — running
-> `setupSpreadsheetUnified()` by hand from the Apps Script editor to create the `Leads`
-> tab **before** the deploy, because a migrated function pointed at a missing tab throws
-> on every request — and **Phase C** — verifying one live submission per lead type plus
-> the live-concurrency checks. There is **no record in the repo (CHANGELOG, deployment
-> docs) that either was completed**, and this repo cannot read the live Sheet (the
-> `clasp` token lacks the Sheets scope). The switch comment in `Code.gs` still carries
-> the pre-cutover warning that the manual run "has NOT happened." So: the code is `true`
-> and deployed, but *whether the `Leads` tab exists and whether live traffic was
-> verified are open, unconfirmed items* — see *Known open defects* below.
+> **✅ Cutover confirmed live (user-verified 2026-07-16), with one item still open.**
+> These operational steps are not verifiable from this repo (it cannot read the live
+> Sheet — the `clasp` token lacks the Sheets scope), but were confirmed manually:
+> **Phase A** — `setupSpreadsheetUnified()` was run and reported "Leads + Referrals +
+> Subscribers ready (3 tabs)," so the `Leads` tab exists. **Phase C** — real **Investor**
+> and **Existing Asset Owner** submissions through the production endpoint both produced
+> correct `Leads` rows (+ correct `Details` JSON) and both confirmation/notification
+> emails; the EAO one confirmed the A2 cleanup live (`pressing_issue` populated,
+> `message` empty). **Still open:** the other three lead types and the §8 live-concurrency
+> checks. See *Known open defects* #6. *(The pre-cutover "has NOT happened" note still in
+> the `Code.gs` switch comment is now stale.)*
 
 ### What runs under the live unified schema
 
@@ -370,7 +369,7 @@ rollback path.
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
 | `setupSpreadsheet()` | **Legacy / rollback only.** Creates the 11 legacy tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Lead-tab list derived from `leadTabConfigs()`. **Only touches tabs where `getLastRow() === 0`.** Not part of the live path; kept until Phase D. |
-| `setupSpreadsheetUnified()` | **The live setup.** Creates **exactly** `Leads` (25-col `UNIFIED_LEAD_HEADERS`, `Details` last) + `Referrals` + `Subscribers` (both unchanged schemas). Same `getLastRow() === 0` guard. **Separate function, not switch-gated** — the `Leads` tab must exist before `USE_UNIFIED_SCHEMA` flips. It was the cutover's Phase A; **whether it was actually run against the live Sheet is unconfirmed from the repo** (see *Known open defects* #6). |
+| `setupSpreadsheetUnified()` | **The live setup.** Creates **exactly** `Leads` (25-col `UNIFIED_LEAD_HEADERS`, `Details` last) + `Referrals` + `Subscribers` (both unchanged schemas). Same `getLastRow() === 0` guard. **Separate function, not switch-gated** — the `Leads` tab must exist before `USE_UNIFIED_SCHEMA` flips. It was the cutover's Phase A; **run and confirmed 2026-07-16** ("Leads + Referrals + Subscribers ready (3 tabs)"), see *Known open defects* #6. |
 | `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `leadTabHeaderAudit`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
 | `setupTriggers()` | Creates the four triggers above. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
@@ -901,26 +900,35 @@ stubbed lock is not a lock. What the tests pin is *where* the lock sits and that
 lock refuses a second acquirer. Actual mutual exclusion is Google's guarantee, observable
 only against the live system — which ties into #6.
 
-### 6. ⚠ OPEN / UNCONFIRMED — cutover Phase A (tab creation) and Phase C (live verification)
+### 6. Cutover Phase A ✅ DONE / Phase C 🔶 PARTIALLY DONE (live-concurrency still open)
 
-**The code is `USE_UNIFIED_SCHEMA = true` and deployed (@25).** But two operational
-cutover steps are **not verifiable from this repo**, and there is **no record that either
-was completed**:
+**The code is `USE_UNIFIED_SCHEMA = true` and deployed (@25).** The operational cutover
+steps below are **not verifiable from this repo** (it cannot read the live Sheet — the
+`clasp` token lacks the Sheets scope), but were **confirmed by the user through manual
+verification on 2026-07-16.**
 
-- **Phase A — `setupSpreadsheetUnified()` run by hand** to create the `Leads` tab. The
-  switch comment in `Code.gs` still carries the pre-cutover warning that this "has NOT
-  happened," and this repo cannot read the live Sheet (the `clasp` token lacks the Sheets
-  scope). If the tab does not exist, every request throws. **Confirm against the live
-  Sheet before assuming submissions are landing.**
-- **Phase C — verify one live submission per lead type + the live-concurrency checks**
-  (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` §8). No record this was run. The concurrency behavior
-  (the shared lock, the sweep re-read) is only *observable* live (see the honest limit
-  above), so until Phase C is actually executed, real mutual exclusion under load is
-  unproven, not just untested.
+- **Phase A — `setupSpreadsheetUnified()` — ✅ DONE.** Run by hand from the Apps Script
+  editor; the execution log confirmed **"Leads + Referrals + Subscribers ready (3 tabs)."**
+  The `Leads` tab exists, so migrated functions are not throwing on a missing table.
+  *(The pre-cutover "has NOT happened" warning still in the `Code.gs` switch comment is now
+  stale — it was written before this run.)*
+- **Phase C — live submission verification — 🔶 PARTIALLY DONE (2 of 5 lead types).**
+  Confirmed through the **actual production endpoint**:
+  - A real **Investor** submission and a real **Existing Asset Owner** submission both
+    produced **correct `Leads` rows** — right values in the right columns, correct `Details`
+    JSON structure — and both correctly triggered the **visitor confirmation + internal
+    notification** emails.
+  - The EAO submission specifically **confirmed the A2 cleanup live**: `Details.pressing_issue`
+    correctly populated and `Details.message` correctly **empty** (no duplication).
+- **Still OPEN — the live-concurrency checks.** The remaining three lead types (`pro`,
+  `referral`, `submit_referral`) have not been driven live, and the **specific
+  concurrent-execution checks in `UNIFIED_SCHEMA_MIGRATION_PLAN.md` §8 have NOT been run.**
+  Real mutual exclusion under load (the shared lock, the sweep re-read) is only *observable*
+  live (see the honest limit above), so it remains unproven — not just untested — until
+  those checks are executed.
 
-This is a **status-tracking gap, not a code defect** — but it is exactly the kind of "was
-it actually done?" question this project has been burned by. Treat "the migration is live
-and working" as confirmed only once Phase A and C are checked against the live system.
+So the migration is **confirmed live and working for the two verified lead types**; the
+open remainder is the concurrency verification and the other three lead types.
 
 ### 7. ✅ RESOLVED 2026-07-15 — EAO normalizer cleanups (A1, A2); `eaoDetailsSummary` now dead
 
