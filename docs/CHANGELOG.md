@@ -3,6 +3,13 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-07-16 (unified-schema cutover: Phase A DONE, Phase C partially confirmed live)
+
+- **docs(infra): record the user-verified cutover confirmation** so it no longer relies on conversation memory. Not verifiable from the repo (the `clasp` token cannot read the live Sheet); confirmed manually by the user on this date.
+- **Phase A — `setupSpreadsheetUnified()` — DONE.** Run by hand from the Apps Script editor; execution log reported **"Leads + Referrals + Subscribers ready (3 tabs)."** The `Leads` tab exists, so migrated functions are not throwing on a missing table. (The pre-cutover "has NOT happened" warning still in the `Code.gs` switch comment is now stale.)
+- **Phase C — live submission verification — PARTIAL (2 of 5 lead types).** Real **Investor** and **Existing Asset Owner** submissions through the **actual production endpoint** each produced a correct `Leads` row (right values in the right columns, correct `Details` JSON structure) and correctly triggered both the visitor confirmation and internal notification emails. The EAO submission specifically confirmed the **A2 cleanup live**: `Details.pressing_issue` populated, `Details.message` empty (no duplication).
+- **Still OPEN:** the other three lead types (`pro`, `referral`, `submit_referral`) have not been driven live, and the **§8 live-concurrency checks have NOT been run** — real mutual exclusion under load remains observable only live, so unproven until then. Tracked as *Known open defects* #6 in `backend-architecture.md`.
+
 ## 2026-07-15 (unified-schema migration: EAO normalizer cleanups A1 + A2 — post-cutover, live-affecting)
 
 - **fix(gas): remove the two EAO `normalizeEaoPayload` items the Stage-6 audit left open (A1, A2).** The `USE_UNIFIED_SCHEMA` switch is now live, so this was treated as a real production change (clasp push + `clasp deploy -i` + a live EAO re-test required after merge), not a tidy-up.
