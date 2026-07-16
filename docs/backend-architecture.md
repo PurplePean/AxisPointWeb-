@@ -7,143 +7,98 @@ and runs three time-based digests plus an installable edit trigger.
 
 All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 
-## ⚠ The unified-schema migration is IN PROGRESS (Stage 1 of N done)
+## ✅ The unified schema is LIVE. `USE_UNIFIED_SCHEMA = true`.
 
-`Code.gs` now contains **two lead schemas**, and exactly one of them is live.
+**This is the current production design, not a pending plan.** `Code.gs` line 1275
+reads `var USE_UNIFIED_SCHEMA = true;` (flipped 2026-07-15, PR #47), and the code carrying
+that flag has been pushed and deployed to the pinned production deployment
+(`clasp deploy -i …ZgBqg`, version @25). Every lead read and write now targets **one
+`Leads` table** — 25 columns + a `Details`
+JSON blob — via `UNIFIED_LEAD_HEADERS` / `UCOLS` / `resolveUnifiedCols`. The migration
+that got here is documented stage-by-stage in `UNIFIED_SCHEMA_MIGRATION_PLAN.md`; this
+document describes the **result**, which is what runs.
 
-- **Live today:** the nine per-role lead tabs and the 31-column `LEAD_HEADERS`
-  layout that the rest of this document describes. **Everything below is still
-  accurate for production.**
-- **Being migrated in:** one `Leads` table, 25 columns + a `Details` JSON blob
-  (`UNIFIED_LEAD_HEADERS` / `UCOLS` / `resolveUnifiedCols`). See
-  `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
+**The legacy per-role architecture still exists in the file, in parallel, as an
+intentional rollback safety net — it is NOT deleted.** Thirteen `xxxLegacy` bodies
+(`existingReferralCodesLegacy`, `findExistingLeadLegacy`, `matchReferrerLegacy`,
+`updateReferrerStatsLegacy`, `buildLeadRowLegacy`, `persistNewLeadLegacy`,
+`handleResubmissionLegacy`, `sendDailyDigestLegacy`, `sendMonthlyReferralSummariesLegacy`,
+`moveColdLeadsLegacy`, `onSheetEditLegacy`, `handleManualReferralLinkLegacy`,
+`handleStatusEditLegacy`) survive unchanged, and each migrated function is a dispatcher
+`return USE_UNIFIED_SCHEMA ? xxxUnified(...) : xxxLegacy(...)`. Flipping the switch back
+to `false` (then `clasp push` + `clasp deploy -i`) restores the entire legacy path. The
+nine legacy lead tabs and the 31-column `LEAD_HEADERS` layout (documented later in this
+file, now marked **LEGACY**) are the tabs those bodies read/write. **Deleting them is
+Phase D, with no fixed timeline** — and per `CLAUDE.md`, deleting a live Sheet tab is
+not git-revertible, so it destroys the rollback path for good. Until then, both schemas
+coexist in the source and exactly one (unified) is active.
 
-**`var USE_UNIFIED_SCHEMA = false;` is the single switch between them, and it is
-off.** While it is off, production behavior is unchanged — a migrated function
-runs its legacy body. Migrated functions are structured as a dispatcher over an
-`xxxUnified` and an `xxxLegacy` implementation; the legacy bodies are the rollback
-path and are deleted only at cutover.
+> **⚠ Two operational steps are NOT verifiable from this repo and must be confirmed
+> against the live Sheet before relying on them.** The cutover runbook
+> (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` §8) requires **Phase A** — running
+> `setupSpreadsheetUnified()` by hand from the Apps Script editor to create the `Leads`
+> tab **before** the deploy, because a migrated function pointed at a missing tab throws
+> on every request — and **Phase C** — verifying one live submission per lead type plus
+> the live-concurrency checks. There is **no record in the repo (CHANGELOG, deployment
+> docs) that either was completed**, and this repo cannot read the live Sheet (the
+> `clasp` token lacks the Sheets scope). The switch comment in `Code.gs` still carries
+> the pre-cutover warning that the manual run "has NOT happened." So: the code is `true`
+> and deployed, but *whether the `Leads` tab exists and whether live traffic was
+> verified are open, unconfirmed items* — see *Known open defects* below.
 
-**Migrated so far:**
+### What runs under the live unified schema
 
-| Stage | Function | What it does under the unified schema |
-|---|---|---|
-| 1 | `updateReferrerStats` | One-row lookup by Lead ID; multi-level `Total Downstream`; script-locked. |
-| 2 | `moveColdLeads` | A cold lead is a `Status = 'Cold'` **write**, not a relocated row. **No `deleteRow`, no `appendRow`.** Script-locked, and (as of Stage 3) it re-reads each row's live Status immediately before stamping. |
-| 3 | `handleStatusEdit` | A status edit is **just a status edit** — the human's cell write already happened, so the row moves nowhere and only the Contacts side effect remains. Script-locked, acts on the **live** status, logs conflicts. |
-| 4 | `onSheetEdit` | The nine-tab membership guard becomes one string compare against `Leads`. The three watched columns still resolve **by name**. |
-| 5 | `handleManualReferralLink` | The referrer lookup scans the one `Leads` table instead of Lifetime Leads. Script-locked around the row write only (the lock is **not** reentrant — see below). |
-| 6 | `buildLeadRow` | Builds the 25-column row + the `Details` JSON blob. **This is where the two data-fidelity fixes shipped** — see below. |
-| 7 | `findExistingLead`, `existingReferralCodes`, `matchReferrer`, `handleResubmission`, `persistNewLead` (+ `handleFormSubmission` orchestrating) | The whole submission path. Three appends become **one**. `handleResubmission` read-modify-writes `Details.message` under the shared lock. **`buildReferralMatch` needed no migration** — schema-agnostic. |
-| 8 | `sendDailyDigest`, `sendMonthlyReferralSummaries` | The last two legacy-tab readers. Digest filters the one table by today's CT date; summary filters on `Category = 'Referral Partner'` and reads `Reports Enabled` as a standard column. **Read-only → no lock.** First test coverage either function has ever had. |
-| 9 | `setupSpreadsheetUnified` (new, separate) | Creates `Leads` + `Referrals` + `Subscribers`. **Not** switch-gated (the `Leads` tab must exist *before* the switch flips). Run by hand at cutover. `.tab`/`.tabColor` stay in the registry until cutover — the legacy branch still reads them. |
+- **One row per lead, forever, in `Leads`.** Status and Category are column *values*,
+  not tab membership. A cold lead is a `Status = 'Cold'` write; a status edit is just a
+  status edit plus its Contacts side effect; a promotion to `Client` is a Category/Status
+  value. **No unified path deletes or relocates a lead row** — both former row-deleting
+  functions (`moveColdLeads`, `handleStatusEdit`) had that logic removed, not ported.
+- **The edit trigger is fully wired** (`onSheetEditUnified`): the tab guard is a single
+  `sheet.getName() === 'Leads'` check, and the three watched columns resolve **by name**
+  via `resolveUnifiedCols`.
 
-**ALL 9 STAGES COMPLETE. The migration is code-complete and cutover-ready.** Every
-function that reads or writes lead data is migrated, and the setup path to create the
-`Leads` tab exists. `USE_UNIFIED_SCHEMA` is still `false` — nothing has changed in
-production. The remaining action is the **cutover**, a step-by-step runbook in
-`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → **§8**: `clasp push` → run
-`setupSpreadsheetUnified()` by hand → flip the switch → `clasp push` + `clasp deploy -i`
-→ verify one live submission per lead type → then delete every `xxxLegacy` body, the
-header audit/repair family, the EAO backfill family, `setCategoryTabStatus`,
-`reportsEnabledIndex`/`headerIndex`, and the legacy column layer.
+  | Watched column | Handler | State |
+  |---|---|---|
+  | Status | `handleStatusEditUnified` | Acts on the **live** cell value under the shared lock; logs conflicts; does not auto-restore. |
+  | Category | `handleCategoryEdit` | **Unchanged / schema-agnostic** — reads only `rowData` + `EMAIL` (a key in both `COLS` and `UCOLS`), so it needed no migration. |
+  | Referred By Email | `handleManualReferralLinkUnified` | Scans the one `Leads` table; back-fills the referral columns with `Match Type = manual`; updates stats; logs a Referrals row; notifies. |
 
-**As of Stage 3, no unified path in the file deletes a lead row.** Both of the two
-row-deleting functions are migrated; their deletion logic was removed rather than
-ported. The legacy bodies still delete, and still run in production, until cutover.
+- **Both data-fidelity fixes are live** (`buildLeadRowUnified` + `buildLeadDetails`):
+  - **All 13 `qualData` fields persist** into `Details`, keyed per the **registry**
+    (`LEAD_TYPES.detailsFields`), never re-derived from field names. The legacy row
+    builder wrote exactly one (`assetClasses` → Asset Class) and dropped the other twelve.
+  - **`submit_referral.referred` is a structured object**
+    (`{firstName, lastName, email, phone, notes}`), not prose prepended to the message.
+  - **The `Details` contract:** a field the lead type **asks** is always **present**
+    (`''` or `[]` when blank); a field it does **not** ask is **absent**, so "asked and
+    not answered" is distinguishable from "never asked". `message`, `preferences`, and
+    `booking` (incl. `meetLink`) are on every type. `Reports Enabled` is a normal column
+    seeded by the row builder from `LEAD_TYPES.seedReportsEnabled`. (For EAO, `message`
+    is now `''` and its free text lives once in `Details.pressing_issue` — see the EAO
+    normalizer note under *Known open defects* / the 2026-07-15 cleanup.)
 
-**The edit trigger is now fully wired (Stage 5):**
+- **The append is name-projected.** Every read AND write resolves columns by name.
+  `persistNewLeadUnified` resolves the live `Leads` header and projects
+  `buildLeadRow`'s canonical array onto the sheet's real columns
+  (`projectLeadRowByName`) before appending:
 
-| Watched column | Handler | State under the unified schema |
-|---|---|---|
-| Status | `handleStatusEdit` | ✅ Migrated (Stage 3). |
-| Category | `handleCategoryEdit` | ✅ Works **unchanged**. It reads no tab — only `rowData` + `EMAIL`, a key in both `COLS` and `UCOLS` — so it is schema-agnostic and needs **no migration at all**. |
-| Referred By Email | `handleManualReferralLink` | ✅ Migrated (Stage 5). Scans `leadsTable()` instead of Lifetime Leads. The Stage-4 refusal branch is deleted. |
+  | Live header | Behavior |
+  |---|---|
+  | Canonical order | **Exact no-op** — byte-for-byte identical (verified). |
+  | Reordered / columns inserted | Every value still lands under its own column. |
+  | Extra columns past the 25 | Preserved as blanks, not clipped. |
+  | **Missing a required column** | **Throws `headerLookupError` and refuses the write** — never guesses a cell. |
 
-### The two data-fidelity fixes are now CODE (Stage 6), not just decisions
+  `buildLeadRow` itself stays positional, which is correct: it *constructs* the canonical
+  layout; knowing where the columns really are is the append's job.
 
-`buildLeadRowUnified` + `buildLeadDetails` implement both. **They still do not run in
-production** (the switch is off), but they exist and are tested:
-
-- **§2a — all 13 `qualData` fields persist.** Legacy writes exactly **one**
-  (`assetClasses` → the Asset Class column) and silently discards the other twelve.
-  Every field a lead type collects now lands in `Details`, keyed per the **registry**
-  (`LEAD_TYPES.detailsFields`), never re-derived from field names.
-- **§2b — `submit_referral.referred` is a structured object**
-  (`{firstName, lastName, email, phone, notes}`), not a prose block prepended to the
-  message. The prose builder is **deleted, not ported**.
-
-**The `Details` contract:** a field the lead type **asks** is always **present** (`''`
-or `[]` when blank); a field it does **not** ask is **absent**. So "asked and not
-answered" is distinguishable from "never asked". `message`, `preferences`, and
-`booking` (incl. `meetLink`) are on every type. **`Reports Enabled` is seeded by the
-row builder** from `LEAD_TYPES.seedReportsEnabled`.
-
-### ✅ The unified path is now FED — a complete submission works end to end (Stage 7)
-
-**Payload in → dedupe → collision-checked referral code → referrer match → 25-column
-row + `Details` blob → ONE append → referral stats credited up the whole chain →
-Referrals row → Contacts → visitor + partner emails → JSON response.** All five lead
-types, driven for real in `submission-path.test.js`. This is the first stage where any
-of that was true: every earlier one read or edited a table nothing ever wrote to.
-
-**It still does not run in production** — the switch is off, and the `Leads` tab does
-not exist in the Sheet.
-
-**Where the switch boundary sits.** `handleFormSubmission` is **not** duplicated. Only
-one block of it is schema-dependent (the three appends + category-tab check +
-`seedReportsEnabled` seed), so that block was extracted as **`persistNewLead`** and
-*that* is the Unified/Legacy dispatcher. The normalizer, booking, Contacts, emails and
-response are identical under both schemas. Duplicating the whole function would have
-meant two copies of the booking/email orchestration to hand-sync until cutover —
-this project's most-documented failure mode.
-
-**Genuinely left before cutover:** `sendDailyDigest`, `sendMonthlyReferralSummaries`,
-`setupSpreadsheet` (**must be run by hand from the Apps Script editor** — `clasp
-deploy` does not create tabs), the `LEAD_TYPES` registry (`.tab`/`.tabColor`), and
-`resolveCols`/`COLS`/`LEAD_HEADERS`. Then §4's delete-outright list — the header
-audit/repair family and the EAO backfill family, both of which exist *solely* to manage
-nine parallel tabs and are now obsolete, but are deleted **at cutover, not before**.
-
-### ✅ The append is name-projected too — reader/writer asymmetry CLOSED (2026-07-14)
-
-**Every read AND every write on the unified table now resolves columns by name.**
-
-Readers always did (`resolveUnifiedCols`). The writer did not: `persistNewLead`
-appended `buildLeadRow`'s canonical array **positionally**, assuming the live header
-still matched. A human reordering or inserting a column in the live `Leads` header
-would have left every reader working while the writer silently put the Timestamp under
-**Email**, the Match Type under **Category**, the company under **Phone**, and the
-`Details` blob under whatever landed at index 24 — on every subsequent lead, with
-nothing to catch it. **The readers' tolerance is exactly what would have hidden it.**
-
-`persistNewLeadUnified` now resolves the live header and projects the row onto the
-sheet's real columns (`projectLeadRowByName`) before appending:
-
-| Live header | Behavior |
-|---|---|
-| Canonical order | **Exact no-op** — byte-for-byte identical to before (verified). |
-| Reordered / columns inserted | Every value still lands under its own column. |
-| Extra columns past the 25 | Preserved as blanks, not clipped. |
-| **Missing a required column** | **Throws `headerLookupError` and refuses the write** — never guesses a cell. Same contract every reader has. |
-
-**`buildLeadRow` remains positional, and that is still right:** it *constructs* the
-canonical layout. Knowing where the columns actually are is the **append's** job.
-
-### The script lock is NOT reentrant — a constraint every later stage inherits
-
-`updateReferrerStats` takes the script lock itself, and `nextLeadSequence` /
-`nextReferralSequence` call **`waitLock()` on the same lock**. Apps Script does not
-document the script lock as reentrant, so **a function must release the lock before
-calling any of those three.** `handleManualReferralLinkUnified` is scoped exactly this
-way: the lock covers its own row read-modify-write and nothing else. Widening it would
-be a production-only deadlock. The suite's lock stub throws on a reentrant `waitLock`,
-so this fails a test rather than shipping.
-
-The `Leads` tab **does not exist in the live Sheet** — `setupSpreadsheet()` still
-creates the eleven legacy tabs, and creating `Leads` is part of the cutover, not of
-any single stage. Do not flip the switch, and do not create the tab by hand, until
-every function in the plan's §3 list is migrated.
+- **The script lock is NOT reentrant.** `updateReferrerStats` takes the script lock
+  itself, and `nextLeadSequence` / `nextReferralSequence` call `waitLock()` on the same
+  lock. Apps Script does not document it as reentrant, so a function must **release the
+  lock before calling any of those three.** `handleManualReferralLinkUnified` and
+  `handleResubmissionUnified` are scoped exactly this way — the lock covers only their
+  own row read-modify-write. The test suite's lock stub throws on a reentrant `waitLock`,
+  so a widening refactor fails a test rather than deadlocking in production.
 
 ## Entry points
 
@@ -154,15 +109,17 @@ every function in the plan's §3 list is migrated.
 
 ## Form-submission path
 
-`handleFormSubmission(payload)`:
+`handleFormSubmission(payload)` — **live behavior, unified schema.** Every schema-
+dependent call below is a dispatcher already routing to its `xxxUnified` body; the
+orchestration itself is not duplicated:
 
-1. `leadTypeFor(payload.role).normalizer` — if the role's registry entry names one (today only `existing_asset_owner` → `normalizeEaoPayload`), it reshapes the flat wire payload **in place** into the generic `{ person, message, qualData, preferences }` shape so no role branching is needed downstream. Normalizers **add** the generic fields; they never strip the role-specific ones, so `payload.role` and e.g. `payload.current_situation` remain readable afterwards (`bookingEventInternalDescription` relies on this).
-2. Dedupe: `findExistingLead(email)` scans **Lifetime Leads** by lowercased email. On match → `handleResubmission` (updates empty fields, appends a resubmission note to Message, notifies partners, returns original Lead ID; **no new row / no new contact**).
-3. New lead: `nextLeadSequence()` → `buildLeadId()` (`AXP-YYYY-XXXX`), `generateReferralCode()` (`AXP-` + 6 unambiguous chars, collision-checked against Lifetime Leads).
-4. `matchReferrer(payload)` — priority **code → email → name** against Lifetime Leads.
+1. `leadTypeFor(payload.role).normalizer` — if the role's registry entry names one (today only `existing_asset_owner` → `normalizeEaoPayload`), it reshapes the flat wire payload **in place** into the generic `{ person, qualData }` shape so no role branching is needed downstream. Normalizers **add** the generic fields; they never strip the role-specific ones, so `payload.role` and e.g. `payload.current_situation` / `payload.pressing_issue` remain readable afterwards (`buildLeadDetails`, `bookingEventInternalDescription`, and the visitor note rely on this). **(EAO normalizer, as of 2026-07-15: it no longer copies `pressing_issue` onto `message` or stuffs a JSON summary into `preferences` — see the cleanup note under *Known open defects*.)**
+2. Dedupe: `findExistingLead(email)` scans **the `Leads` table** by lowercased email. On match → `handleResubmission`, which read-modify-writes `Details.message` (parse, append a resubmission note, re-serialize) under the shared script lock, updates previously-empty fields, notifies partners, and returns the original Lead ID; **no new row / no new contact**.
+3. New lead: `nextLeadSequence()` → `buildLeadId()` (`AXP-YYYY-XXXX`), `generateReferralCode()` (`AXP-` + 6 unambiguous chars, collision-checked against the `Leads` table).
+4. `matchReferrer(payload)` — priority **code → email → name** against the `Leads` table.
 5. If `payload.booking.date` → `createBookingEvent(payload, leadId)` first, to capture the Google Meet link **and** the event's calendar `htmlLink`. **All booking events (Meet and phone) are written to the dedicated shared "AxisPoint Bookings" calendar** identified by `CONFIG.BOOKING_CALENDAR_ID`, not the deploying account's personal default calendar. If that property is unset or the account lacks edit access, the event is skipped and logged (the call is try/caught upstream, so submission still succeeds without a booking).
-6. `buildLeadRow(...)` → `appendRow` to **Lifetime Leads** and **Active Leads**, then to the role's category tab via `categoryTabForRole`. The tab's existence is checked first and a missing tab is logged loudly (a submission is never failed by it, but it is never silent either). Rows on a tab whose registry entry sets `seedReportsEnabled` get `Reports Enabled = TRUE`.
-7. If referral matched → `updateReferrerStats`, `logReferralEntry` (Referrals tab), `sendReferrerNotification`.
+6. `buildLeadRow(...)` builds the **25-column row + serialized `Details` blob**, then `persistNewLead(row, leadId, leadType)` — the one schema-dependent persistence step — does **ONE** name-projected `appendRow` to the single `Leads` table (`projectLeadRowByName`; refuses the write on a header missing a required column). `Reports Enabled` is seeded from the row builder for roles whose registry entry sets `seedReportsEnabled`. **There is no Lifetime/Active/category-tab fan-out any more** — that was the legacy three-append behavior, now the rollback path only.
+7. If referral matched → `updateReferrerStats(referrerLeadId, chain)` (credits **Direct Referrals** to the immediate referrer and **Total Downstream** to every ancestor in the chain, script-locked), `logReferralEntry` (Referrals tab), `sendReferrerNotification`.
 8. `createContact(payload)`, `sendVisitorConfirmation(...)`, `sendPartnerNotification(...)` — each wrapped in try/catch so one failure can't abort the response.
 9. Returns `{ success:true, leadId, referralCode }`.
 
@@ -342,6 +299,15 @@ Helpers: `leadTypeFor(role)` (own-key guarded, so a POSTed `role: "constructor"`
 resolves to `null` rather than to `Object`), `leadTypeTabConfigs()`,
 `leadTabConfigs()`, `allCategoryContactGroups()`.
 
+**Under the live unified schema, the `.tab` / `.tabColor` consumers above
+(`categoryTabForRole`, `setupSpreadsheet`, `updateReferrerStatsLegacy`, the
+`onSheetEdit` legacy guard) are all on the LEGACY / rollback path.** The registry
+still carries `.tab` and `.tabColor` **only** so those legacy bodies stay byte-for-byte
+intact as the rollback path; they are removed at Phase D. The live path reads
+`.category`, `.contactGroup`, `.normalizer`, `.seedReportsEnabled`, and Stage 6's
+`.detailsFields` / `.detailsFrom`. It uses no per-role tab at all — one `Leads` table,
+one row per lead.
+
 **Why this exists.** Before the registry, those seven consumers each carried a
 hand-maintained copy of the role list and nothing kept them in sync. When
 `existing_asset_owner` shipped it was entered into some and not others:
@@ -354,37 +320,40 @@ tab, so every EAO category-tab row was silently dropped. Both are fixed. The cla
 of bug is now structurally harder: omitting a field is a visible hole in one
 object, not a silent absence spread across a 3,000-line file.
 
-`handleFormSubmission` now also **checks the category tab exists before appending**
-and logs loudly when it does not, instead of relying on `appendRow`'s quiet
-`Logger.log`. A missing tab still never fails the submission (Lifetime/Active
-already hold the row) but it no longer disappears.
+(That EAO breakage is why the registry exists. The category-tab-existence check and the
+"Lifetime/Active already hold the row" fallback it describes are **legacy-path**
+behavior — under the live unified schema there are no category tabs and the single
+`Leads` append is the only write.)
 
-### Adding a lead type
+### Adding a lead type (live unified schema)
 
-1. Add one entry to `LEAD_TYPES` with all six fields.
-2. Add its tab name to `CONFIG.TABS` and its group to `CONFIG.CONTACT_GROUPS`.
-3. Run `setupSpreadsheet()` once from the Apps Script editor to create the tab.
-
-Step 3 is not optional and is not covered by `clasp deploy`. Skipping it is exactly
-what broke EAO.
+1. Add one entry to `LEAD_TYPES`: `category`, `contactGroup`, `normalizer` (or `null`), `seedReportsEnabled`, and `detailsFields` + `detailsFrom` (which `qualData`/top-level fields persist into `Details`, and from where). Add `.tab`/`.tabColor` too **only** while the legacy rollback path still exists — they feed nothing on the live path.
+2. Add its Contact group to `CONFIG.CONTACT_GROUPS` (the per-category Google Contact Groups sync still runs).
+3. **No tab creation is needed** — every lead lands in the one `Leads` table, which already exists. (Under the *legacy* schema this step was `setupSpreadsheet()` by hand to create the role's tab; skipping it is what broke EAO. That hazard is gone with the single table.)
 
 ## Time-based triggers
 
 Created by `setupTriggers()` (deletes all existing project triggers first):
 
-| Function | Schedule | Purpose |
+**Behavior below is the LIVE unified path** (each is a dispatcher whose `xxxUnified`
+body runs because `USE_UNIFIED_SCHEMA = true`). The legacy body still exists as the
+rollback path.
+
+| Function | Schedule | Purpose (live unified) |
 |---|---|---|
-| `sendDailyDigest` | daily, `atHour(18)` (6 pm CT) | Plain-text digest of leads whose **Timestamp** falls on today's CT calendar date (ISO parsed, formatted to CT `MM/dd/yyyy`), to `NOTIFY_EMAILS`. Silent if none. **Reads Lifetime Leads** (not Active Leads — an earlier version of this doc misstated that). Migrated Stage 8; the unified path reads the one table and pulls Asset Class + Booking out of `Details`. |
-| `moveColdLeads` | weekly, Monday `atHour(8)` **+ the "Run Cold Lead Sweep Now" menu item** | **Legacy (live today):** sweeps Active-Leads rows with status in `[New Lead, Contacted, Active]` whose **Timestamp** is older than `COLD_LEAD_DAYS` (60) → **appends the row to Cold Leads and deletes it from Active**, updates category tab status, moves the Google Contact to the Cold group, emails a summary. **Unified (migrated Stage 2, gated off):** identical selection, but sets `Status = 'Cold'` in place — **no append, no `deleteRow`, no category-tab sync** — then does the Contact move and summary email outside the script lock. |
-| `sendMonthlyReferralSummaries` | `onMonthDay(1)` `atHour(9)` | Tallies per-referrer totals from the Referrals tab, emails each Referral Partner (skips `Cold`/`Archive` status, skips `Reports Enabled = FALSE`, skips zero-referral partners). Migrated Stage 8; the unified path filters the one table on `Category = 'Referral Partner'` and reads `Reports Enabled` as a standard column (no `reportsEnabledIndex`). |
+| `sendDailyDigest` | daily, `atHour(18)` (6 pm CT) | Plain-text digest of leads whose **Timestamp** falls on today's CT calendar date (ISO parsed, formatted to CT `MM/dd/yyyy`), to `NOTIFY_EMAILS`. Silent if none. Reads the single **`Leads`** table and pulls Asset Class + Booking out of the `Details` blob. **Read-only → no lock.** |
+| `moveColdLeads` | weekly, Monday `atHour(8)` **+ the "Run Cold Lead Sweep Now" menu item** | Selects `Leads` rows with status in `[New Lead, Contacted, Active]` whose **Timestamp** is older than `COLD_LEAD_DAYS` (60) and sets **`Status = 'Cold'` in place** — **no append, no `deleteRow`, no category-tab sync.** Re-reads each row's live Status immediately before stamping (skips it if no longer active), then does the Google Contact move to the Cold group and the summary email **outside** the script lock. *(Legacy rollback body instead relocated the row to a Cold Leads tab and deleted it from Active.)* |
+| `sendMonthlyReferralSummaries` | `onMonthDay(1)` `atHour(9)` | Filters the **`Leads`** table on `Category = 'Referral Partner'`, tallies per-referrer totals from the Referrals tab, and emails each partner (skips `Cold`/`Archive` status, skips `Reports Enabled = FALSE` read as a standard column, skips zero-referral partners). **Read-only → no lock.** |
 
 ## `onEdit` trigger
 
-`onSheetEdit(e)` — installable trigger (`forSpreadsheet(...).onEdit()`), created by `setupTriggers`. **Migrated in Stage 4** (`onSheetEditUnified` / `onSheetEditLegacy` / dispatcher). Under the **unified** schema its tab guard is a single `sheet.getName() === 'Leads'` check and columns resolve through `resolveUnifiedCols`; the `Referred By Email` route is refused loudly pending Stage 5 (see the migration banner above). **Legacy — what production runs — watches three columns on any of the nine lead tabs and ignores the header row:**
+`onSheetEdit(e)` — installable trigger (`forSpreadsheet(...).onEdit()`), created by `setupTriggers`; dispatcher over `onSheetEditUnified` / `onSheetEditLegacy`. **Live behavior (unified): the tab guard is a single `sheet.getName() === 'Leads'` check, columns resolve through `resolveUnifiedCols`, and all three watched columns are wired** (the header row is ignored):
 
-- **Status** (`handleStatusEdit`): `Cold`/`Archive` move a row out of Active; `Client` appends to Clients + labels the contact; `New Lead`/`Active`/`Contacted` restore a Cold row to Active.
-- **Category** (`handleCategoryEdit`): re-labels the Google Contact's category group.
-- **Referred By Email** (`handleManualReferralLink`): looks up the referrer in Lifetime Leads, back-fills all referral columns with `Match Type = manual`, updates referrer stats, logs a Referrals-tab entry, and sends the referrer notification.
+- **Status** (`handleStatusEditUnified`): a status edit is **just a status edit** — the row moves nowhere (no relocation, no delete). It acts on the **live** cell value under the shared script lock, drives the Google Contact side effect (`Client` labels the contact, `Cold`/`Archive` move it to the Cold group, active statuses restore it), logs conflicts, and does **not** auto-restore the event's value.
+- **Category** (`handleCategoryEdit`): re-labels the Google Contact's category group. Schema-agnostic (reads only `rowData` + `EMAIL`), so unchanged from legacy.
+- **Referred By Email** (`handleManualReferralLinkUnified`): looks up the referrer in the **`Leads`** table, back-fills all referral columns with `Match Type = manual`, updates referrer stats, logs a Referrals-tab entry, and sends the referrer notification. Script-locked around the row write only (the lock is not reentrant).
+
+*(The legacy `onSheetEditLegacy` body — the rollback path — instead watches those columns on any of the nine lead tabs and moves rows between Active / Cold Leads / Clients / Archive.)*
 
 ## Subscriber path
 
@@ -400,8 +369,8 @@ Created by `setupTriggers()` (deletes all existing project triggers first):
 | `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
-| `setupSpreadsheet()` | **Legacy.** Creates the 11 tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Its lead-tab list is now derived from `leadTabConfigs()` (registry-driven), not a literal array. **Only touches tabs where `getLastRow() === 0`** — it will never repair a tab that already holds data. Kept until cutover. |
-| `setupSpreadsheetUnified()` | **Stage 9.** The unified counterpart: creates **exactly** `Leads` (25-col `UNIFIED_LEAD_HEADERS`, `Details` last) + `Referrals` + `Subscribers` (both unchanged schemas). Same `getLastRow() === 0` guard. **Separate function, not switch-gated** — the `Leads` tab must exist before `USE_UNIFIED_SCHEMA` flips, so at cutover you run this by hand *then* flip. |
+| `setupSpreadsheet()` | **Legacy / rollback only.** Creates the 11 legacy tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Lead-tab list derived from `leadTabConfigs()`. **Only touches tabs where `getLastRow() === 0`.** Not part of the live path; kept until Phase D. |
+| `setupSpreadsheetUnified()` | **The live setup.** Creates **exactly** `Leads` (25-col `UNIFIED_LEAD_HEADERS`, `Details` last) + `Referrals` + `Subscribers` (both unchanged schemas). Same `getLastRow() === 0` guard. **Separate function, not switch-gated** — the `Leads` tab must exist before `USE_UNIFIED_SCHEMA` flips. It was the cutover's Phase A; **whether it was actually run against the live Sheet is unconfirmed from the repo** (see *Known open defects* #6). |
 | `expectedHeadersFor(tabName)` | Single definition site for "the header row a lead tab should have": `LEAD_HEADERS`, plus `Reports Enabled` on Referral Partners only. Read by `setupSpreadsheet`, `leadTabHeaderAudit`, `rewriteLeadTabHeaderRow`. **`Heard About` is already the last element of `LEAD_HEADERS`** — concatenating it again duplicates the column. |
 | `setupTriggers()` | Creates the four triggers above. |
 | `countMissingEaoCategoryRows()` | **Read-only.** Reports how many `Category = "Existing Asset Owner"` rows in Lifetime Leads are absent from the Existing Asset Owners tab. Writes nothing. |
@@ -497,10 +466,18 @@ Utility helpers: `tab`, `appendRow`, `escapeHtml`, `jsonResponse`, `htmlPage`,
 `resolveCols`, `openCrmSpreadsheet`, `eaoBackfillPlan`, `normalizeHeaderName`,
 `findHeaderIndex`, `describeHeaderRow`, `headerLookupError`.
 
-## `resolveCols` — the standard for live-sheet column reads
+## `resolveCols` — the name-resolution standard (LEGACY tabs)
 
-**Any code that reads a lead tab's columns from the live Sheet must resolve them by
-name through `resolveCols(sheet)`, never by indexing a row with the compile-time
+> **Live equivalent:** on the unified `Leads` table the same contract is provided by
+> **`resolveUnifiedCols(sheet)`** (→ a `UCOLS`-shaped object) — that is what every live
+> reader uses, and `persistNewLeadUnified` extends it to the *write* via
+> `projectLeadRowByName`. `resolveCols` below is the legacy-tab counterpart, still used
+> by the `xxxLegacy` bodies (the rollback path). The principle — resolve by name, throw
+> on a miss, never trust a positional constant against a live sheet — is identical for
+> both.
+
+**Any code that reads a legacy lead tab's columns from the live Sheet must resolve them
+by name through `resolveCols(sheet)`, never by indexing a row with the compile-time
 `COLS` constant.** `COLS` records where a column *should* be; `resolveCols(sheet)`
 reads the tab's actual header row and returns a `COLS`-shaped object whose values
 are the columns' *real* positions, matched by name via `findHeaderIndex` (the same
@@ -546,12 +523,61 @@ source-layout row into Cold/Clients/Archive) still write positionally into the
 destination. This is safe while all lead tabs share one layout (they do, post
 header-repair); a fully name-projected cross-tab copy is a separate change.
 
-## `LEAD_HEADERS` — full 31-column layout
+## The LIVE schema — `Leads` + `Referrals` + `Subscribers`
 
-Shared by every lead tab. `COLS` holds 0-based indexes; column number = index + 1.
-Re-verified against `Code.gs` on 2026-07-08: the array below is the literal current
-contents — `Date Submitted` is **gone**, and `Heard About` has been **appended** as
-column 31.
+**This is what production uses.** `setupSpreadsheetUnified()` creates exactly these
+three tabs; every lead read/write targets `Leads`.
+
+### `Leads` — the one lead table (`UNIFIED_LEAD_HEADERS`, 25 columns)
+
+Verified against `Code.gs` line 1316 (`UNIFIED_LEAD_HEADERS`) / `UCOLS`. `UCOLS` holds
+0-based indexes; column number = index + 1. **Order carries no runtime meaning** — every
+live read resolves by name via `resolveUnifiedCols`; only a freshly-constructed row is
+positional (and even the append is name-projected). The eleven referral-identity columns
+(8–18) are real columns because `matchReferrer` searches Referral Code / Email / Name
+across rows and `onSheetEdit` must detect an edit to `Referred By Email` specifically.
+
+| # | Column | Notes |
+|---|---|---|
+| 1 | Lead ID | `AXP-YYYY-XXXX`. Primary key. |
+| 2 | Timestamp | ISO string. Single source of "when submitted" (digest today-filter, cold-sweep age). |
+| 3 | Category | from `roleToCategory`. Watched by `onSheetEdit` (`handleCategoryEdit`). |
+| 4 | Status | replaces tab membership. Seeded `New Lead`. Watched by `onSheetEdit` (`handleStatusEdit`). |
+| 5 | Email | dedupe key (lowercased) + a `matchReferrer` path. |
+| 6 | First Name | half of the name-match path. |
+| 7 | Last Name | half of the name-match path. |
+| 8 | Referral Code | person's own shareable code; collision-checked. |
+| 9 | Referred By Lead ID | referral identity. |
+| 10 | Referred By Name | referral identity. |
+| 11 | Referred By Email | referral identity. Watched by `onSheetEdit` (`handleManualReferralLink`). |
+| 12 | Referred By Code | referral identity. |
+| 13 | Match Type | `code` / `email` / `name` / `manual` / `none`. |
+| 14 | Referral Chain | pipe-separated Lead IDs, origin → immediate referrer. Input to `Total Downstream`. |
+| 15 | Chain Depth | integer. |
+| 16 | Direct Referrals | running count of **immediate** referrals; incremented by `updateReferrerStats`. |
+| 17 | Total Downstream | running count of the **whole downstream subtree**; `updateReferrerStats` credits every ancestor in a new lead's chain. **Live and written now** (unlike the legacy layout, where it was permanently 0). |
+| 18 | Last Referral Date | written by `updateReferrerStats`. |
+| 19 | Phone | |
+| 20 | Company | |
+| 21 | Role | raw wire value; selects how to read `Details`. |
+| 22 | Source | `leadSource(payload)` — arrival channel only (`QR` / blank), never "how did you hear". |
+| 23 | Heard About | `leadHeardAbout(payload)` — the visitor's own answer. Blank for EAO (no such step). |
+| 24 | Reports Enabled | seeded by the row builder from `LEAD_TYPES.seedReportsEnabled`; blank/`TRUE` = receives monthly summary, `FALSE` opts out. A normal column now (the `REPORTS_ENABLED_COL = LEAD_HEADERS.length` bug class is gone). |
+| 25 | Details | **The JSON blob.** Everything role-specific, keyed per `LEAD_TYPES.detailsFields`. Includes `message`, `preferences`, `booking` (incl. `meetLink`) on every type; the derived `assetClass` label only when non-empty; `submit_referral.referred` as a structured object. Blank-field contract: an *asked* field is present (`''`/`[]`); a *never-asked* field is absent. |
+
+**`Referrals`** (`REFERRAL_HEADERS`) and **`Subscribers`** (`SUBSCRIBER_HEADERS`) keep
+their own schemas and were never part of the migration — unchanged.
+
+---
+
+## `LEAD_HEADERS` — full 31-column layout ⚠ LEGACY / ROLLBACK ONLY
+
+**This layout is NOT what production writes any more.** It is the per-tab schema the
+thirteen `xxxLegacy` bodies use, kept intact as the rollback path until Phase D. It
+describes the nine legacy lead tabs, which still exist in the live Sheet but are no
+longer read or written while `USE_UNIFIED_SCHEMA = true`. Retained here so a rollback (or
+a Phase-D cleanup) has an accurate reference. `COLS` holds 0-based indexes; column
+number = index + 1.
 
 | # | Column | Notes |
 |---|---|---|
@@ -582,7 +608,7 @@ column 31.
 | 25 | Referral Chain | pipe-separated Lead IDs |
 | 26 | Chain Depth | integer |
 | 27 | Direct Referrals | running count; incremented by `updateReferrerStats` |
-| 28 | Total Downstream | **Still permanently `0` on this (legacy) layout.** Seeded `0` by `buildLeadRow`; `updateReferrerStatsLegacy` — the body production runs — writes only `Direct Referrals` and `Last Referral Date`. The multi-level implementation was **built 2026-07-14** but targets the unified `Leads` table and is gated off (`USE_UNIFIED_SCHEMA`). Treat this column as meaningless until cutover. See *Known open defects* §3 and `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c. |
+| 28 | Total Downstream | **Permanently `0` on this legacy layout** — `updateReferrerStatsLegacy` writes only `Direct Referrals` and `Last Referral Date`. The multi-level implementation lives in `updateReferrerStatsUnified` and writes the live `Leads` column 17 instead. This legacy column would only ever be written again on a rollback. See `UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c. |
 | 29 | Last Referral Date | |
 | 30 | Meet Link | Google Meet URL when `meetType === 'meet'` |
 | 31 | Heard About | `leadHeardAbout(payload)` — the visitor's own "How did you hear about us?" answer. Blank for EAO (no such step). Distinct from **Source**. |
@@ -648,12 +674,24 @@ Two other tabs use their own schemas: **Referrals** (`REFERRAL_HEADERS`, 13
 columns, IDs `REF-YYYY-XXXX`) and **Subscribers** (`SUBSCRIBER_HEADERS`, 6
 columns).
 
-## Architecture Decision: Per-Tab Schema vs. Unified Schema
+## Architecture Decision: Per-Tab Schema vs. Unified Schema — ⚠ SUPERSEDED (HISTORICAL)
 
-**Status:** decided 2026-07-08. Keep the current per-role-tab schema. Revisit only
-when `crm.axispoint.llc` or `api.axispoint.llc` become real active work.
+> **This decision was REVERSED. The unified "Details JSON" schema described below as
+> "the alternative" was adopted and is LIVE in production (`USE_UNIFIED_SCHEMA = true`,
+> deployed 2026-07-15). The section is kept as the historical record of why per-tab was
+> chosen in July 2026 and why that reasoning did not hold — do not read it as the
+> current design.** What actually happened: reason #2 (real production data) was found
+> false (the Sheet was empty), which reopened the question; reason #1 (automation coupled
+> to physical tabs) was addressed head-on by the migration — the cold sweep, the monthly
+> summary, and the `onEdit` logic were all rewritten against the one `Leads` table rather
+> than rebuilt from scratch. The empty-Sheet window this section identified as "the
+> structurally cheapest time" is exactly when the migration was done. See
+> `UNIFIED_SCHEMA_MIGRATION_PLAN.md` and the *live schema* section above.
 
-The current design gives every role its own physical tab (Investors, Referral
+**Status (historical):** decided 2026-07-08 to keep the per-role-tab schema; **reversed
+and cut over to the unified schema 2026-07-15.**
+
+The [former] design gives every role its own physical tab (Investors, Referral
 Partners, RE Professionals, Existing Asset Owners, …), each sharing the wide
 `LEAD_HEADERS` column layout. The alternative evaluated was a **unified "Details
 JSON" schema**: one flat table of core columns (Lead ID, name, email, category,
@@ -706,35 +744,22 @@ argument for the current one. This reasoning must never be cited when revisiting
 this. The only human-facing edits the Sheet is designed for are the three columns
 `onSheetEdit` watches (Status, Category, Referred By Email).
 
-### When to revisit
+### What happened instead of "revisit later" (historical)
 
-Once `crm.axispoint.llc` or `api.axispoint.llc` become real active work, **a unified
-Details-JSON schema is the more natural fit at that point** — not a fallback, the
-actual right answer. A real CRM front-end reads through an API layer, so the one
-genuine friction against a JSON blob (human readability in a grid) does not apply,
-while its benefits (adding a field to one lead type without touching a shared
-31-column layout, no per-tab extra columns, no migration per field) all still do.
-Revisit **then**, not before. Do not pre-build for it.
+The section above said to revisit "once `crm.`/`api.axispoint.llc` become real work" and,
+until then, to extend the per-tab schema with name-based lookups. **That is no longer the
+guidance** — the revisit was pulled forward and executed while the Sheet was empty, and
+the unified Details-JSON schema is now live. The `Details` blob delivers exactly the
+benefits this section predicted (add a field to one lead type without touching a shared
+layout; no per-tab extra columns; no migration per field), and the EAO "pack detail into
+the shared Preferences column" workaround it mentioned as a middle ground was generalized
+into the real `Details` column for all five lead types and then removed as a hack (see the
+2026-07-15 EAO normalizer cleanup under *Known open defects*).
 
-### Until then
-
-Extend the existing per-tab schema for new fields and new lead types, and do it with
-**name-based column lookups, never positional or index-derived ones**. The concrete
-cautionary example is in this document: `REPORTS_ENABLED_COL = LEAD_HEADERS.length`
-quietly aimed one cell to the right the moment a 31st header was appended, because it
-inferred a column's position from an array's length. It is now
-`reportsEnabledIndex(sheet)`, a lookup of the literal string `'Reports Enabled'` in
-the sheet's actual header row. Any future per-tab extra column gets the same
-treatment. See *Hardened 2026-07-08* above.
-
-**Middle ground, if partial flexibility is ever needed sooner than a real API:** add
-a single additional `Details JSON` overflow column to the existing tabs and let
-role-specific fields accumulate there, leaving the core columns and all the tab-based
-automation untouched. The EAO flow already follows this pattern informally — it packs
-its structured detail summary into the shared **Preferences** column (13) rather than
-claiming new columns. Formalizing that into one named overflow column is a cheap,
-reversible step. It is **not** a substitute for the unified schema, and reaching for
-it is a signal that the revisit condition above may be arriving.
+**For current guidance on adding a field or a lead type, see *Adding a lead type (live
+unified schema)* above** — one registry entry with `detailsFields`, no tab creation. The
+one enduring rule from this section still holds and now applies to the unified table too:
+**resolve columns by name, never by position** (`resolveUnifiedCols` / `projectLeadRowByName`).
 
 ## Dead-code cleanup status — VERIFIED CLEAN
 
@@ -751,11 +776,13 @@ pre-EAO role vocabulary and nothing in the backend will ever touch it. Deleting 
 from the Sheet is safe from the code's point of view; it is left alone here only
 because this repo cannot read the live Sheet to confirm its contents first.
 
-## Known open defects and gaps (pre-existing — verified 2026-07-12)
+## Known open defects, resolved items, and verification gaps
 
-These are **current, real, unfixed** states of the backend. They are recorded so no
-future task assumes the opposite. None of them was introduced by, or is blocked on,
-the schema migration.
+Re-audited against `Code.gs` for this update. **Three of the original five defects
+(#2, #3, #4) were resolved *by* the unified-schema migration and are now live; #5 is
+closed and live; #1 remains genuinely open.** Two new items (#6, #7) record the
+post-cutover verification gaps and the 2026-07-15 EAO cleanup. Each is marked with its
+real current status so no future task assumes the wrong one.
 
 ### 1. `createContact` fails silently for at least one confirmed case
 
@@ -772,37 +799,29 @@ re-labeling) inherits the same uncertainty.
 Leading suspect, **not yet confirmed**: `createContact` uses **`ContactsApp`**, the
 legacy Contacts API surface, which Google has deprecated in favour of the People
 API. That is a hypothesis to test first, not a diagnosis. Root-causing this is its
-own task and has not been done.
+own task and **has still not been done** — verified 2026-07-16, `createContact` still
+calls `ContactsApp.createContact` / `.addPhone` / `.addOrganization`. The migration did
+not touch it. **This is the one original defect that is still fully open.**
 
-### 2. Twelve of thirteen `qualData` fields are collected but never persisted
+### 2. ✅ RESOLVED (live) — all 13 `qualData` fields now persist
 
-`buildLeadRow` (the only writer of a lead row) persists exactly one `qualData`
-field: `assetClasses` → **Asset Class** (col 11). The other twelve never reach the
-Sheet:
+**Was:** `buildLeadRow` persisted exactly one `qualData` field (`assetClasses` → Asset
+Class); the other twelve (`clients`, `proIntent`, `relationship`, `fit`, `timeline`,
+`awareness`, `aum`, `experience`, `proRole`, `markets`, `profession`, `referralIntent`)
+never reached the Sheet. **Now:** `buildLeadRowUnified` + `buildLeadDetails` write every
+field a lead type collects into the `Details` blob, keyed per the registry
+(`LEAD_TYPES.detailsFields`). This is live under `USE_UNIFIED_SCHEMA = true`.
+`submit_referral`, whose three fields were all in the never-read group, is the biggest
+beneficiary — 100% of its qualified data was discarded before, and all of it lands now.
+(The full field-by-field history is in `frontend-payload-schemas.md`.)
 
-| Fate | Fields |
-|---|---|
-| **Never read at all** — asked, transmitted, read by nothing | `clients`, `proIntent`, `relationship`, `fit`, `timeline`, `awareness` |
-| **Email-only** — render a sentence in `buildVisitorPersonalNote` / `sendPartnerNotification`, then discarded | `aum`, `experience`, `proRole`, `markets`, `profession`, `referralIntent` |
+### 3. ✅ RESOLVED (live) — `Total Downstream` is now written
 
-This is a **known, pre-existing gap, not a migration artifact.** It predates any
-schema work. The full field-by-field table and the verification method live in
-`frontend-payload-schemas.md` → *What `qualData` actually persists*. Whether the
-migration should start persisting these into a Details JSON blob is an **open
-decision** — see `UNIFIED_SCHEMA_MIGRATION_PLAN.md`.
-
-### 3. `Total Downstream` (col 28) is never written — **BUILT, not yet live**
-
-**Still zero in production**, because production still runs the legacy schema.
-
-The multi-level implementation **exists as of 2026-07-14** (Stage 1), inside
-`updateReferrerStatsUnified`, and is fully tested — but it only runs when
-`USE_UNIFIED_SCHEMA` is on, and it writes to the `Leads` table, which does not exist
-yet. The **legacy** `updateReferrerStatsLegacy` still writes only `Direct Referrals`
-and `Last Referral Date`, exactly as before, so the live column 28 is unchanged:
-permanently `0`. **Do not read it or report from it until cutover.**
-
-How it behaves once live (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c):
+**Was:** permanently `0` (`updateReferrerStatsLegacy` wrote only `Direct Referrals` and
+`Last Referral Date`). **Now:** `updateReferrerStatsUnified` — the live body — credits
+`Total Downstream` to **every ancestor** in a new lead's `Referral Chain`, on the `Leads`
+table's column 17. It is written on every referred submission. Behavior
+(`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2c):
 
 | Column | Increments for | John → Steven → Maria: Maria's submission credits |
 |---|---|---|
@@ -828,21 +847,21 @@ naming the referrer and the full chain, so the credit can be replayed by hand. I
 that line ever appears in the logs, the answer is to stop read-modify-writing the
 counters (derive them from the Referrals tab instead), not to raise the timeout.
 `updateReferrerStatsLegacy` is **not** locked — it is unchanged, and is deleted at
-cutover.
+Phase D.
 
-### 4. `submit_referral`'s referred-person data is prose, not structured
+### 4. ✅ RESOLVED (live) — `submit_referral`'s referred person is now structured
 
-`buildLeadRow` folds the `referred` block (name/email/phone/notes) into the
-**Message** column as a newline-joined text block. It is not machine-readable and
-cannot be queried. **Resolved 2026-07-13: the migration lifts it into a structured
-`Details.referred` object** (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2b). Prose until
-then.
+**Was:** `buildLeadRow` folded the `referred` block (name/email/phone/notes) into the
+Message column as prose — unqueryable. **Now:** `buildLeadDetails` writes it as a
+structured `Details.referred` object (`{firstName, lastName, email, phone, notes}`), keys
+always present; the prose builder was deleted, not ported
+(`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2b). Live under the unified schema.
 
-### 5. The cold sweep vs a human Status edit — CLOSED in Stage 3, and the fix is not what was predicted
+### 5. ✅ CLOSED (live) — the cold sweep vs a human Status edit
 
-**Scope: the unified path only** (gated off today). Recorded in full because the
-Stage-2 prediction was **wrong in an instructive way**, and the correction is a rule
-that applies to every future stage.
+The unified path is now **live**, so this is a closed-and-active concern, not a gated
+one. Recorded in full because the Stage-2 prediction was **wrong in an instructive way**,
+and the correction is a rule that still applies.
 
 **Stage 2 predicted:** the gap closes when `handleStatusEdit` takes the same lock.
 
@@ -876,6 +895,52 @@ auto-restoring would silently revert a deliberate human edit — trading one rar
 for another. It logs the conflict loudly and drives Contacts off the live value, so
 the Sheet and Google Contacts can never disagree.
 
+**Honest limit (unchanged): the Node test suite cannot prove Apps Script's `LockService`
+delivers real mutual exclusion** — there is no concurrency in a Node harness and a
+stubbed lock is not a lock. What the tests pin is *where* the lock sits and that a held
+lock refuses a second acquirer. Actual mutual exclusion is Google's guarantee, observable
+only against the live system — which ties into #6.
+
+### 6. ⚠ OPEN / UNCONFIRMED — cutover Phase A (tab creation) and Phase C (live verification)
+
+**The code is `USE_UNIFIED_SCHEMA = true` and deployed (@25).** But two operational
+cutover steps are **not verifiable from this repo**, and there is **no record that either
+was completed**:
+
+- **Phase A — `setupSpreadsheetUnified()` run by hand** to create the `Leads` tab. The
+  switch comment in `Code.gs` still carries the pre-cutover warning that this "has NOT
+  happened," and this repo cannot read the live Sheet (the `clasp` token lacks the Sheets
+  scope). If the tab does not exist, every request throws. **Confirm against the live
+  Sheet before assuming submissions are landing.**
+- **Phase C — verify one live submission per lead type + the live-concurrency checks**
+  (`UNIFIED_SCHEMA_MIGRATION_PLAN.md` §8). No record this was run. The concurrency behavior
+  (the shared lock, the sweep re-read) is only *observable* live (see the honest limit
+  above), so until Phase C is actually executed, real mutual exclusion under load is
+  unproven, not just untested.
+
+This is a **status-tracking gap, not a code defect** — but it is exactly the kind of "was
+it actually done?" question this project has been burned by. Treat "the migration is live
+and working" as confirmed only once Phase A and C are checked against the live system.
+
+### 7. ✅ RESOLVED 2026-07-15 — EAO normalizer cleanups (A1, A2); `eaoDetailsSummary` now dead
+
+Two EAO `normalizeEaoPayload` items were closed post-cutover:
+
+- **A1** — it no longer stuffs a JSON summary into `payload.preferences`; EAO's detail
+  fields persist as real `Details` keys. (Side effect: the EAO Google Contact's
+  "Preferences:" note is now empty instead of carrying the raw JSON blob — the data lives
+  in the Sheet's `Details`.)
+- **A2** — it no longer copies `pressing_issue` onto `message`, so `Details.message` no
+  longer duplicates `Details.pressing_issue`. A `leadMessageText(payload)` helper keeps
+  `pressing_issue` surfacing in the internal email / booking dump / resubmission notices
+  for EAO (unchanged for every other role).
+
+**`eaoDetailsSummary` is now wired into nothing** — verified 2026-07-16, it is referenced
+only in comments and its own unit test. It is retained as the reference pattern the
+`Details` blob generalized from and is a **Phase D deletion candidate**, alongside the
+`xxxLegacy` bodies, the header audit/repair family, the EAO backfill family,
+`setCategoryTabStatus`, and `reportsEnabledIndex`/`headerIndex`.
+
 ## There are NO callable admin actions — do not assume otherwise
 
 `doPost` routes to exactly two handlers (`handleSubscribe`, `handleFormSubmission`)
@@ -890,7 +955,26 @@ built. Verified 2026-07-12.
 The only ways to drive the backend by hand are the **AxisPoint** custom Sheet menu
 (`onOpen`: publish notification, cold sweep now, daily digest now) and running a
 function directly from the Apps Script editor. Building callable admin actions is a
-**separate, later phase** and is explicitly out of scope for the schema migration.
+**separate, later phase** and is still not built.
+
+**The full current surface, post-migration:**
+
+- **Request handlers (live):** `doPost` → `handleSubscribe` / `handleFormSubmission`;
+  `doGet` → `handleUnsubscribe` / `handleAvailability`. All run unified bodies.
+- **Automatic (triggers, live unified):** `sendDailyDigest` (daily), `moveColdLeads`
+  (weekly), `sendMonthlyReferralSummaries` (monthly), `onSheetEdit` (installable edit
+  trigger). Each dispatches to its `xxxUnified` body.
+- **Manual menu items (live unified):** publish notification, "Run Cold Lead Sweep Now"
+  (→ `moveColdLeads`, unified), "Send daily digest now" (→ `sendDailyDigest`, unified).
+- **Legacy-only tools, still runnable from the Apps Script editor but operating on the
+  LEGACY tabs, not the live path:** the header audit/repair family
+  (`auditLeadTabHeadersSummary`, `auditLeadTabHeaderDetail`, `repairLeadTabHeader`,
+  `repairAllDriftedLeadTabHeaders`, …), the EAO backfill family
+  (`countMissingEaoCategoryRows`, `backfillEaoCategoryRows`, `eaoBackfillPlan`), and
+  `setupSpreadsheet()` (creates the 11 legacy tabs). These manage the nine per-role tabs
+  and have no effect on the unified `Leads` table; they exist for the rollback path and
+  are Phase-D removals. `setupSpreadsheetUnified()` is the unified counterpart that
+  creates `Leads` + `Referrals` + `Subscribers`.
 
 ## `CONFIG` object
 
@@ -925,9 +1009,13 @@ CONFIG = {
 labels used by `handleAvailability`; keep it in sync with `SLOTS` in
 `packages/brand`.
 
-**11 tabs** created by `setupSpreadsheet`: Active Leads, Lifetime Leads, Cold
-Leads, Investors, Referral Partners, RE Professionals, Existing Asset Owners,
-Clients, Archive, Referrals, Subscribers.
+**11 tabs** created by the **legacy** `setupSpreadsheet` (`CONFIG.TABS`): Active Leads,
+Lifetime Leads, Cold Leads, Investors, Referral Partners, RE Professionals, Existing
+Asset Owners, Clients, Archive, Referrals, Subscribers. **The live unified schema uses
+only three** — `Leads` + `Referrals` + `Subscribers`, created by
+`setupSpreadsheetUnified`. The nine legacy lead tabs still exist in the Sheet as the
+rollback path (Phase D pending); `CONFIG.TABS` still names them because the `xxxLegacy`
+bodies reference them.
 
 `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` live in Script Properties
 (read by `getProp`) so they survive redeploys, and no *consuming* function body
