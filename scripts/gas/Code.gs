@@ -1235,12 +1235,15 @@ function resolveCols(sheet) {
    UNIFIED SCHEMA  —  the one "Leads" table
    See /docs/UNIFIED_SCHEMA_MIGRATION_PLAN.md. Being migrated in stages.
 
-   MIGRATION STATE (Stage 1 of N): the constants below and updateReferrerStats
-   are the only things that speak this schema so far. Everything else in this
-   file still reads and writes the nine legacy lead tabs. The two schemas are
-   NOT both live: USE_UNIFIED_SCHEMA below is the single switch, and it is off.
+   MIGRATION STATE: DONE AND LIVE. All 9 stages are migrated and the cutover has
+   happened — USE_UNIFIED_SCHEMA below is the single switch and it is ON, so every
+   dispatcher routes to its xxxUnified body and the one "Leads" table is what
+   production reads and writes. The two schemas are NOT both live: the xxxLegacy
+   bodies survive only as the rollback path, wired to nothing while the switch is
+   true. Deleting them is Phase D. (This block read "Stage 1 of N ... it is off"
+   until 2026-07-16 — stale since the 2026-07-15 cutover.)
 
-   THE STAGING PATTERN, for whoever writes Stage 2 — follow it exactly:
+   THE STAGING PATTERN that produced this, kept as the record of how it was done:
      1. Add the unified implementation as its own function (xxxUnified).
      2. Keep the legacy body verbatim, renamed xxxLegacy, marked DELETE-AT-CUTOVER.
      3. Turn the original name into a dispatcher on USE_UNIFIED_SCHEMA.
@@ -1264,11 +1267,14 @@ function resolveCols(sheet) {
    /exec endpoint is a pinned deployment, so this goes live only via
    `clasp push` + `clasp deploy -i <prod id>`.
 
-   ⚠️ ORDERING, DO NOT SKIP (plan §8 Phase A precedes Phase B): before that deploy,
-   `setupSpreadsheetUnified()` MUST be run by hand from the Apps Script editor to
-   create the Leads tab. With the switch true and the tab absent, every migrated
-   function points at a table that does not exist and throws. As of this commit that
-   manual run has NOT happened, so this must not be deployed until it has.
+   PHASE A IS DONE (confirmed 2026-07-16): `setupSpreadsheetUnified()` was run by
+   hand from the Apps Script editor and reported "Leads + Referrals + Subscribers
+   ready (3 tabs)", and the switch has since been pushed and deployed to the pinned
+   production deployment (@25). Live Investor and EAO submissions through the real
+   endpoint both produced correct Leads rows. (This block carried a "that manual run
+   has NOT happened, do not deploy" warning until 2026-07-16 — stale once Phase A
+   ran. The ordering it describes still binds any future rebuild of the tab: with
+   the switch true and the Leads tab absent, every migrated function throws.)
 
    ROLLBACK: set back to false, `clasp push` + `clasp deploy -i`. The legacy tabs and
    xxxLegacy bodies are intact until Phase D. */
