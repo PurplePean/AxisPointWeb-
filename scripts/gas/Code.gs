@@ -1235,12 +1235,15 @@ function resolveCols(sheet) {
    UNIFIED SCHEMA  —  the one "Leads" table
    See /docs/UNIFIED_SCHEMA_MIGRATION_PLAN.md. Being migrated in stages.
 
-   MIGRATION STATE (Stage 1 of N): the constants below and updateReferrerStats
-   are the only things that speak this schema so far. Everything else in this
-   file still reads and writes the nine legacy lead tabs. The two schemas are
-   NOT both live: USE_UNIFIED_SCHEMA below is the single switch, and it is off.
+   MIGRATION STATE: DONE AND LIVE. All 9 stages are migrated and the cutover has
+   happened — USE_UNIFIED_SCHEMA below is the single switch and it is ON, so every
+   dispatcher routes to its xxxUnified body and the one "Leads" table is what
+   production reads and writes. The two schemas are NOT both live: the xxxLegacy
+   bodies survive only as the rollback path, wired to nothing while the switch is
+   true. Deleting them is Phase D. (This block read "Stage 1 of N ... it is off"
+   until 2026-07-16 — stale since the 2026-07-15 cutover.)
 
-   THE STAGING PATTERN, for whoever writes Stage 2 — follow it exactly:
+   THE STAGING PATTERN that produced this, kept as the record of how it was done:
      1. Add the unified implementation as its own function (xxxUnified).
      2. Keep the legacy body verbatim, renamed xxxLegacy, marked DELETE-AT-CUTOVER.
      3. Turn the original name into a dispatcher on USE_UNIFIED_SCHEMA.
@@ -1264,11 +1267,14 @@ function resolveCols(sheet) {
    /exec endpoint is a pinned deployment, so this goes live only via
    `clasp push` + `clasp deploy -i <prod id>`.
 
-   ⚠️ ORDERING, DO NOT SKIP (plan §8 Phase A precedes Phase B): before that deploy,
-   `setupSpreadsheetUnified()` MUST be run by hand from the Apps Script editor to
-   create the Leads tab. With the switch true and the tab absent, every migrated
-   function points at a table that does not exist and throws. As of this commit that
-   manual run has NOT happened, so this must not be deployed until it has.
+   PHASE A IS DONE (confirmed 2026-07-16): `setupSpreadsheetUnified()` was run by
+   hand from the Apps Script editor and reported "Leads + Referrals + Subscribers
+   ready (3 tabs)", and the switch has since been pushed and deployed to the pinned
+   production deployment (@25). Live Investor and EAO submissions through the real
+   endpoint both produced correct Leads rows. (This block carried a "that manual run
+   has NOT happened, do not deploy" warning until 2026-07-16 — stale once Phase A
+   ran. The ordering it describes still binds any future rebuild of the tab: with
+   the switch true and the Leads tab absent, every migrated function throws.)
 
    ROLLBACK: set back to false, `clasp push` + `clasp deploy -i`. The legacy tabs and
    xxxLegacy bodies are intact until Phase D. */
@@ -2851,17 +2857,15 @@ function buildVisitorPersonalNote(payload) {
       body = 'Thank you for thinking of AxisPoint for your clients. ' + closer;
     }
 
-  } else if (role === 'existing_asset_owner') {
-    label = 'What you told us';
-    var issue     = String(payload.pressing_issue   || '').trim();
-    var situation = String(payload.current_situation || '').trim();
-    if (issue) {
-      body = 'You told us the most pressing thing on your plate is: “' + escapeHtml(issue) + '”. That is exactly where we will start.';
-    } else if (situation) {
-      body = 'You described your current situation as: “' + escapeHtml(situation) + '”. We will dig into that when we connect.';
-    } else {
-      body = 'We reviewed the details on your portfolio and situation, and we will come prepared to talk specifics.';
-    }
+  /* NO existing_asset_owner BRANCH, deliberately (removed 2026-07-16).
+     EAO used to render a "What you told us" callout quoting the visitor's
+     pressing_issue / current_situation back at them. It was removed by request;
+     falling through to the `return ''` below means an EAO confirmation carries no
+     callout at all, which the templates already handle — {{personalNote}} is
+     stripped to '' when the note is empty (the same path an unknown role takes).
+     pressing_issue is untouched everywhere else: it still persists to
+     Details.pressing_issue and still reaches the internal surfaces via
+     leadMessageText(). This removes an ECHO, not a field. */
 
   } else if (role === 'submit_referral') {
     label = 'Your referral';
@@ -4189,7 +4193,25 @@ function handleStatusEditUnified(rowNum, newStatus) {
   /* Contacts calls are OUTSIDE the lock — they are slow external round-trips, and
      the script lock is process-wide. The sheet has not been touched by this
      function at all, so there is nothing to flush and nothing to protect. */
-  switch (effectiveStatus) {
+  applyStatusContactSideEffect(email, effectiveStatus);
+}
+
+/* The Google Contacts side effect of a lead reaching a given status, extracted so
+   the onEdit handler and setLeadStatus drive IDENTICAL behavior from one body.
+
+   This is not tidying: an installable onEdit trigger does NOT fire for a write
+   made by Apps Script itself, so setLeadStatus cannot rely on handleStatusEdit to
+   run afterwards. Without a shared helper the choice is to duplicate this switch
+   (two bodies that will drift) or to let a menu-driven status change silently skip
+   the Contacts move that the identical hand-typed change performs.
+
+   MUST be called OUTSIDE the script lock: these are slow external round-trips and
+   the lock is process-wide. Every branch is try/caught — a Contacts failure must
+   never turn a saved, correct Status write into a thrown error. */
+function applyStatusContactSideEffect(email, status) {
+  if (!email) return;
+
+  switch (status) {
     case 'Cold':
       try { moveContactToCold(email); }
       catch (e) { Logger.log('moveContactToCold failed for ' + email + ': ' + e); }
@@ -5007,7 +5029,11 @@ function onOpen() {
     .addItem('📣  Send publish notification',  'openPublishDialog')
     .addSeparator()
     .addItem('❄️  Run Cold Lead Sweep Now',     'moveColdLeads')
-    .addItem('📬  Send daily digest now',       'sendDailyDigest')
+    .addItem('📬  Send daily digest now',       'forceDailyDigestNow_ui')
+    .addItem('📊  Send partner summary now',    'forcePartnerSummaryNow_ui')
+    .addSeparator()
+    .addItem('🏷️  Set lead status…',            'promptSetLeadStatus')
+    .addItem('📈  Set reports enabled…',        'promptSetReportsEnabled')
     .addToUi();
 }
 
@@ -5033,6 +5059,336 @@ function openPublishDialog() {
     ui.alert('Sent to ' + count + ' subscriber(s).');
   } catch (err) {
     ui.alert('Error: ' + err.toString());
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   ADMIN ACTIONS  —  menu-callable operations on the live Leads table
+
+   MENU-CALLABLE ONLY, DELIBERATELY. None of these is wired into doPost/doGet,
+   and that is the current scope, not an oversight: every one of them mutates or
+   emails from live CRM data, so exposing them on the public /exec endpoint would
+   need an auth story this backend does not have yet (doPost is unauthenticated —
+   it has to be, the contact form is anonymous). An API-callable pass is a separate
+   change that must bring authentication with it.
+
+   THE SPLIT, and why there are two functions per action: the `xxx()` body is the
+   real operation and takes plain arguments, so it is callable from the Apps Script
+   editor, from another function, and from a test with no UI in the room. The
+   `promptXxx()` wrapper is UI-only — it collects arguments, then reports the
+   result. SpreadsheetApp.getUi() throws outside a spreadsheet-bound context, so
+   keeping it out of the operation is what makes the operation testable at all.
+
+   ERRORS THROW, they do not return a flag. A menu wrapper catches and alerts; a
+   scripted caller gets a real exception rather than a false success it might
+   ignore. */
+
+/* The Status vocabulary, and the single site that defines it.
+
+   Derived from nothing — hand-listed on purpose, because these six values are a
+   CONTRACT with the live Sheet's data-validation dropdown, not an internal enum.
+   The three "active" statuses that moveColdLeads sweeps are a SUBSET of this list
+   (see sweepStaleLeadsToCold); the other three are terminal-ish states with their
+   own Contacts side effects (applyStatusContactSideEffect). */
+var LEAD_STATUSES = ['New Lead', 'Contacted', 'Active', 'Cold', 'Client', 'Archive'];
+
+/* Row index (0-based, into a getDataRange() values array) of a Lead ID, or -1.
+   Trimmed + case-insensitive: a Lead ID pasted into a prompt by a human carries
+   stray whitespace far more often than not, and 'axp-2026-0041' is unambiguously
+   the same lead as 'AXP-2026-0041'. */
+function findLeadRowIndexByLeadId(data, C, leadId) {
+  var wanted = String(leadId || '').trim().toUpperCase();
+  if (!wanted) return -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][C.LEAD_ID] || '').trim().toUpperCase() === wanted) return i;
+  }
+  return -1;
+}
+
+/* Opens the Leads table for a single-row admin write, or throws an actionable
+   error. Shared by setLeadStatus and setReportsEnabled, which differ only in the
+   column they write. */
+function openLeadsForAdmin() {
+  var sheet = leadsTable();
+  if (!sheet) {
+    throw new Error('No "' + CONFIG.TABS.LEADS + '" tab exists. Run setupSpreadsheetUnified() first.');
+  }
+  if (sheet.getLastRow() < 2) {
+    throw new Error('The "' + CONFIG.TABS.LEADS + '" tab has no lead rows yet.');
+  }
+  return sheet;
+}
+
+/* ── setLeadStatus(leadId, newStatus) ──
+   Sets the Status column for ONE lead, by Lead ID, exactly as if a human had typed
+   it into the cell — INCLUDING the Google Contacts side effect.
+
+   WHY THE SIDE EFFECT IS APPLIED HERE RATHER THAN LEFT TO onSheetEdit: an
+   installable onEdit trigger does not fire for a write made by Apps Script. So
+   this function's write will NOT be seen by handleStatusEditUnified, and without
+   the explicit call below a status set from the menu would update the Sheet while
+   silently skipping the Contacts move that the identical hand-typed edit performs.
+   The two paths share one body (applyStatusContactSideEffect) so they cannot drift.
+
+   Returns { leadId, row, previousStatus, newStatus, changed }. */
+function setLeadStatus(leadId, newStatus) {
+  var id     = String(leadId || '').trim();
+  var status = String(newStatus || '').trim();
+
+  if (!id)     throw new Error('setLeadStatus: a Lead ID is required.');
+  if (!status) throw new Error('setLeadStatus: a status is required.');
+
+  /* Validate BEFORE touching the sheet. An unrecognized status written into the
+     column is not a harmless typo: moveColdLeads only sweeps the three active
+     values and handleStatusEdit only reacts to the six, so a misspelled 'Cold '
+     would sit there looking correct while the lead silently falls out of every
+     automation that keys on it. */
+  if (LEAD_STATUSES.indexOf(status) === -1) {
+    throw new Error('setLeadStatus: "' + status + '" is not a valid status. Use one of: ' +
+                    LEAD_STATUSES.join(', ') + '.');
+  }
+
+  var sheet = openLeadsForAdmin();
+
+  /* The same process-wide script lock every other writer takes, so this genuinely
+     contends with the cold sweep, the referral credit, and the onEdit handler
+     rather than racing them. tryLock, not waitLock: consistent with the rest of the
+     file — give up and say so rather than sit on an execution slot. */
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(STATUS_EDIT_LOCK_MS)) {
+    throw new Error('setLeadStatus: could not acquire the script lock within ' +
+                    STATUS_EDIT_LOCK_MS + 'ms (a cold sweep or referral credit is running). ' +
+                    'NOTHING was written. Try again in a moment.');
+  }
+
+  var email, previousStatus, sheetRow;
+  try {
+    // Resolve by name and throw on a miss: never write a status into a guessed cell.
+    var C    = resolveUnifiedCols(sheet);
+    var data = sheet.getDataRange().getValues();
+
+    var idx = findLeadRowIndexByLeadId(data, C, id);
+    if (idx === -1) {
+      throw new Error('setLeadStatus: no lead with Lead ID "' + id + '" in "' +
+                      CONFIG.TABS.LEADS + '". Nothing was written.');
+    }
+
+    sheetRow       = idx + 1;                                  // 1-based, header included
+    previousStatus = String(data[idx][C.STATUS] || '');
+    email          = String(data[idx][C.EMAIL]  || '');
+
+    sheet.getRange(sheetRow, C.STATUS + 1).setValue(status);
+    // Commit before releasing: a write that lands after the lock is gone is a write
+    // that happened outside it.
+    SpreadsheetApp.flush();
+  } finally {
+    // finally: resolveUnifiedCols throws on a mangled header, and a leaked
+    // process-wide lock would block every sweep and every referral credit.
+    lock.releaseLock();
+  }
+
+  // OUTSIDE the lock — slow external round-trips, and the sheet write is done.
+  applyStatusContactSideEffect(email, status);
+
+  Logger.log('setLeadStatus: ' + id + ' (row ' + sheetRow + ') "' + previousStatus +
+             '" → "' + status + '".');
+
+  return {
+    leadId:         id,
+    row:            sheetRow,
+    previousStatus: previousStatus,
+    newStatus:      status,
+    changed:        previousStatus !== status,
+  };
+}
+
+/* ── setReportsEnabled(leadId, enabled) ──
+   Toggles ONE lead's Reports Enabled column: the monthly-referral-summary opt-out.
+
+   PER-LEAD, NOT GLOBAL. Reports Enabled is a per-partner choice
+   (sendMonthlyReferralSummariesUnified reads it row by row), so a single-argument
+   global version would have to mass-write every Referral Partner row and destroy
+   each partner's individual opt-out — a bulk mutation of live data that no git
+   revert can undo.
+
+   THE STORED VALUE MATCHES THE READER'S RULE, which is asymmetric: the summary
+   sender skips a row only on an EXPLICIT FALSE (blank and TRUE both mean enabled).
+   So this writes real booleans — true / false — never the strings 'TRUE'/'FALSE'
+   and never '' for the disabled case, which would read back as ENABLED and make
+   the opt-out silently fail.
+
+   Returns { leadId, row, previousValue, enabled }. */
+function setReportsEnabled(leadId, enabled) {
+  var id = String(leadId || '').trim();
+  if (!id) throw new Error('setReportsEnabled: a Lead ID is required.');
+
+  /* Coerced deliberately, and NOT with a bare Boolean(): this is reachable from a
+     prompt, where the argument arrives as the STRING 'false' — and Boolean('false')
+     is true, which would silently enable a partner the user just asked to disable.
+     Only the recognized spellings pass; anything else throws. */
+  var on = normalizeEnabledFlag(enabled);
+
+  var sheet = openLeadsForAdmin();
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(STATUS_EDIT_LOCK_MS)) {
+    throw new Error('setReportsEnabled: could not acquire the script lock within ' +
+                    STATUS_EDIT_LOCK_MS + 'ms. NOTHING was written. Try again in a moment.');
+  }
+
+  try {
+    var C    = resolveUnifiedCols(sheet);
+    var data = sheet.getDataRange().getValues();
+
+    var idx = findLeadRowIndexByLeadId(data, C, id);
+    if (idx === -1) {
+      throw new Error('setReportsEnabled: no lead with Lead ID "' + id + '" in "' +
+                      CONFIG.TABS.LEADS + '". Nothing was written.');
+    }
+
+    var sheetRow      = idx + 1;
+    var previousValue = data[idx][C.REPORTS_ENABLED];
+    var category      = String(data[idx][C.CATEGORY] || '');
+
+    /* A warning, NOT a refusal. Only Referral Partners are read by the monthly
+       summary, so setting this on any other category is inert — but it is also
+       harmless, and refusing would block the legitimate case of pre-setting the
+       flag on a lead about to be re-categorized. Say so and proceed. */
+    if (category !== 'Referral Partner') {
+      Logger.log('setReportsEnabled: NOTE — ' + id + ' is category "' + category +
+                 '", not "Referral Partner". Only Referral Partners receive the monthly ' +
+                 'summary, so this flag has no effect until the category changes.');
+    }
+
+    sheet.getRange(sheetRow, C.REPORTS_ENABLED + 1).setValue(on);
+    SpreadsheetApp.flush();
+
+    Logger.log('setReportsEnabled: ' + id + ' (row ' + sheetRow + ') "' +
+               previousValue + '" → ' + on + '.');
+
+    return { leadId: id, row: sheetRow, previousValue: previousValue, enabled: on };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* The accepted spellings of a boolean flag, in one place. Throws on anything
+   unrecognized rather than guessing — see setReportsEnabled on why Boolean('false')
+   is the specific trap being avoided. */
+function normalizeEnabledFlag(value) {
+  if (value === true  || value === false) return value;
+  var s = String(value == null ? '' : value).trim().toLowerCase();
+  if (s === 'true'  || s === 'yes' || s === 'y' || s === 'on'  || s === '1') return true;
+  if (s === 'false' || s === 'no'  || s === 'n' || s === 'off' || s === '0') return false;
+  throw new Error('Expected a true/false value, got "' + value + '". Use TRUE or FALSE.');
+}
+
+/* ── forcePartnerSummaryNow() / forceDailyDigestNow() ──
+   Run the two scheduled emails immediately, off-schedule.
+
+   These are THIN ON PURPOSE. Each calls the very same dispatcher the time-based
+   trigger calls, with no flags and no "manual run" mode, so a forced run and a
+   scheduled run cannot diverge in behavior — which is the entire point of having a
+   force button: to observe what the schedule will actually do.
+
+   NOT DRY RUNS. Both send real email to real recipients (NOTIFY_EMAILS for the
+   digest; every eligible referral partner for the summary). The menu wrappers
+   confirm before firing for exactly that reason.
+
+   Each returns what its underlying send returns, so a scripted caller can assert
+   on the outcome. */
+function forcePartnerSummaryNow() {
+  Logger.log('forcePartnerSummaryNow: manual off-schedule run of sendMonthlyReferralSummaries.');
+  return sendMonthlyReferralSummaries();
+}
+
+function forceDailyDigestNow() {
+  Logger.log('forceDailyDigestNow: manual off-schedule run of sendDailyDigest.');
+  return sendDailyDigest();
+}
+
+
+/* ── The menu wrappers ──
+   UI only. They collect arguments, call the operation, and report. All the real
+   behavior lives above, where it is testable without a spreadsheet UI. */
+
+function promptSetLeadStatus() {
+  var ui = SpreadsheetApp.getUi();
+
+  var r1 = ui.prompt('Set lead status (1/2)', 'Lead ID (e.g. AXP-2026-0041):', ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  var leadId = r1.getResponseText().trim();
+  if (!leadId) { ui.alert('A Lead ID is required.'); return; }
+
+  var r2 = ui.prompt('Set lead status (2/2)',
+                     'New status. One of:\n' + LEAD_STATUSES.join(', '),
+                     ui.ButtonSet.OK_CANCEL);
+  if (r2.getSelectedButton() !== ui.Button.OK) return;
+  var status = r2.getResponseText().trim();
+
+  try {
+    var res = setLeadStatus(leadId, status);
+    ui.alert(res.changed
+      ? 'Row ' + res.row + ': ' + res.leadId + '\n\n"' + res.previousStatus + '" → "' + res.newStatus + '"'
+      : 'Row ' + res.row + ': ' + res.leadId + '\n\nAlready "' + res.newStatus + '". No change.');
+  } catch (err) {
+    ui.alert('Error: ' + err.message);
+  }
+}
+
+function promptSetReportsEnabled() {
+  var ui = SpreadsheetApp.getUi();
+
+  var r1 = ui.prompt('Set reports enabled (1/2)', 'Lead ID (e.g. AXP-2026-0041):', ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  var leadId = r1.getResponseText().trim();
+  if (!leadId) { ui.alert('A Lead ID is required.'); return; }
+
+  var r2 = ui.prompt('Set reports enabled (2/2)',
+                     'Receives the monthly referral summary?\n\nTRUE = yes, FALSE = opted out.',
+                     ui.ButtonSet.OK_CANCEL);
+  if (r2.getSelectedButton() !== ui.Button.OK) return;
+
+  try {
+    var res = setReportsEnabled(leadId, r2.getResponseText().trim());
+    ui.alert('Row ' + res.row + ': ' + res.leadId + '\n\nReports Enabled → ' +
+             (res.enabled ? 'TRUE (receives the monthly summary)' : 'FALSE (opted out)'));
+  } catch (err) {
+    ui.alert('Error: ' + err.message);
+  }
+}
+
+/* Both force wrappers CONFIRM FIRST. These send real email the moment they are
+   clicked, and the menu item sits one row away from the others — a misclick that
+   emails every referral partner is not recoverable. */
+function forceDailyDigestNow_ui() {
+  var ui = SpreadsheetApp.getUi();
+  var ok = ui.alert('Send daily digest now?',
+                    'This emails today\'s leads to ' + CONFIG.NOTIFY_EMAILS.join(', ') +
+                    ' immediately, outside the 6pm schedule.\n\nIt is silent if there are no leads today.',
+                    ui.ButtonSet.OK_CANCEL);
+  if (ok !== ui.Button.OK) return;
+  try {
+    forceDailyDigestNow();
+    ui.alert('Daily digest run complete. Check the execution log for what was sent.');
+  } catch (err) {
+    ui.alert('Error: ' + err.message);
+  }
+}
+
+function forcePartnerSummaryNow_ui() {
+  var ui = SpreadsheetApp.getUi();
+  var ok = ui.alert('Send partner summary now?',
+                    'This emails the monthly referral summary to EVERY eligible referral ' +
+                    'partner immediately, outside the schedule.\n\nThis is not a dry run.',
+                    ui.ButtonSet.OK_CANCEL);
+  if (ok !== ui.Button.OK) return;
+  try {
+    forcePartnerSummaryNow();
+    ui.alert('Partner summary run complete. Check the execution log for what was sent.');
+  } catch (err) {
+    ui.alert('Error: ' + err.message);
   }
 }
 
