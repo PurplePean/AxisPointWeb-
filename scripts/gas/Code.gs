@@ -2857,17 +2857,15 @@ function buildVisitorPersonalNote(payload) {
       body = 'Thank you for thinking of AxisPoint for your clients. ' + closer;
     }
 
-  } else if (role === 'existing_asset_owner') {
-    label = 'What you told us';
-    var issue     = String(payload.pressing_issue   || '').trim();
-    var situation = String(payload.current_situation || '').trim();
-    if (issue) {
-      body = 'You told us the most pressing thing on your plate is: “' + escapeHtml(issue) + '”. That is exactly where we will start.';
-    } else if (situation) {
-      body = 'You described your current situation as: “' + escapeHtml(situation) + '”. We will dig into that when we connect.';
-    } else {
-      body = 'We reviewed the details on your portfolio and situation, and we will come prepared to talk specifics.';
-    }
+  /* NO existing_asset_owner BRANCH, deliberately (removed 2026-07-16).
+     EAO used to render a "What you told us" callout quoting the visitor's
+     pressing_issue / current_situation back at them. It was removed by request;
+     falling through to the `return ''` below means an EAO confirmation carries no
+     callout at all, which the templates already handle — {{personalNote}} is
+     stripped to '' when the note is empty (the same path an unknown role takes).
+     pressing_issue is untouched everywhere else: it still persists to
+     Details.pressing_issue and still reaches the internal surfaces via
+     leadMessageText(). This removes an ECHO, not a field. */
 
   } else if (role === 'submit_referral') {
     label = 'Your referral';

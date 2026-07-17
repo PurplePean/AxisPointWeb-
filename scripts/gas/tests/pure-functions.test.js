@@ -380,14 +380,46 @@ test('buildVisitorPersonalNote: per-role content + escaping + unknown role empty
   assert.match(pro, /Broker/);
   assert.match(pro, /Austin and Dallas/);
 
-  const eao = S.buildVisitorPersonalNote({ role: 'existing_asset_owner', pressing_issue: 'Tenant <churn> & risk' });
-  assert.match(eao, /What you told us/);
-  assert.match(eao, /Tenant &lt;churn&gt; &amp; risk/); // escaped
-
   const sr = S.buildVisitorPersonalNote({ role: 'submit_referral', referred: { firstName: 'Jo', lastName: 'Blow' } });
   assert.match(sr, /Jo Blow/);
 
   assert.equal(S.buildVisitorPersonalNote({ role: 'mystery' }), ''); // unknown → ''
+});
+
+/* The EAO "What you told us" callout was REMOVED by request (2026-07-16). This
+   test is the removal's guard: it pins that the note is EMPTY for EAO — not that
+   some other label renders — so a future edit cannot quietly reintroduce the echo.
+   The strongest assertion here is the last one: the visitor's own free text must
+   not appear in the confirmation at all. */
+test('buildVisitorPersonalNote: EAO renders NO note, and never echoes pressing_issue', () => {
+  const eao = S.buildVisitorPersonalNote({
+    role: 'existing_asset_owner',
+    pressing_issue: 'Tenant <churn> & risk',
+    current_situation: 'Two vacant floors',
+  });
+  assert.equal(eao, '');
+
+  // Belt and braces: neither free-text field leaks through any other branch.
+  assert.doesNotMatch(eao, /What you told us/);
+  assert.doesNotMatch(eao, /Tenant/);
+  assert.doesNotMatch(eao, /vacant/);
+
+  // Even with nothing to echo, EAO stays empty rather than falling into a default.
+  assert.equal(S.buildVisitorPersonalNote({ role: 'existing_asset_owner' }), '');
+});
+
+/* The removal must be an EMAIL-DISPLAY change only. pressing_issue is EAO's only
+   free text, and it still has to reach storage and the internal surfaces — this is
+   what makes "removed the echo" different from "dropped the field". */
+test('buildVisitorPersonalNote: removing the EAO note did NOT drop pressing_issue anywhere else', () => {
+  const payload = { role: 'existing_asset_owner', pressing_issue: 'Roof needs replacing', person: {} };
+
+  // Still persisted to the Details blob.
+  const details = S.buildLeadDetails(payload, '');
+  assert.equal(details.pressing_issue, 'Roof needs replacing');
+
+  // Still the internal display text (partner notification, booking dump, resubmissions).
+  assert.equal(S.leadMessageText(payload), 'Roof needs replacing');
 });
 
 /* ── booking event content helpers (client vs internal split) ─────────────── */
