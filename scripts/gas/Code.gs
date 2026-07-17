@@ -5322,7 +5322,7 @@ function promptSetLeadStatus() {
   if (!leadId) { ui.alert('A Lead ID is required.'); return; }
 
   var r2 = ui.prompt('Set lead status (2/2)',
-                     'New status — one of:\n' + LEAD_STATUSES.join(', '),
+                     'New status. One of:\n' + LEAD_STATUSES.join(', '),
                      ui.ButtonSet.OK_CANCEL);
   if (r2.getSelectedButton() !== ui.Button.OK) return;
   var status = r2.getResponseText().trim();

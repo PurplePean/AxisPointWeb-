@@ -214,9 +214,8 @@ Flat shape (spreads the assembled `property` object at the top level), not the
   //   }>
 
   "current_situation": string | null,
-  "pressing_issue": string,        // → Message column + partner email, AND echoed back to the
-                                   //   visitor in {{personalNote}} (falls back to
-                                   //   current_situation when empty)
+  "pressing_issue": string,        // → Details.pressing_issue + the internal partner email
+                                   //   (via leadMessageText). NOT echoed to the visitor.
   "name": string,                  // single field; backend splits into first/last
   "email": string,
   "phone": string,
@@ -226,12 +225,23 @@ Flat shape (spreads the assembled `property` object at the top level), not the
 ```
 
 Note the EAO payload has **no** `person` object, `message`, `source`, `heardAbout`,
-`page`, `timestamp`, or referral fields — `normalizeEaoPayload` synthesizes `person`,
-`message` (from `pressing_issue`), `qualData.assetClasses` (a one-line asset
-label), and `preferences` (a JSON dump of every EAO field) server-side. Because it
-sends no `source`, `leadSource()` returns `''` and EAO rows land with a blank Source
+`page`, `timestamp`, or referral fields. `normalizeEaoPayload` synthesizes `person`
+and `qualData.assetClasses` (a one-line asset label) server-side. Because it sends
+no `source`, `leadSource()` returns `''` and EAO rows land with a blank Source
 column even when submitted from the QR microsite.
 
-`normalizeEaoPayload` copies `pressing_issue` into `message` but does **not** delete
-the top-level `pressing_issue` / `current_situation`, which is what lets
-`buildVisitorPersonalNote` echo them back to the visitor.
+**Corrected 2026-07-16 — this paragraph described two behaviors that the
+2026-07-15 A1/A2 cleanup had already removed.** `normalizeEaoPayload` no longer
+synthesizes `message` from `pressing_issue` (so `Details.message` is `''` for EAO
+and the free text lives once, in `Details.pressing_issue`), and no longer stuffs
+`preferences` with a JSON dump of every EAO field (those fields have real `Details`
+keys via the registry, `detailsFrom: 'payload'`).
+
+The normalizer still **adds** the generic fields without deleting the top-level
+`pressing_issue` / `current_situation`. What now reads them:
+
+| Reader | Reads `pressing_issue`? |
+|---|---|
+| `buildLeadDetails` → `Details.pressing_issue` | ✅ |
+| `leadMessageText` → partner notification, internal booking dump, resubmission notices | ✅ (EAO fallback) |
+| `buildVisitorPersonalNote` → the visitor's confirmation email | ❌ **not since 2026-07-16** — the EAO "What you told us" callout was removed, so EAO confirmations carry no note at all. |

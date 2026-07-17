@@ -112,7 +112,7 @@ coexist in the source and exactly one (unified) is active.
 dependent call below is a dispatcher already routing to its `xxxUnified` body; the
 orchestration itself is not duplicated:
 
-1. `leadTypeFor(payload.role).normalizer` — if the role's registry entry names one (today only `existing_asset_owner` → `normalizeEaoPayload`), it reshapes the flat wire payload **in place** into the generic `{ person, qualData }` shape so no role branching is needed downstream. Normalizers **add** the generic fields; they never strip the role-specific ones, so `payload.role` and e.g. `payload.current_situation` / `payload.pressing_issue` remain readable afterwards (`buildLeadDetails`, `bookingEventInternalDescription`, and the visitor note rely on this). **(EAO normalizer, as of 2026-07-15: it no longer copies `pressing_issue` onto `message` or stuffs a JSON summary into `preferences` — see the cleanup note under *Known open defects*.)**
+1. `leadTypeFor(payload.role).normalizer` — if the role's registry entry names one (today only `existing_asset_owner` → `normalizeEaoPayload`), it reshapes the flat wire payload **in place** into the generic `{ person, qualData }` shape so no role branching is needed downstream. Normalizers **add** the generic fields; they never strip the role-specific ones, so `payload.role` and e.g. `payload.current_situation` / `payload.pressing_issue` remain readable afterwards (`buildLeadDetails`, `bookingEventInternalDescription`, and `leadMessageText` rely on this). **(As of 2026-07-16 the *visitor* note no longer reads `pressing_issue` — EAO's client-facing "What you told us" callout was removed; see *Per-role visitor confirmation note* below. The internal surfaces still read it.)** **(EAO normalizer, as of 2026-07-15: it no longer copies `pressing_issue` onto `message` or stuffs a JSON summary into `preferences` — see the cleanup note under *Known open defects*.)**
 2. Dedupe: `findExistingLead(email)` scans **the `Leads` table** by lowercased email. On match → `handleResubmission`, which read-modify-writes `Details.message` (parse, append a resubmission note, re-serialize) under the shared script lock, updates previously-empty fields, notifies partners, and returns the original Lead ID; **no new row / no new contact**.
 3. New lead: `nextLeadSequence()` → `buildLeadId()` (`AXP-YYYY-XXXX`), `generateReferralCode()` (`AXP-` + 6 unambiguous chars, collision-checked against the `Leads` table).
 4. `matchReferrer(payload)` — priority **code → email → name** against the `Leads` table.
@@ -361,11 +361,118 @@ rollback path.
 - `notifySubscribers(title, excerpt, url)` — invoked from the sheet's **AxisPoint → Send publish notification** menu (`openPublishDialog`); emails active subscribers a new-article notice.
 - `handleUnsubscribe(rawEmail)` — flips `Active` to false and returns an HTML confirmation page.
 
+## Per-role visitor confirmation note (`{{personalNote}}`)
+
+`buildVisitorPersonalNote(payload)` returns a ready HTML callout that reflects back
+what the visitor actually submitted, or **`''`** when there is nothing to echo. It
+is rendered into the `{{personalNote}}` placeholder that **all three** visitor
+templates carry (`visitor-confirmation-meet` / `-phone` / `-no-booking`), so it
+works for booking and no-booking alike. An empty note is a normal, handled state:
+`renderTemplate` strips the unfilled placeholder to `''`.
+
+It is **not** a section in any HTML template — it is generated in `Code.gs`. Editing
+the note means editing that function, not the `emails/*.html` mirrors, so the
+embedded-constant/mirror-file drift hazard does not apply to it.
+
+| Wire `role` | Label | Echoes |
+|---|---|---|
+| `investor` | `Your investor profile` | `qualData.aum`, `qualData.experience` |
+| `pro` | `Your practice` | `qualData.proRole`, `qualData.markets` |
+| `referral` | `Your practice` | `qualData.profession`, `qualData.referralIntent` |
+| `submit_referral` | `Your referral` | `referred.firstName` / `.lastName` |
+| `existing_asset_owner` | **none** | **nothing — no callout is rendered** |
+| unknown role | **none** | `''` |
+
+**EAO renders no note, as of 2026-07-16.** It previously rendered a
+`What you told us` callout quoting the visitor's own `pressing_issue` (falling back
+to `current_situation`) back at them. Removed by request; the branch is gone and EAO
+falls through to the same `return ''` an unknown role takes.
+
+**This removed an echo, not a field.** `pressing_issue` is EAO's only free text and
+still reaches everything else: `Details.pressing_issue` (storage) and the internal
+surfaces via `leadMessageText()`. Two tests pin both halves, so a future edit cannot
+quietly drop the field while believing it is only dropping the note. Verified by
+rendering the real email from the real `Code.gs` across all five lead types and all
+three template variants: EAO produces no callout, no free-text echo, and no
+unrendered placeholder; the other four are unchanged.
+
+## Admin actions (added 2026-07-16)
+
+Four operations on the live `Leads` table, driven from the **AxisPoint** menu.
+
+**Menu-callable only, deliberately.** None is wired into `doPost`/`doGet`. That is
+the current scope, not an oversight: every one mutates or emails from live CRM
+data, and `doPost` is **unauthenticated** — it has to be, the contact form is
+anonymous. An API-callable pass is a separate change that must bring an auth story
+with it.
+
+**Each action is two functions**, and the split is what makes them testable: the
+`xxx()` body is the real operation and takes plain arguments, so it is callable
+from the Apps Script editor, from another function, and from a test with no UI in
+the room. The `promptXxx()` / `xxx_ui()` wrapper is UI-only. `SpreadsheetApp.getUi()`
+throws outside a spreadsheet-bound context, so keeping it out of the operation body
+is load-bearing. **Errors throw** rather than returning a flag; the wrapper catches
+and alerts.
+
+| Function | Menu item | Behavior |
+|---|---|---|
+| `setLeadStatus(leadId, newStatus)` | 🏷️ Set lead status… | Sets **Status** on one lead, by Lead ID, **including the Google Contacts side effect**. Validates against `LEAD_STATUSES` *before* touching the sheet. Script-locked; flushed before release. Returns `{ leadId, row, previousStatus, newStatus, changed }`. |
+| `setReportsEnabled(leadId, enabled)` | 📈 Set reports enabled… | Sets **Reports Enabled** on one lead. Writes a real boolean. Logs (does not refuse) when the lead is not a Referral Partner, since the flag is inert there. Returns `{ leadId, row, previousValue, enabled }`. |
+| `forcePartnerSummaryNow()` | 📊 Send partner summary now | Calls `sendMonthlyReferralSummaries()` off-schedule. |
+| `forceDailyDigestNow()` | 📬 Send daily digest now | Calls `sendDailyDigest()` off-schedule. (Replaced the menu's former direct `sendDailyDigest` binding.) |
+
+### Three things here that are not obvious
+
+**1. `setLeadStatus` applies the Contacts side effect itself, and must.**
+An installable `onEdit` trigger **does not fire for a write made by Apps Script**.
+So `setLeadStatus`'s write is never seen by `handleStatusEditUnified`, and without
+an explicit call a menu-driven status change would update the Sheet while silently
+skipping the Contacts move that the *identical hand-typed edit* performs. The
+`switch` was extracted out of `handleStatusEditUnified` into
+**`applyStatusContactSideEffect(email, status)`** so both paths drive one body
+instead of two that drift. It is called **outside** the lock (slow external
+round-trips; the lock is process-wide) and every branch is try/caught — a Contacts
+failure must never turn a saved, correct Status write into a thrown error.
+
+**2. `setReportsEnabled` is per-lead, and stores a real boolean.**
+The requested signature was `setReportsEnabled(enabled)` — global. It is per-lead
+instead, for two reasons. Reports Enabled is a **per-partner** choice
+(`sendMonthlyReferralSummariesUnified` reads it row by row), so a single-arg version
+would have to mass-write every Referral Partner row and **destroy each partner's
+individual opt-out** — a bulk mutation of live data that no git revert undoes (see
+CLAUDE.md's not-git-revertible caveat). And the reader's rule is **asymmetric**:
+only an **explicit FALSE** opts out; blank and TRUE both mean enabled. So the stored
+value must be a real `false` — writing `''` for the disabled case would read back as
+**enabled** and the opt-out would silently fail. The flag coercion is
+`normalizeEnabledFlag()`, not `Boolean()`: a prompt hands the function the *string*
+`'false'`, and `Boolean('false') === true` would enable a partner the user just
+asked to disable, silently, in the direction that sends unwanted email.
+
+**3. The force runners are thin on purpose.**
+Each calls the very same dispatcher the time-based trigger calls, with no arguments
+and no "manual run" mode, so a forced run and a scheduled run **cannot diverge** —
+which is the entire point of a force button: to observe what the schedule will
+actually do. Neither is a dry run; both send real email (`NOTIFY_EMAILS` for the
+digest, every eligible partner for the summary), which is why the menu wrappers
+confirm first.
+
+`LEAD_STATUSES` (`New Lead`, `Contacted`, `Active`, `Cold`, `Client`, `Archive`) is
+the single definition site for the Status vocabulary. It is hand-listed rather than
+derived because those six values are a **contract with the live Sheet's data
+validation**, not an internal enum. An unrecognized status is rejected: written into
+the column it would sit there looking correct while the lead fell out of every
+automation that keys on it (`moveColdLeads` sweeps only the three active values).
+
+Tested in `tests/admin-actions.test.js` (30 tests) against the real `Code.gs` with a
+`FakeSpreadsheet` and the suite's mangled-header fixture, including a guard that
+**every function name `onOpen` registers as a string actually exists** — a
+misspelling there is a menu item that throws only when a human clicks it.
+
 ## Spreadsheet UI / setup functions
 
 | Function | Role |
 |---|---|
-| `onOpen()` | Adds the **AxisPoint** custom menu (publish notification, cold sweep now, daily digest now). |
+| `onOpen()` | Adds the **AxisPoint** custom menu: publish notification, cold sweep now, daily digest now, partner summary now, set lead status, set reports enabled. See *Admin actions* below. |
 | `openPublishDialog()` | 3-prompt dialog → `notifySubscribers`. |
 | `setProperties()` | One-time: stores `SPREADSHEET_ID`, `SCRIPT_URL`, and `BOOKING_CALENDAR_ID` in Script Properties. |
 | `setupSpreadsheet()` | **Legacy / rollback only.** Creates the 11 legacy tabs with headers (Referral Partners gets an extra `Reports Enabled` column, via `expectedHeadersFor()`). Lead-tab list derived from `leadTabConfigs()`. **Only touches tabs where `getLastRow() === 0`.** Not part of the live path; kept until Phase D. |
