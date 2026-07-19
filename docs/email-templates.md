@@ -54,6 +54,30 @@ The 3 visitor templates additionally carry a `{{personalNote}}` placeholder
 > Re-run the parity check any time you touch a template — join the embedded
 > array on `\n`, `rstrip` a trailing newline, and diff against the `.html`.
 
+## Encoding gotcha — no raw astral-plane (emoji) characters in email markup
+
+The `visitor-no-booking` prompt card used a literal calendar emoji (`📅`,
+U+1F4C5). It shipped as **valid UTF-8** in both the embedded `TEMPLATE_*` constant
+and the `.html` mirror (verified byte-for-byte: `f0 9f 93 85`), yet the delivered
+email rendered it as **two `?` characters**. Re-typing the emoji does not help —
+the source bytes were already correct.
+
+**Root cause:** `📅` is a **supplementary-plane** code point, i.e. a UTF-16
+**surrogate pair** (`D83D DCC5` = two code units). Somewhere in the
+`clasp push` → Apps Script storage → `GmailApp.sendEmail` delivery path the
+supplementary character is downgraded and **each surrogate half becomes one `?`**,
+so one emoji → two `?`. BMP symbols in the same templates (`→` `·` `⚠` `✓`, and
+`&nbsp;`) are single UTF-16 units and are unaffected — which is why only the emoji
+broke.
+
+**Fix / rule:** write any emoji in email markup as an **ASCII HTML numeric
+entity** (`📅` → `&#128197;`), never as a raw astral character. The byte stream
+stays pure ASCII, so no encoding stage in the pipeline can corrupt it, and the mail
+client decodes the entity back to the emoji. Applied to both the embedded constant
+and the mirror (parity preserved). This applies only to **email** markup that goes
+through `GmailApp`; the astral emoji in the Apps Script `onOpen` menu items render
+through a different (UI) path and are unaffected.
+
 ## Template inventory
 
 ### Visitor-facing (recipient = the person who submitted)
