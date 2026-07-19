@@ -550,7 +550,7 @@ var TEMPLATE_VISITOR_NO_BOOKING = [
   '<!-- BOOKING PROMPT CARD -->',
   '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 22px;">',
   '<tr><td style="padding:20px 22px;text-align:center;">',
-  '<div style="width:42px;height:42px;border-radius:8px;background:#E8F7FA;display:inline-block;text-align:center;line-height:42px;font-size:20px;margin:0 0 10px;">📅</div>',
+  '<div style="width:42px;height:42px;border-radius:8px;background:#E8F7FA;display:inline-block;text-align:center;line-height:42px;font-size:20px;margin:0 0 10px;">&#128197;</div>',
   '<p style="font-size:15px;font-weight:500;color:#1C1628;margin:0 0 3px;">Want to schedule a call?</p>',
   '<p style="font-size:12px;color:#5A5270;margin:0 0 14px;">30 minutes. No obligation.</p>',
   '<a href="https://axispoint.llc/contact" style="display:inline-block;background:#24A5BC;color:#ffffff;text-decoration:none;font-size:13px;font-weight:500;padding:10px 22px;border-radius:7px;">Book a call &nbsp;→</a>',
@@ -4834,6 +4834,14 @@ function createBookingEvent(payload, leadId) {
     ? ('Phone call' + (callbackNumber ? ': ' + callbackNumber : ''))
     : 'Google Meet';
 
+  // The name the visitor actually submitted, so their invite shows it instead of
+  // the value Google guesses from the local-part of their email
+  // (e.g. "zach+testpro@axispoint.llc" → "Zach+Testpro"). Setting a display name
+  // requires the Advanced Calendar Service {email, displayName} attendee shape;
+  // CalendarApp.addGuest / createEvent accept only a bare email, which is the
+  // whole reason the advanced insert is the primary path here.
+  var visitorName = [p.firstName, p.lastName].filter(Boolean).join(' ');
+
   var guests = CONFIG.NOTIFY_EMAILS.slice();
   if (p.email) guests.push(p.email);
 
@@ -4845,7 +4853,13 @@ function createBookingEvent(payload, leadId) {
       location:    location,
       start:       { dateTime: start.toISOString(), timeZone: 'America/Chicago' },
       end:         { dateTime: end.toISOString(),   timeZone: 'America/Chicago' },
-      attendees:   guests.map(function(g) { return { email: g }; }),
+      // Partners (NOTIFY_EMAILS) are our own accounts, so Google already renders
+      // their names; only the visitor needs an explicit displayName.
+      attendees:   guests.map(function(g) {
+        var attendee = { email: g };
+        if (g === p.email && visitorName) attendee.displayName = visitorName;
+        return attendee;
+      }),
     };
 
     var insertOpts = { sendUpdates: 'all' };
