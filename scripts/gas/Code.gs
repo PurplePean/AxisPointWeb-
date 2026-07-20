@@ -970,6 +970,72 @@ var TEMPLATE_WELCOME_SUBSCRIBER = [
   '</html>'
 ].join('\n');
 
+/* Internal daily digest (NOTIFY_EMAILS, 6 pm CT). Branded like every other
+   template — CID logo, brand color bar, Arial body (email clients do not render
+   web fonts, so all templates use Arial). The variable-length per-lead list is
+   built in JS (buildDigestLeadCard) and dropped into {{leadBlocks}}, the same way
+   partner-notification builds its {{bookingBlock}}. */
+var TEMPLATE_DAILY_DIGEST = [
+  '<!DOCTYPE html>',
+  '<html>',
+  '<head><meta charset="utf-8"></head>',
+  '<body style="margin:0;padding:0;background:#F7F5FB;font-family:Arial,Helvetica,sans-serif;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" border="0">',
+  '<tr><td align="center" style="padding:32px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;">',
+  '',
+  '<!-- HEADER -->',
+  '<tr><td style="background:#F7F5FB;padding:18px 28px;border-bottom:1px solid #E8E4F0;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" border="0">',
+  '<tr>',
+  '<td>',
+  '<img src="cid:logo" width="200" height="60" alt="AxisPoint Partners" style="display:block;border:0;outline:0;" border="0">',
+  '</td>',
+  '<td align="right"><span style="display:inline-block;background:#24A5BC;color:#ffffff;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:5px 12px;border-radius:8px;">Daily digest</span></td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '',
+  '<!-- BODY -->',
+  '<tr><td style="padding:28px 28px 24px;">',
+  '',
+  '<p style="font-size:17px;font-weight:500;color:#1C1628;margin:0 0 4px;">New leads, {{dateLabel}}</p>',
+  '<p style="font-size:13px;color:#5A5270;line-height:1.6;margin:0 0 20px;">{{count}} submitted today.</p>',
+  '',
+  '{{leadBlocks}}',
+  '',
+  '<a href="{{sheetUrl}}" style="display:block;background:#38285D;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:13px 0;border-radius:7px;text-align:center;margin:4px 0 0;">Open the CRM &nbsp;→</a>',
+  '',
+  '</td></tr>',
+  '',
+  '<!-- FOOTER -->',
+  '<tr><td style="padding:0 28px 16px;">',
+  '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E8E4F0;">',
+  '<tr><td style="padding-top:12px;">',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:0;">AxisPoint Partners LLC &nbsp;·&nbsp; Houston, Texas &nbsp;·&nbsp; Internal digest, do not forward.</p>',
+  '<p style="font-size:10px;color:#9490A8;line-height:1.6;margin:6px 0 0;text-align:center;">9999 Bellaire Blvd, Ste 999 &nbsp;·&nbsp; Houston, TX 77036</p>',
+  '</td></tr>',
+  '</table>',
+  '</td></tr>',
+  '',
+  '<!-- COLOR BAR -->',
+  '<tr><td>',
+  '<table width="100%" cellpadding="0" cellspacing="0" border="0">',
+  '<tr>',
+  '<td width="33%" height="4" style="background:#24A5BC;font-size:0;">&nbsp;</td>',
+  '<td width="33%" height="4" style="background:#9F328C;font-size:0;">&nbsp;</td>',
+  '<td width="34%" height="4" style="background:#38285D;font-size:0;">&nbsp;</td>',
+  '</tr>',
+  '</table>',
+  '</td></tr>',
+  '',
+  '</table>',
+  '</td></tr>',
+  '</table>',
+  '</body>',
+  '</html>'
+].join('\n');
+
 /**
  * Minimal template engine. Replaces every {{key}} with vars[key].
  * Unfilled placeholders are stripped to '' so partial var sets render clean.
@@ -993,6 +1059,7 @@ function templateByName(name) {
     'referrer-monthly':      TEMPLATE_REFERRER_MONTHLY,
     'partner-notification':  TEMPLATE_PARTNER_NOTIFICATION,
     'welcome-subscriber':    TEMPLATE_WELCOME_SUBSCRIBER,
+    'daily-digest':          TEMPLATE_DAILY_DIGEST,
   }[name] || '';
 }
 
@@ -3150,52 +3217,84 @@ function sendDailyDigestUnified() {
     }
 
     var n = rows.length;
-    var blocks = rows.map(function(r) {
-      var name = [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' ') || 'Unknown';
-      var refLine = r[C.REF_BY_NAME]
-        ? 'Referred By: ' + r[C.REF_BY_NAME] + ' (' + r[C.MATCH_TYPE] + ')'
-        : '';
+    var leadBlocks = rows.map(function(r) { return buildDigestLeadCard(r, C); }).join('\n');
+    var countLabel = n + ' new lead' + (n > 1 ? 's' : '');
 
-      // Asset Class + Booking come out of Details now, not columns. A malformed blob
-      // must not break the whole digest, so parse defensively.
-      var details = {};
-      try { details = JSON.parse(r[C.DETAILS] || '{}') || {}; } catch (e) { details = {}; }
-      var assetClass = details.assetClass || '';
-      var booking    = details.booking || null;
-      var bookingLine = (booking && booking.date)
-        ? 'Booking:     ' + booking.date + ' at ' + (booking.slot || '')
-        : '';
-
-      return [
-        'Lead ID:     ' + r[C.LEAD_ID],
-        'Name:        ' + name,
-        'Role:        ' + r[C.CATEGORY],
-        'Email:       ' + r[C.EMAIL],
-        'Phone:       ' + r[C.PHONE],
-        assetClass ? 'Asset Class: ' + assetClass : '',
-        bookingLine,
-        'Source:      ' + r[C.SOURCE],
-        refLine,
-      ].filter(function(l) { return l && l.slice(-1) !== ':'; }).join('\n');
+    var html = renderTemplate(TEMPLATE_DAILY_DIGEST, {
+      dateLabel:  today,
+      count:      countLabel,
+      leadBlocks: leadBlocks,
+      sheetUrl:   'https://docs.google.com/spreadsheets/d/' + getProp('SPREADSHEET_ID'),
     });
 
     GmailApp.sendEmail(
       CONFIG.NOTIFY_EMAILS.join(','),
-      'AxisPoint: ' + n + ' new lead' + (n > 1 ? 's' : '') + ' today (' + today + ')',
-      [
-        n + ' new lead' + (n > 1 ? 's' : '') + ' submitted on ' + today + '.',
-        '',
-        blocks.join('\n\n───────────────────────────\n\n'),
-        '',
-        'Sheet: https://docs.google.com/spreadsheets/d/' + getProp('SPREADSHEET_ID'),
-      ].join('\n'),
-      { name: CONFIG.SENDER_NAME }
+      'AxisPoint: ' + countLabel + ' today (' + today + ')',
+      countLabel + ' submitted on ' + today + '.',   // plain-text fallback
+      { name: CONFIG.SENDER_NAME, htmlBody: html, inlineImages: { logo: LOGO_BLOB } }
     );
 
     Logger.log('sendDailyDigest: emailed digest for ' + n + ' lead(s).');
   } catch (err) {
     Logger.log('sendDailyDigest error: ' + err);
   }
+}
+
+/* One branded lead card for the daily digest, built in JS because the digest holds
+   a variable number of them. Field sources, all resolved by name via
+   resolveUnifiedCols (C):
+     • Asset Class + Booking come out of the Details blob (they are no longer
+       top-level columns; parse defensively so a malformed blob can't break the run).
+     • Source  = the arrival-channel column (QR / blank). Blank means a direct site
+       visit, shown as "Direct" — this is NOT "how did you hear about us".
+     • Heard about us = the visitor's own attribution answer (C.HEARD_ABOUT:
+       "LinkedIn", "Personal referral", ...). It is a SEPARATE column from Source and
+       was the field the old digest never surfaced — it only printed Source, which is
+       blank for every direct web lead, so the answer looked missing. Shown in its own
+       labeled row and OMITTED when blank, so EAO (which never asks the question)
+       correctly shows nothing rather than an invented value. */
+function buildDigestLeadCard(r, C) {
+  var name     = [r[C.FIRST_NAME], r[C.LAST_NAME]].filter(Boolean).join(' ') || 'Unknown';
+  var category = r[C.CATEGORY] || '';
+
+  var details = {};
+  try { details = JSON.parse(r[C.DETAILS] || '{}') || {}; } catch (e) { details = {}; }
+  var assetClass = details.assetClass || '';
+  var booking    = details.booking || null;
+
+  function detailRow(label, valueHtml) {
+    return '<tr>' +
+      '<td style="padding:5px 0;font-size:12px;color:#9490A8;vertical-align:top;width:118px;">' + label + '</td>' +
+      '<td style="padding:5px 0;font-size:13px;color:#1C1628;vertical-align:top;">' + valueHtml + '</td>' +
+      '</tr>';
+  }
+
+  var email = String(r[C.EMAIL] || '');
+  var rowsHtml = '';
+  rowsHtml += detailRow('Lead ID', escapeHtml(String(r[C.LEAD_ID] || 'n/a')));
+  rowsHtml += detailRow('Email',
+    '<a href="mailto:' + escapeHtml(email) + '" style="color:#24A5BC;text-decoration:none;">' + escapeHtml(email || 'n/a') + '</a>');
+  rowsHtml += detailRow('Phone', escapeHtml(String(r[C.PHONE] || 'n/a')));
+  if (assetClass)               rowsHtml += detailRow('Asset class', escapeHtml(String(assetClass)));
+  if (booking && booking.date)  rowsHtml += detailRow('Booking', escapeHtml(booking.date + ' at ' + (booking.slot || '')));
+  rowsHtml += detailRow('Source', escapeHtml(String(r[C.SOURCE] || 'Direct')));
+  var heardAbout = String(r[C.HEARD_ABOUT] || '').trim();
+  if (heardAbout)               rowsHtml += detailRow('Heard about us', escapeHtml(heardAbout));
+  if (r[C.REF_BY_NAME])         rowsHtml += detailRow('Referred by', escapeHtml(r[C.REF_BY_NAME] + ' (' + r[C.MATCH_TYPE] + ')'));
+
+  return [
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E8E4F0;border-radius:8px;overflow:hidden;margin:0 0 16px;">',
+    '<tr><td style="background:#38285D;padding:10px 16px;">',
+    '<p style="font-size:15px;font-weight:500;color:#ffffff;margin:0;">' + escapeHtml(name) + '</p>',
+    '<p style="font-size:11px;color:#C9C4D6;margin:2px 0 0;letter-spacing:0.04em;">' + escapeHtml(category) + '</p>',
+    '</td></tr>',
+    '<tr><td style="padding:14px 18px;">',
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0">',
+    rowsHtml,
+    '</table>',
+    '</td></tr>',
+    '</table>',
+  ].join('');
 }
 
 /* LEGACY — unchanged. DELETE AT CUTOVER. Reads Lifetime Leads; Asset Class and

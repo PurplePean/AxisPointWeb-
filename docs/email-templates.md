@@ -27,16 +27,22 @@ array (or vice-versa). Nothing enforces parity.
 | `TEMPLATE_REFERRER_MONTHLY` | `referrer-monthly-summary.html` |
 | `TEMPLATE_PARTNER_NOTIFICATION` | `partner-notification.html` |
 | `TEMPLATE_WELCOME_SUBSCRIBER` | `welcome-subscriber.html` |
+| `TEMPLATE_DAILY_DIGEST` | `daily-digest.html` |
 
 `renderTemplate(template, vars)` replaces every `{{key}}`; unfilled placeholders
 render as empty string.
 
 ## Sync status — embedded ↔ mirror: IN SYNC ✅
 
+Now **eight** templates (added `TEMPLATE_DAILY_DIGEST` ↔ `daily-digest.html`, 2026-07-20).
+Parity is machine-enforced by `tests/template-parity.test.js`, whose `PAIRS` map plus a
+guard test (`every embedded TEMPLATE_* has a mirror mapping`) fails if a new `TEMPLATE_*`
+is added without a mirror entry. All eight pass.
+
 Re-verified 2026-07-08 (independently, not inherited from the prior task's claim):
-all seven embedded `TEMPLATE_*` constants match their `.html` mirrors byte-for-byte.
+all embedded `TEMPLATE_*` constants match their `.html` mirrors byte-for-byte.
 Method: `eval` each `var TEMPLATE_* = [...].join('\n')` array out of `Code.gs`,
-`rstrip` one trailing newline off the mirror, compare exactly. All seven pass.
+`rstrip` one trailing newline off the mirror, compare exactly. All pass.
 The three visitor openers were re-synced on both sides in the same pass that warmed
 the copy. The prior address-line drift is **resolved**: the footer address line
 
@@ -101,6 +107,7 @@ through a different (UI) path and are unaffected.
 | Template | Sent by | Trigger |
 |---|---|---|
 | `partner-notification` | `sendPartnerNotification` | Every new lead. Subject: *New lead: {name} ({category}), {leadId}*. |
+| `daily-digest` | `sendDailyDigest` (`…Unified`) | Daily, 6 pm CT. One branded card per lead submitted on today's CT date, to `NOTIFY_EMAILS`. Silent if none. The variable-length card list is built in JS (`buildDigestLeadCard`) into `{{leadBlocks}}`; other placeholders are `{{dateLabel}}`, `{{count}}`, `{{sheetUrl}}`. **Was plain text until 2026-07-20** (built a string and sent with no `htmlBody`). The **legacy** `sendDailyDigestLegacy` path is unchanged and stays plain text. |
 
 ### `.ics` calendar attachment (visitor booking confirmations)
 
@@ -241,8 +248,13 @@ and the bug fixed here was the real one.
 Built inline as text, not through `renderTemplate`:
 
 - **Resubmission notice** (`sendResubmissionNotification`) → `NOTIFY_EMAILS`, on a dedupe hit.
-- **Daily digest** (`sendDailyDigest`) → `NOTIFY_EMAILS`, 6 pm CT.
 - **Cold-move summary** (`moveColdLeads`) → `NOTIFY_EMAILS`, Monday 8 am CT.
+
+The **daily digest is no longer here** — it became a branded HTML template
+(`daily-digest`) on 2026-07-20. Its live `sendDailyDigestUnified` path renders
+`TEMPLATE_DAILY_DIGEST` with `htmlBody` + the inline `logo`; the plain-text
+`GmailApp.sendEmail` body is now just a one-line fallback. (The dormant
+`sendDailyDigestLegacy` rollback path is still plain text.)
 
 ## Visitor-facing opener copy (warmed 2026-07-08)
 

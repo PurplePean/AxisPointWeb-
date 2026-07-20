@@ -137,7 +137,9 @@ test('daily/unified: leads from TODAY are included, leads from other days exclud
   sandbox.sendDailyDigest();
 
   assert.equal(sentEmails.length, 1);
-  const body = sentEmails[0].body;
+  // The digest is now a branded HTML email: the per-lead data lives in htmlBody,
+  // not the plain-text fallback.
+  const body = sentEmails[0].options.htmlBody;
   assert.match(sentEmails[0].subject, /2 new leads today/);
   assert.match(body, /AXP-TODAY-1/);
   assert.match(body, /AXP-TODAY-2/);
@@ -145,8 +147,9 @@ test('daily/unified: leads from TODAY are included, leads from other days exclud
   assert.ok(!body.includes('AXP-Tmw'), 'tomorrow excluded');
 
   // Asset Class and Booking came out of the Details blob, not columns.
-  assert.match(body, /Asset Class: Multifamily/);
-  assert.match(body, /Booking:\s+June 27, 2026 at 9:00 AM/);
+  assert.match(body, /Asset class/);
+  assert.match(body, /Multifamily/);
+  assert.match(body, /June 27, 2026 at 9:00 AM/);
 
   // Read-only: the sheet is untouched.
   assert.equal(leads.appended.length, 0);
@@ -166,8 +169,49 @@ test('daily/unified: a lead just before CT midnight today is IN; one just after 
   sandbox.sendDailyDigest();
 
   assert.equal(sentEmails.length, 1);
-  assert.match(sentEmails[0].body, /AXP-JUSTIN/, '00:00 CT today is included');
-  assert.ok(!sentEmails[0].body.includes('AXP-JUSTOUT'), '23:00 CT yesterday is excluded');
+  assert.match(sentEmails[0].options.htmlBody, /AXP-JUSTIN/, '00:00 CT today is included');
+  assert.ok(!sentEmails[0].options.htmlBody.includes('AXP-JUSTOUT'), '23:00 CT yesterday is excluded');
+});
+
+test('daily/unified: Source vs Heard About — the attribution the digest must surface', () => {
+  // The bug: the old digest printed only the Source COLUMN (arrival channel), which
+  // is blank for a direct web submission, so "LinkedIn"/"Personal referral" — which
+  // live in the separate Heard About column — never appeared. EAO collects no
+  // Heard About, so its row must stay absent, not be invented.
+  const leads = new FakeSheet('Leads', [
+    U.slice(),
+    // Direct web investor: Source blank, Heard About = LinkedIn.
+    uLead({ 'Lead ID': 'AXP-INV', Timestamp: ctIso(0, 9), 'First Name': 'Ida', Email: 'ida@x.com',
+            Category: 'Investor', Source: '', 'Heard About': 'LinkedIn' }),
+    // Referral partner: Source blank, Heard About = Personal referral.
+    uLead({ 'Lead ID': 'AXP-REF', Timestamp: ctIso(0, 9), 'First Name': 'Ravi', Email: 'ravi@x.com',
+            Category: 'Referral Partner', Source: '', 'Heard About': 'Personal referral' }),
+    // QR investor: Source = QR (must show as QR, not "Direct").
+    uLead({ 'Lead ID': 'AXP-QR', Timestamp: ctIso(0, 9), 'First Name': 'Quin', Email: 'quin@x.com',
+            Category: 'Investor', Source: 'QR', 'Heard About': 'Google' }),
+    // EAO: no Heard About collected — the row must be omitted entirely.
+    uLead({ 'Lead ID': 'AXP-EAO', Timestamp: ctIso(0, 9), 'First Name': 'Ed', Email: 'ed@x.com',
+            Category: 'Existing Asset Owner', Source: '', 'Heard About': '' }),
+  ]);
+  const { sandbox, sentEmails } = load(new FakeSpreadsheet({ Leads: leads }), true);
+
+  sandbox.sendDailyDigest();
+  assert.equal(sentEmails.length, 1);
+  const html = sentEmails[0].options.htmlBody;
+
+  // The self-reported attribution now appears, under its own "Heard about us" label.
+  assert.match(html, /Heard about us/);
+  assert.match(html, /LinkedIn/);
+  assert.match(html, /Personal referral/);
+  // A blank Source column reads as "Direct"; a QR lead reads as "QR".
+  assert.match(html, /Direct/);
+  assert.match(html, /QR/);
+
+  // EAO must show NO Heard About row — nothing invented for the type that never
+  // asks. EAO is the last card, so everything from its Lead ID onward is its card
+  // plus the footer, and none of it may contain the attribution label.
+  const afterEao = html.slice(html.indexOf('AXP-EAO'));
+  assert.ok(!afterEao.includes('Heard about us'), 'EAO card must not render a Heard about us row');
 });
 
 test('daily/unified: nothing today → no email, and an unreadable timestamp is skipped not crashed', () => {

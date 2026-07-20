@@ -31,6 +31,7 @@ const PAIRS = {
   TEMPLATE_REFERRER_MONTHLY: 'referrer-monthly-summary.html',
   TEMPLATE_PARTNER_NOTIFICATION: 'partner-notification.html',
   TEMPLATE_WELCOME_SUBSCRIBER: 'welcome-subscriber.html',
+  TEMPLATE_DAILY_DIGEST: 'daily-digest.html',
 };
 
 for (const [constName, file] of Object.entries(PAIRS)) {
