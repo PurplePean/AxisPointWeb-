@@ -1009,7 +1009,10 @@ only against the live system — which ties into #6.
 
 ### 6. Cutover Phase A ✅ DONE / Phase C 🔶 PARTIALLY DONE (live-concurrency still open)
 
-**The code is `USE_UNIFIED_SCHEMA = true` and deployed (@25).** The operational cutover
+**The code is `USE_UNIFIED_SCHEMA = true` and deployed** (unified schema first shipped
+at @25 on 2026-07-15; the pinned production deployment has since advanced to **@28**,
+2026-07-20, carrying the email emoji + calendar-guest-name fixes and the branded HTML
+daily digest). The operational cutover
 steps below are **not verifiable from this repo** (it cannot read the live Sheet — the
 `clasp` token lacks the Sheets scope), but were **confirmed by the user through manual
 verification on 2026-07-16.**
