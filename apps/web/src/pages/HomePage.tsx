@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useReveal } from '../hooks/useReveal';
+import SplitHero from '../components/SplitHero';
 
 function HomePage() {
   useReveal();
@@ -7,46 +8,8 @@ function HomePage() {
   return (
     <div className="min-h-screen">
 
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <section
-        className="relative flex items-center overflow-hidden"
-        style={{ minHeight: '72vh', background: 'linear-gradient(135deg,#2A1E47 0%,#1C1628 55%,#0D1829 100%)' }}
-      >
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute rounded-full" style={{ width: 700, height: 700, background: 'rgba(36,165,188,.09)', top: -150, right: -150, filter: 'blur(110px)' }} />
-          <div className="absolute rounded-full" style={{ width: 500, height: 500, background: 'rgba(159,50,140,.07)', bottom: -100, left: '5%', filter: 'blur(110px)' }} />
-          <div className="absolute rounded-full" style={{ width: 380, height: 380, background: 'rgba(56,40,93,.25)', top: '25%', left: -120, filter: 'blur(110px)' }} />
-        </div>
-
-        <div className="relative max-w-[1160px] mx-auto px-7 w-full pt-[96px] pb-14 md:pt-[128px] md:pb-20">
-          <h1 className="rv font-serif font-semibold text-white mb-2 text-left" style={{ fontSize: 'clamp(1.9rem,5.5vw,4.6rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
-            <span className="block whitespace-nowrap">Commercial real estate,</span>
-            <em className="not-italic text-teal">done right.</em>
-          </h1>
-          <p className="rv d2 font-serif italic text-white mb-7" style={{ fontSize: 'clamp(1.45rem,2.7vw,1.9rem)', lineHeight: 1.35 }}>
-            Most people never invest in CRE because they do not have the right team behind them. That is the problem AxisPoint solves.
-          </p>
-          <p className="rv d2 text-white mb-10 max-w-[760px]" style={{ fontSize: '1.125rem', lineHeight: 1.75 }}>
-            We manage commercial real estate on behalf of investors across Texas. We find the deals, run the numbers, execute the business plan, and manage the asset from day one through exit.{' '}
-            <strong className="text-white font-semibold">You own the investment. We do the work.</strong>
-          </p>
-          <div className="rv d3 flex flex-wrap gap-3 max-md:flex-col">
-            <Link
-              to="/contact"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25 max-md:w-full"
-            >
-              Let's Talk
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </Link>
-            <Link
-              to="/services"
-              className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all text-center max-md:w-full"
-            >
-              Explore Services
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* ── Hero (split-path: Property Management + capital-ready) ── */}
+      <SplitHero />
 
       {/* ── Who We Work With ─────────────────────────────── */}
       <section className="py-24 bg-body">

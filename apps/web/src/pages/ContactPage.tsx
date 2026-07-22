@@ -1,9 +1,25 @@
+import { useSearchParams } from 'react-router-dom';
 import { ContactForm } from '@axispoint/brand';
+import type { Role } from '@axispoint/brand';
 import { useReveal } from '../hooks/useReveal';
+
+/**
+ * Public-facing intent tokens → internal wire roles. The token is what appears in
+ * the URL and marketing links; the role value is never exposed publicly. Anything
+ * not listed here (including a missing param) resolves to null, i.e. the normal
+ * all-five-roles picker. `?ref=` is untouched — ContactForm reads it independently,
+ * so referral attribution survives alongside any intent.
+ */
+const INTENT_TO_ROLE: Record<string, Role> = {
+  'property-management': 'existing_asset_owner',
+  'investor-services': 'investor',
+};
 
 /* ══════════════════════════════════════════════════════ */
 function ContactPage() {
   useReveal();
+  const [searchParams] = useSearchParams();
+  const initialRole = INTENT_TO_ROLE[searchParams.get('intent') ?? ''] ?? null;
 
   return (
     <div className="min-h-screen">
@@ -31,7 +47,7 @@ function ContactPage() {
       {/* Main layout — single column, centered */}
       <div className="max-w-[640px] mx-auto px-7 py-16">
         {/* Shared form */}
-        <ContactForm />
+        <ContactForm initialRole={initialRole} />
 
         {/* Contact info */}
         <div className="mt-10 flex items-start justify-center gap-2 text-sub text-center" style={{ fontSize: '0.875rem' }}>

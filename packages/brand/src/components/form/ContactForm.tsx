@@ -6,9 +6,9 @@
 import { useState, useEffect } from 'react';
 import type { Role, Step, MeetType, BookChoice, ContactFields, ReferredFields, FormController, PropertyDetails, EAOContact } from './types';
 import {
-  STEP_ORDER_INVESTOR, STEP_ORDER_OTHER, STEP_ORDER_EAO,
   STEP_LABELS_INVESTOR, STEP_LABELS_OTHER, STEP_LABELS_EAO,
   MONTHS, buildCalendar, buildPayload, buildEAOPayload,
+  stepOrderForRole, firstStepAfterRole, isValidRole,
 } from './utils';
 import { FormProgress } from './FormProgress';
 import { FormSuccess } from './FormSuccess';
@@ -33,11 +33,34 @@ export interface ContactFormProps {
   page?: string;
   /** Optional className applied to the form card wrapper. */
   className?: string;
+  /**
+   * Optional wire role to preselect on mount, skipping the role-picker and opening
+   * on the first relevant question. Presentation-only: it changes which step the
+   * form starts on, never the payload, booking, referral, or routing behavior.
+   * Invalid or omitted → the normal all-five-roles flow (QR passes nothing, so its
+   * behavior is unchanged). Public-facing intent → role mapping lives in the app
+   * that owns the URL; this component only receives an already-resolved role.
+   */
+  initialRole?: Role | null;
 }
 
-export function ContactForm({ source, page, className }: ContactFormProps) {
-  const [step, setStep]       = useState<Step>('role');
-  const [role, setRole]       = useState<Role | null>(null);
+/** Public-facing label for a preselected path. Deliberately NOT the wire role value
+ *  (req: internal role values must not surface in public copy). Only the two
+ *  intent-routable paths need a label; anything else falls back to a neutral one. */
+const PATH_LABEL: Partial<Record<Role, string>> = {
+  existing_asset_owner: 'Property Management',
+  investor: 'Investor Services',
+};
+
+export function ContactForm({ source, page, className, initialRole }: ContactFormProps) {
+  /* A valid initialRole preselects the role and opens on its first real question;
+     lazy initializers avoid a role-step flash before an effect could correct it. */
+  const presetRole = isValidRole(initialRole) ? initialRole : null;
+  const [role, setRole]       = useState<Role | null>(presetRole);
+  const [step, setStep]       = useState<Step>(presetRole ? firstStepAfterRole(presetRole) : 'role');
+  /* True only while the visitor is on a path they arrived at via preselection and
+     has not yet expanded/changed it — drives the compact "selected path" banner. */
+  const [intentLocked, setIntentLocked] = useState<boolean>(presetRole !== null);
   const [bookChoice, setBookChoice] = useState<BookChoice>(null);
   const [meetType, setMeetType]     = useState<MeetType>(null);
   const [calYear, setCalYear]   = useState(() => new Date().getFullYear());
@@ -95,10 +118,7 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
     if (ref) setUrlRef(ref.trim().toUpperCase());
   }, []);
 
-  const stepOrder: Step[] =
-    role === 'investor' ? [...STEP_ORDER_INVESTOR] :
-    role === 'existing_asset_owner' ? [...STEP_ORDER_EAO] :
-    [...STEP_ORDER_OTHER];
+  const stepOrder: Step[] = [...stepOrderForRole(role)];
   const stepLabels: string[] =
     role === 'investor' ? STEP_LABELS_INVESTOR :
     role === 'existing_asset_owner' ? STEP_LABELS_EAO :
@@ -113,6 +133,14 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
   function goBack() {
     const idx = stepOrder.indexOf(step);
     if (idx > 0) setStep(stepOrder[idx - 1]);
+  }
+
+  /* "Change path" from the preselected-intent banner: reopen the full role picker
+     (all five roles) with the current choice still highlighted, and drop the locked
+     state so the banner disappears and the normal flow resumes. */
+  function changePath() {
+    setIntentLocked(false);
+    setStep('role');
   }
 
   function toggleSet(set: Set<string>, setFn: (s: Set<string>) => void, val: string) {
@@ -328,8 +356,30 @@ export function ContactForm({ source, page, className }: ContactFormProps) {
     stepOrder, calCells, isPast, isWknd, canPrevMonth,
   };
 
+  const showPathBanner = intentLocked && role !== null && step !== 'role' && !isSuccess;
+
   return (
     <div className={className ?? 'rv bg-white border border-border rounded-[22px] p-9 max-md:p-6 shadow-card'}>
+      {showPathBanner && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-[12px] border border-teal/30 bg-teal-light px-4 py-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-6 h-6 rounded-full bg-teal/15 flex items-center justify-center flex-none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A8799" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </span>
+            <span className="text-[0.8rem] text-ink leading-snug truncate">
+              <span className="text-sub">Your path: </span>
+              <span className="font-semibold">{(role && PATH_LABEL[role]) ?? 'Selected'}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={changePath}
+            className="flex-none text-[0.75rem] font-semibold text-teal-dark underline underline-offset-2 hover:text-ink transition-colors"
+          >
+            Change path
+          </button>
+        </div>
+      )}
       {showProgress && <FormProgress stepOrder={stepOrder} currentStep={step} labels={stepLabels} />}
       {step === 'role'    && <Step1Role c={c} />}
       {step === 'context' && <Step2Context c={c} />}
