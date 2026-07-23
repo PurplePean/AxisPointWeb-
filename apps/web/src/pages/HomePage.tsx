@@ -2,303 +2,188 @@ import { Link } from 'react-router-dom';
 import { useReveal } from '../hooks/useReveal';
 import SplitHero from '../components/SplitHero';
 
+/* Restrained tracked micro-label. Used sparingly, not on every section. */
+function Label({ children, light }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <div className="uppercase font-semibold" style={{ fontSize: '0.66rem', letterSpacing: '0.15em', color: light ? '#8FD4E0' : '#1A8799' }}>
+      {children}
+    </div>
+  );
+}
+
+/* The scope of property management, grouped as a spec sheet rather than a card grid. */
+const SCOPE: { title: string; caption: string; items: [string, string][] }[] = [
+  {
+    title: 'Operations',
+    caption: 'The physical property',
+    items: [
+      ['Leasing coordination', 'Renewals, new leases, and turnover managed to protect occupancy and rent roll.'],
+      ['Maintenance and work orders', 'Requests triaged, tracked, and closed, with preventive work scheduled ahead of failures.'],
+      ['Vendor management', 'Vendors selected, directed, and held to a standard, and replaced when they miss it.'],
+    ],
+  },
+  {
+    title: 'Financial',
+    caption: 'The money',
+    items: [
+      ['Rent collection', 'Receivables pursued on a consistent process, with delinquencies handled before they become losses.'],
+      ['Payables and accounting', 'Invoices handled and books kept current, so the numbers are always reconciled.'],
+      ['Budget tracking', 'Spend measured against budget through the year, not discovered at the end of it.'],
+    ],
+  },
+  {
+    title: 'Reporting',
+    caption: 'Your line of sight',
+    items: [
+      ['Monthly owner report', 'One clear document covering collections, occupancy, maintenance, and open decisions.'],
+      ['Owner communication', 'One accountable point of contact for anything that needs an answer.'],
+      ['Records and compliance', 'Leases, certificates, and documentation kept in order and accessible.'],
+    ],
+  },
+];
+
 function HomePage() {
   useReveal();
 
   return (
     <div className="min-h-screen">
 
-      {/* ── Hero (split-path: Property Management + capital-ready) ── */}
+      {/* ── 1. PM-dominant split hero ────────────────────── */}
       <SplitHero />
 
-      {/* ── Who We Work With ─────────────────────────────── */}
-      <section className="py-24 bg-body">
+      {/* ── 2. Property Management operating scope ─────────── */}
+      <section className="py-24 max-md:py-16 bg-card">
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv mb-10">
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-              <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Who We Work With</span>
-            </div>
-            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-              Starting fresh or taking over
+          <div className="rv max-w-2xl mb-14 max-md:mb-10">
+            <Label>Property Management</Label>
+            <h2 className="font-serif font-semibold text-ink mt-4 mb-5" style={{ fontSize: 'clamp(2rem,3.6vw,3rem)', lineHeight: 1.04, letterSpacing: '-0.015em' }}>
+              What we take responsibility for
             </h2>
-            <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
-              Not every client is starting from scratch. Some are buying their first commercial property. Others already own an asset that needs a real management structure in place.
+            <p className="text-sub leading-[1.75]" style={{ fontSize: '1.05rem' }}>
+              Property management is the whole job, not a piece of it. AxisPoint takes responsibility
+              for the operation end to end, so the property runs on a system instead of on your
+              attention.
             </p>
           </div>
 
-          <div className="rv d1 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* First Investment */}
-            <div className="rounded-card text-white p-9 max-md:p-7 flex flex-col" style={{ background: '#2A1E47', border: '1px solid rgba(255,255,255,0.10)' }}>
-              <div className="inline-flex self-start px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
-                First Investment
-              </div>
-              <h3 className="font-serif font-semibold text-white mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>
-                We'll walk you through every step of the process
-              </h3>
-              <p className="text-white leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
-                If you've never invested in commercial real estate, you're not behind. You just haven't had the right team in your corner. We act as your asset manager from day one, handling everything from deal sourcing to ongoing operations.
-              </p>
-              <div className="flex flex-col gap-2.5 mb-7 flex-1">
-                {[
-                  'Acquisition sourcing and underwriting on your behalf',
-                  'CapEx business plan development and oversight',
-                  'Property management supervision and accountability',
-                  'Monthly reporting and investor communication',
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-white" style={{ fontSize: '0.88rem' }}>
-                    <span className="mt-0.5 w-5 h-5 rounded flex items-center justify-center flex-none text-teal font-bold text-xs bg-teal/15 border border-teal/30">✓</span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/contact"
-                className="self-start px-6 py-2.5 rounded-button bg-teal text-white text-sm font-semibold hover:brightness-110 transition-all"
-              >
-                Start a conversation
-              </Link>
-            </div>
-
-            {/* Existing Asset */}
-            <div className="rounded-card bg-card border border-border p-9 max-md:p-7 flex flex-col shadow-card">
-              <div className="inline-flex self-start px-3 py-1 rounded-full bg-teal text-white text-xs font-medium mb-5">
-                Existing Asset
-              </div>
-              <h3 className="font-serif font-semibold text-ink mb-3 leading-snug" style={{ fontSize: '1.2rem' }}>
-                We take over underperforming and mismanaged properties
-              </h3>
-              <p className="text-sub leading-[1.7] mb-6" style={{ fontSize: '0.9rem' }}>
-                If you already own an asset that is underperforming, poorly managed, or simply needs a defined strategy, AxisPoint can step in as your asset manager. We assess the current state, identify operational gaps, and implement a corrective business plan.
-              </p>
-              <div className="flex flex-col gap-2.5 mb-7 flex-1">
-                {[
-                  'Comprehensive current-state assessment',
-                  'Corrective business plan and stabilization',
-                  'Debt placement and lender coordination',
-                  'Disposition and exit strategy execution',
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sub" style={{ fontSize: '0.88rem' }}>
-                    <span className="mt-0.5 w-5 h-5 rounded flex items-center justify-center flex-none text-purple font-bold text-xs bg-purple/10 border border-purple/20">✓</span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/contact"
-                className="self-start px-6 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all"
-              >
-                Tell us about your asset
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── What We Do ───────────────────────────────────── */}
-      <section className="py-24 bg-card">
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv mb-10">
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-              <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>What We Do</span>
-            </div>
-            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-              Three ways we work with clients
-            </h2>
-            <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
-              Every engagement starts with a conversation. We take the time to understand what you're building, what you can afford to wait on, and what you cannot afford to lose.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Asset Management */}
-            <div className="rv d1 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default" style={{ position: 'relative' }}>
-              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-teal/10 flex items-center justify-center mb-5">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18M9 9h6M9 13h6M9 17h4"/></svg>
-              </div>
-              <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Asset Management</h3>
-              <p className="text-sub leading-[1.7] flex-1" style={{ fontSize: '0.875rem' }}>
-                Day-to-day oversight of your commercial property with institutional-grade processes, reporting, and accountability. We implement a defined business plan from day one and hold every vendor to performance benchmarks.
-              </p>
-              <Link to="/services" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-teal hover:underline">
-                Learn more
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </Link>
-            </div>
-
-            {/* Advisory */}
-            <div className="rv d2 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
-              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-purple/10 flex items-center justify-center mb-5">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38285D" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Advisory and Acquisitions</h3>
-              <p className="text-sub leading-[1.7] flex-1" style={{ fontSize: '0.875rem' }}>
-                Clear scenarios for buying, selling, and planning. We source and underwrite deals on your behalf, stress-test every assumption, and give you the information you need to make confident decisions before committing capital.
-              </p>
-              <Link to="/services" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-purple hover:underline">
-                Learn more
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </Link>
-            </div>
-
-            {/* Referral */}
-            <div className="rv d3 rounded-card bg-body border border-border p-7 max-md:p-6 flex flex-col hover:-translate-y-1 hover:shadow-card-hover hover:border-border-dark transition-all cursor-default">
-              <div className="w-10 h-10 max-md:w-9 max-md:h-9 rounded-lg bg-magenta/10 flex items-center justify-center mb-5">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-              <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.1rem' }}>Referral Partner Program</h3>
-              <p className="text-sub leading-[1.7] flex-1" style={{ fontSize: '0.875rem' }}>
-                You don't have to be in real estate to send us the right person. If you know someone sitting on capital, or already holding a property that isn't performing, make the introduction. We take it from there.
-              </p>
-              <Link to="/services" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-magenta hover:underline">
-                Learn more
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── The Team ─────────────────────────────────────── */}
-      <section className="py-24 bg-body">
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv mb-10">
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-              <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>The Team</span>
-            </div>
-            <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-              Two specialists. One firm.
-            </h2>
-            <p className="text-sub leading-relaxed max-w-xl" style={{ fontSize: '1rem' }}>
-              When you work with AxisPoint, you deal with Zachary and Ethaniel directly, from the first call through every decision along the way.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Zachary */}
-            <div className="rv d1 rounded-card bg-card border border-border overflow-hidden shadow-card hover:-translate-y-0.5 hover:shadow-card-hover transition-all">
-              <div className="h-1 bg-gradient-to-r from-teal to-[#1b8fa8]" />
-              <div className="p-7">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-[12px] bg-teal/10 border border-teal/30 flex items-center justify-center flex-none">
-                    <span className="font-serif font-semibold text-teal text-lg">ZR</span>
-                  </div>
-                  <div>
-                    <div className="font-serif font-semibold text-ink" style={{ fontSize: '1.05rem' }}>Zachary Russell</div>
-                    <div className="text-teal font-semibold uppercase tracking-widest" style={{ fontSize: '0.72rem' }}>Partner</div>
-                  </div>
+          <div className="rv d1 border-t border-border">
+            {SCOPE.map((group) => (
+              <div key={group.title} className="grid md:grid-cols-[240px_1fr] gap-x-12 gap-y-6 py-9 border-b border-border">
+                <div>
+                  <h3 className="font-serif text-ink" style={{ fontSize: '1.5rem', lineHeight: 1.1 }}>{group.title}</h3>
+                  <div className="text-hint mt-1.5" style={{ fontSize: '0.78rem' }}>{group.caption}</div>
                 </div>
-                <div className="h-px bg-border mb-4" />
-                <p className="text-sub leading-[1.7] mb-5" style={{ fontSize: '0.875rem' }}>
-                  Zachary leads multifamily acquisitions and asset management at AxisPoint. With deep transactional experience across Houston and secondary Texas markets, he focuses on Class B and C workforce housing. These are value-add properties where a disciplined CapEx program and active management drives meaningful rent growth and long-term appreciation.
-                </p>
-                <Link to="/team" className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal hover:underline">
-                  Full profile
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </Link>
-              </div>
-            </div>
-
-            {/* Ethaniel */}
-            <div className="rv d2 rounded-card bg-card border border-border overflow-hidden shadow-card hover:-translate-y-0.5 hover:shadow-card-hover transition-all">
-              <div className="h-1 bg-gradient-to-r from-purple to-[#2c1f4a]" />
-              <div className="p-7">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-[12px] bg-purple/10 border border-purple/30 flex items-center justify-center flex-none">
-                    <span className="font-serif font-semibold text-purple text-lg">EV</span>
-                  </div>
-                  <div>
-                    <div className="font-serif font-semibold text-ink" style={{ fontSize: '1.05rem' }}>Ethaniel Vu</div>
-                    <div className="text-purple font-semibold uppercase tracking-widest" style={{ fontSize: '0.72rem' }}>Partner</div>
-                  </div>
+                <div className="grid sm:grid-cols-2 gap-x-12 gap-y-6">
+                  {group.items.map(([term, desc]) => (
+                    <div key={term}>
+                      <div className="font-semibold text-ink mb-1.5" style={{ fontSize: '0.92rem' }}>{term}</div>
+                      <p className="text-sub leading-[1.6]" style={{ fontSize: '0.85rem' }}>{desc}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="h-px bg-border mb-4" />
-                <p className="text-sub leading-[1.7] mb-5" style={{ fontSize: '0.875rem' }}>
-                  Ethaniel oversees commercial asset management and leasing at AxisPoint. As a TREC-licensed real estate professional, he brings direct operational experience across industrial, retail, office, and NNN assets throughout Texas. He focuses on properties where active management and strategic leasing unlock value that passive ownership misses.
-                </p>
-                <Link to="/team" className="inline-flex items-center gap-1.5 text-sm font-semibold text-purple hover:underline">
-                  Full profile
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </Link>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Insights from the field ──────────────────────── */}
-      <section className="py-24 bg-card">
+      {/* ── 3. Owner visibility and reporting ──────────────── */}
+      <section className="py-24 max-md:py-16 bg-body">
         <div className="max-w-[1160px] mx-auto px-7">
-          {/* Header row */}
-          <div className="rv flex justify-between items-end flex-wrap gap-5 mb-12">
-            <div>
-              <div className="flex items-center gap-2.5 mb-3.5">
-                <div style={{ width: 24, height: 1.5, background: 'linear-gradient(90deg, #24a5bc, #38285d)', borderRadius: 2, flexShrink: 0 }} />
-                <span className="text-sub font-semibold uppercase tracking-[0.12em]" style={{ fontSize: '0.63rem' }}>Learn and Read</span>
-              </div>
-              <h2 className="font-serif font-semibold text-ink mb-3 max-md:mb-4" style={{ fontSize: 'clamp(1.9rem,3.5vw,2.8rem)', lineHeight: 1.15 }}>
-                Insights from the field
+          <div className="grid md:grid-cols-[0.9fr_1.1fr] gap-14 max-md:gap-10">
+            <div className="rv">
+              <Label>Owner visibility</Label>
+              <h2 className="font-serif font-semibold text-ink mt-4 mb-5" style={{ fontSize: 'clamp(2rem,3.6vw,3rem)', lineHeight: 1.04, letterSpacing: '-0.015em' }}>
+                You see the same picture we do
               </h2>
-              <p className="text-sub leading-relaxed max-w-[520px]" style={{ fontSize: '1rem' }}>
-                Articles, guides, and papers written by Zachary and Ethaniel on commercial real estate strategy, asset management, and the Texas market.
+              <p className="text-sub leading-[1.75] max-w-md" style={{ fontSize: '1.05rem' }}>
+                Good management is being able to see the execution clearly and knowing who is
+                responsible for it. You are never guessing about how the property is doing, and you are
+                never chasing an update.
               </p>
             </div>
-            <Link
-              to="/learn"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-button bg-body border border-border text-sub text-sm font-semibold hover:text-ink hover:border-border-dark transition-all"
-            >
-              View all
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </Link>
-          </div>
-
-          {/* Empty state */}
-          <div className="text-center py-16">
-            <div className="w-12 h-12 rounded-full bg-teal/10 border border-teal/20 flex items-center justify-center mx-auto mb-5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#24a5bc" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <div className="rv d1 md:pt-2">
+              <div className="border-t border-border">
+                {[
+                  ['Monthly owner reporting', 'One clear report each month, delivered on a fixed cadence.'],
+                  ['Full operating visibility', 'Collections, occupancy, leasing, and maintenance, all in one place.'],
+                  ['Decisions surfaced early', 'Anything that needs your call comes to you with the context to decide.'],
+                  ['One accountable point of contact', 'Between reports, one team answers for the property.'],
+                  ['Records kept accessible', 'Leases, financials, and documentation available whenever you need them.'],
+                ].map(([term, desc]) => (
+                  <div key={term} className="grid grid-cols-[0.85fr_1.15fr] max-md:grid-cols-1 gap-x-8 gap-y-1 py-5 border-b border-border">
+                    <div className="text-ink font-semibold" style={{ fontSize: '0.92rem' }}>{term}</div>
+                    <p className="text-sub leading-[1.6]" style={{ fontSize: '0.85rem' }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="font-serif font-semibold text-ink mb-3" style={{ fontSize: '1.4rem' }}>Articles coming soon</h3>
-            <p className="text-sub leading-[1.7] max-w-sm mx-auto" style={{ fontSize: '0.9rem' }}>
-              We are writing guides and insights based on what we see in the field.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* ── Closing CTA ──────────────────────────────────── */}
-      <section className="relative py-24 bg-gradient-to-br from-[#2d1f50] to-ink overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-teal/8 blur-[80px]" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-purple/8 blur-[80px]" />
+      {/* ── 4. Asset Management upgrade layer (dark band) ──── */}
+      <section className="py-24 max-md:py-16" style={{ background: 'linear-gradient(180deg,#2A1E47 0%,#1C1628 100%)' }}>
+        <div className="max-w-[1160px] mx-auto px-7">
+          <div className="grid md:grid-cols-[0.95fr_1.05fr] gap-14 max-md:gap-10">
+            <div className="rv">
+              <Label light>The upgrade layer</Label>
+              <h2 className="font-serif font-semibold text-white mt-4 mb-5" style={{ fontSize: 'clamp(2rem,3.6vw,3rem)', lineHeight: 1.04, letterSpacing: '-0.015em' }}>
+                Add asset management when you want strategy
+              </h2>
+              <p className="leading-[1.75] mb-6 max-w-md" style={{ fontSize: '1.02rem', color: '#C3BFCA' }}>
+                Property management runs the property. Asset management directs the investment. For
+                owners who want AxisPoint responsible for the larger plan, it sits on top of the same
+                operating foundation, never in place of it.
+              </p>
+              <Link to="/services#asset-management" className="inline-flex items-center gap-2 text-white font-semibold border-b border-white/40 pb-0.5 hover:border-white transition-colors" style={{ fontSize: '0.9rem' }}>
+                Compare property management and asset management
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </Link>
+            </div>
+            <div className="rv d1 md:pt-2">
+              <div className="border-t border-white/15">
+                {[
+                  ['Business plan and budgets', 'A defined plan with milestones, an operating budget, and performance benchmarks.'],
+                  ['Capital planning', 'CapEx scoped, sequenced, and overseen from budget to completion.'],
+                  ['Debt and refinancing', 'Lender relationships and refinancing decisions managed as the asset performs.'],
+                  ['Hold, sell, or refinance strategy', 'An honest read on the next move, backed by the numbers.'],
+                ].map(([term, desc]) => (
+                  <div key={term} className="grid grid-cols-[0.9fr_1.1fr] max-md:grid-cols-1 gap-x-8 gap-y-1 py-5 border-b border-white/15">
+                    <div className="text-white font-medium" style={{ fontSize: '0.95rem' }}>{term}</div>
+                    <p className="leading-[1.6]" style={{ fontSize: '0.84rem', color: '#A79FB6' }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="relative max-w-[1160px] mx-auto px-7">
-          <div className="rv max-w-[680px]">
-            <h2 className="font-serif font-semibold text-white mb-4" style={{ fontSize: 'clamp(2rem,4vw,2.8rem)', lineHeight: 1.15 }}>
-              Ready to talk about your real estate?
+      </section>
+
+      {/* ── 5. Property Management-led final CTA ────────────── */}
+      <section className="py-24 max-md:py-16 bg-card border-t border-border">
+        <div className="max-w-[1160px] mx-auto px-7">
+          <div className="rv max-w-3xl">
+            <h2 className="font-serif font-semibold text-ink mb-5" style={{ fontSize: 'clamp(2.1rem,4vw,3.2rem)', lineHeight: 1.02, letterSpacing: '-0.02em' }}>
+              Hand off the day-to-day.
             </h2>
-            <p className="text-white/75 leading-[1.7] mb-8" style={{ fontSize: '1rem' }}>
-              We are selective about the capital we work with and the assets we take on, because our name is on every deal we manage. If there's a fit, we'll know early.
+            <p className="text-sub leading-[1.75] mb-8 max-w-xl" style={{ fontSize: '1.05rem' }}>
+              Tell us about your property and what needs to change. We will follow up with the right
+              questions and an honest read on whether there is a fit.
             </p>
-            <div className="flex flex-wrap gap-3 mb-5 max-md:flex-col">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 max-md:flex-col max-md:items-stretch">
               <Link
-                to="/contact"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5 shadow-lg shadow-teal/25 max-md:w-full"
+                to="/contact?intent=property-management"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all"
               >
-                Start a Conversation
+                Manage my property
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </Link>
-              <Link
-                to="/services"
-                className="px-7 py-3.5 rounded-button border border-white/20 text-white font-semibold hover:bg-white/8 transition-all text-center max-md:w-full"
-              >
-                View Our Services
+              <Link to="/contact" className="text-ink font-semibold border-b border-border pb-0.5 hover:border-ink transition-colors max-md:text-center" style={{ fontSize: '0.95rem' }}>
+                Talk with our team
               </Link>
             </div>
-            <p className="text-hint" style={{ fontSize: '0.82rem' }}>Introductory calls are 30 minutes. No obligation.</p>
+            <p className="text-hint mt-6" style={{ fontSize: '0.82rem' }}>Introductory calls are 30 minutes. No obligation.</p>
           </div>
         </div>
       </section>

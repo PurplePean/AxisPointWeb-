@@ -43,11 +43,13 @@ export function Step1Role({ c }: { c: FormController }) {
       <SQ>Who are you?</SQ>
       <SH3>Pick the option that fits best. The form adapts from here.</SH3>
       <div className="grid grid-cols-2 gap-[9px]">
+        {/* Property Management is the public label; the wire role stays existing_asset_owner.
+            Ordered first to reinforce the sitewide PM-first hierarchy. */}
+        <RoleTile c={c} r="existing_asset_owner" label="Property Management" desc="I own or oversee a property and need management"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>}
+        />
         <RoleTile c={c} r="investor" label="Investor" desc="Looking to place capital in CRE"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-        />
-        <RoleTile c={c} r="existing_asset_owner" label="Existing Asset Owner" desc="I own a property and need management"
-          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#24A5BC" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>}
         />
         <RoleTile c={c} r="pro" label="RE Professional" desc="Broker, lender, developer"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9F328C" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>}

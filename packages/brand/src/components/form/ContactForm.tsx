@@ -132,7 +132,14 @@ export function ContactForm({ source, page, className, initialRole }: ContactFor
 
   function goBack() {
     const idx = stepOrder.indexOf(step);
-    if (idx > 0) setStep(stepOrder[idx - 1]);
+    if (idx > 0) {
+      const prev = stepOrder[idx - 1];
+      /* Returning to the role picker by any route (Back or Change path) drops the
+         preselected-intent lock. Otherwise picking a different role would leave the
+         banner showing a stale or generic "Selected" path for the new role. */
+      if (prev === 'role') setIntentLocked(false);
+      setStep(prev);
+    }
   }
 
   /* "Change path" from the preselected-intent banner: reopen the full role picker

@@ -4,8 +4,7 @@ import Logo from './Logo';
 
 const LINKS: { to: string; label: string }[] = [
   { to: '/services', label: 'Services' },
-  { to: '/team', label: 'Team' },
-  { to: '/learn', label: 'Learn' },
+  { to: '/team', label: 'Partners' },
   { to: '/contact', label: 'Contact' },
 ];
 
@@ -68,7 +67,7 @@ function Nav() {
               to="/contact"
               className="px-5 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5"
             >
-              Let's Talk
+              Talk with our team
             </Link>
           </div>
 
@@ -142,7 +141,7 @@ function Nav() {
               onClick={() => go('/contact')}
               className="mt-6 w-full max-w-xs text-center px-7 py-4 rounded-button bg-teal text-white text-lg font-semibold hover:brightness-110 transition-all"
             >
-              Let's Talk
+              Talk with our team
             </button>
           </div>
         </div>

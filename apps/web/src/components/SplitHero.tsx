@@ -3,29 +3,31 @@ import { Link } from 'react-router-dom';
 /**
  * SplitHero — the two-path home hero for the Property Management repositioning.
  *
- * Desktop: a two-column split. Property Management (left, warmer neutral, teal
- * accents) is weighted slightly larger than the capital-ready investor route
- * (right, purple/dark, white-glove). Gradients are used sparingly as the seam
- * between operations and strategy, not as a full-screen wash.
+ * Property Management is the dominant primary path; Investor Services is an
+ * intentionally compact, credible secondary route.
  *
- * Mobile (~390px): the split does NOT carry over. Property Management renders
- * first as the full primary panel with its CTA visible early; the capital-ready
- * path collapses into a compact secondary panel (shorter, one CTA, proof hidden)
- * so visitors are not asked to scroll through two full desktop hero panels. The
- * three secondary paths stay discoverable via the strip beneath the split.
+ * Desktop: a two-column split weighted ~67% Property Management / ~33% Investor
+ * Services. PM is warmer neutral with teal accents and keeps its proof-stat row
+ * and two CTAs; the investor panel is deliberately spare (short copy, a single
+ * white CTA, no proof row, no second CTA) so it reads premium but clearly
+ * secondary. Gradients are used only as the seam between operations and strategy.
  *
- * All routing is presentation-only: the CTAs deep-link into the shared multi-step
- * ContactForm with a public intent token; the form resolves it to an existing role.
+ * Mobile (~390px): the split does not carry over. Property Management is the
+ * complete primary first section with its CTA reachable near the first viewport;
+ * Investor Services follows as a compact secondary panel. Same component, no
+ * separate mobile page. The three secondary lead paths stay reachable via the
+ * strip beneath the split.
+ *
+ * Routing is presentation-only: CTAs deep-link into the shared multi-step
+ * ContactForm with a public intent token the form resolves to an existing role.
  * No copy exposes internal role values, and there are no headshots or personal links.
  */
 
-/* Brand-token-aligned surfaces. Kept inline (not new global tokens) because they
-   are hero-specific gradient compositions, not reusable color values. Hexes trace
-   to the brand palette: teal #24A5BC, purple.dark #2A1E47, ink #1C1628. */
-const OWNER_BG =
-  'radial-gradient(circle at 8% 6%, rgba(36,165,188,0.10), transparent 44%), linear-gradient(150deg, #FBFAF7 0%, #F4F2EC 100%)';
-const INVESTOR_BG =
-  'radial-gradient(circle at 88% 12%, rgba(36,165,188,0.12), transparent 40%), radial-gradient(circle at 70% 90%, rgba(159,50,140,0.10), transparent 46%), linear-gradient(150deg, #2A1E47 0%, #1C1628 72%)';
+/* Restrained flat color blocking, no decorative glows. A warm neutral for the
+   operations side, a quiet deep field for the strategy side, split by a hairline.
+   Hexes stay in the brand family: ink #1C1628, purple.dark #2A1E47, teal #24A5BC. */
+const OWNER_BG = '#F7F5F0';
+const INVESTOR_BG = 'linear-gradient(180deg, #241B39 0%, #191424 100%)';
 
 function Eyebrow({ children, tone }: { children: React.ReactNode; tone: 'teal' | 'light' }) {
   return (
@@ -44,52 +46,27 @@ function Eyebrow({ children, tone }: { children: React.ReactNode; tone: 'teal' |
   );
 }
 
-function Proof({ items, tone }: { items: [string, string][]; tone: 'dark' | 'light' }) {
-  const labelColor = tone === 'light' ? '#5A5270' : '#9C96AC';
-  const valueColor = tone === 'light' ? '#1C1628' : '#FFFFFF';
-  return (
-    <div
-      className="mt-9 grid grid-cols-3 gap-4 border-t pt-6"
-      style={{ borderColor: tone === 'light' ? '#E8E4F0' : 'rgba(255,255,255,0.14)' }}
-    >
-      {items.map(([value, label]) => (
-        <div key={label}>
-          <div className="font-serif" style={{ fontSize: '1.45rem', lineHeight: 1, color: valueColor }}>
-            {value}
-          </div>
-          <div
-            className="mt-2 font-sans uppercase"
-            style={{ fontSize: '0.6rem', lineHeight: 1.4, letterSpacing: '0.07em', color: labelColor }}
-          >
-            {label}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function SplitHero() {
   return (
     <section className="relative">
-      <div className="grid grid-cols-1 md:grid-cols-[1.12fr_0.88fr]">
-        {/* ── Property Management (primary) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.35fr_0.65fr]">
+        {/* ── Property Management (primary, ~67%) ── */}
         <article
           className="relative flex flex-col justify-center px-7 pt-[calc(68px+40px)] pb-14 md:min-h-[86vh] md:px-14 md:pt-[calc(68px+56px)] md:pb-20"
           style={{ background: OWNER_BG }}
         >
-          <div className="w-full max-w-[560px] md:ml-auto md:mr-0 md:pr-2">
+          <div className="w-full max-w-[620px] md:ml-auto md:mr-0 md:pr-4">
             <Eyebrow tone="teal">For existing property owners</Eyebrow>
             <h1
               className="font-serif font-semibold text-ink"
-              style={{ fontSize: 'clamp(2.4rem,4.6vw,4.2rem)', lineHeight: 0.98, letterSpacing: '-0.02em' }}
+              style={{ fontSize: 'clamp(2.4rem,4.8vw,4.4rem)', lineHeight: 0.98, letterSpacing: '-0.02em' }}
             >
               A better run property starts <em className="not-italic text-teal">here.</em>
             </h1>
-            <p className="mt-5 text-sub leading-[1.65] max-w-[500px]" style={{ fontSize: '1.05rem' }}>
-              AxisPoint takes responsibility for the daily work: tenant communication, vendors,
-              maintenance, collections, accounting, and owner reporting. You get fewer surprises and
-              one team accountable for execution.
+            <p className="mt-5 text-sub leading-[1.65] max-w-[520px]" style={{ fontSize: '1.05rem' }}>
+              Property management is what we do. AxisPoint takes responsibility for the daily work:
+              tenant communication, leasing, maintenance, vendors, collections, accounting, and owner
+              reporting. One team accountable for how your property runs.
             </p>
             <div className="mt-7 flex flex-wrap gap-3 max-md:flex-col">
               <Link
@@ -106,41 +83,43 @@ function SplitHero() {
                 See what management includes
               </Link>
             </div>
-            <div className="hidden md:block">
-              <Proof
-                tone="light"
-                items={[
-                  ['One', 'Accountable operating team'],
-                  ['Monthly', 'Owner reporting rhythm'],
-                  ['Texas', 'Local market execution'],
-                ]}
-              />
+            {/* Proof stats: desktop only, kept off mobile so the CTA stays near the
+                first viewport. Wrapper carries the hide (the global mobile stylesheet
+                forces a.rounded-button visible, but these are plain divs). */}
+            <div className="hidden md:grid mt-9 grid-cols-3 gap-4 border-t border-border pt-6">
+              {([
+                ['One', 'Accountable operating team'],
+                ['Monthly', 'Owner reporting rhythm'],
+                ['Texas', 'Local market execution'],
+              ] as [string, string][]).map(([value, label]) => (
+                <div key={label}>
+                  <div className="font-serif text-ink" style={{ fontSize: '1.45rem', lineHeight: 1 }}>{value}</div>
+                  <div className="mt-2 font-sans uppercase text-sub" style={{ fontSize: '0.6rem', lineHeight: 1.4, letterSpacing: '0.07em' }}>{label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </article>
 
-        {/* ── Capital-ready investor services (secondary) ── */}
+        {/* ── Investor Services (compact secondary, ~33%) ── */}
         <article
-          className="relative flex flex-col justify-center px-7 py-10 md:min-h-[86vh] md:px-14 md:py-20"
+          className="relative flex flex-col justify-center px-7 py-10 md:min-h-[86vh] md:px-11 md:py-20 md:border-l md:border-[#2E2540]"
           style={{ background: INVESTOR_BG }}
         >
-          <div className="w-full max-w-[520px] md:mr-auto md:ml-0 md:pl-2">
+          <div className="w-full max-w-[420px] md:mr-auto md:ml-0">
             <Eyebrow tone="light">For capital-ready investors</Eyebrow>
             <h2
               className="font-serif font-semibold text-white"
-              style={{ fontSize: 'clamp(1.9rem,3.4vw,3.4rem)', lineHeight: 1, letterSpacing: '-0.02em' }}
+              style={{ fontSize: 'clamp(1.6rem,2.3vw,2.2rem)', lineHeight: 1.06, letterSpacing: '-0.015em' }}
             >
-              Bring the capital. We will build the <em className="not-italic text-teal">CRE team.</em>
+              Commercial real estate, with the operating team <em className="not-italic text-teal">already in place.</em>
             </h2>
-            <p
-              className="mt-4 leading-[1.6] max-w-[470px] max-md:line-clamp-3"
-              style={{ fontSize: '0.98rem', color: '#C3BFCA' }}
-            >
-              For clients who want commercial real estate exposure without assembling the operating
-              infrastructure themselves. We help define the criteria, source and underwrite
-              opportunities, acquire the asset, and manage it after closing.
+            <p className="mt-4 leading-[1.6] max-w-[380px]" style={{ fontSize: '0.95rem', color: '#C3BFCA' }}>
+              Commercial real estate exposure without building the operating team yourself. We define
+              the criteria, source and underwrite, coordinate the acquisition, and manage the asset
+              after closing.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3 max-md:flex-col">
+            <div className="mt-6">
               <Link
                 to="/contact?intent=investor-services"
                 className="inline-flex items-center justify-center gap-2 rounded-button bg-white px-6 py-3.5 font-semibold text-purple transition-all hover:-translate-y-0.5 hover:brightness-95 max-md:w-full"
@@ -148,28 +127,6 @@ function SplitHero() {
                 Discuss my investment criteria
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Link>
-              {/* Wrapper carries the hide: the global mobile stylesheet forces
-                  a.rounded-button to display:inline-flex !important for 52px tap
-                  targets, so the link itself cannot be hidden on mobile — the
-                  non-button wrapper is hidden instead. */}
-              <div className="hidden md:block">
-                <Link
-                  to="/services"
-                  className="inline-flex items-center justify-center rounded-button border border-white/25 px-6 py-3.5 font-semibold text-white transition-all hover:bg-white/10"
-                >
-                  See the white-glove process
-                </Link>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <Proof
-                tone="dark"
-                items={[
-                  ['Criteria', 'Built around your objectives'],
-                  ['Underwriting', 'Stress-tested assumptions'],
-                  ['Through exit', 'Acquisition to operations'],
-                ]}
-              />
             </div>
           </div>
         </article>
