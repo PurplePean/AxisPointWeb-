@@ -10,16 +10,24 @@ import SplitHero from '../components/SplitHero';
  * next step. The split hero is the only signature visual; everything below it is
  * deliberately quiet.
  *
- * Structure: split hero, three property management outcomes, an asymmetric
- * service-pathway section that makes the hierarchy visible, and a dark closing
- * CTA that runs straight into the shared footer. The full service specification
- * lives on /services and is linked to rather than repeated here.
+ * Structure: split hero, three property management outcomes, the management vs
+ * asset management distinction, and a dark closing CTA that runs straight into the
+ * shared footer. The full service specification lives on /services and is linked to
+ * rather than repeated here.
+ *
+ * Attention is budgeted deliberately: management dominates, asset management is the
+ * one upsell the page argues for, and investor services is confined to the hero rail
+ * and the footer. Direct contact details live in the footer only, so the closing CTA
+ * does not repeat them.
  */
 
-/* Restrained tracked micro-label. Used sparingly, not on every block. */
-function Label({ children, light }: { children: React.ReactNode; light?: boolean }) {
+/* Restrained tracked micro-label. Used sparingly, not on every block.
+   Teal reads as operations, purple as strategy, light for the dark closing field. */
+const LABEL_COLOR = { teal: '#1A8799', purple: '#38285D', light: '#8FD4E0' } as const;
+
+function Label({ children, tone = 'teal' }: { children: React.ReactNode; tone?: keyof typeof LABEL_COLOR }) {
   return (
-    <div className="uppercase font-semibold" style={{ fontSize: '0.66rem', letterSpacing: '0.15em', color: light ? '#8FD4E0' : '#1A8799' }}>
+    <div className="uppercase font-semibold" style={{ fontSize: '0.66rem', letterSpacing: '0.15em', color: LABEL_COLOR[tone] }}>
       {children}
     </div>
   );
@@ -96,128 +104,80 @@ function HomePage() {
         </div>
       </section>
 
-      {/* ── 3. Service hierarchy, asymmetric on purpose ────── */}
+      {/* ── 3. The one distinction the homepage needs to draw. Two jobs, side by
+             side on hairlines. Not a feature inventory and not a card grid: the
+             full comparison belongs on the dedicated pages when they exist. ── */}
       <section className="py-24 max-md:!py-10 bg-body">
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv max-w-xl mb-12 max-md:mb-7">
-            <h2 className="font-serif font-semibold text-ink mb-4" style={{ fontSize: 'clamp(1.8rem,3.1vw,2.5rem)', lineHeight: 1.06, letterSpacing: '-0.015em' }}>
-              Where AxisPoint fits
+          <div className="rv max-w-3xl mb-12 max-md:mb-8">
+            <h2 className="font-serif font-semibold text-ink mb-5" style={{ fontSize: 'clamp(1.9rem,3.4vw,2.8rem)', lineHeight: 1.06, letterSpacing: '-0.015em' }}>
+              Management runs the property.{' '}
+              <span className="text-purple">Asset Management directs the investment.</span>
             </h2>
-            <p className="text-sub leading-[1.7]" style={{ fontSize: '1rem' }}>
-              Management is the engagement. Strategy and acquisitions are added when they apply.
+            <p className="text-sub leading-[1.75] max-w-xl" style={{ fontSize: '1rem' }}>
+              Two different jobs. Nearly every engagement starts with management, and asset
+              management is added when the property is part of a larger investment plan.
             </p>
           </div>
 
-          <div className="rv d1 grid md:grid-cols-[1.2fr_0.8fr] gap-x-16 gap-y-10 max-md:gap-y-8 items-start">
-            {/* Primary path, given the weight */}
-            <div className="border-t-2 border-teal pt-7 max-md:pt-6">
-              <Label>Primary engagement</Label>
-              <h3 className="font-serif font-semibold text-ink mt-3 mb-4" style={{ fontSize: 'clamp(1.7rem,2.6vw,2.15rem)', lineHeight: 1.08, letterSpacing: '-0.01em' }}>
-                Property Management
-              </h3>
-              <p className="text-sub leading-[1.75] mb-6 max-w-lg" style={{ fontSize: '1rem' }}>
-                Leasing, maintenance, vendors, collections, accounting, and owner reporting, run by
-                one accountable team. Where nearly every engagement begins.
+          <div className="rv d1 grid md:grid-cols-2 gap-x-16 gap-y-9 max-md:gap-y-8 items-start">
+            <div className="border-t-2 border-teal pt-6">
+              <Label>Property Management</Label>
+              <p className="text-ink leading-[1.7] mt-3.5 mb-5 max-w-md" style={{ fontSize: '1rem' }}>
+                Operations, tenants, vendors, accounting, and reporting. The work of running the
+                property day to day.
               </p>
               <Link
                 to="/services#property-management"
                 className="inline-flex items-center gap-2 font-semibold text-teal-dark border-b border-teal/40 pb-0.5 hover:border-teal-dark transition-colors"
                 style={{ fontSize: '0.92rem' }}
               >
-                The operating foundation
+                What management covers
                 <Arrow />
               </Link>
             </div>
 
-            {/* Supporting paths, quieter rows on hairlines */}
-            <div>
-              <div className="border-t border-border">
-                <div className="pt-7 pb-6 max-md:pt-5 max-md:pb-5 border-b border-border">
-                  <div className="uppercase font-semibold" style={{ fontSize: '0.62rem', letterSpacing: '0.14em', color: '#38285D' }}>
-                    Strategic layer
-                  </div>
-                  <h4 className="font-serif text-ink mt-2.5 mb-2" style={{ fontSize: '1.3rem', lineHeight: 1.12 }}>
-                    Asset Management
-                  </h4>
-                  <p className="text-sub leading-[1.65] mb-3.5" style={{ fontSize: '0.9rem' }}>
-                    Business plan, budgets, capital planning, and hold or sell decisions, layered on
-                    top of management. Never a replacement for it.
-                  </p>
-                  <Link
-                    to="/services#asset-management"
-                    className="inline-flex items-center gap-1.5 font-semibold text-purple hover:underline"
-                    style={{ fontSize: '0.85rem' }}
-                  >
-                    How it layers on
-                    <Arrow size={12} />
-                  </Link>
-                </div>
-
-                <div className="py-6 max-md:py-5 border-b border-border">
-                  <div className="uppercase font-semibold text-hint" style={{ fontSize: '0.62rem', letterSpacing: '0.14em' }}>
-                    Selective pathway
-                  </div>
-                  <h4 className="font-serif text-ink mt-2.5 mb-2" style={{ fontSize: '1.3rem', lineHeight: 1.12 }}>
-                    Investor Services
-                  </h4>
-                  <p className="text-sub leading-[1.65] mb-3.5" style={{ fontSize: '0.9rem' }}>
-                    For capital-ready clients entering commercial real estate. We define criteria,
-                    source and underwrite, then manage what you acquire.
-                  </p>
-                  <Link
-                    to="/services#investor-services"
-                    className="inline-flex items-center gap-1.5 font-semibold text-purple hover:underline"
-                    style={{ fontSize: '0.85rem' }}
-                  >
-                    How entry works
-                    <Arrow size={12} />
-                  </Link>
-                </div>
-              </div>
+            <div className="border-t-2 border-purple pt-6">
+              <Label tone="purple">Property Management + Asset Management</Label>
+              <p className="text-ink leading-[1.7] mt-3.5 mb-5 max-w-md" style={{ fontSize: '1rem' }}>
+                Business plan, capital planning, debt and refinancing, and hold or sell strategy.
+                Direction for the investment the property sits inside.
+              </p>
+              <Link
+                to="/services#asset-management"
+                className="inline-flex items-center gap-2 font-semibold text-purple border-b border-purple/30 pb-0.5 hover:border-purple transition-colors"
+                style={{ fontSize: '0.92rem' }}
+              >
+                How asset management layers on
+                <Arrow />
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── 4. Closing CTA. Shares the footer's field so the two
-             read as one closing block, not two stacked sections. ── */}
+      {/* ── 4. Closing CTA. One headline, one paragraph, one button, all on the
+             management path. Shares the footer's field so the two read as one
+             closing block. Email and phone live in the footer only, so they are
+             deliberately not repeated here. ── */}
       <section className="pt-24 pb-16 max-md:!pt-12 max-md:!pb-8" style={{ background: 'linear-gradient(180deg,#191424 0%,#0D0A17 100%)' }}>
         <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv grid md:grid-cols-[1.15fr_0.85fr] gap-x-16 gap-y-9 max-md:gap-y-7 items-end">
-            <div>
-              <Label light>Property Management</Label>
-              <h2 className="font-serif font-semibold text-white mt-4 mb-5" style={{ fontSize: 'clamp(2.1rem,4vw,3.2rem)', lineHeight: 1.02, letterSpacing: '-0.02em' }}>
-                Hand off the day-to-day.
-              </h2>
-              <p className="leading-[1.75] mb-8 max-w-lg" style={{ fontSize: '1.05rem', color: '#B9B4C4' }}>
-                Tell us about the property and what needs to change. We will come back with questions
-                and an honest read on whether there is a fit.
-              </p>
-              <Link
-                to="/contact?intent=property-management"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all max-md:w-full"
-              >
-                Manage my property
-                <Arrow size={14} />
-              </Link>
-            </div>
-
-            <div className="md:border-l md:border-white/10 md:pl-14 max-md:border-t max-md:border-white/10 max-md:pt-6">
-              <div className="uppercase font-semibold text-hint mb-4" style={{ fontSize: '0.62rem', letterSpacing: '0.14em' }}>
-                Or reach us directly
-              </div>
-              <div className="flex flex-col gap-2.5 items-start">
-                <a href="mailto:zach@axispoint.llc" className="text-white hover:text-teal transition-colors max-md:flex max-md:items-center max-md:min-h-[44px]" style={{ fontSize: '0.95rem' }}>
-                  zach@axispoint.llc
-                </a>
-                <a href="tel:+18325802815" className="text-white hover:text-teal transition-colors max-md:flex max-md:items-center max-md:min-h-[44px]" style={{ fontSize: '0.95rem' }}>
-                  (832) 580-2815
-                </a>
-              </div>
-              <p className="text-hint mt-5" style={{ fontSize: '0.82rem' }}>
-                Introductory calls are 30 minutes. No obligation.
-              </p>
-            </div>
+          <div className="rv max-w-2xl">
+            <Label tone="light">Property Management</Label>
+            <h2 className="font-serif font-semibold text-white mt-4 mb-5" style={{ fontSize: 'clamp(2.1rem,4vw,3.2rem)', lineHeight: 1.02, letterSpacing: '-0.02em' }}>
+              Hand off the day-to-day.
+            </h2>
+            <p className="leading-[1.75] mb-8 max-w-lg" style={{ fontSize: '1.05rem', color: '#B9B4C4' }}>
+              Tell us about the property and what needs to change. We will come back with questions
+              and an honest read on whether there is a fit. Introductory calls are 30 minutes.
+            </p>
+            <Link
+              to="/contact?intent=property-management"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all max-md:w-full"
+            >
+              Manage my property
+              <Arrow size={14} />
+            </Link>
           </div>
         </div>
       </section>

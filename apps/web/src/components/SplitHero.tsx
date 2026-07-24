@@ -12,11 +12,12 @@ import { Link } from 'react-router-dom';
  * white CTA, no proof row, no second CTA) so it reads premium but clearly
  * secondary. Gradients are used only as the seam between operations and strategy.
  *
- * Mobile (~390px): the split does not carry over. Property Management is the
- * complete primary first section with its CTA reachable near the first viewport;
- * Investor Services follows as a compact secondary panel. Same component, no
- * separate mobile page. The three secondary lead paths stay reachable via the
- * strip beneath the split.
+ * Mobile (~390px): the split does not carry over, and the investor panel does not
+ * either. Property Management is the complete primary section with its CTA reachable
+ * near the first viewport; Investor Services compresses to a single tappable band,
+ * not a panel, so a phone spends almost its whole first screen on management. Same
+ * component, no separate mobile page. The professional and referral paths stay
+ * reachable via the strip beneath the split.
  *
  * Routing is presentation-only: CTAs deep-link into the shared multi-step
  * ContactForm with a public intent token the form resolves to an existing role.
@@ -101,9 +102,10 @@ function SplitHero() {
           </div>
         </article>
 
-        {/* ── Investor Services (compact secondary, ~33%) ── */}
+        {/* ── Investor Services (compact secondary rail, ~33%).
+             Desktop only: on mobile this collapses to the band below. ── */}
         <article
-          className="relative flex flex-col justify-center px-7 py-10 md:min-h-[86vh] md:px-11 md:py-20 md:border-l md:border-[#2E2540]"
+          className="relative hidden md:flex flex-col justify-center px-7 py-10 md:min-h-[86vh] md:px-11 md:py-20 md:border-l md:border-[#2E2540]"
           style={{ background: INVESTOR_BG }}
         >
           <div className="w-full max-w-[420px] md:mr-auto md:ml-0">
@@ -132,7 +134,26 @@ function SplitHero() {
         </article>
       </div>
 
-      {/* ── Secondary paths: keeps the other three lead routes discoverable ── */}
+      {/* ── Mobile only: Investor Services as one band, not a panel.
+           The whole band is the tap target, which keeps it well past 44px without
+           using .rounded-button (the global mobile stylesheet would force that to
+           full-width button treatment and rebuild the panel we just removed). ── */}
+      <Link
+        to="/contact?intent=investor-services"
+        className="md:hidden flex items-center justify-between gap-3 px-7 py-3.5 min-h-[56px] border-t border-[#2E2540]"
+        style={{ background: '#191424' }}
+      >
+        <span style={{ fontSize: '0.82rem', color: '#C3BFCA' }}>Entering commercial real estate?</span>
+        <span
+          className="inline-flex items-center gap-1.5 font-semibold flex-none"
+          style={{ fontSize: '0.82rem', color: '#8FD4E0' }}
+        >
+          Investor Services
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+        </span>
+      </Link>
+
+      {/* ── Secondary paths: keeps the professional and referral routes discoverable ── */}
       <div className="border-t border-border bg-card">
         <div className="max-w-[1160px] mx-auto px-7 py-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
           <span className="text-sub" style={{ fontSize: '0.85rem' }}>
