@@ -1,52 +1,78 @@
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 
+/**
+ * Shared site footer, used on Home, Services, Partners, and Contact.
+ *
+ * On the homepage the closing CTA sits directly above it on the same dark field
+ * and resolves into #0D0A17, so the two read as a single closing block. The
+ * hairline below the footer's top padding is the only divider between them,
+ * and it reads as the page-to-footer boundary on every other route.
+ *
+ * Deliberately institutional and short: identity, location, navigation, service
+ * anchors, direct contact, legal. Learn is not part of the launch site and must
+ * not be reintroduced here.
+ */
+
+const SERVICES: [string, string][] = [
+  ['Property Management', '/services#property-management'],
+  ['Asset Management', '/services#asset-management'],
+  ['Investor Services', '/services#investor-services'],
+];
+
+const COMPANY: [string, string][] = [
+  ['Services', '/services'],
+  ['Partners', '/team'],
+  ['Contact', '/contact'],
+];
+
+function ColumnHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h5 className="uppercase font-semibold text-hint mb-4" style={{ fontSize: '0.62rem', letterSpacing: '0.14em' }}>
+      {children}
+    </h5>
+  );
+}
+
 function Footer() {
   return (
-    <footer className="bg-[#0D0A17] text-body py-16">
+    <footer className="bg-[#0D0A17] text-body">
       <div className="max-w-[1160px] mx-auto px-7">
-        {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 mb-12">
-          {/* Brand Column */}
-          <div className="max-md:flex max-md:flex-col max-md:items-center max-md:text-center">
-            <div className="mb-5">
-              <Logo height={32} className="brightness-0 invert opacity-60" />
-            </div>
-            <p className="text-sm text-hint leading-relaxed">
-              Commercial property management for owners across Texas, with asset management and
-              investor services when they fit.
+
+        {/* Identity, services, navigation, contact. Two columns on mobile so the
+            four blocks do not stack into a long ribbon; the 44px link tap targets
+            from the global mobile stylesheet are preserved either way. */}
+        <div className="border-t border-white/10 pt-14 max-md:pt-8 pb-12 max-md:pb-6 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1.1fr] gap-x-12 max-md:gap-x-6 gap-y-10 max-md:gap-y-7">
+          <div className="max-md:col-span-2">
+            <Logo height={30} className="brightness-0 invert opacity-60" />
+            <p className="text-sm text-hint leading-relaxed mt-5 max-md:mt-4 max-w-xs">
+              Commercial property management for owners across Texas.
             </p>
+            <p className="text-sm text-hint mt-4 max-md:mt-3">Houston, Texas</p>
           </div>
 
-          {/* Services Column */}
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Services</h5>
-            <div className="flex flex-col gap-2.5">
-              <Link to="/services#property-management" className="text-sm text-sub hover:text-teal transition-colors">
-                Property Management
-              </Link>
-              <Link to="/services#asset-management" className="text-sm text-sub hover:text-teal transition-colors">
-                Asset Management
-              </Link>
-              <Link to="/services#investor-services" className="text-sm text-sub hover:text-teal transition-colors">
-                Investor Services
-              </Link>
+            <ColumnHeading>Services</ColumnHeading>
+            <div className="flex flex-col gap-2.5 max-md:gap-0">
+              {SERVICES.map(([label, to]) => (
+                <Link key={to} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                  {label}
+                </Link>
+              ))}
             </div>
           </div>
 
-          {/* Company Column */}
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Company</h5>
-            <div className="flex flex-col gap-2.5">
-              <Link to="/team" className="text-sm text-sub hover:text-teal transition-colors">
-                Partners
-              </Link>
-              <Link to="/contact" className="text-sm text-sub hover:text-teal transition-colors">
-                Contact
-              </Link>
+            <ColumnHeading>Company</ColumnHeading>
+            <div className="flex flex-col gap-2.5 max-md:gap-0">
+              {COMPANY.map(([label, to]) => (
+                <Link key={to} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                  {label}
+                </Link>
+              ))}
               <a
                 href="https://qr.axispoint.llc"
-                className="text-sm text-sub hover:text-teal transition-colors"
+                className="text-sm text-[#B9B4C4] hover:text-teal transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -55,30 +81,32 @@ function Footer() {
             </div>
           </div>
 
-          {/* Contact Column */}
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Contact</h5>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-start gap-2 text-sm text-hint">
-                <svg className="w-3.5 h-3.5 flex-none mt-0.5" fill="none" viewBox="0 0 24 24" stroke="#24A5BC" strokeWidth={1.8}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <span className="leading-relaxed">Houston, Texas</span>
-              </div>
+            <ColumnHeading>Contact</ColumnHeading>
+            <div className="flex flex-col gap-2.5 max-md:gap-0">
+              <a href="mailto:zach@axispoint.llc" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                zach@axispoint.llc
+              </a>
+              <a href="tel:+18325802815" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                (832) 580-2815
+              </a>
+              <Link to="/contact?intent=property-management" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                Start a conversation
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="border-t border-white/10 pt-8">
-          <p className="text-xs text-hint mb-3 leading-relaxed max-w-3xl">
+        {/* Bottom: legal */}
+        <div className="border-t border-white/10 py-8 max-md:!py-5 flex flex-col gap-3">
+          <p className="text-xs text-hint leading-relaxed max-w-3xl">
             Brokerage and leasing activities are conducted through our licensed partner. AxisPoint
             Partners does not provide tax or legal advice. This website is intended for
             informational purposes only and does not constitute an offer to sell securities.
           </p>
           <p className="text-xs text-hint">© 2026 AxisPoint Partners LLC. All rights reserved.</p>
         </div>
+
       </div>
     </footer>
   );
