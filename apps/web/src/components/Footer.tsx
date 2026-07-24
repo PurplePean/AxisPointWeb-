@@ -10,8 +10,10 @@ import Logo from './Logo';
  * and it reads as the page-to-footer boundary on every other route.
  *
  * Deliberately institutional and short: identity, location, navigation, service
- * anchors, direct contact, legal. Learn is not part of the launch site and must
- * not be reintroduced here.
+ * anchors, the referral pathway, direct contact, legal. It is also the single
+ * source of direct contact details on the site, which is why the homepage closing
+ * CTA carries a button only. Not a sitemap, and Learn is not part of the launch
+ * site and must not be reintroduced here.
  */
 
 const SERVICES: [string, string][] = [
@@ -20,9 +22,12 @@ const SERVICES: [string, string][] = [
   ['Investor Services', '/services#investor-services'],
 ];
 
+/* Submit a Referral points at the bare /contact picker on purpose: no public intent
+   token resolves to the referral role, so the picker is the real entry point. */
 const COMPANY: [string, string][] = [
   ['Services', '/services'],
   ['Partners', '/team'],
+  ['Submit a Referral', '/contact'],
   ['Contact', '/contact'],
 ];
 
@@ -66,7 +71,7 @@ function Footer() {
             <ColumnHeading>Company</ColumnHeading>
             <div className="flex flex-col gap-2.5 max-md:gap-0">
               {COMPANY.map(([label, to]) => (
-                <Link key={to} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
+                <Link key={label} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
                   {label}
                 </Link>
               ))}
