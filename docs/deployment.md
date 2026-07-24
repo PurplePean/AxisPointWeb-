@@ -16,12 +16,14 @@ front-ends POST to it.
 ### `clasp push` vs `clasp deploy -i` — the critical distinction
 
 ```bash
-pnpm deploy:gas     # == cd scripts/gas && clasp push
+pnpm gas:push     # == cd scripts/gas && clasp push
 ```
 
-- **`clasp push`** uploads local `Code.gs` / `appsscript.json` to the Apps
-  Script project's **HEAD** (the editor content). It updates what you see in the
-  script editor — **it does NOT change what the live `/exec` URL serves.**
+- **`clasp push`** (`pnpm gas:push`) uploads local `Code.gs` / `appsscript.json`
+  to the Apps Script project's **HEAD** (the editor content). It updates what you
+  see in the script editor and can immediately affect **installed triggers and
+  scheduled functions** (cold-lead sweep, daily digest, partner summary) — but it
+  **does NOT change what the live `/exec` URL serves.**
 - The live `/exec` URL is pinned to a **specific deployed version**. To make a
   push go live you must **redeploy that deployment**:
 
@@ -34,8 +36,20 @@ pnpm deploy:gas     # == cd scripts/gas && clasp push
   at a fresh version. Creating a *new* deployment would mint a *new* URL and
   require updating `SCRIPT_URL` + the `FORM_ENDPOINT` secret.
 
-**A `clasp push` alone will silently leave production on old code.** Always
-follow a backend change with `clasp deploy -i <deploymentId>`.
+#### Completion and deployment are separate, deliberate decisions
+
+A backend task can be **fully complete** — written, tested, committed, merged —
+**without either `clasp push` or `clasp deploy` having run.** Neither command is
+part of the definition of "done"; both are explicit, intentional operations you
+run only when you actually decide to change the running backend:
+
+- `pnpm gas:push` changes the project HEAD (and can move triggers/scheduled jobs).
+- `clasp deploy -i <deploymentId>` changes the pinned production `/exec` endpoint.
+
+Do **not** treat "I made a backend change" as automatically implying either step.
+Push when you intend to update HEAD/triggers; deploy when you intend to release the
+endpoint. A `clasp push` on its own leaves the pinned `/exec` version on old code —
+that is expected, not a bug, and going live is a subsequent deliberate `clasp deploy`.
 
 ### `.claspignore` controls what is allowed to reach Apps Script
 

@@ -24,7 +24,16 @@ import { EAOSituationStep } from './steps/EAOSituationStep';
 import { EAOIssueStep } from './steps/EAOIssueStep';
 import { EAOScheduleStep } from './steps/EAOScheduleStep';
 
-const FORM_ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT as string | undefined;
+/**
+ * `__FORM_ENDPOINT__` is injected by each app's vite.config.ts (see the mode-driven,
+ * fail-safe resolution there). It is deliberately NOT read from import.meta.env directly:
+ * that keeps a stray VITE_FORM_ENDPOINT in the shell or a generic .env file from ever
+ * leaking into a dev build. In plain `pnpm dev` it is '' (falsy) -> simulated-success
+ * fallback; in `pnpm dev:e2e` and production builds it carries the real endpoint.
+ */
+declare const __FORM_ENDPOINT__: string;
+const FORM_ENDPOINT: string | undefined =
+  (typeof __FORM_ENDPOINT__ !== 'undefined' ? __FORM_ENDPOINT__ : '') || undefined;
 
 export interface ContactFormProps {
   /** App-level source identifier added to the payload (e.g. 'qr'). */

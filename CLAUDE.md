@@ -36,7 +36,36 @@ Push the branch, open a PR (title matches the commit format, description uses se
 
 **Auto-merge is the default for EVERY task, with no carve-out exceptions.** After opening the PR, merge it yourself directly to main (squash merge, delete the branch), then switch the local repo back to main and pull, leaving no local/remote branches behind. This is not limited to "safe" or "small" changes — there is no category of change that is exempted from the default. **The only time you do not auto-merge is when a task explicitly asks you to leave the PR open** (as the EAO-cleanup tasks did, for a human review of live-affecting backend code). Absent that explicit instruction, leaving a PR open for manual merge is wrong.
 
-PENDING DECISION — will change once a staging environment exists: there is **no staging gate yet.** Every merge currently ships toward production (once FTP secrets are configured for the web apps; GAS still requires the separate manual `clasp push` + `clasp deploy -i` step, see below). Do not build or assume a staging branch/environment exists until this section is explicitly updated.
+### What merging to `main` does and does not do (corrected model)
+
+This replaces the earlier "every merge ships toward production" assumption, which a direct
+audit (GitHub Actions history, DNS, and hosting) proved wrong. See
+[`docs/branching.md`](docs/branching.md) for the full explanation and evidence.
+
+- **Frontend (`apps/web`, `apps/qr`) — normal workflow only, no exceptions.** Feature branch
+  → commit → push → PR → auto-merge to main. **Merging to `main` does not deploy anything in
+  this repo right now** and must not be treated as equivalent to going live: the two FTP
+  deploy workflows have never succeeded (they fail at the FTP step because FTP secrets are
+  not configured), and the live sites are a separate, older, hand-uploaded build unrelated to
+  this repo's git history.
+- **Backend (Google Apps Script) has two distinct manual operations, decoupled from git
+  branch state.** Neither is implied by a merge, and neither is part of "done":
+  - `pnpm gas:push` (formerly `deploy:gas`) updates the Apps Script project's **HEAD** code
+    immediately. It can affect installed triggers and scheduled functions (cold-lead sweep,
+    daily digest, partner summary) even though the pinned production web-app `/exec` endpoint
+    is unaffected until a separate deploy runs.
+  - `clasp deploy -i <prod-id>` updates that pinned production `/exec` endpoint. **This is the
+    actual release operation.**
+  A backend coding task can be fully complete — written, tested, committed, merged — without
+  being pushed or deployed. Deployment of either kind is always separate and deliberate, never
+  the definition of "done."
+- **"Going live" for the frontend is a distinct future decision** — adding the FTP secrets when
+  ready to launch — **not a git action.** Once those secrets exist, every push to `main` will
+  deploy immediately with **no approval gate** as the workflows are currently configured. Flag
+  this as something to revisit at that point; **do not build a deployment gate now** (explicitly
+  deferred by the owner).
+- The **`v1-stable` tag** remains only as a harmless historical bookmark; no other special
+  branch handling is required going forward.
 
 **Caveat — one class of change is NOT git-revertible, and merging does not undo it: destructive edits to the live Google Sheet.** Deleting a Sheet tab (or its data) is an action taken by hand in the Sheet or by a GAS function run against it, not a commit — so reverting the PR that removed the *code* does not bring the tab or its rows back. This matters for the unified-schema migration's **Phase D** (deleting the nine legacy lead tabs and the `xxxLegacy` bodies): the code deletion is revertible, but once the legacy tabs themselves are removed from the live Sheet, the rollback path they provide is gone for good. Treat any task that deletes a live Sheet tab as irreversible regardless of the git workflow around it, and confirm before doing so.
 
@@ -44,13 +73,36 @@ PENDING DECISION — will change once a staging environment exists: there is **n
 
 Never run the web or qr dev servers in the same terminal tab as a Claude Code session — starting Claude Code requires interrupting whatever's running in that tab, which kills the dev server. If you need to verify something live, ask the user to confirm a dev server is running in its own tab first, or check before assuming one is up.
 
+## Dev vs e2e run modes (form endpoint safety)
+
+The frontend talks to the real GAS backend only when you deliberately opt in. This is enforced
+in each app's `vite.config.ts` (mode-driven) and consumed via an injected `__FORM_ENDPOINT__`
+define, so a stray `VITE_FORM_ENDPOINT` in the shell or a generic `.env` file can never leak
+into a dev build.
+
+| Command | Apps | Guarantee |
+|---|---|---|
+| `pnpm dev` | web + qr | **Real endpoint is IGNORED** from every source (`.env.local`, shell, any generic env). The ContactForm runs its simulated-success fallback. No request ever reaches the real backend. |
+| `pnpm dev:web` / `pnpm dev:qr` | one app | Same guarantee as `pnpm dev`, single app. |
+| `pnpm dev:e2e` | web + qr | Loads the real production endpoint **only** from `.env.e2e.local`. Missing file/value = **hard failure**, never a silent fall back to simulated success. Prints a loud terminal warning and shows a fixed in-app red banner. |
+| `pnpm dev:e2e:web` / `pnpm dev:e2e:qr` | one app | Same as `pnpm dev:e2e`, single app, for isolated testing. |
+
+- `.env.e2e.local` is **machine-local and gitignored** — each dev computer (Mac or Windows)
+  needs its own copy, created from the tracked `.env.e2e.example` placeholder. Its real value
+  is never committed or printed.
+- Production builds (`pnpm build`, CI) take the endpoint from the build environment
+  (`VITE_FORM_ENDPOINT`), unchanged by the above; a build with no endpoint supplied compiles in
+  no endpoint (simulated-success), it does not inherit a cached one.
+
 ## Mobile verification
 
 Any UI change must be checked at a real mobile viewport (about 390px wide), not just desktop. Assume nothing about how flexbox/grid layouts degrade until actually seen at mobile width.
 
 ## GAS deployment — critical distinction
 
-Pushing to Apps Script via clasp updates the project's HEAD only. It does NOT update the live production endpoint the actual website hits. Making a change live requires pushing, then explicitly deploying to the specific production deployment ID (documented in /docs/deployment.md) — these are two separate steps, not one.
+Pushing to Apps Script via clasp (`pnpm gas:push`, formerly `deploy:gas`) updates the project's HEAD only. It does NOT update the live production endpoint the actual website hits. Making a change live requires pushing, then explicitly deploying to the specific production deployment ID (documented in /docs/deployment.md) — these are two separate steps, not one.
+
+Neither step is part of "done." A backend task is complete when its code is written, tested, and committed; `gas:push` and `clasp deploy -i <prod-id>` are separate deliberate operations run only when you actually intend to change the running backend (see the corrected workflow model above).
 
 Any task that edits scripts/gas/Code.gs or the embedded email template constants must say so explicitly in its summary and flag that this manual deploy step is still required — never claim something is "live" based on a merge alone.
 
