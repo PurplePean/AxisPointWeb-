@@ -2,12 +2,35 @@
  * Shared contact form constants, helpers and payload builder.
  * Extracted verbatim from apps/web/src/pages/ContactPage.tsx.
  */
-import type { Role, MeetType, BookChoice, ContactFields, ReferredFields, PropertyDetails, EAOContact, Booking } from './types';
+import type { Role, Step, MeetType, BookChoice, ContactFields, ReferredFields, PropertyDetails, EAOContact, Booking } from './types';
 
 export const STEP_ORDER_INVESTOR = ['role', 'context', 'prefs', 'contact', 'booking', 'comms'] as const;
 export const STEP_ORDER_OTHER = ['role', 'context', 'contact', 'booking', 'comms'] as const;
 /* Existing Asset Owner: Who you are → Personal info → Property details → Current situation → Pressing issue → Schedule */
 export const STEP_ORDER_EAO = ['role', 'personal', 'property', 'situation', 'issue', 'schedule'] as const;
+
+/** Every valid wire role value. Used to validate an externally-supplied initial role. */
+export const VALID_ROLES: readonly Role[] = ['investor', 'referral', 'pro', 'existing_asset_owner', 'submit_referral'];
+
+/** True when `r` is a real wire role value (not just any string). */
+export function isValidRole(r: unknown): r is Role {
+  return typeof r === 'string' && (VALID_ROLES as readonly string[]).includes(r);
+}
+
+/** The step order for a given role. `null`/unknown roles use the generic order.
+ *  Single definition site for the role → step-order mapping so ContactForm and any
+ *  preselection logic stay in agreement. */
+export function stepOrderForRole(role: Role | null): readonly Step[] {
+  return role === 'investor' ? STEP_ORDER_INVESTOR
+    : role === 'existing_asset_owner' ? STEP_ORDER_EAO
+    : STEP_ORDER_OTHER;
+}
+
+/** The first step a role reaches AFTER the role-selection step. Used when a valid
+ *  initial role is supplied so the form opens on the first relevant question. */
+export function firstStepAfterRole(role: Role): Step {
+  return stepOrderForRole(role)[1] ?? 'role';
+}
 
 export const STEP_LABELS_INVESTOR = ['Who you are', 'Background', 'Asset class', 'Your info', 'Book a call', 'Stay in the loop'];
 export const STEP_LABELS_OTHER = ['Who you are', 'Background', 'Your info', 'Book a call', 'Stay in the loop'];

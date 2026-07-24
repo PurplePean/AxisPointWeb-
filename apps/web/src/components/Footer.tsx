@@ -13,8 +13,8 @@ function Footer() {
               <Logo height={32} className="brightness-0 invert opacity-60" />
             </div>
             <p className="text-sm text-hint leading-relaxed">
-              Institutional-grade commercial real estate asset management for owners and advisors
-              across Texas.
+              Commercial property management for owners across Texas, with asset management and
+              investor services when they fit.
             </p>
           </div>
 
@@ -22,14 +22,14 @@ function Footer() {
           <div>
             <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Services</h5>
             <div className="flex flex-col gap-2.5">
-              <Link to="/services" className="text-sm text-sub hover:text-teal transition-colors">
+              <Link to="/services#property-management" className="text-sm text-sub hover:text-teal transition-colors">
+                Property Management
+              </Link>
+              <Link to="/services#asset-management" className="text-sm text-sub hover:text-teal transition-colors">
                 Asset Management
               </Link>
-              <Link to="/services" className="text-sm text-sub hover:text-teal transition-colors">
-                Advisory and Acquisitions
-              </Link>
-              <Link to="/services" className="text-sm text-sub hover:text-teal transition-colors">
-                Referral Partners
+              <Link to="/services#investor-services" className="text-sm text-sub hover:text-teal transition-colors">
+                Investor Services
               </Link>
             </div>
           </div>
@@ -39,10 +39,7 @@ function Footer() {
             <h5 className="text-xs font-semibold uppercase tracking-wider text-hint mb-4">Company</h5>
             <div className="flex flex-col gap-2.5">
               <Link to="/team" className="text-sm text-sub hover:text-teal transition-colors">
-                Team
-              </Link>
-              <Link to="/learn" className="text-sm text-sub hover:text-teal transition-colors">
-                Learn
+                Partners
               </Link>
               <Link to="/contact" className="text-sm text-sub hover:text-teal transition-colors">
                 Contact
@@ -67,11 +64,7 @@ function Footer() {
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                <span className="leading-relaxed">
-                  <span className="whitespace-nowrap">9999 Bellaire Blvd, Ste 999</span>
-                  <br />
-                  Houston, TX 77036
-                </span>
+                <span className="leading-relaxed">Houston, Texas</span>
               </div>
             </div>
           </div>

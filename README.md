@@ -75,12 +75,18 @@ clasp login
 ```
 
 `scripts/gas/.clasp.json` (gitignored — it holds the script ID) wires the local
-files to the Apps Script project. To deploy:
+files to the Apps Script project.
 
-1. Make changes to `scripts/gas/Code.gs`
-2. Run `pnpm deploy:gas` (`clasp push`) — this updates the script editor's HEAD **only**
-3. Redeploy the live version so `/exec` serves the new code:
-   `cd scripts/gas && clasp deploy -i <deploymentId>`
+A backend coding task is **done** when the code is written, tested, and committed.
+Pushing and deploying are two **separate, deliberate** operations — neither is part of
+"done", and you run them only when you actually intend to change the running backend:
+
+1. `pnpm gas:push` (`clasp push`) — uploads local `Code.gs` to the Apps Script project's
+   **HEAD**. This can immediately affect installed triggers / scheduled functions (cold-lead
+   sweep, daily digest, partner summary), but it does **not** change what the live `/exec`
+   endpoint serves.
+2. `cd scripts/gas && clasp deploy -i <deploymentId>` — repoints the pinned production
+   deployment at a fresh version. **This** is the actual release of the `/exec` endpoint.
 
 > `clasp push` alone does **not** update the live endpoint. See
 > [`docs/deployment.md`](docs/deployment.md) for the deployment ID and the full

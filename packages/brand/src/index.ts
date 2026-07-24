@@ -28,5 +28,8 @@ export { EAOScheduleStep } from './components/form/steps/EAOScheduleStep';
 export { MarketLocationInput } from './components/form/MarketLocationInput';
 export { BookingCalendar } from './components/form/BookingCalendar';
 
+/* Dev-only e2e warning banner */
+export { E2eBanner } from './components/E2eBanner';
+
 /* Utilities */
 export * from './utils/vcard';

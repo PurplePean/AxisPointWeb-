@@ -100,8 +100,8 @@
     justify-content: center !important;
   }
 
-  /* ── 8. TAB BARS — hide the horizontal scrollbar while keeping
-     scroll functionality (Services / Learn). ── */
+  /* ── 8. Horizontal-scroll utility — hide the scrollbar while keeping
+     scroll functionality for any horizontally scrolling row. ── */
   .tab-scroll { scrollbar-width: none !important; }
   .tab-scroll::-webkit-scrollbar { display: none !important; }
 

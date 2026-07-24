@@ -5,11 +5,12 @@ import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import TeamPage from './pages/TeamPage';
-import LearnPage from './pages/LearnPage';
-import ArticlePage from './pages/ArticlePage';
 import ContactPage from './pages/ContactPage';
 import SharePage from './pages/SharePage';
 import NotFoundPage from './pages/NotFoundPage';
+// Learn is not part of the launch site. The LearnPage / ArticlePage components were
+// removed (git history preserves them); rebuild Learn deliberately with the new
+// design system and real articles when content publishing returns.
 
 function App() {
   return (
@@ -20,8 +21,6 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="team" element={<TeamPage />} />
-        <Route path="learn" element={<LearnPage />} />
-        <Route path="learn/:slug" element={<ArticlePage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
