@@ -6,18 +6,24 @@ import { Link } from 'react-router-dom';
  * Property Management is the dominant primary path; Investor Services is an
  * intentionally compact, credible secondary route.
  *
- * Desktop: a two-column split weighted ~67% Property Management / ~33% Investor
- * Services. PM is warmer neutral with teal accents and keeps its proof-stat row
- * and two CTAs; the investor panel is deliberately spare (short copy, a single
- * white CTA, no proof row, no second CTA) so it reads premium but clearly
- * secondary. Gradients are used only as the seam between operations and strategy.
+ * Desktop: a two-column split weighted ~73% Property Management / ~27% Investor
+ * Services. PM is warmer neutral with teal accents and keeps its proof-stat row;
+ * the investor panel is deliberately spare (short copy, a single white CTA, no
+ * proof row) so it reads premium but clearly secondary. Its colour and weight are
+ * unchanged from the wider version: it is narrower, not quieter. Gradients are
+ * used only as the seam between operations and strategy.
+ *
+ * The hero spends its attention budget on one decision. Property Management gets a
+ * single large CTA; the scope sheet is a quiet text link under it, and the investor
+ * panel keeps its own single CTA. The professional and referral paths are NOT in
+ * the hero: they live in the footer ("Submit a Referral") and in the role picker on
+ * /contact, which is where someone on those paths actually converts.
  *
  * Mobile (~390px): the split does not carry over, and the investor panel does not
  * either. Property Management is the complete primary section with its CTA reachable
  * near the first viewport; Investor Services compresses to a single tappable band,
  * not a panel, so a phone spends almost its whole first screen on management. Same
- * component, no separate mobile page. The professional and referral paths stay
- * reachable via the strip beneath the split.
+ * component, no separate mobile page.
  *
  * Routing is presentation-only: CTAs deep-link into the shared multi-step
  * ContactForm with a public intent token the form resolves to an existing role.
@@ -50,8 +56,8 @@ function Eyebrow({ children, tone }: { children: React.ReactNode; tone: 'teal' |
 function SplitHero() {
   return (
     <section className="relative">
-      <div className="grid grid-cols-1 md:grid-cols-[1.35fr_0.65fr]">
-        {/* ── Property Management (primary, ~67%) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.46fr_0.54fr]">
+        {/* ── Property Management (primary, ~73%) ── */}
         <article
           className="relative flex flex-col justify-center px-7 pt-[calc(68px+40px)] pb-14 md:min-h-[86vh] md:px-14 md:pt-[calc(68px+56px)] md:pb-20"
           style={{ background: OWNER_BG }}
@@ -60,29 +66,35 @@ function SplitHero() {
             <Eyebrow tone="teal">For existing property owners</Eyebrow>
             <h1
               className="font-serif font-semibold text-ink"
-              style={{ fontSize: 'clamp(2.4rem,4.8vw,4.4rem)', lineHeight: 0.98, letterSpacing: '-0.02em' }}
+              style={{ fontSize: 'clamp(2.15rem,4vw,3.6rem)', lineHeight: 1.02, letterSpacing: '-0.02em' }}
             >
-              A better run property starts <em className="not-italic text-teal">here.</em>
+              One team <em className="not-italic text-teal">accountable</em> for how your property runs.
             </h1>
             <p className="mt-5 text-sub leading-[1.65] max-w-[520px]" style={{ fontSize: '1.05rem' }}>
               Property management is what we do. AxisPoint takes responsibility for the daily work:
               tenant communication, leasing, maintenance, vendors, collections, accounting, and owner
-              reporting. One team accountable for how your property runs.
+              reporting.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3 max-md:flex-col">
+            {/* One button only. The scope sheet stays reachable, but as a quiet text link
+                so the hero spends its weight on a single decision. */}
+            <div className="mt-7">
               <Link
                 to="/contact?intent=property-management"
                 className="inline-flex items-center justify-center gap-2 rounded-button bg-teal px-6 py-3.5 font-semibold text-white shadow-lg shadow-teal/25 transition-all hover:-translate-y-0.5 hover:brightness-110 max-md:w-full"
               >
-                Manage my property
+                Request a management proposal
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Link>
-              <Link
-                to="/services"
-                className="inline-flex items-center justify-center rounded-button border border-border bg-white px-6 py-3.5 font-semibold text-ink transition-all hover:border-border-dark max-md:w-full"
-              >
-                See what management includes
-              </Link>
+              <div className="mt-4">
+                <Link
+                  to="/services"
+                  className="inline-flex items-center gap-2 font-semibold text-ink border-b border-border-dark pb-0.5 transition-colors hover:border-ink"
+                  style={{ fontSize: '0.92rem' }}
+                >
+                  See what management includes
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                </Link>
+              </div>
             </div>
             {/* Proof stats: desktop only, kept off mobile so the CTA stays near the
                 first viewport. Wrapper carries the hide (the global mobile stylesheet
@@ -152,23 +164,6 @@ function SplitHero() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
         </span>
       </Link>
-
-      {/* ── Secondary paths: keeps the professional and referral routes discoverable ── */}
-      <div className="border-t border-border bg-card">
-        <div className="max-w-[1160px] mx-auto px-7 py-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
-          <span className="text-sub" style={{ fontSize: '0.85rem' }}>
-            A real estate professional, a referral partner, or sending us a specific person?
-          </span>
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-1.5 font-semibold text-purple hover:underline"
-            style={{ fontSize: '0.85rem' }}
-          >
-            Start here
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }
