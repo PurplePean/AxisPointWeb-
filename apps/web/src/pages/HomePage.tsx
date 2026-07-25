@@ -19,6 +19,10 @@ import SplitHero from '../components/SplitHero';
  * one upsell the page argues for, and investor services is confined to the hero rail
  * and the footer. Direct contact details live in the footer only, so the closing CTA
  * does not repeat them.
+ *
+ * The management CTA phrase is "Request a management proposal" and must stay identical
+ * in the hero (SplitHero) and here. Two different labels on the same path read as two
+ * different offers.
  */
 
 /* Restrained tracked micro-label. Used sparingly, not on every block.
@@ -175,7 +179,7 @@ function HomePage() {
               to="/contact?intent=property-management"
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all max-md:w-full"
             >
-              Manage my property
+              Request a management proposal
               <Arrow size={14} />
             </Link>
           </div>
