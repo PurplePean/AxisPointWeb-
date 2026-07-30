@@ -62,10 +62,53 @@ merging shipped toward the live site. A direct audit disproved it:
 So merging to `main` has, in fact, deployed nothing this entire time, and will keep
 deploying nothing until the FTP secrets are deliberately added.
 
-## `v1-stable` tag
+## Branch rules
 
-Remains only as a harmless historical bookmark. No special branch handling is needed
-around it going forward.
+- **Naming:** `type/short-kebab-description`, using the same types as commits
+  (`feat/qr-partner-profile`, `docs/workflow-reconciliation`).
+- **Always start from an updated `main`:** `git switch main && git pull` before branching.
+- **Dirty working tree:** stop and report. Never stash, commit, or discard changes you did not
+  make.
+- **Short-lived:** one pass, one branch, merged in the same session where possible.
+- **Long-lived integration branches are prohibited by default.** In particular, do not create a
+  long-lived V2 branch. There is no technical reason for one: this repository deploys nothing,
+  so `main` carries no production risk; V2 is built in staged, self-contained passes; and V1 is
+  already preserved by tags, git history, and frozen Google resources. A long-lived branch
+  would add continuous merge cost in exchange for a safety property that already exists.
+- **Delete the branch after merge,** local and remote.
+- **Expected final state:** on `main`, up to date with `origin/main`, no leftover branches.
+
+## When a PR may auto-merge, and when it must not
+
+Routine, self-contained, completed code merges normally once checks pass. That includes
+locally tested GAS code: a passing `pnpm test:gas` is a normal completion signal, not a reason
+to hold a PR.
+
+**Hold a PR open in exactly two cases:**
+
+1. It depends on an unresolved product or backend-contract decision. Fields, required versus
+   optional data, lead schema, dedupe behavior, booking rules, email recipients, retention,
+   document handling, permanent QR URLs, vCard delivery, locale rollout, meaning-changing copy.
+   These are owner decisions and must never be invented to unblock a merge.
+2. The task itself requires an external action that has not been authorized.
+
+Say which case applies in the PR body.
+
+**A merge never implies an external action.** Not `clasp push`, not `clasp deploy`, not
+creating an Apps Script project, Sheet, Script Property, or trigger, not a real submission,
+email, calendar event, or Contact change, not a GitHub secret, FTP, cPanel, or DNS change, and
+not a frontend deployment. Every one of those is separate and separately authorized. See
+[`deployment.md`](deployment.md).
+
+## Tags
+
+`v1-stable` remains only as a harmless historical bookmark. No special branch handling is
+needed around it.
+
+The recommended rollback anchor for the clean V2 rebuild is **`pre-v2-clean-rebuild`** at
+`d194e7e`. It is deliberately **not** called `v1-pre-rebuild`, because that baseline already
+contains early V2 frontend work and so is not a pure V1 marker. Creating and pushing it
+requires separate authorization; see [`STATUS.md`](STATUS.md).
 
 ## Local run modes (endpoint safety)
 

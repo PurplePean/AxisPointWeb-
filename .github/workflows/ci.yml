@@ -26,6 +26,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Explicit workspace type-check. The build steps below also run `tsc`, but only
+      # for apps/web and apps/qr — this covers packages/brand on its own too.
+      - name: Type-check workspace
+        run: pnpm type-check
+
+      # Currently only apps/web defines a `lint` script, so this lints that package.
+      # Adding lint scripts to apps/qr and packages/brand would widen the coverage.
+      - name: Lint
+        run: pnpm lint
+
       - name: Build web app
         run: pnpm --filter @axispoint/web run build
         env:

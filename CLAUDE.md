@@ -14,8 +14,13 @@ If this task touches backend logic, email templates, payload shapes, or deployme
 - /docs/backend-architecture.md — Code.gs function map, lead types, tab/category mapping, CONFIG, OAuth scopes
 - /docs/email-templates.md — template inventory, trigger conditions, the embedded-constant-vs-mirror-file pattern (read this before touching ANY email template — see "Known gotchas" below)
 - /docs/frontend-payload-schemas.md — exact payload shape per lead type
-- /docs/deployment.md — GAS script/deployment IDs, clasp push vs deploy distinction, GitHub Actions status
+- /docs/deployment.md — GAS script/deployment IDs, clasp push vs deploy distinction, GitHub Actions status, and every other external mutation
+- /docs/branching.md — the full branching/merging model and what "going live" actually means
+- /docs/design-sources.md — the approved V2 design package: authoritative files, required dependencies, corrections to the exported Design Index, and the photography licence ledger
+- /docs/STATUS.md — current pass, open owner decisions, deployment state, rollback anchors
 - /docs/CHANGELOG.md — dated log of architecture-level changes
+
+**V2 implementation work is built from the approved design package, not from existing repository code.** Before writing any V2 frontend, intake, or QR code, read /docs/design-sources.md and cite the file and section you built from. Existing V1 code is reference material; it does not become approved by already existing.
 
 If your task makes any documented fact stale, update the relevant /docs file in the same task, and add a one-line dated entry to /docs/CHANGELOG.md if the change is architecture-level (not routine content edits).
 
@@ -28,44 +33,44 @@ If /docs doesn't cover something you need to know, investigate the real current 
 
 ## Git workflow
 
-Every task: create a feature branch (never commit directly to main), stage changes, commit with message format "type(scope): short description" where type is feat, fix, refactor, chore, or docs, and scope is the area actually touched (brand, web, qr, gas, infra) — match to what really changed, not what the task description said, if they differ.
+Every task: create a feature branch (never commit directly to main), stage changes, commit with message format "type(scope): short description" where type is feat, fix, refactor, chore, or docs, and scope is the area actually touched (brand, web, qr, gas, gas-v2, infra, docs) — match to what really changed, not what the task description said, if they differ.
+
+Branch names use the same shape: `type/short-kebab-description`. Start every branch from an updated `main`. If the working tree is dirty with changes you did not make, stop and report rather than stashing, committing, or discarding them.
 
 **Branch-first is a HARD rule, not a preference — create the branch BEFORE the first commit, not after.** Real incident, recorded so it is not repeated: during the unified-schema migration, a stage's commit was made **directly to `main`** because the feature branch had not been created first, and it was then pushed to `origin/main`. It was caught immediately; the fix was to (1) create the intended feature branch pointing at the new commit so the work was preserved, (2) `git reset --hard` `main` back to the previous commit, (3) `git push --force-with-lease origin main` to restore the remote, then (4) proceed with the normal branch → PR flow. No work was lost — but for a brief window `main` carried an unreviewed commit and shared remote history had to be force-rewritten, which is exactly the outcome branch-first exists to prevent. **If this rule is ever violated: preserve the work on a branch, reset the shared branch, force-push to restore it, and disclose the whole sequence immediately — never quietly paper over it.** The cost of the recovery is precisely why you create the branch first.
 
 Push the branch, open a PR (title matches the commit format, description uses sections "What changed", "Why", "Testing").
 
-**Auto-merge is the default for EVERY task, with no carve-out exceptions.** After opening the PR, merge it yourself directly to main (squash merge, delete the branch), then switch the local repo back to main and pull, leaving no local/remote branches behind. This is not limited to "safe" or "small" changes — there is no category of change that is exempted from the default. **The only time you do not auto-merge is when a task explicitly asks you to leave the PR open** (as the EAO-cleanup tasks did, for a human review of live-affecting backend code). Absent that explicit instruction, leaving a PR open for manual merge is wrong.
+**Auto-merge is the default.** Routine, self-contained, completed code merges normally once checks pass. After opening the PR, merge it yourself (squash merge, delete the branch), then switch the local repo back to main and pull, leaving no local/remote branches behind. This includes locally tested GAS code: a passing `pnpm test:gas` run is a normal completion signal, not a reason to hold.
 
-### What merging to `main` does and does not do (corrected model)
+**Merging never implies an external action.** A merge does not perform `clasp push`, `clasp deploy`, resource creation, a frontend deployment, or any other mutation of a system outside this repository. Those are separate, separately authorized operations (see below and [`docs/deployment.md`](docs/deployment.md)).
 
-This replaces the earlier "every merge ships toward production" assumption, which a direct
-audit (GitHub Actions history, DNS, and hosting) proved wrong. See
-[`docs/branching.md`](docs/branching.md) for the full explanation and evidence.
+**Hold a PR open in exactly two cases:**
 
-- **Frontend (`apps/web`, `apps/qr`) — normal workflow only, no exceptions.** Feature branch
-  → commit → push → PR → auto-merge to main. **Merging to `main` does not deploy anything in
-  this repo right now** and must not be treated as equivalent to going live: the two FTP
-  deploy workflows have never succeeded (they fail at the FTP step because FTP secrets are
-  not configured), and the live sites are a separate, older, hand-uploaded build unrelated to
-  this repo's git history.
-- **Backend (Google Apps Script) has two distinct manual operations, decoupled from git
-  branch state.** Neither is implied by a merge, and neither is part of "done":
-  - `pnpm gas:push` (formerly `deploy:gas`) updates the Apps Script project's **HEAD** code
-    immediately. It can affect installed triggers and scheduled functions (cold-lead sweep,
-    daily digest, partner summary) even though the pinned production web-app `/exec` endpoint
-    is unaffected until a separate deploy runs.
-  - `clasp deploy -i <prod-id>` updates that pinned production `/exec` endpoint. **This is the
-    actual release operation.**
-  A backend coding task can be fully complete — written, tested, committed, merged — without
-  being pushed or deployed. Deployment of either kind is always separate and deliberate, never
-  the definition of "done."
-- **"Going live" for the frontend is a distinct future decision** — adding the FTP secrets when
-  ready to launch — **not a git action.** Once those secrets exist, every push to `main` will
-  deploy immediately with **no approval gate** as the workflows are currently configured. Flag
-  this as something to revisit at that point; **do not build a deployment gate now** (explicitly
-  deferred by the owner).
-- The **`v1-stable` tag** remains only as a harmless historical bookmark; no other special
-  branch handling is required going forward.
+1. It depends on an unresolved product or backend-contract decision (fields, schema, permanent QR URLs, vCard delivery, dedupe rules, email recipients, retention, locale rollout, meaning-changing copy).
+2. The task itself requires an external action that has not been authorized.
+
+Absent one of those, leaving a PR open for manual merge is wrong. When you do hold one, say why in the PR body.
+
+### What merging to `main` does and does not do
+
+**Merging to `main` deploys nothing in this repository.** It is not a release and not a
+staging promotion. Treat a merged PR as "the code is in main", nothing more.
+
+- **Frontend (`apps/web`, `apps/qr`).** This repository's frontend has never successfully
+  deployed through GitHub Actions. Going live is a separate future configuration decision
+  (adding the FTP secrets), not a git action. **Do not build a deployment gate now** —
+  explicitly deferred by the owner.
+- **Backend (Google Apps Script).** Two distinct manual operations, neither implied by a
+  merge and neither part of "done": `pnpm gas:push` updates the project **HEAD** (and can
+  affect installed triggers), `clasp deploy -i <prod-id>` updates the pinned production
+  `/exec` endpoint and is the actual release. A backend task is complete when written,
+  tested, committed, and merged.
+
+[`docs/branching.md`](docs/branching.md) is the single full explanation of this model,
+including the audit evidence behind it. [`docs/deployment.md`](docs/deployment.md) owns the
+IDs, the push-vs-deploy mechanics, and every other external mutation. Do not restate either
+here; keep this section terse and let those two files carry the detail.
 
 **Caveat — one class of change is NOT git-revertible, and merging does not undo it: destructive edits to the live Google Sheet.** Deleting a Sheet tab (or its data) is an action taken by hand in the Sheet or by a GAS function run against it, not a commit — so reverting the PR that removed the *code* does not bring the tab or its rows back. This matters for the unified-schema migration's **Phase D** (deleting the nine legacy lead tabs and the `xxxLegacy` bodies): the code deletion is revertible, but once the legacy tabs themselves are removed from the live Sheet, the rollback path they provide is gone for good. Treat any task that deletes a live Sheet tab as irreversible regardless of the git workflow around it, and confirm before doing so.
 
@@ -98,15 +103,20 @@ into a dev build.
 
 Any UI change must be checked at a real mobile viewport (about 390px wide), not just desktop. Assume nothing about how flexbox/grid layouts degrade until actually seen at mobile width.
 
-## GAS deployment — critical distinction
+## GAS deployment — the operative rule
 
-Pushing to Apps Script via clasp (`pnpm gas:push`, formerly `deploy:gas`) updates the project's HEAD only. It does NOT update the live production endpoint the actual website hits. Making a change live requires pushing, then explicitly deploying to the specific production deployment ID (documented in /docs/deployment.md) — these are two separate steps, not one.
+`clasp push` updates the Apps Script project's HEAD. `clasp deploy -i <prod-id>` updates the live `/exec` endpoint. They are two separate steps and neither is part of "done."
+[`docs/deployment.md`](docs/deployment.md) is the authoritative home for the IDs, the mechanics, the `.claspignore` allowlist rationale, the calendar-access gotcha, and the clasp reauth behaviour. Read it before any backend or deployment task.
 
-Neither step is part of "done." A backend task is complete when its code is written, tested, and committed; `gas:push` and `clasp deploy -i <prod-id>` are separate deliberate operations run only when you actually intend to change the running backend (see the corrected workflow model above).
+The rule that belongs here: **any task that edits `scripts/gas/Code.gs` or the embedded email template constants must say so explicitly in its summary and flag that the manual push and deploy steps are still required. Never claim something is "live" based on a merge alone.**
 
-Any task that edits scripts/gas/Code.gs or the embedded email template constants must say so explicitly in its summary and flag that this manual deploy step is still required — never claim something is "live" based on a merge alone.
+### Backend status vocabulary
 
-If clasp commands fail with an invalid_grant or invalid_rapt error, this is a Google reauth requirement (common after OAuth scope changes), not a real error — the fix is logging in again via clasp, not debugging the script.
+State which of these a GAS change has reached, and do not imply a later one:
+
+`coded` → `locally tested` (`pnpm test:gas`) → `committed` → `merged` → `pushed to HEAD` (`clasp push`) → `deployed` (`clasp deploy -i`) → `verified` (one authorized, labelled E2E submission)
+
+A GAS task may be code-complete at `merged`. No git action advances a change past `merged`.
 
 ## Testing GAS logic locally
 
