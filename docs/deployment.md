@@ -212,12 +212,20 @@ yet given):
    to receive the real dashboard whenever that gets built later.
 4. **`api` and `staging`:** leave un-provisioned (no folder created) until those
    are actually being built — DNS is already pointed and ready whenever needed.
-5. **OPEN QUESTION, not yet investigated:** whether the FTP deploy workflows
-   (`deploy-web.yml`/`deploy-qr.yml`, using `SamKirkland/FTP-Deploy-Action`) have
-   "clean slate"/mirror-delete behavior configured. Without it, a deploy only
-   adds/overwrites files — it does **NOT** remove old site files that aren't part
-   of the new build. This must be checked and likely enabled before the
-   migration, or old site cruft will sit alongside the new deploy indefinitely.
+5. **RESOLVED 2026-07-30 — mirror-delete is NOT configured.** Neither
+   `deploy-web.yml` nor `deploy-qr.yml` passes `dangerous-clean-slate` to
+   `SamKirkland/FTP-Deploy-Action`, and the action does not mirror-delete by
+   default. **Current behavior: a deploy adds and overwrites files, and never
+   removes stale ones.** Old site files that are not part of the new build would
+   sit alongside it indefinitely.
+
+   This is not a bug to fix today — nothing deploys at all yet — but it must be
+   decided before the migration, alongside the FTP secrets and the deployment-gate
+   question. Two options when that time comes: enable `dangerous-clean-slate` for a
+   true mirror (destructive, and it wipes anything hand-uploaded to the same
+   directory), or wipe the target directory once manually at cutover and rely on
+   add/overwrite afterwards. The second is safer given that the live sites are
+   currently a separate hand-uploaded build.
 
 ## One-time GAS setup (from `Code.gs` header)
 

@@ -122,11 +122,29 @@ cell. That is structural (the EAO step order never asks the question), not an
 oversight — see the comment block above `buildEAOPayload` and
 `backend-architecture.md` → *`source` vs `heardAbout`*.
 
-## What `qualData` actually persists — a known, pre-existing gap
+## What `qualData` persists
 
-`buildPayload` collects **13** `qualData` fields. **Exactly one of them reaches the
-Sheet.** This is a pre-existing gap, verified against source on 2026-07-12 (it is
-**not** caused by, and does not depend on, any migration):
+**Current behavior: all 13 `qualData` fields are persisted.** The unified schema is live
+(`USE_UNIFIED_SCHEMA = true`, `scripts/gas/Code.gs:1348`, flipped at the Phase B cutover in
+PR #47). `buildLeadDetails()` writes the collected fields into the unified table's `Details`
+JSON blob, per lead type, driven by the field registry's `detailsFrom: 'qualData' | 'payload'`
+mapping. The single-column `Asset Class` write still happens as well.
+
+So the historical gap below is **closed**. Do not read the table that follows as a description
+of how the backend behaves today.
+
+---
+
+> ### ⚠️ HISTORICAL — describes behavior before the unified-schema cutover
+>
+> **Retained for context only. Superseded 2026-07-30.** Everything from here to the end of
+> this section documents the pre-cutover legacy write path. It is accurate about that path,
+> and it is reachable today only if `USE_UNIFIED_SCHEMA` is set back to `false`. It is not a
+> description of current behavior, and nothing should be built on it.
+
+`buildPayload` collects **13** `qualData` fields. Under the **legacy** write path, exactly one
+of them reached the Sheet. This was verified against source on 2026-07-12 (it was **not**
+caused by, and did not depend on, any migration):
 
 | `qualData` field | Persisted to Sheet? | Read anywhere in `Code.gs`? |
 |---|---|---|
@@ -144,24 +162,25 @@ Sheet.** This is a pre-existing gap, verified against source on 2026-07-12 (it i
 | `timeline` | ❌ | ❌ **never read at all** |
 | `awareness` | ❌ | ❌ **never read at all** |
 
-So **12 of 13 fields are collected from the visitor and never stored**. Six of those
-survive only long enough to render a sentence in an email and are then gone; six are
-asked for, transmitted, and read by nothing.
+So under the legacy path **12 of 13 fields were collected from the visitor and never stored**.
+Six survived only long enough to render a sentence in an email; six were asked for,
+transmitted, and read by nothing.
 
-Verification method (repeat it rather than trusting this table): `buildLeadRow`
-(`Code.gs:1707-1763`) is the **only** function that writes a lead row, and the only
-`qualData` value in it is `assetClassFromQualData(q)`. A grep for the other twelve
-names finds hits only inside email-copy strings and comments. Do not infer
-persistence from a field appearing in `Code.gs` — grep for `q.<field>`.
+Verification method for the legacy path: `buildLeadRow` was the **only** function that wrote a
+lead row, and the only `qualData` value in it was `assetClassFromQualData(q)`. A grep for the
+other twelve names found hits only inside email-copy strings and comments.
 
-**Resolved 2026-07-13: the schema migration FIXES this.** All 13 `qualData` fields
-will be persisted into the new unified table's `Details` JSON blob, per lead type —
-the twelve currently-dropped fields included. This gap is therefore **live until the
-migration ships, and closed by it.** Until then, do not build anything that assumes
-these fields are recoverable from the Sheet. See
-`UNIFIED_SCHEMA_MIGRATION_PLAN.md` → §2a, which also carries the **verified**
-per-lead-type field mapping (the field names alone do not tell you which role asks
-which question).
+**This gap closed at the unified-schema cutover.** All 13 fields now persist into the
+`Details` JSON blob per lead type, including the twelve the legacy path dropped. The
+per-lead-type field mapping lives in `UNIFIED_SCHEMA_MIGRATION_PLAN.md` §2a; field names alone
+do not tell you which role asks which question.
+
+> Documentation note, 2026-07-30: this section previously carried its warning in the present
+> tense ("12 of 13 fields are collected and never stored", "do not build anything that assumes
+> these fields are recoverable") together with a forward-looking "resolved by the migration"
+> paragraph. The migration had already shipped, so the section read as current when it was
+> historical. Marked historical rather than deleted, because the legacy branch still exists in
+> `Code.gs` behind the flag.
 
 ### Referral field resolution
 

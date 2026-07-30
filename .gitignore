@@ -44,7 +44,10 @@ Thumbs.db
 .env.local
 
 # clasp (contains the Apps Script ID)
+# These are literal paths, not a pattern — a new GAS project needs its own line here
+# BEFORE the directory is created, or its script ID gets committed on the first add.
 scripts/gas/.clasp.json
+scripts/gas-v2/.clasp.json
 
 # hosting-automation credentials (cPanel + Namecheap) — never commit
 scripts/hosting/.env

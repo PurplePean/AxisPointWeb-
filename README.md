@@ -1,217 +1,202 @@
 # AxisPoint Partners Website
 
-Institutional-grade commercial real estate asset management for owners and advisors across Texas.
+AxisPoint is a commercial property management firm in Texas. Property management is the
+primary service and the primary intake pathway. Asset management is an optional layer above it,
+and investor services is a separate, smaller pathway.
 
-## Project Structure
+## Positioning and pathway model (V2)
 
-This is a pnpm monorepo containing:
+The approved V2 design is the product and visual source of truth. Its shape:
 
-- **apps/web** — Main website (axispoint.llc)
-- **apps/qr** — Mobile QR digital card (qr.axispoint.llc)
-- **packages/brand** — Shared brand assets, colors, fonts, team data, and types
-- **content/** — Markdown articles and publications
-- **scripts/gas/** — Google Apps Script backend (Code.gs)
-- **docs/** — Verified source-of-truth documentation (backend, email templates, payload schemas, deployment, changelog)
+- **Property Management is primary.** It leads the site, and "Request a Management Proposal" is
+  the primary call to action. Its wording is locked, and it is the only filled element in the
+  navigation.
+- **Asset Management is an optional PM plus AM scope,** not a separate service line, role, or
+  intake system. Selecting it enters the Management Proposal pathway with asset management
+  interest recorded. It is engaged when the property calls for it, not sold as a default.
+- **Investor Services is a separate, smaller pathway,** for capital ready clients entering
+  Texas commercial real estate who want an operating team in place before the purchase rather
+  than after it.
 
-## Tech Stack
+### Approved intake pathways
 
-- **React 18** — UI library
-- **TypeScript** — Type safety
-- **Vite** — Build tool and dev server
-- **Tailwind CSS** — Styling (with custom brand preset)
-- **React Router v6** — Client-side routing
-- **gray-matter + remark** — Markdown parsing
-- **pnpm** — Package manager (required)
-- **Google Apps Script** — Form backend, email notifications, Sheets logging
+| Pathway | Shape | First interaction collects |
+|---|---|---|
+| Request a Management Proposal | Three short steps | Property type, scope, market, approximate scale, situation, timing, then name and email |
+| Asset Management | One screen, PM plus AM intent variant | Topic, name, email, optional note. Continues down the Management Proposal pathway |
+| Investor Services | One screen | Stage in the process, name, email, optional note |
+| General inquiry | One screen | Subject, name, email, message |
+| Referral Partner | One screen, existing | Carried forward untouched. **Deferred** |
+| Submit a Referral | One screen, existing | Carried forward untouched. **Deferred** |
+
+Booking is optional and is reached only after the inquiry has been sent, so an abandoned
+calendar still leaves a lead. No pathway asks for documents; the secure document request is a
+separate post qualification step, not a step of the form.
+
+The site is designed for global localization across nine approved languages. Final translations
+and per language launch approval are separate from design system approval, and languages can
+launch independently.
+
+### Status of the code against that model
+
+**The current `apps/web`, `apps/qr`, and `packages/brand` code predates the approved V2 design.**
+It contains V1 behavior plus an early, now superseded V2 frontend attempt. The V2 public
+frontend, intake, and QR surfaces are being rebuilt from the approved design package rather
+than evolved from what is here. Existing code is reference material and is not approved merely
+because it exists.
+
+Start at [`docs/design-sources.md`](docs/design-sources.md) for the authoritative design files,
+and [`docs/STATUS.md`](docs/STATUS.md) for what pass the work is on.
+
+## Project structure
+
+This is a pnpm monorepo:
+
+- **apps/web** — main website (axispoint.llc)
+- **apps/qr** — QR digital card microsite (qr.axispoint.llc)
+- **packages/brand** — shared brand tokens, team data, types, and the shared contact form
+- **content/** — markdown scaffold, currently empty
+- **scripts/gas/** — Google Apps Script backend (`Code.gs`) and email template mirrors
+- **scripts/hosting/** — cPanel and Namecheap automation for the hosting stack
+- **docs/** — verified source of truth documentation
+
+## Documentation map
+
+| File | Owns |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | The operating standard: git workflow, auto-merge, verification, copy and brand standards |
+| [`AGENTS.md`](AGENTS.md) | A pointer to CLAUDE.md. Deliberately not a second rulebook |
+| [`docs/design-sources.md`](docs/design-sources.md) | Approved design package, authoritative files, photography licence ledger |
+| [`docs/STATUS.md`](docs/STATUS.md) | Current pass, open owner decisions, deployment state, rollback anchors |
+| [`docs/branching.md`](docs/branching.md) | Branching, merging, and what "going live" actually means |
+| [`docs/deployment.md`](docs/deployment.md) | Deployment IDs, `clasp push` vs `clasp deploy`, hosting inventory |
+| [`docs/backend-architecture.md`](docs/backend-architecture.md) | `Code.gs` function map, lead model, schema |
+| [`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md) | Exact payload shape per lead type |
+| [`docs/email-templates.md`](docs/email-templates.md) | Template inventory and the embedded constant vs mirror file pattern |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Dated log of architecture level changes |
 
 ## Prerequisites
 
 - **Node.js** >= 20.0.0
 - **pnpm** >= 8.0.0
 
-Install pnpm if you haven't already:
 ```bash
 npm install -g pnpm
+pnpm install
 ```
 
-## Getting Started
+## Development
 
-1. **Install dependencies:**
-   ```bash
-   pnpm install
-   ```
+The frontend talks to the real backend only when you deliberately opt in. This is enforced in
+each app's `vite.config.ts` and consumed through an injected `__FORM_ENDPOINT__` define, so a
+stray `VITE_FORM_ENDPOINT` in your shell or a generic `.env` file cannot leak into a dev build.
 
-2. **Set up environment variables:**
-   ```bash
-   cp apps/web/.env.example apps/web/.env.local
-   # Edit with your VITE_FORM_ENDPOINT value
-   ```
+| Command | Apps | Guarantee |
+|---|---|---|
+| `pnpm dev` | web + qr | **The real endpoint is ignored from every source.** The contact form runs its simulated success fallback. No request reaches the real backend |
+| `pnpm dev:web` / `pnpm dev:qr` | one app | Same guarantee, single app |
+| `pnpm dev:e2e` | web + qr | Loads the real production endpoint **only** from `.env.e2e.local`. A missing file or value is a **hard failure**, never a silent fallback. Prints a loud terminal warning and shows a fixed in app red banner |
+| `pnpm dev:e2e:web` / `pnpm dev:e2e:qr` | one app | Same as `dev:e2e`, single app |
 
-3. **Start development server:**
-   ```bash
-   pnpm dev      # all apps
-   pnpm dev:web  # web only
-   ```
+`.env.e2e.local` is machine local and gitignored. Each machine needs its own copy, created from
+the tracked `.env.e2e.example` placeholder. Its real value is never committed or printed.
 
-4. **Build for production:**
-   ```bash
-   pnpm build      # all apps
-   pnpm build:web  # web only
-   ```
+Do not run a dev server in the same terminal tab as an agent session; starting the session
+interrupts whatever is running there.
 
-## Backend — Google Apps Script
-
-The form backend lives in `scripts/gas/Code.gs`. Deploy it as a Web App:
-- **Execute as:** Me
-- **Who has access:** Anyone
-
-### Deploying Apps Script changes
-
-Pushes are handled by [clasp](https://github.com/google/clasp). One-time setup:
-
-```bash
-npm install -g @google/clasp
-clasp login
-```
-
-`scripts/gas/.clasp.json` (gitignored — it holds the script ID) wires the local
-files to the Apps Script project.
-
-A backend coding task is **done** when the code is written, tested, and committed.
-Pushing and deploying are two **separate, deliberate** operations — neither is part of
-"done", and you run them only when you actually intend to change the running backend:
-
-1. `pnpm gas:push` (`clasp push`) — uploads local `Code.gs` to the Apps Script project's
-   **HEAD**. This can immediately affect installed triggers / scheduled functions (cold-lead
-   sweep, daily digest, partner summary), but it does **not** change what the live `/exec`
-   endpoint serves.
-2. `cd scripts/gas && clasp deploy -i <deploymentId>` — repoints the pinned production
-   deployment at a fresh version. **This** is the actual release of the `/exec` endpoint.
-
-> `clasp push` alone does **not** update the live endpoint. See
-> [`docs/deployment.md`](docs/deployment.md) for the deployment ID and the full
-> push-vs-deploy distinction.
-
-### Lead ID format
-
-Every submission gets a unique Lead ID: **`AXP-YYYY-XXXX`**
-
-- `YYYY` — four-digit year of submission
-- `XXXX` — zero-padded sequential number scoped across all submissions (e.g. `AXP-2026-0001`)
-
-Each lead also gets a personal shareable **Referral Code**: **`AXP-` + 6 unambiguous
-characters** (e.g. `AXP-K7M4PQ`), collision-checked against Lifetime Leads.
-
-The Lead ID sequence is stored in Script Properties under `LAST_LEAD_ID` and incremented atomically using `LockService.getScriptLock()`.
-
-### Deduplication
-
-On every form submission the backend searches the Lifetime Leads tab for an existing row with the same email address (case-insensitive):
-
-- **Match found:** Updates the existing row with any new contact info, appends a resubmission note to the Message column (`Resubmission on [date] — [original Lead ID]`), sends a resubmission notification to partners, and returns the original Lead ID and Referral Code. No duplicate row is created and no new Google Contact is created.
-- **No match:** Creates a new row, generates a new Lead ID and Referral Code, creates a Google Contact, and sends the standard new-lead notification.
-
-### Referral tracking
-
-The system supports multi-level referral tracking with three match priority levels:
-
-1. **Code match** — `referralCode` field matches an existing referral code exactly
-2. **Email match** — `referredByEmail` field matches an existing lead's email
-3. **Name match** — `referredByName` field is compared against existing first/last names
-
-When a referrer is matched the submission records:
-
-| Field | Description |
-|---|---|
-| `Referred By Lead ID` | Lead ID of the referrer |
-| `Referred By Name` | Referrer's full name |
-| `Referred By Email` | Referrer's email |
-| `Referred By Code` | Referrer's referral code |
-| `Match Type` | `code`, `email`, or `name` |
-| `Referral Chain` | Pipe-separated chain of Lead IDs (e.g. `AXP-2026-0001\|AXP-2026-0007`) |
-| `Chain Depth` | Number of hops (pipe count + 1) |
-
-The referrer's `Direct Referrals` count and `Last Referral Date` are updated on their existing row. Every matched referral is also logged to the **Referrals** tab with a `REF-YYYY-XXXX` ID.
-
-The referrer receives a notification email confirming that someone used their code without revealing the referred person's identity.
-
-#### onEdit trigger
-
-When a partner manually types an email into the `Referred By Email` column of any lead tab, the `onSheetEdit()` trigger auto-populates all referral fields and logs the match to the Referrals tab with `Match Type = manual`.
-
-### Google Sheet structure
-
-The spreadsheet has **11 tabs**: Active Leads, Lifetime Leads, Cold Leads,
-Investors, Referral Partners, RE Professionals, Existing Asset Owners, Clients,
-Archive, Referrals, and Subscribers. All lead tabs share a **31-column** schema
-(the Referral Partners tab adds a 32nd `Reports Enabled` column).
-
-The full column layout, tab purposes, deduplication logic, referral matching,
-and the `onEdit` sync are documented in
-[`docs/backend-architecture.md`](docs/backend-architecture.md) — the verified
-source of truth for the backend.
-
-## Contact form
-
-Both `apps/web` (`ContactPage.tsx`) and `apps/qr` (`App.tsx`) render the **same**
-shared `<ContactForm>` from `packages/brand`, which POSTs to the single GAS
-endpoint (`VITE_FORM_ENDPOINT`).
-
-There are **five lead types**: Investor, Referral Partner (`referral`), RE
-Professional (`pro`), Existing Asset Owner (`existing_asset_owner`), and Making a
-Referral (`submit_referral`). Investor / Referral / Pro / submit_referral run a
-step wizard; Existing Asset Owner has its own dedicated step flow (personal →
-property → situation → issue → schedule).
-
-Referral capture: a `?ref=AXP-XXXXXX` URL param pre-fills the code silently;
-otherwise a "Were you referred?" toggle accepts a code
-(`/^AXP-[A-Z0-9]{6}$/i`), an email (`@`), or a name.
-
-The exact payload shape for every lead type is documented in
-[`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md), and the
-email templates in [`docs/email-templates.md`](docs/email-templates.md).
-
-## Brand guidelines
-
-- **Team members:** Both titled "Partner" only
-- **No LinkedIn links** anywhere
-- **No headshots** — initials avatars only (ZR teal, EV purple)
-- **Zachary Russell:** zach@axispoint.llc, (832) 580-2815, teal
-- **Ethaniel Vu:** ethaniel@axispoint.llc, (832) 499-8389, purple
-- **NO NNN or Net Lease** in asset class options
-- Calendar: weekdays only, 8am–5pm CT
-- Success screen: no routing attribution, no name reveal
-
-## Deployment
-
-Automated via GitHub Actions to Namecheap FTP.
-
-### Environment Variables (GitHub Secrets)
-
-| Secret | Purpose |
-|---|---|
-| `FORM_ENDPOINT` | Google Apps Script Web App URL |
-| `FTP_SERVER` | Main site FTP host |
-| `FTP_USERNAME` | FTP username |
-| `FTP_PASSWORD` | FTP password |
-| `FTP_SERVER_QR` | QR subdomain FTP host |
-| `FTP_USERNAME_QR` | QR FTP username |
-| `FTP_PASSWORD_QR` | QR FTP password |
-
-## Scripts Reference
+## Scripts reference
 
 | Command | Description |
 |---|---|
-| `pnpm dev` | Start all apps in development mode |
-| `pnpm dev:web` | Start web app only |
-| `pnpm dev:qr` | Start QR app only |
-| `pnpm build` | Build all apps for production |
-| `pnpm build:web` | Build web app only |
-| `pnpm build:qr` | Build QR app only |
-| `pnpm type-check` | Run TypeScript type checking |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Format code with Prettier |
+| `pnpm dev` | All apps, simulated submissions only |
+| `pnpm dev:web` / `pnpm dev:qr` | One app, simulated submissions only |
+| `pnpm dev:e2e` | All apps against the **real** backend |
+| `pnpm dev:e2e:web` / `pnpm dev:e2e:qr` | One app against the **real** backend |
+| `pnpm build` | Build all apps |
+| `pnpm build:web` / `pnpm build:qr` | Build one app |
+| `pnpm type-check` | TypeScript across the workspace |
+| `pnpm lint` | ESLint. Currently only `apps/web` defines a lint script |
+| `pnpm format` | Prettier |
+| `pnpm test:gas` | Run the Apps Script backend test suite (Node's built in runner, no install step) |
+| `pnpm gas:push` | `clasp push`. Updates the Apps Script project HEAD. **Not a deployment** |
+
+## Testing
+
+`pnpm test:gas` runs the committed backend suite under `scripts/gas/tests/`. Apps Script cannot
+run outside its own runtime, but the pure logic (routing, payload transforms, template
+rendering, Sheet writes against a fake Sheets harness) is tested in Node with GAS globals
+stubbed out. Prefer this over reasoning about backend changes abstractly.
+
+The suite also enforces template parity: every embedded `TEMPLATE_*` constant in `Code.gs` must
+match its mirror file under `scripts/gas/emails/`. Those two copies must be edited together, and
+this test is what catches it when they are not.
+
+CI runs type-check, lint, both app builds, and the GAS suite.
+
+## Deployment status
+
+**Read this before claiming anything is live.**
+
+| Surface | Status |
+|---|---|
+| **Google Apps Script backend (V1)** | **Deployed.** Production version @28, serving the current live sites |
+| **This repository's frontend** | **Has never successfully deployed through GitHub Actions.** The two FTP workflows fail at the FTP step because the FTP secrets are not configured |
+| **Live public sites** | A separate, older, hand uploaded build, unrelated to this repository's git history |
+| **V2 backend** | Does not exist yet |
+
+**Merging to `main` deploys nothing.** It is not a release and not a staging promotion.
+Going live for the frontend is a future configuration decision (adding the FTP secrets), not a
+git action. Note that once those secrets exist, every push to `main` would deploy immediately
+with no approval gate, so the gate question has to be settled first. See
+[`docs/branching.md`](docs/branching.md).
+
+### Apps Script: push and deploy are two different things
+
+```bash
+pnpm gas:push                              # updates project HEAD, can affect installed triggers
+cd scripts/gas && clasp deploy -i <prod-id>  # repoints the live /exec endpoint. THIS is the release
+```
+
+A backend task is **done** when the code is written, tested, committed, and merged. Neither
+command is part of "done". Run them only when you actually intend to change the running
+backend. The deployment ID and the full mechanics are in
+[`docs/deployment.md`](docs/deployment.md).
+
+If a `clasp` command fails with `invalid_grant` or `invalid_rapt`, that is routine Google
+reauth friction, not a broken script. Re-run `clasp login`, then re-run the command.
+
+## Backend overview
+
+The form backend is `scripts/gas/Code.gs`, deployed as a Web App (execute as: me, access:
+anyone). It runs on a unified lead schema (`USE_UNIFIED_SCHEMA = true`), which persists the full
+collected detail set per lead type into a `Details` JSON blob.
+
+Key behaviors, documented in full in
+[`docs/backend-architecture.md`](docs/backend-architecture.md):
+
+- **Lead IDs** — `AXP-YYYY-XXXX`, sequential, incremented atomically under a script lock
+- **Referral codes** — `AXP-` plus 6 unambiguous characters, collision checked
+- **Deduplication** — by email, case insensitive. A match updates the existing row, appends a
+  resubmission note, notifies partners, and returns the original lead ID. No duplicate row is
+  created
+- **Concurrency** — `LockService` guards the submission path, resubmissions, and ID generation.
+  A resubmission racing the cold sweep is refused rather than writing partially
+- **Header safe writes** — rows are appended by column name, so a reordered live header still
+  receives correct values, extra human added columns are preserved, and a header missing a
+  required column refuses the write rather than guessing
+- **Scheduled triggers** — daily digest, weekly cold lead sweep, monthly referral summaries,
+  and an onEdit sync
+
+## Brand standards
+
+- Both partners are titled **Partner** only
+- **No LinkedIn or social links** anywhere
+- **No headshots**
+- No em dashes in user facing copy
+- Tone is direct, confident, and specific. Concrete claims over generic marketing language
+- Brand colors, fonts, and visual patterns live in `packages/brand`. Read the source rather than
+  guessing at values
 
 ## License
 
-Private — All rights reserved by AxisPoint Partners LLC
+Private. All rights reserved by AxisPoint Partners LLC.
