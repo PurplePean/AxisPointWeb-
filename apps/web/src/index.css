@@ -7,12 +7,12 @@
     @apply antialiased;
   }
 
-  html,
-  body {
-    /* Part 2.6 — kill horizontal scroll on small screens */
-    overflow-x: hidden;
-    max-width: 100%;
-  }
+  /* No `overflow-x: hidden` here.
+     It used to sit on html and body to suppress V1 mobile overflow. It also made
+     overflow undetectable: `document.documentElement.scrollWidth` can never exceed
+     the viewport when the overflow is clipped, so an automated horizontal-overflow
+     check passes even when content is genuinely cut off. Pass 3 hit exactly that.
+     Overflow is now allowed to surface so it can be measured and fixed at source. */
 
   /* Approved V2 surface (design@2026-07-30). #F6F2EA replaces the older cool
      #F7F5FB, which the approved QR board records as superseded. */
@@ -23,8 +23,7 @@
   /* Figtree is the default for headings as well as body. The approved sources use
      Figtree for structural headings (600 weight, negative tracking) and reserve
      Cormorant Garamond for specific editorial display moments, which opt in with
-     `font-serif`. The previous rule made Cormorant the default for every heading,
-     which inverted the approved system. */
+     `font-serif`. */
   h1,
   h2,
   h3,
@@ -35,20 +34,32 @@
     letter-spacing: -0.03em;
   }
 
-  /* Smooth scroll behavior */
   html {
     scroll-behavior: smooth;
   }
 
+  /* Native controls inherit the page type rather than the browser default. */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
   /* ── Approved focus treatment ──
      3px #38285D at a 3px offset, from the accessibility contract in
-     AxisPoint QR Frontend.dc.html (q6/q10). Purple is used rather than the teal
-     ring the intake board specifies for form controls, for two reasons: teal on
+     AxisPoint QR Frontend.dc.html. Purple rather than teal for two reasons: teal on
      the warm field is only ~2.3:1, and a teal ring around the teal action button
-     would be invisible. The approved source calls this ring out as readable
-     "against both the warm field and the teal button". The intake pass revisits
-     per-control focus styling for form fields. */
+     would be invisible. */
   :focus-visible {
+    outline: 3px solid #38285d;
+    outline-offset: 3px;
+  }
+
+  /* The intake's choice rows hide their native radio input and draw a ring instead,
+     so the focus ring has to land on the visible row. */
+  label:has(> input[type='radio']:focus-visible) {
     outline: 3px solid #38285d;
     outline-offset: 3px;
   }
@@ -56,9 +67,7 @@
 
 /* ── Reduced motion ──
    The approved sources state that under prefers-reduced-motion transitions resolve
-   instantly and nothing slides, scales, or fades in. State changes stay announced,
-   so nothing is lost. This also neutralises the reveal-on-scroll utility below and
-   smooth scrolling, both of which are motion the user has asked not to see. */
+   instantly and nothing slides, scales, or fades in. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -72,124 +81,22 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-
-  .rv {
-    opacity: 1 !important;
-    transform: none !important;
-  }
 }
 
-/* ════════════════════════════════════════════════════════
-   MOBILE SPACING & TYPE — applies only below 768px.
-   Desktop (≥768px) is intentionally left untouched.
+/* ── Removed in Code Pass 4 ──
+   Everything listed here used to be V1 support and is gone:
 
-   Philosophy: the desktop py-24 rhythm (96px top+bottom per
-   section) stacks into ~1000px of dead whitespace on a phone.
-   On mobile we tighten vertical padding to roughly half so the
-   page reads as a continuous flow, while keeping type readable
-   and line-height relaxed. Desktop is unchanged.
-   ════════════════════════════════════════════════════════ */
-@media (max-width: 767px) {
-  /* Horizontal page gutter */
-  .px-7 {
-    padding-left: 22px !important;
-    padding-right: 22px !important;
-  }
+   - `.rv` / `.rv.in` / `.d1`-`.d5` scroll-reveal utilities. The `useReveal` hook
+     that added `.in` was removed with the V1 pages in Pass 3, so these left any
+     element carrying them permanently invisible. That is what blanked the contact
+     panel until it was caught.
+   - The `@media (max-width: 767px)` override block. It re-tuned V1 page-body classes
+     (`py-24`, `px-7`, `h1.font-serif`) and inline font sizes with `!important`, all
+     for page bodies that no longer exist. The V2 pages size themselves.
+   - `.tab-scroll` and `.scrollbar-thin`, referenced by nothing in the V2 app.
+   - `html, body { overflow-x: hidden }`, see the note above.
 
-  /* ── 1 / 10. VERTICAL RHYTHM — tighten section padding so the
-     page doesn't balloon with whitespace. py-24 → 3rem (was 6rem). ── */
-  .py-24 { padding-top: 3rem !important;    padding-bottom: 3rem !important; }
-  .py-20 { padding-top: 2.5rem !important;  padding-bottom: 2.5rem !important; }
-  .py-16 { padding-top: 2rem !important;    padding-bottom: 2rem !important; }
-  .py-14 { padding-top: 1.75rem !important; padding-bottom: 1.75rem !important; }
-  .pb-16 { padding-bottom: 2rem !important; }
-  .pb-14 { padding-bottom: 1.75rem !important; }
-
-  /* ── 7. TYPOGRAPHY — readable size matters more than fitting
-     more on screen. Inline clamp()/px sizes are overridden. ── */
-  /* Hero headline → hold at 2.2rem (do not go smaller) */
-  h1.font-serif {
-    font-size: 2.2rem !important;
-    line-height: 1.14 !important;
-  }
-  /* Let long hero headlines wrap instead of overflowing */
-  h1.font-serif .whitespace-nowrap {
-    white-space: normal !important;
-  }
-  /* Section headings keep their natural ~1.9rem clamp minimum
-     (≥1.75rem); only relax the line-height a touch. */
-  h2.font-serif {
-    line-height: 1.18 !important;
-  }
-
-  /* ── 2. LINE HEIGHT + body floors (1rem minimum) ── */
-  /* Primary lead paragraphs (React serializes inline styles with no
-     space after the colon, e.g. `font-size:1rem`). */
-  [style*="font-size:1.05rem"] { font-size: 1.05rem !important; line-height: 1.7 !important; }
-  [style*="font-size:1rem"]    { line-height: 1.7 !important; }
-  /* Secondary / card body text → lift to a 1rem-ish floor with
-     comfortable leading so it never reads as cramped. */
-  [style*="font-size:0.95rem"]  { font-size: 1rem !important;   line-height: 1.7 !important; }
-  [style*="font-size:0.9rem"]   { font-size: 0.95rem !important; line-height: 1.7 !important; }
-  [style*="font-size:0.88rem"]  { font-size: 0.95rem !important; line-height: 1.7 !important; }
-  [style*="font-size:0.875rem"] { font-size: 0.95rem !important; line-height: 1.7 !important; }
-  /* Generic relaxed-leading utility bump */
-  .leading-relaxed { line-height: 1.7 !important; }
-
-  /* ── 9. BUTTONS — generous 52px tap targets feel premium ── */
-  a.rounded-button,
-  button.rounded-button {
-    min-height: 52px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  /* ── 8. Horizontal-scroll utility — hide the scrollbar while keeping
-     scroll functionality for any horizontally scrolling row. ── */
-  .tab-scroll { scrollbar-width: none !important; }
-  .tab-scroll::-webkit-scrollbar { display: none !important; }
-
-  /* Footer link columns get 44px tap targets */
-  footer .flex.flex-col a {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-  }
-}
-
-@layer utilities {
-  /* Reveal animation */
-  .rv {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .rv.in {
-    opacity: 1;
-    transform: none;
-  }
-  .d1 { transition-delay: 0.07s; }
-  .d2 { transition-delay: 0.14s; }
-  .d3 { transition-delay: 0.21s; }
-  .d4 { transition-delay: 0.28s; }
-  .d5 { transition-delay: 0.35s; }
-
-  /* Custom scrollbar styling */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-body;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-border-dark rounded-full;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-sub;
-  }
-}
+   apps/qr keeps its own stylesheet and is unaffected. `/share/:code` uses only
+   Tailwind preset utilities, which are untouched; its one incidental change is that
+   `leading-relaxed` returns to the Tailwind default on mobile instead of the V1
+   `!important` 1.7 override. */
