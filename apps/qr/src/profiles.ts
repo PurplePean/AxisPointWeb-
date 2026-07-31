@@ -61,8 +61,13 @@ export const FIRM = {
   /** Firm-level description, shared by both partner profiles. */
   description:
     'AxisPoint manages multifamily and retail properties for owners across Texas, with an asset management layer when the property calls for it.',
-  fallbackDescription:
-    'This card did not resolve to a partner profile. Reach the firm directly and we will route you to the right partner.',
+  /**
+   * Owner-directed copy correction, 2026-07-31. A deliberate deviation from the
+   * approved board, which reads "This card did not resolve to a partner profile.
+   * Reach the firm directly and we will route you to the right partner." The
+   * replacement drops the mention of an unresolved card and leads with the action.
+   */
+  fallbackDescription: 'Connect directly with the firm. We will route your inquiry to the right partner.',
   partnersLine: 'Partner-led from Houston by Zachary Russell and Ethaniel Vu.',
   /**
    * Organization note for the contact record. The board records its wording as
