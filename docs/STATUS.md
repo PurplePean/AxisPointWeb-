@@ -3,34 +3,60 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-07-30 (Code Pass 2)_
+_Last updated: 2026-07-31 (Code Pass 3)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design version** | `design@2026-07-30` (QR Frontend export). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 2 — shared frontend foundations, complete |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations |
-| **Next pass** | Pass 3 — public pages and the six approved routes |
+| **Current code pass** | Pass 3 — approved V2 public pages and routes, complete |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes |
+| **Next pass** | Pass 4 — localization foundation, then Pass 5 — intake UI and the typed V2 frontend contract |
 
-## Temporarily unresolved routes
+## Routes
 
-The shared navigation and footer built in Pass 2 link to the approved routes. Four of them do
-not exist yet and resolve to the 404 page until Pass 3 creates them. This is deliberate: no
-placeholder page or redirect was created to hide the staged dependency.
+All six approved routes resolve. The Pass 2 missing-route warning is closed.
 
-| Destination | Status |
-|---|---|
-| `/property-management` | **Arrives in Pass 3** |
-| `/asset-management` | **Arrives in Pass 3** |
-| `/investor-services` | **Arrives in Pass 3** |
-| `/partners` | **Arrives in Pass 3** |
-| `/contact?intent=property-management` | Resolves today. The existing contact page still renders the V1 intake, which Pass 5 replaces |
-| `/` | Resolves today. The existing homepage body is untouched and is rebuilt in Pass 3 |
+| Route | Source | Status |
+|---|---|---|
+| `/` | `AxisPointPage.dc.html` | Live |
+| `/property-management` | `AxisPoint Property Management.dc.html` | Live |
+| `/asset-management` | `AxisPoint System Studies.dc.html` | Live |
+| `/investor-services` | `AxisPoint System Studies.dc.html` | Live |
+| `/partners` | `AxisPoint System Studies.dc.html` | Live |
+| `/contact` | `AxisPoint System Studies.dc.html` | Shell live, intake still V1, see below |
+| `/share/:code` | V1 | Retained untouched, outside the site chrome |
 
-The current `/services` and `/team` routes still exist and still render their V1 bodies. They
-are removed in Pass 3 when the approved routes replace them.
+`/services` and `/team` were removed. No redirect was added: nothing in this repository is
+deployed and no external link depends on them. If that changes before launch, redirects belong
+to the hosting configuration rather than to client-side routing.
+
+## Temporary, until later passes
+
+**The Contact page shell is V2 but the intake inside it is still V1.** `ContactForm`, its
+fields, five role values, validation, booking, referral behaviour, payloads, and styling are all
+unchanged. Code Pass 5 replaces it with the approved V2 intake. The approved contact source
+anticipates this: its own panel reads "Intake structure is being mapped separately."
+
+The one integration point used is `ContactForm`'s existing `className` prop, the same one
+`apps/qr` already passes. It is supplied because the component's default class string begins
+with `rv`, the V1 scroll-reveal class that sits at opacity 0 until the old `useReveal` observer
+added `.in`; that hook belonged to the V1 pages this pass removed.
+
+**PM plus AM scope is not captured yet.** The Asset Management call to action routes to
+`/contact?intent=property-management`, the same token property management uses, because no
+distinct scope value exists in the V1 contract and no backend role was added. **Code Pass 5
+adds explicit PM plus AM scope capture.** Current intent mapping, unchanged:
+
+| Intent token | V1 role | Used by |
+|---|---|---|
+| `property-management` | `existing_asset_owner` | Homepage, Property Management, Asset Management, Partners |
+| `investor-services` | `investor` | Investor Services |
+| (none) | picker | Footer and general contact links |
+
+**Legal copy review is a prelaunch check.** The footer disclaimer is carried forward unchanged
+and has not been reviewed against the V2 positioning.
 
 ## Deployment state
 
@@ -63,8 +89,10 @@ the seven unresolved values in [`design-sources.md`](design-sources.md) — part
 partner email behaviour, whether a firm phone will exist, **the permanent profile URL**,
 contact-file delivery, organization-note wording, and whether a mailing address appears.
 
-**Photography, blocks public launch:** confirm the licence records for Adobe #158947695,
-#196537616, and #110458363.
+**Photography: resolved 2026-07-30.** The owner confirmed Adobe #158947695, #196537616, and
+#110458363 are licensed. #04 is the cleared Juan Nino Unsplash asset. See
+[`asset-catalog.md`](asset-catalog.md). The 1200x630 Open Graph image remains a later launch
+deliverable, and no `og:image` tag is emitted until it exists.
 
 **Intake, blocks Pass 5 completion:** required-vs-optional per field; booking availability
 rules; the launch locale list and per-language order; document-request storage, retention, and
