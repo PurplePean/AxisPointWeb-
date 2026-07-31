@@ -2,14 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-*, *::before, *::after { box-sizing: border-box; }
+/**
+ * QR business card, approved V2 surface (design@2026-07-30).
+ *
+ * The board settles the field explicitly: #F6F2EA, matching the approved built
+ * website. #F7F5FB was inherited from an older brief and is superseded.
+ */
 
-html { scroll-behavior: smooth; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body {
-  background: #F7F5FB;
-  color: #1C1628;
-  font-family: 'Figtree', sans-serif;
+  background: #f6f2ea;
+  color: #1c1628;
+  font-family: 'Figtree', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+}
+
+/* Approved focus contract: a 3px #38285D ring at a 3px offset, never removed, and
+   readable against both the warm field and the teal action. */
+:focus-visible {
+  outline: 3px solid #38285d;
+  outline-offset: 3px;
+}
+
+/* Approved motion contract: 120ms colour transitions only. Nothing slides, bounces,
+   or scales, and under reduced motion transitions resolve instantly. */
+a,
+button {
+  transition-duration: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

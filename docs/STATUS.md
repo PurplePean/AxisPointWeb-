@@ -3,15 +3,15 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-07-31 (Code Pass 4)_
+_Last updated: 2026-07-31 (Code Pass 5)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design version** | `design@2026-07-30` (QR Frontend export). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 4 — approved V2 intake frontend, complete |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend |
+| **Current code pass** | Pass 5 — approved V2 QR frontend, complete |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend |
 | **Next pass** | Localization foundation, then the V2 backend contract and GAS project |
 
 ## Routes
@@ -61,6 +61,29 @@ Its retirement waits on the QR pass.
 **`/share/:code` is untouched and isolated.** Note for future verification: it hard-redirects
 to `https://axispoint.llc` via `window.location`, so it must not be navigated during local
 browser testing. Verify it by diff instead. Its retirement decision remains separate.
+
+**The QR app is now the approved V2 card.** `apps/qr` was rebuilt from
+`AxisPoint QR Frontend.dc.html`. It no longer imports the V1 `ContactForm`, embeds no intake,
+generates no QR code, and consumes no form endpoint. Save Contact is simulated and local, and
+the Management Proposal action links into the shared website intake.
+
+**The QR profile URL is still an open decision, so no routing contract was shipped.** Profile
+selection uses a local, development-only preview key (`?profile=`), explicitly not presented as
+the permanent public URL. In production an unknown or absent key resolves to the approved firm
+fallback.
+
+**Partner phone numbers and direct email addresses remain unconfigured in the QR app.**
+`packages/brand/src/team.ts`, `packages/brand/src/utils/vcard.ts`, and the README all carry
+values, but the approved contact-record ledger marks partner phone and partner email as
+"Needs verification" and they are still listed below as open owner decisions. The QR fixtures
+hold `null` and the UI follows the approved missing-data rules until the owner confirms them.
+Filling in two fields per partner is the only change required afterwards.
+
+**Dead code recorded, not removed.** With the QR rebuild, no application imports the V1
+`ContactForm`, its step components, or `utils/vcard.ts` any more; the only remaining references
+are inside `packages/brand` itself. The code is retained deliberately: deleting it was not
+required for this pass, and it is the reference for behaviours the V2 backend contract has not
+yet replaced. Retire it in a dedicated cleanup once the backend work is settled.
 
 **Legal copy review is a prelaunch check.** The footer disclaimer is carried forward unchanged.
 
