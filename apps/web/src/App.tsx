@@ -1,26 +1,39 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 
-// Pages (to be created)
 import HomePage from './pages/HomePage';
-import ServicesPage from './pages/ServicesPage';
-import TeamPage from './pages/TeamPage';
+import PropertyManagementPage from './pages/PropertyManagementPage';
+import AssetManagementPage from './pages/AssetManagementPage';
+import InvestorServicesPage from './pages/InvestorServicesPage';
+import PartnersPage from './pages/PartnersPage';
 import ContactPage from './pages/ContactPage';
 import SharePage from './pages/SharePage';
 import NotFoundPage from './pages/NotFoundPage';
-// Learn is not part of the launch site. The LearnPage / ArticlePage components were
-// removed (git history preserves them); rebuild Learn deliberately with the new
-// design system and real articles when content publishing returns.
 
+/**
+ * The six approved V2 public routes (design@2026-07-30).
+ *
+ * The V1 `/services` and `/team` routes are gone: `/services` collapsed three
+ * approved pages into one, and `/team` is now `/partners`. No redirect was added for
+ * either, because nothing in this repository is deployed and no external link
+ * depends on them yet. If that changes before launch, redirects belong to the
+ * hosting configuration rather than to client-side routing.
+ *
+ * `/share/:code` stays exactly as it was, outside the site chrome, with its referral
+ * behaviour untouched.
+ */
 function App() {
   return (
     <Routes>
-      {/* Standalone share landing — no site chrome */}
+      {/* Standalone share landing, no site chrome. Untouched V1 referral behaviour. */}
       <Route path="/share/:code" element={<SharePage />} />
+
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
-        <Route path="services" element={<ServicesPage />} />
-        <Route path="team" element={<TeamPage />} />
+        <Route path="property-management" element={<PropertyManagementPage />} />
+        <Route path="asset-management" element={<AssetManagementPage />} />
+        <Route path="investor-services" element={<InvestorServicesPage />} />
+        <Route path="partners" element={<PartnersPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
