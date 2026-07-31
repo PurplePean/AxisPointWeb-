@@ -47,11 +47,41 @@ module.exports = {
         // Text
         sub: '#5A5270', // Subtext
         hint: '#9490A8', // Hint text
+
+        /* ── Approved V2 tokens (design@2026-07-30) ──
+           ADDITIVE ONLY. Every token above is left at its existing value because
+           apps/qr consumes this same preset, and changing one would restyle the QR
+           app without touching its files. The V2 public site opts in by using the
+           `v2-` names below; the QR surface adopts them in its own pass.
+
+           Note `v2-surface` (#F6F2EA) supersedes the older cool `body` (#F7F5FB).
+           The approved QR board states this explicitly: "#F7F5FB was inherited from
+           an older brief and is superseded here." */
+        'v2-surface': '#F6F2EA', // Warm page field
+        'v2-ink': '#1C1628', // Primary text
+        'v2-teal': '#24A5BC', // Primary action
+        'v2-teal-support': '#1B8DA2', // Hover / supporting teal
+        'v2-purple': '#38285D', // Structure, rules, focus ring
+        'v2-magenta': '#9F328C', // Accent, used sparingly
+        'v2-action-label': '#0F1F27', // Label on the teal action, 8.1:1
+        'v2-footer': '#141020', // Footer field, from AxisPointFooter.dc.html
       },
 
       fontFamily: {
         serif: ['Cormorant Garamond', 'serif'],
         sans: ['Figtree', 'sans-serif'],
+      },
+
+      /* Approved default radius. The existing card/button/chip radii are kept for
+         the current QR app and the V1 pages that still reference them. */
+      borderRadius: {
+        v2: '2px',
+      },
+
+      maxWidth: {
+        /* Approved content measure, from the page sections in AxisPointPage.dc.html
+           and AxisPoint System Studies.dc.html. */
+        v2: '1240px',
       },
 
       boxShadow: {

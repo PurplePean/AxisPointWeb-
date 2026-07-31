@@ -1,149 +1,266 @@
-import { useState, useEffect } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import Logo from './Logo';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Mark } from '@axispoint/brand';
+
+/**
+ * Shared site header, built from the approved V2 sources (design@2026-07-30):
+ * the header row in `AxisPointPage.dc.html` and `AxisPoint System Studies.dc.html`.
+ *
+ * Approved treatment held here: 20px vertical padding on the approved gutters,
+ * a single hairline bottom rule, the 23px lockup, 13.5px/500 links at 72% ink,
+ * and one filled teal action carrying #0F1F27 at weight 700 on a 2px radius.
+ * The action is the only filled element in the navigation, which is what keeps
+ * the management pathway dominant.
+ *
+ * Several destinations below land on routes that arrive in Code Pass 3. They are
+ * deliberately real hrefs rather than placeholder pages or redirects, so the
+ * staged dependency stays visible instead of being papered over. Tracked in
+ * docs/STATUS.md.
+ */
 
 const LINKS: { to: string; label: string }[] = [
-  { to: '/services', label: 'Services' },
-  { to: '/team', label: 'Partners' },
-  { to: '/contact', label: 'Contact' },
+  { to: '/property-management', label: 'Property Management' },
+  { to: '/asset-management', label: 'Asset Management' },
+  { to: '/investor-services', label: 'Investor Services' },
+  { to: '/partners', label: 'Partners' },
 ];
+
+const CTA = { to: '/contact?intent=property-management', label: 'Request a Management Proposal' };
+
+/**
+ * The approved closed-state English control, rendered as an honest static label.
+ *
+ * The full selector (open/hover/focus states, nine locales, routing, persistence)
+ * belongs to the localization pass. Rendering a button that opens nothing, or an
+ * empty menu, would be fabricated behaviour, so this is deliberately not
+ * interactive: no button element, no aria-haspopup, no tab stop. It reports the
+ * current language and nothing more.
+ */
+function CurrentLanguage({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-v2 border border-[rgba(28,22,40,0.22)] font-semibold text-v2-ink"
+      style={{ minHeight: 40, padding: compact ? '0 10px' : '0 12px', fontSize: 13 }}
+    >
+      <span className="sr-only">Current language: </span>
+      English
+      <span aria-hidden="true" style={{ color: 'rgba(28,22,40,0.5)' }}>&#9662;</span>
+    </span>
+  );
+}
 
 function Nav() {
   const [open, setOpen] = useState(false);
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Close the menu whenever the route changes.
+  const close = useCallback((returnFocus = true) => {
+    setOpen(false);
+    if (returnFocus) triggerRef.current?.focus();
+  }, []);
+
+  // Close on route change. Focus is not forced back to the trigger here: the user
+  // is navigating away, and stealing focus would fight the destination page.
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+  }, [pathname, search]);
 
-  // Lock body scroll while the overlay is open; always restore on cleanup.
+  // Lock body scroll while the panel is open; always restore on cleanup.
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previous;
     };
   }, [open]);
 
-  // Close the menu immediately, restore scroll, then navigate.
-  function go(to: string) {
-    setOpen(false);
-    document.body.style.overflow = '';
-    navigate(to);
-  }
+  // Escape closes and returns focus. Tab is trapped inside the panel so focus can
+  // never land on the page behind an open full-screen menu.
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, close]);
+
+  // Move focus into the panel when it opens, so keyboard order continues where
+  // the user was rather than restarting at the top of the document.
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>('a[href], button:not([disabled])')?.focus();
+  }, [open]);
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-[9999] h-nav [will-change:transform]" style={{ background: 'rgba(247,245,251,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #E8E4F0' }}>
-        <div className="max-w-[1160px] mx-auto px-7 h-full flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <Logo height={36} />
+      <header
+        className="relative z-40 border-b border-[rgba(28,22,40,0.12)] bg-v2-surface"
+        style={{ paddingTop: 20, paddingBottom: 20 }}
+      >
+        <div className="flex items-center justify-between gap-6 px-5 md:px-10 lg:px-[72px]">
+          <Link
+            to="/"
+            className="inline-flex items-center rounded-v2"
+            /* The approved lockup is 23px, which is well under a 44px touch target.
+               Vertical padding grows the hit area and an equal negative margin pulls
+               the layout back, so the header keeps its approved 63px height. */
+            style={{ padding: '11px 0', margin: '-11px 0' }}
+            aria-label="AxisPoint, home"
+          >
+            <Mark variant="fullcolor" mode="lockup" height={23} />
           </Link>
 
-          {/* Desktop navigation links */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Desktop navigation. Below 1024px this collapses to the approved menu:
+              the four labels plus the full CTA wording cannot hold their measure at
+              834px without wrapping, and the approved sources specify no tablet
+              composition, so the mobile treatment carries that width. */}
+          <nav aria-label="Primary" className="hidden lg:flex items-center gap-[30px]">
             {LINKS.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  isActive
-                    ? 'text-sm font-medium text-purple'
-                    : 'text-sm font-medium text-sub hover:text-ink transition-colors'
+                  [
+                    'font-medium transition-colors hover:text-v2-teal-support rounded-v2',
+                    isActive ? 'text-v2-ink' : 'text-[rgba(28,22,40,0.72)]',
+                  ].join(' ')
                 }
+                style={{ fontSize: 13.5 }}
               >
                 {link.label}
               </NavLink>
             ))}
 
-            {/* CTA Button */}
+            <CurrentLanguage />
+
             <Link
-              to="/contact"
-              className="px-5 py-2.5 rounded-button bg-purple text-white text-sm font-semibold hover:brightness-110 transition-all hover:-translate-y-0.5"
+              to={CTA.to}
+              className="inline-flex items-center rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
+              style={{ fontSize: 13, padding: '11px 18px' }}
             >
-              Talk with our team
+              {CTA.label}
             </Link>
+          </nav>
+
+          {/* Mobile control cluster: the approved static language label, the word
+              Menu, and the approved two-bar treatment. */}
+          <div className="flex lg:hidden items-center gap-3.5">
+            <CurrentLanguage compact />
+            <button
+              ref={triggerRef}
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              className="inline-flex items-center gap-2.5 rounded-v2 px-1"
+              style={{ minHeight: 44 }}
+            >
+              <span
+                className="font-bold uppercase text-[rgba(28,22,40,0.6)]"
+                style={{ fontSize: 12, letterSpacing: '0.12em' }}
+              >
+                Menu
+              </span>
+              <span aria-hidden="true" className="grid gap-[5px]">
+                <span className="block bg-v2-ink" style={{ width: 22, height: 1.5 }} />
+                <span className="block bg-v2-ink" style={{ width: 22, height: 1.5 }} />
+              </span>
+            </button>
           </div>
-
-          {/* Mobile hamburger button */}
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={open}
-            className="md:hidden flex flex-col justify-center items-center gap-[5px] w-10 h-10 -mr-2 text-ink"
-          >
-            <span className="block w-6 h-[2px] rounded-full bg-current" />
-            <span className="block w-6 h-[2px] rounded-full bg-current" />
-            <span className="block w-6 h-[2px] rounded-full bg-current" />
-          </button>
         </div>
-      </nav>
+      </header>
 
-      {/*
-        Mobile full-screen overlay menu.
-        Rendered as a SIBLING of <nav> (not a child): the nav uses
-        `will-change: transform` and `backdrop-filter`, both of which would
-        make it the containing block for fixed descendants and trap the
-        overlay inside the 68px nav box. Kept outside, `fixed inset-0`
-        resolves against the viewport. Conditionally mounted so it fully
-        unmounts on close — no faded/stuck remnant over the next page.
-      */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-[99999] flex flex-col animate-fade-up"
-          style={{ backgroundColor: '#1C1628' }}
+          id="mobile-menu"
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site menu"
+          className="lg:hidden fixed inset-0 z-50 flex flex-col bg-v2-surface"
         >
-          {/* Overlay header with close button */}
-          <div className="h-nav px-5 flex items-center justify-between flex-none">
-            <button type="button" onClick={() => go('/')} aria-label="Home" className="flex items-center">
-              <Logo height={34} className="brightness-0 invert" />
-            </button>
+          <div
+            className="flex items-center justify-between gap-6 border-b border-[rgba(28,22,40,0.12)] px-5"
+            style={{ paddingTop: 20, paddingBottom: 20 }}
+          >
+            <Link
+              to="/"
+              className="inline-flex items-center rounded-v2"
+              style={{ padding: '11px 0', margin: '-11px 0' }}
+              aria-label="AxisPoint, home"
+            >
+              <Mark variant="fullcolor" mode="lockup" height={23} />
+            </Link>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => close()}
               aria-label="Close menu"
-              className="w-10 h-10 -mr-2 flex items-center justify-center text-white"
+              className="inline-flex items-center justify-center rounded-v2"
+              style={{ minWidth: 44, minHeight: 44 }}
             >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
 
-          {/* Overlay links */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-8">
-            {LINKS.map((link) => {
-              const active = pathname === link.to;
-              return (
-                <button
+          <nav aria-label="Primary" className="flex-1 overflow-y-auto px-5 py-2">
+            <div className="grid border-t border-[rgba(28,22,40,0.14)]">
+              {LINKS.map((link) => (
+                <NavLink
                   key={link.to}
-                  type="button"
-                  onClick={() => go(link.to)}
-                  className={`w-full text-center py-4 font-serif font-semibold text-[1.7rem] transition-colors ${
-                    active ? 'text-teal' : 'text-white hover:text-teal'
-                  }`}
+                  to={link.to}
+                  className={({ isActive }) =>
+                    [
+                      'flex items-center justify-between gap-4 border-b border-[rgba(28,22,40,0.1)] font-semibold rounded-v2',
+                      isActive ? 'text-v2-teal-support' : 'text-v2-ink',
+                    ].join(' ')
+                  }
+                  style={{ minHeight: 54, fontSize: 15 }}
                 >
                   {link.label}
-                </button>
-              );
-            })}
+                  <span aria-hidden="true" style={{ fontSize: 17, color: 'rgba(28,22,40,0.45)' }}>&#8594;</span>
+                </NavLink>
+              ))}
+            </div>
 
-            <button
-              type="button"
-              onClick={() => go('/contact')}
-              className="mt-6 w-full max-w-xs text-center px-7 py-4 rounded-button bg-teal text-white text-lg font-semibold hover:brightness-110 transition-all"
+            <Link
+              to={CTA.to}
+              className="mt-6 flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
+              style={{ minHeight: 54, fontSize: 15, padding: '0 22px' }}
             >
-              Talk with our team
-            </button>
-          </div>
+              {CTA.label}
+            </Link>
+          </nav>
         </div>
       )}
     </>

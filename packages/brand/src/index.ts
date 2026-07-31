@@ -8,6 +8,10 @@ export * from './fonts';
 export * from './team';
 export * from './types';
 
+/* Approved AxisPoint mark and lockup (design@2026-07-30) */
+export { Mark } from './components/Mark';
+export type { MarkProps, MarkVariant, MarkMode } from './components/Mark';
+
 /* Shared contact form */
 export * from './components/form/ContactForm';
 export * from './components/form/FormProgress';

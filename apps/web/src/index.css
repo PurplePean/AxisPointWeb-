@@ -14,23 +14,68 @@
     max-width: 100%;
   }
 
+  /* Approved V2 surface (design@2026-07-30). #F6F2EA replaces the older cool
+     #F7F5FB, which the approved QR board records as superseded. */
   body {
-    @apply bg-body text-ink font-sans;
+    @apply bg-v2-surface text-v2-ink font-sans;
   }
 
-  /* Heading styles using serif font */
+  /* Figtree is the default for headings as well as body. The approved sources use
+     Figtree for structural headings (600 weight, negative tracking) and reserve
+     Cormorant Garamond for specific editorial display moments, which opt in with
+     `font-serif`. The previous rule made Cormorant the default for every heading,
+     which inverted the approved system. */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply font-serif font-semibold;
+    @apply font-sans font-semibold;
+    letter-spacing: -0.03em;
   }
 
   /* Smooth scroll behavior */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* ── Approved focus treatment ──
+     3px #38285D at a 3px offset, from the accessibility contract in
+     AxisPoint QR Frontend.dc.html (q6/q10). Purple is used rather than the teal
+     ring the intake board specifies for form controls, for two reasons: teal on
+     the warm field is only ~2.3:1, and a teal ring around the teal action button
+     would be invisible. The approved source calls this ring out as readable
+     "against both the warm field and the teal button". The intake pass revisits
+     per-control focus styling for form fields. */
+  :focus-visible {
+    outline: 3px solid #38285d;
+    outline-offset: 3px;
+  }
+}
+
+/* ── Reduced motion ──
+   The approved sources state that under prefers-reduced-motion transitions resolve
+   instantly and nothing slides, scales, or fades in. State changes stay announced,
+   so nothing is lost. This also neutralises the reveal-on-scroll utility below and
+   smooth scrolling, both of which are motion the user has asked not to see. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .rv {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

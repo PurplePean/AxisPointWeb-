@@ -3,16 +3,34 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-07-30 (Code Pass 0)_
+_Last updated: 2026-07-30 (Code Pass 2)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design version** | `design@2026-07-30` (QR Frontend export). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 0 — workflow and source-of-truth reconciliation |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0 (this pass) |
-| **Next pass** | Pass 2 — shared frontend foundations (brand tokens, type scale, Nav, Footer, Layout, favicon) |
+| **Current code pass** | Pass 2 — shared frontend foundations, complete |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations |
+| **Next pass** | Pass 3 — public pages and the six approved routes |
+
+## Temporarily unresolved routes
+
+The shared navigation and footer built in Pass 2 link to the approved routes. Four of them do
+not exist yet and resolve to the 404 page until Pass 3 creates them. This is deliberate: no
+placeholder page or redirect was created to hide the staged dependency.
+
+| Destination | Status |
+|---|---|
+| `/property-management` | **Arrives in Pass 3** |
+| `/asset-management` | **Arrives in Pass 3** |
+| `/investor-services` | **Arrives in Pass 3** |
+| `/partners` | **Arrives in Pass 3** |
+| `/contact?intent=property-management` | Resolves today. The existing contact page still renders the V1 intake, which Pass 5 replaces |
+| `/` | Resolves today. The existing homepage body is untouched and is rebuilt in Pass 3 |
+
+The current `/services` and `/team` routes still exist and still render their V1 bodies. They
+are removed in Pass 3 when the approved routes replace them.
 
 ## Deployment state
 
@@ -70,7 +88,8 @@ V1 leads are migrated (default: no); retention policy.
 
 | Anchor | Commit | Meaning |
 |---|---|---|
-| `v1-stable` | existing tag | Historical bookmark, harmless, retained |
-| `pre-v2-clean-rebuild` | `d194e7e` | **Recommended, not yet created.** The baseline immediately before the clean V2 rebuild. Named this way rather than `v1-pre-rebuild` because the baseline already contains early V2 work, so it is not a pure V1 marker |
+| `v1-stable` | `c237a09` | Historical bookmark, harmless, retained |
+| `pre-v2-clean-rebuild` | `d194e7e` | **Created and pushed 2026-07-30.** Annotated, present on `origin`. The baseline immediately before the clean V2 rebuild. Named this way rather than `v1-pre-rebuild` because the baseline already contains early V2 work, so it is not a pure V1 marker |
 
-Creating and pushing that tag requires separate authorization. It was not created in Pass 0.
+To roll the frontend back to the pre-rebuild baseline, reset to `pre-v2-clean-rebuild`. Nothing
+is deployed from this repository, so a rollback here changes no running system.
