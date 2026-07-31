@@ -2,15 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <!-- No maximum-scale: the approved board requires the layout to hold at 200% text
+         zoom, and pinning the scale would block pinch zoom entirely. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Two families only. The card is deliberately light enough to load on a weak
+         connection in a parking lot. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Figtree:wght@300;400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <meta name="description" content="AxisPoint Partners — Commercial real estate asset management for owners and advisors across Texas." />
-    <meta name="theme-color" content="#38285D" />
+    <meta
+      name="description"
+      content="AxisPoint Partners. Property management first for owners across Texas, with an asset management layer when the property calls for it. Houston, Texas."
+    />
+    <meta name="theme-color" content="#F6F2EA" />
     <title>AxisPoint Partners</title>
   </head>
   <body>
