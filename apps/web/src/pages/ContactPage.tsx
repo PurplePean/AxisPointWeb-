@@ -1,7 +1,22 @@
 import { useSearchParams } from 'react-router-dom';
 import { ContactForm } from '@axispoint/brand';
 import type { Role } from '@axispoint/brand';
-import { useReveal } from '../hooks/useReveal';
+import { useDocumentMeta } from '../lib/meta';
+import { Eyebrow, GUTTER, MEASURE, SECTION } from '../components/PageParts';
+
+/**
+ * Contact, built from the approved shell in `AxisPoint System Studies.dc.html` with
+ * `page="contact"` (design@2026-07-30).
+ *
+ * The shell is V2. The intake inside it is still V1 and is deliberately untouched:
+ * `ContactForm`, its fields, role values, validation, booking, referral behaviour,
+ * payloads, and styling are all unchanged, and the approved V2 intake replaces them
+ * in Code Pass 5. The approved source says as much on its own contact panel:
+ * "Intake structure is being mapped separately."
+ *
+ * The intent-to-role mapping below is carried over exactly as it was. It is the
+ * existing safe routing, not new behaviour, and no backend role was added.
+ */
 
 /**
  * Public-facing intent tokens to internal wire roles. The token is what appears in
@@ -9,87 +24,103 @@ import { useReveal } from '../hooks/useReveal';
  * not listed here (including a missing param) resolves to null, i.e. the normal
  * all-five-roles picker. `?ref=` is untouched: ContactForm reads it independently,
  * so referral attribution survives alongside any intent.
+ *
+ * Note for Code Pass 5: `property-management` currently carries both the
+ * property-management and the PM plus AM proposal routes, because no distinct scope
+ * value exists yet. Pass 5 adds explicit PM plus AM scope capture.
  */
 const INTENT_TO_ROLE: Record<string, Role> = {
   'property-management': 'existing_asset_owner',
   'investor-services': 'investor',
 };
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="uppercase font-semibold" style={{ fontSize: '0.66rem', letterSpacing: '0.15em', color: '#1A8799' }}>
-      {children}
-    </div>
-  );
-}
-
-const STEPS = [
-  'Tell us about the property or relationship',
-  'Choose a call time when applicable',
-  'Speak directly with the AxisPoint team',
-];
-
-/* A real three-step sequence, shown as an ordered list on hairlines. */
-function WhatHappensNext({ className = '' }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="uppercase font-semibold text-sub mb-2" style={{ fontSize: '0.62rem', letterSpacing: '0.13em' }}>What happens next</div>
-      <ol className="border-t border-border">
-        {STEPS.map((step, i) => (
-          <li key={step} className="flex items-baseline gap-4 py-3 border-b border-border">
-            <span className="font-serif text-hint tabular-nums flex-none" style={{ fontSize: '0.9rem', width: '1.4rem' }}>{i + 1}</span>
-            <span className="text-ink" style={{ fontSize: '0.9rem' }}>{step}</span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-5 flex items-center gap-2 text-sub" style={{ fontSize: '0.85rem' }}>
-        <svg className="w-3.5 h-3.5 opacity-50 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        <span>Houston, Texas</span>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════ */
 function ContactPage() {
-  useReveal();
   const [searchParams] = useSearchParams();
   const initialRole = INTENT_TO_ROLE[searchParams.get('intent') ?? ''] ?? null;
 
+  useDocumentMeta({
+    title: 'Request a Management Proposal | AxisPoint Partners',
+    description:
+      'Reach AxisPoint directly. Proposals cover staffing, reporting, the transition plan, and who answers for the property. Houston, Texas, serving owners statewide.',
+    path: '/contact',
+  });
+
   return (
-    <div className="min-h-screen bg-body">
-      <section className="pt-[calc(68px+52px)] max-md:pt-[calc(68px+32px)] pb-24 max-md:pb-16">
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="grid md:grid-cols-[0.82fr_1.18fr] gap-14 max-md:gap-9 items-start">
-
-            {/* Left information rail (heading + explanation always first; the
-                sequence sits here on desktop and moves below the form on mobile). */}
-            <div className="rv md:order-1">
-              <Label>Contact</Label>
-              <h1 className="font-serif font-semibold text-ink mt-4 mb-4" style={{ fontSize: 'clamp(2.1rem,3.6vw,3rem)', lineHeight: 1.03, letterSpacing: '-0.02em' }}>
-                Tell us who you are. We take it from there.
-              </h1>
-              <p className="text-sub leading-[1.7] max-w-md" style={{ fontSize: '1.05rem' }}>
-                A few quick questions so we can follow up with the right context and connect you with
-                the right person.
-              </p>
-              <WhatHappensNext className="hidden md:block mt-10" />
-            </div>
-
-            {/* Form (right column on desktop, second on mobile) */}
-            <div className="rv d1 md:order-2">
-              <ContactForm initialRole={initialRole} />
-            </div>
-
-            {/* Mobile-only sequence, placed after the form so mobile stays heading, form, then this. */}
-            <WhatHappensNext className="md:hidden" />
+    <>
+      {/* ── Hero. The approved contact page carries no photograph and no closing band. ── */}
+      <section className={`${GUTTER} pt-11 lg:pt-[84px] pb-10 lg:pb-16 border-b border-[rgba(28,22,40,0.12)]`}>
+        <div className={MEASURE}>
+          <Eyebrow className="text-v2-teal" style={{ marginBottom: 18 }}>
+            Contact
+          </Eyebrow>
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-20 items-end">
+            <h1
+              className="m-0 font-semibold"
+              style={{ fontSize: 'clamp(36px,4.2vw,58px)', letterSpacing: '-0.045em', lineHeight: 1, textWrap: 'pretty' }}
+            >
+              Request a management proposal
+            </h1>
+            <p
+              className="m-0 text-[rgba(28,22,40,0.7)]"
+              style={{ fontSize: 'clamp(17px,1.3vw,19px)', lineHeight: 1.5, maxWidth: '42ch', textWrap: 'pretty' }}
+            >
+              Reach AxisPoint directly. Proposals cover staffing, reporting, the transition plan,
+              and who answers for the property.
+            </p>
           </div>
         </div>
       </section>
-    </div>
+
+      {/* ── What to send, and the intake ── */}
+      <section className={`${GUTTER} ${SECTION}`}>
+        <div className={`${MEASURE} grid lg:grid-cols-[0.9fr_1fr] gap-8 lg:gap-20 items-start`}>
+          <div>
+            <h2
+              className="m-0 font-semibold border-t-[3px] border-v2-purple pt-4"
+              style={{ fontSize: 'clamp(22px,2.2vw,28px)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
+            >
+              What to send
+            </h2>
+            <p
+              className="mt-[18px] mb-0 text-[rgba(28,22,40,0.66)]"
+              style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)', lineHeight: 1.65, maxWidth: '40ch' }}
+            >
+              The property, the current management situation, and the change you are considering. A
+              partner reads it and responds.
+            </p>
+            <div className="mt-[30px] grid gap-2.5" style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)' }}>
+              <a
+                href="mailto:info@axispoint.llc"
+                className="font-semibold justify-self-start border-b border-[rgba(28,22,40,0.3)] rounded-v2 inline-flex items-center hover:text-v2-teal-support"
+                style={{ paddingBottom: 3, minHeight: 44 }}
+              >
+                info@axispoint.llc
+              </a>
+              <span className="text-[rgba(28,22,40,0.6)]">Houston, Texas. Serving owners statewide.</span>
+            </div>
+          </div>
+
+          {/* The approved panel. The V1 ContactForm is mounted inside it unchanged. */}
+          <div className="border border-[rgba(28,22,40,0.2)] bg-[#FFFCF6] p-[26px_20px] lg:p-10">
+            <Eyebrow className="text-v2-teal">Request a Management Proposal</Eyebrow>
+            <div className="mt-6">
+              {/*
+                `className` is ContactForm's existing integration prop, the same one
+                apps/qr already passes. Nothing inside the form is modified.
+
+                It is supplied here for two reasons. Its default class string begins
+                with `rv`, the V1 scroll-reveal class that sits at opacity 0 until the
+                old useReveal observer added `.in`; that hook belonged to the V1 pages
+                removed in this pass, so the default would leave the form permanently
+                invisible. The default also draws its own white card with a 22px radius
+                and a shadow, which would sit as a second box inside the approved panel.
+              */}
+              <ContactForm initialRole={initialRole} className="w-full" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 

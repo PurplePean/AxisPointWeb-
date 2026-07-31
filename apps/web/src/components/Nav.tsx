@@ -149,11 +149,14 @@ function Nav() {
                 to={link.to}
                 className={({ isActive }) =>
                   [
-                    'font-medium transition-colors hover:text-v2-teal-support rounded-v2',
+                    'inline-flex items-center font-medium transition-colors hover:text-v2-teal-support rounded-v2',
                     isActive ? 'text-v2-ink' : 'text-[rgba(28,22,40,0.72)]',
                   ].join(' ')
                 }
-                style={{ fontSize: 13.5 }}
+                /* The approved link is 13.5px type in a 63px header. Padding grows the
+                   hit area to 44px and an equal negative margin keeps the header at its
+                   approved height, the same technique used on the lockup. */
+                style={{ fontSize: 13.5, minHeight: 44, padding: '12px 0', margin: '-12px 0' }}
               >
                 {link.label}
               </NavLink>
@@ -164,7 +167,7 @@ function Nav() {
             <Link
               to={CTA.to}
               className="inline-flex items-center rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
-              style={{ fontSize: 13, padding: '11px 18px' }}
+              style={{ fontSize: 13, padding: '11px 18px', minHeight: 44 }}
             >
               {CTA.label}
             </Link>

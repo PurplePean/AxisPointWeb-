@@ -1,192 +1,264 @@
 import { Link } from 'react-router-dom';
-import { useReveal } from '../hooks/useReveal';
-import SplitHero from '../components/SplitHero';
+import { useDocumentMeta } from '../lib/meta';
+import { Eyebrow, GUTTER, MEASURE, SECTION, ClosingCta, QuietLink } from '../components/PageParts';
 
 /**
- * HomePage — Property Management focused.
+ * Homepage, built from the approved source `AxisPointPage.dc.html` (design@2026-07-30).
  *
- * The page has one job: convince a commercial property owner that AxisPoint can
- * take responsibility for operating their property, then route them to the right
- * next step. The split hero is the only signature visual; everything below it is
- * deliberately quiet.
+ * Section order is the approved one: hero, the property-management-first strip,
+ * "Why owners call AxisPoint", the strategic layer, the investor path, and the dark
+ * closing band. Attention hierarchy is the point of the page. Property management
+ * carries the hero and the only filled action; asset management is a quieter block
+ * that reads as a layer above the operating work; investor services is a single
+ * ruled strip, deliberately the smallest of the three.
  *
- * Structure: split hero, three property management outcomes, the management vs
- * asset management distinction, and a dark closing CTA that runs straight into the
- * shared footer. The full service specification lives on /services and is linked to
- * rather than repeated here.
- *
- * Attention is budgeted deliberately: management dominates, asset management is the
- * one upsell the page argues for, and investor services is confined to the hero rail
- * and the footer. Direct contact details live in the footer only, so the closing CTA
- * does not repeat them.
- *
- * The management CTA phrase is "Request a management proposal" and must stay identical
- * in the hero (SplitHero) and here. Two different labels on the same path read as two
- * different offers.
+ * The hero photograph is the LCP image, so it loads eagerly and is never lazy.
  */
 
-/* Restrained tracked micro-label. Used sparingly, not on every block.
-   Teal reads as operations, purple as strategy, light for the dark closing field. */
-const LABEL_COLOR = { teal: '#1A8799', purple: '#38285D', light: '#8FD4E0' } as const;
+const HERO_WIDTHS = [640, 1280, 1920, 2560];
+const heroSrcSet = (ext: string) =>
+  HERO_WIDTHS.map((w) => `/images/photos/home-hero-multifamily-lawn-${w}.${ext} ${w}w`).join(', ');
 
-function Label({ children, tone = 'teal' }: { children: React.ReactNode; tone?: keyof typeof LABEL_COLOR }) {
-  return (
-    <div className="uppercase font-semibold" style={{ fontSize: '0.66rem', letterSpacing: '0.15em', color: LABEL_COLOR[tone] }}>
-      {children}
-    </div>
-  );
-}
-
-function Arrow({ size = 13 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-/* The three things an owner actually gets. Not a feature inventory: the scope
-   sheet lives on /services#property-management. */
-const OUTCOMES: [string, string][] = [
-  [
-    'The property keeps moving',
-    'Tenant requests, work orders, vendors, and renewals move on a defined process, not through you.',
-  ],
-  [
-    'The financial side stays current',
-    'Rent pursued, payables handled, books reconciled, and spend measured against budget.',
-  ],
-  [
-    'You keep visibility without the workload',
-    'One monthly owner report, one point of contact, and decisions brought to you with context.',
-  ],
-];
+const HERO_ALT = 'Lawn and building elevation of a multifamily community at sunset';
 
 function HomePage() {
-  useReveal();
+  useDocumentMeta({
+    title: 'AxisPoint Partners | Commercial Property Management in Texas',
+    description:
+      'AxisPoint manages multifamily and retail properties for owners across Texas, from onsite operations and financial controls to vendor performance and owner reporting.',
+    path: '/',
+  });
 
   return (
-    <div className="min-h-screen">
+    <>
+      {/* ── Hero ──
+          One DOM tree serves both approved compositions, so the page has exactly one
+          h1 and one photograph element.
 
-      {/* ── 1. PM-dominant split hero ────────────────────── */}
-      <SplitHero />
+          Desktop: the photograph is an absolutely positioned right-hand panel from 38%
+          across, with the approved cream gradient resolving it into the field, and the
+          action sits beside the quiet link.
 
-      {/* ── 2. What property management actually delivers ─── */}
-      <section className="py-24 max-md:!py-10 bg-card">
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv max-w-2xl mb-12 max-md:mb-7">
-            <Label>Property Management</Label>
-            <h2 className="font-serif font-semibold text-ink mt-4 mb-5" style={{ fontSize: 'clamp(2rem,3.6vw,3rem)', lineHeight: 1.04, letterSpacing: '-0.015em' }}>
-              What changes when we take it on
-            </h2>
-            <p className="text-sub leading-[1.75] max-w-xl" style={{ fontSize: '1.05rem' }}>
-              AxisPoint takes responsibility for the whole operation, so the property runs on a
-              process instead of on your attention.
-            </p>
+          Mobile: copy, action, a 300px band, then the quiet link. The band is moved
+          between them with flex `order` rather than by duplicating markup. `.hero-actions`
+          is `display: contents` on mobile so the action and the quiet link become
+          section-level flex items and can be ordered around the band individually. Only
+          the non-interactive image moves, so reading and tab order still match what is
+          seen. */}
+      <section className="hero relative flex flex-col lg:block lg:min-h-[680px]">
+        <style>{`
+          .hero-copy     { order: 1; }
+          .hero-actions  { display: contents; }
+          .hero-cta      { order: 2; }
+          .hero-figure   { order: 3; }
+          .hero-quiet    { order: 4; }
+          .hero-sig      { order: 5; }
+          @media (min-width: 1024px) {
+            .hero          { display: grid; align-content: center; }
+            /* Reset the mobile ordering. Without this the actions keep order 0 and
+               render above the headline. */
+            .hero-figure   { position: absolute; inset: 0 0 0 38%; order: 0; }
+            .hero-copy     { order: 1; }
+            .hero-actions  { order: 2; display: flex; flex-wrap: wrap; align-items: center;
+                             gap: 14px 26px; position: relative; z-index: 2; }
+            .hero-sig      { order: 3; }
+          }
+        `}</style>
+
+        <div className="hero-figure relative h-[300px] lg:h-auto overflow-hidden">
+          <picture>
+            <source type="image/avif" srcSet={heroSrcSet('avif')} sizes="(min-width: 1024px) 62vw, 100vw" />
+            <source type="image/webp" srcSet={heroSrcSet('webp')} sizes="(min-width: 1024px) 62vw, 100vw" />
+            <img
+              src="/images/photos/home-hero-multifamily-lawn-1920.jpg"
+              srcSet={heroSrcSet('jpg')}
+              sizes="(min-width: 1024px) 62vw, 100vw"
+              alt={HERO_ALT}
+              width={2560}
+              height={1013}
+              className="hero-img block w-full h-full object-cover"
+              loading="eager"
+              decoding="sync"
+              fetchPriority="high"
+            />
+          </picture>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              background:
+                'linear-gradient(90deg, #F6F2EA 0%, rgba(246,242,234,0.9) 12%, rgba(246,242,234,0.46) 24%, rgba(246,242,234,0.1) 38%, rgba(246,242,234,0) 50%)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(246,242,234,0.5) 0%, rgba(246,242,234,0) 22%, rgba(246,242,234,0) 72%, rgba(246,242,234,0.58) 100%)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 lg:hidden"
+            style={{
+              background:
+                'linear-gradient(180deg, #F6F2EA 0%, rgba(246,242,234,0.4) 20%, rgba(246,242,234,0) 46%, rgba(246,242,234,0.32) 84%, #F6F2EA 100%)',
+            }}
+          />
+        </div>
+
+        <div className="hero-copy relative z-[2] px-5 md:px-10 lg:px-[72px] pt-10 lg:pt-[104px] lg:max-w-[940px]">
+          <h1
+            className="m-0 font-semibold"
+            style={{ fontSize: 'clamp(34px, 5.2vw, 76px)', letterSpacing: '-0.045em', lineHeight: 0.98, textWrap: 'pretty', maxWidth: '14ch' }}
+          >
+            One team accountable for how your property runs.
+          </h1>
+          <p
+            className="mt-5 lg:mt-[30px] mb-6 lg:mb-10 text-[rgba(28,22,40,0.7)]"
+            style={{ fontSize: 'clamp(16.5px,1.4vw,19px)', lineHeight: 1.5, maxWidth: '40ch', textWrap: 'pretty' }}
+          >
+            AxisPoint manages multifamily and retail properties for owners across Texas, from
+            onsite operations and financial controls to vendor performance and the reporting
+            ownership reads.
+          </p>
+        </div>
+
+        <div className="hero-actions px-5 md:px-10 lg:px-[72px] lg:max-w-[940px]">
+          <Link
+            to="/contact?intent=property-management"
+            /* `.hero-actions` is `display: contents` on mobile, so its own padding is
+               dropped and the action needs the page gutter itself. */
+            className="hero-cta mx-5 md:mx-10 lg:mx-0 inline-flex items-center justify-center lg:justify-start gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
+            style={{ minHeight: 54, padding: '0 26px', fontSize: 15 }}
+          >
+            Request a Management Proposal <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+          </Link>
+          <div className="hero-quiet px-5 md:px-10 lg:px-0 pt-[22px] lg:pt-0">
+            <QuietLink to="/property-management">See what we take responsibility for</QuietLink>
           </div>
+        </div>
 
-          <div className="rv d1 border-t border-border">
-            {OUTCOMES.map(([title, detail]) => (
-              <div key={title} className="grid md:grid-cols-[300px_1fr] gap-x-12 gap-y-3 py-8 max-md:py-5 border-b border-border">
-                <h3 className="font-serif text-ink" style={{ fontSize: '1.45rem', lineHeight: 1.14 }}>{title}</h3>
-                <p className="text-sub leading-[1.7] max-w-2xl" style={{ fontSize: '0.95rem' }}>{detail}</p>
-              </div>
-            ))}
-          </div>
+        <p className="hero-sig relative z-[2] px-5 md:px-10 lg:px-[72px] mt-2 lg:mt-9 mb-11 lg:mb-0 lg:pb-[104px] font-semibold text-[rgba(28,22,40,0.52)]" style={{ fontSize: 13 }}>
+          Partner-led from Houston by Zachary Russell and Ethaniel Vu.
+        </p>
+      </section>
 
-          <div className="rv d1 mt-8 max-md:mt-6">
-            <Link
-              to="/services#property-management"
-              className="inline-flex items-center gap-2 font-semibold text-ink border-b border-border-dark pb-0.5 hover:border-ink transition-colors"
-              style={{ fontSize: '0.92rem' }}
+      {/* ── Property management first ── */}
+      <div
+        className={`${GUTTER} flex flex-wrap items-baseline gap-x-10 gap-y-2 py-[22px] border-y border-[rgba(28,22,40,0.12)]`}
+      >
+        <Eyebrow className="text-v2-teal">Property management first</Eyebrow>
+        <span className="text-[rgba(28,22,40,0.72)]" style={{ fontSize: 'clamp(15.5px,1.2vw,17px)' }}>
+          Primary focus: multifamily and retail properties across Texas. Headquartered in Houston.
+        </span>
+      </div>
+
+      {/* ── Why owners call AxisPoint ── */}
+      <section className={`${GUTTER} ${SECTION}`}>
+        <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-[22px] lg:gap-20 items-start`}>
+          <h2
+            className="m-0 font-semibold border-t-[3px] border-v2-purple pt-4"
+            style={{ fontSize: 'clamp(22px,2.2vw,30px)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
+          >
+            Why owners call AxisPoint
+          </h2>
+          <div>
+            <p
+              className="m-0 font-serif text-[rgba(28,22,40,0.66)]"
+              style={{ fontSize: 'clamp(23px,2.4vw,31px)', fontWeight: 500, lineHeight: 1.42, textWrap: 'pretty' }}
             >
-              See everything property management covers
-              <Arrow />
-            </Link>
+              Usually one of four situations.{' '}
+              <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
+                The current manager has lost ownership&rsquo;s confidence.
+              </strong>{' '}
+              <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
+                Self-management has become a second job.
+              </strong>{' '}
+              <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
+                A newly acquired property needs an operating team before the first month closes.
+              </strong>{' '}
+              Or{' '}
+              <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
+                the reports arrive on time and still do not explain the property.
+              </strong>
+            </p>
+            <p
+              className="mt-[22px] mb-0 text-[rgba(28,22,40,0.66)]"
+              style={{ fontSize: 'clamp(15.5px,1.2vw,17px)', lineHeight: 1.65, maxWidth: '52ch' }}
+            >
+              The question underneath all four is the same: who is answering for the property today.
+              AxisPoint answers it with one accountable team and two partners close enough to the
+              work to know the property by name.
+            </p>
+            <div className="mt-7">
+              <QuietLink to="/property-management">What AxisPoint takes responsibility for</QuietLink>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── 3. The one distinction the homepage needs to draw. Two jobs, side by
-             side on hairlines. Not a feature inventory and not a card grid: the
-             full comparison belongs on the dedicated pages when they exist. ── */}
-      <section className="py-24 max-md:!py-10 bg-body">
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv max-w-3xl mb-12 max-md:mb-8">
-            <h2 className="font-serif font-semibold text-ink mb-5" style={{ fontSize: 'clamp(1.9rem,3.4vw,2.8rem)', lineHeight: 1.06, letterSpacing: '-0.015em' }}>
-              Management runs the property.{' '}
-              <span className="text-purple">Asset Management directs the investment.</span>
+      {/* ── Strategic layer. Quieter than property management, by design. ── */}
+      <section className={`${GUTTER} ${SECTION}`}>
+        <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-[22px] lg:gap-20 items-start`}>
+          <Eyebrow className="border-t-[3px] border-v2-purple pt-4" style={{ color: 'rgba(56,40,93,0.85)' }}>
+            Strategic layer
+          </Eyebrow>
+          <div>
+            <h2
+              className="m-0 font-serif"
+              style={{ fontSize: 'clamp(35px,4vw,58px)', fontWeight: 500, lineHeight: 1.06, textWrap: 'pretty', maxWidth: '20ch' }}
+            >
+              Property management runs the property. Asset management directs the investment.
             </h2>
-            <p className="text-sub leading-[1.75] max-w-xl" style={{ fontSize: '1rem' }}>
-              Two different jobs. Nearly every engagement starts with management, and asset
-              management is added when the property is part of a larger investment plan.
+            <p
+              className="mt-[22px] mb-0 text-[rgba(28,22,40,0.68)]"
+              style={{ fontSize: 'clamp(15.5px,1.2vw,17px)', lineHeight: 1.65, maxWidth: '52ch' }}
+            >
+              For owners who want an ownership-level view above the operating work, AxisPoint
+              connects what the property is doing to budgets, capital priorities, and hold
+              decisions. Engaged when the property calls for it, not sold as a default.
             </p>
-          </div>
-
-          <div className="rv d1 grid md:grid-cols-2 gap-x-16 gap-y-9 max-md:gap-y-8 items-start">
-            <div className="border-t-2 border-teal pt-6">
-              <Label>Property Management</Label>
-              <p className="text-ink leading-[1.7] mt-3.5 mb-5 max-w-md" style={{ fontSize: '1rem' }}>
-                Operations, tenants, vendors, accounting, and reporting. The work of running the
-                property day to day.
-              </p>
+            <div className="mt-6">
               <Link
-                to="/services#property-management"
-                className="inline-flex items-center gap-2 font-semibold text-teal-dark border-b border-teal/40 pb-0.5 hover:border-teal-dark transition-colors"
-                style={{ fontSize: '0.92rem' }}
+                to="/asset-management"
+                className="inline-flex items-center gap-2 font-semibold text-v2-purple border-b border-[rgba(56,40,93,0.4)] rounded-v2 hover:text-v2-teal-support"
+                style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
               >
-                What management covers
-                <Arrow />
+                Asset Management <span aria-hidden="true">&#8594;</span>
               </Link>
             </div>
-
-            <div className="border-t-2 border-purple pt-6">
-              <Label tone="purple">Property Management + Asset Management</Label>
-              <p className="text-ink leading-[1.7] mt-3.5 mb-5 max-w-md" style={{ fontSize: '1rem' }}>
-                Business plan, capital planning, debt and refinancing, and hold or sell strategy.
-                Direction for the investment the property sits inside.
-              </p>
-              <Link
-                to="/services#asset-management"
-                className="inline-flex items-center gap-2 font-semibold text-purple border-b border-purple/30 pb-0.5 hover:border-purple transition-colors"
-                style={{ fontSize: '0.92rem' }}
-              >
-                How asset management layers on
-                <Arrow />
-              </Link>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ── 4. Closing CTA. One headline, one paragraph, one button, all on the
-             management path. Shares the footer's field so the two read as one
-             closing block. Email and phone live in the footer only, so they are
-             deliberately not repeated here. ── */}
-      <section className="pt-24 pb-16 max-md:!pt-12 max-md:!pb-8" style={{ background: 'linear-gradient(180deg,#191424 0%,#0D0A17 100%)' }}>
-        <div className="max-w-[1160px] mx-auto px-7">
-          <div className="rv max-w-2xl">
-            <Label tone="light">Property Management</Label>
-            <h2 className="font-serif font-semibold text-white mt-4 mb-5" style={{ fontSize: 'clamp(2.1rem,4vw,3.2rem)', lineHeight: 1.02, letterSpacing: '-0.02em' }}>
-              Hand off the day-to-day.
-            </h2>
-            <p className="leading-[1.75] mb-8 max-w-lg" style={{ fontSize: '1.05rem', color: '#B9B4C4' }}>
-              Tell us about the property and what needs to change. We will come back with questions
-              and an honest read on whether there is a fit. Introductory calls are 30 minutes.
-            </p>
-            <Link
-              to="/contact?intent=property-management"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-button bg-teal text-white font-semibold hover:brightness-110 transition-all max-md:w-full"
-            >
-              Request a management proposal
-              <Arrow size={14} />
-            </Link>
-          </div>
+      {/* ── A separate path. One strip, the smallest of the three. ── */}
+      <section className={`${GUTTER} py-[26px] lg:py-[38px] border-y border-[rgba(28,22,40,0.14)]`}>
+        <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-3.5 lg:gap-20 items-center`}>
+          <Eyebrow className="text-v2-magenta">A separate path</Eyebrow>
+          <Link
+            to="/investor-services"
+            className="flex items-center justify-between gap-5 font-medium rounded-v2 hover:text-v2-teal-support"
+            style={{ fontSize: 'clamp(17px,1.4vw,19px)', letterSpacing: '-0.02em', minHeight: 44 }}
+          >
+            <span>
+              Entering commercial real estate without an operating team behind you? Investor
+              Services is the way in.
+            </span>
+            <span aria-hidden="true" className="flex-none" style={{ fontSize: 20 }}>&#8594;</span>
+          </Link>
         </div>
       </section>
 
-    </div>
+      <ClosingCta
+        title="Tell us what the property needs next."
+        body="Send the property, the current management situation, and the change you are considering. A partner reads it and responds."
+        signature="Zachary Russell and Ethaniel Vu, Partners."
+        ctaLabel="Request a Management Proposal"
+        ctaTo="/contact?intent=property-management"
+      />
+    </>
   );
 }
 
