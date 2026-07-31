@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-07-31 (Code Pass 3)_
+_Last updated: 2026-07-31 (Code Pass 4)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design version** | `design@2026-07-30` (QR Frontend export). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 3 — approved V2 public pages and routes, complete |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes |
-| **Next pass** | Pass 4 — localization foundation, then Pass 5 — intake UI and the typed V2 frontend contract |
+| **Current code pass** | Pass 4 — approved V2 intake frontend, complete |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend |
+| **Next pass** | Localization foundation, then the V2 backend contract and GAS project |
 
 ## Routes
 
@@ -34,29 +34,42 @@ to the hosting configuration rather than to client-side routing.
 
 ## Temporary, until later passes
 
-**The Contact page shell is V2 but the intake inside it is still V1.** `ContactForm`, its
-fields, five role values, validation, booking, referral behaviour, payloads, and styling are all
-unchanged. Code Pass 5 replaces it with the approved V2 intake. The approved contact source
-anticipates this: its own panel reads "Intake structure is being mapped separately."
+**The visible frontend is now entirely V2.** The V1 `ContactForm` is no longer mounted in
+`apps/web`. The approved intake lives in `apps/web/src/intake`.
 
-The one integration point used is `ContactForm`'s existing `className` prop, the same one
-`apps/qr` already passes. It is supplied because the component's default class string begins
-with `rv`, the V1 scroll-reveal class that sits at opacity 0 until the old `useReveal` observer
-added `.in`; that hook belonged to the V1 pages this pass removed.
+**Submission is simulated and local.** The intake makes no network request of any kind:
+no GAS, Sheets, Calendar, Contacts, or email. Booking uses clearly labelled local fixture
+availability and a simulated confirmation. The real submission contract arrives with the
+backend pass.
 
-**PM plus AM scope is not captured yet.** The Asset Management call to action routes to
-`/contact?intent=property-management`, the same token property management uses, because no
-distinct scope value exists in the V1 contract and no backend role was added. **Code Pass 5
-adds explicit PM plus AM scope capture.** Current intent mapping, unchanged:
+**Two of the six inventoried pathways are deferred for launch scope.** Referral Partner and
+Submit a Referral are not exposed as gateway choices, their forms are not built, and none of
+their V1 role values were inherited. This is a deliberate deviation from the six-pathway
+inventory in the approved board, not an omission.
 
-| Intent token | V1 role | Used by |
-|---|---|---|
-| `property-management` | `existing_asset_owner` | Homepage, Property Management, Asset Management, Partners |
-| `investor-services` | `investor` | Investor Services |
-| (none) | picker | Footer and general contact links |
+**Asset Management is a scope, not a pathway.** `?intent=asset-management` enters the
+Management Proposal flow with the PM plus AM involvement answer preselected. The frontend
+model records `pathway: 'management-proposal'` with `scope: 'pm-plus-am'`. No backend role
+was added.
 
-**Legal copy review is a prelaunch check.** The footer disclaimer is carried forward unchanged
-and has not been reviewed against the V2 positioning.
+**`?ref=` is held in local draft state only** and is never transmitted. Referral attribution
+remains deferred.
+
+**The V1 form code stays in `packages/brand`** because `apps/qr` still imports `ContactForm`.
+Its retirement waits on the QR pass.
+
+**`/share/:code` is untouched and isolated.** Note for future verification: it hard-redirects
+to `https://axispoint.llc` via `window.location`, so it must not be navigated during local
+browser testing. Verify it by diff instead. Its retirement decision remains separate.
+
+**Legal copy review is a prelaunch check.** The footer disclaimer is carried forward unchanged.
+
+## Open backend decisions carried into the contract work
+
+Listed in `apps/web/src/intake/model.ts` rather than invented: which fields the backend
+requires, how service scope is stored, how the follow-up language is used, real booking
+availability rules, whether the referral code is transmitted, dedupe and merge semantics, and
+the V2 lead identifier format.
 
 ## Deployment state
 

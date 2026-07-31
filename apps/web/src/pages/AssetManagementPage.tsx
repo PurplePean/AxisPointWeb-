@@ -129,7 +129,7 @@ function AssetManagementPage() {
         title="Start with the property, add the layer above it."
         body="Most owners begin with property management. Asset management is added when the investment questions need the same team answering them."
         ctaLabel="Request a Management Proposal"
-        ctaTo="/contact?intent=property-management"
+        ctaTo="/contact?intent=asset-management"
       />
     </>
   );

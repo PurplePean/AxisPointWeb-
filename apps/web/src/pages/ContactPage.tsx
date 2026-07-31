@@ -1,54 +1,108 @@
 import { useSearchParams } from 'react-router-dom';
-import { ContactForm } from '@axispoint/brand';
-import type { Role } from '@axispoint/brand';
 import { useDocumentMeta } from '../lib/meta';
-import { Eyebrow, GUTTER, MEASURE, SECTION } from '../components/PageParts';
+import { Eyebrow, GUTTER, MEASURE } from '../components/PageParts';
+import Intake from '../intake/Intake';
+import { isIntentToken, type IntentToken } from '../intake/model';
 
 /**
  * Contact, built from the approved shell in `AxisPoint System Studies.dc.html` with
- * `page="contact"` (design@2026-07-30).
+ * `page="contact"`, and the approved intake from `AxisPoint Form Design.dc.html`
+ * (design@2026-07-30).
  *
- * The shell is V2. The intake inside it is still V1 and is deliberately untouched:
- * `ContactForm`, its fields, role values, validation, booking, referral behaviour,
- * payloads, and styling are all unchanged, and the approved V2 intake replaces them
- * in Code Pass 5. The approved source says as much on its own contact panel:
- * "Intake structure is being mapped separately."
+ * The page has two framings.
  *
- * The intent-to-role mapping below is carried over exactly as it was. It is the
- * existing safe routing, not new behaviour, and no backend role was added.
+ * Generic `/contact` is the front door for every pathway, so it carries a neutral
+ * heading and the approved gateway. It is deliberately not headed "Request a
+ * management proposal": Investor Services and General Inquiry live here too, and
+ * that heading would misdescribe them. "Request a Management Proposal" remains the
+ * site's primary CTA and the property-management wording, unchanged.
+ *
+ * A preselected-intent route has already been framed by the link that produced it, so
+ * repeating the full introduction only pushes the form down. Those routes get a
+ * compact pathway line instead, and the intake's own title becomes the page h1, which
+ * lifts the first real control substantially higher on both desktop and mobile.
+ *
+ * Submission stays simulated and local in both framings.
  */
 
-/**
- * Public-facing intent tokens to internal wire roles. The token is what appears in
- * the URL and marketing links; the role value is never exposed publicly. Anything
- * not listed here (including a missing param) resolves to null, i.e. the normal
- * all-five-roles picker. `?ref=` is untouched: ContactForm reads it independently,
- * so referral attribution survives alongside any intent.
- *
- * Note for Code Pass 5: `property-management` currently carries both the
- * property-management and the PM plus AM proposal routes, because no distinct scope
- * value exists yet. Pass 5 adds explicit PM plus AM scope capture.
- */
-const INTENT_TO_ROLE: Record<string, Role> = {
-  'property-management': 'existing_asset_owner',
-  'investor-services': 'investor',
+const PATHWAY_INTRO: Record<
+  IntentToken,
+  { label: string; meta: { title: string; description: string } }
+> = {
+  'property-management': {
+    label: 'Property Management',
+    meta: {
+      title: 'Request a Management Proposal | AxisPoint Partners',
+      description:
+        'Send the property, the current management situation, and the change you are considering. A partner reads it and responds.',
+    },
+  },
+  'asset-management': {
+    label: 'Property Management and Asset Management',
+    meta: {
+      title: 'Request a Management Proposal with Asset Management | AxisPoint Partners',
+      description:
+        'Start the management proposal with asset management interest identified, so the operating work and the investment view are handled by the same team.',
+    },
+  },
+  'investor-services': {
+    label: 'Investor Services',
+    meta: {
+      title: 'Investor Services Inquiry | AxisPoint Partners',
+      description:
+        'Tell us where you are in the process. A partner responds with an operating read and what management would look like.',
+    },
+  },
+  general: {
+    label: 'General inquiry',
+    meta: {
+      title: 'Contact AxisPoint | AxisPoint Partners',
+      description: 'Tell us who you are and what you need. We will route it to the right partner.',
+    },
+  },
+};
+
+const GENERIC_META = {
+  title: 'Contact AxisPoint | AxisPoint Partners',
+  description:
+    'Reach AxisPoint directly from Houston, Texas, serving owners statewide. Choose the path that matches your situation, or write to info@axispoint.llc.',
 };
 
 function ContactPage() {
-  const [searchParams] = useSearchParams();
-  const initialRole = INTENT_TO_ROLE[searchParams.get('intent') ?? ''] ?? null;
+  const [params] = useSearchParams();
+  const rawIntent = params.get('intent');
+  const intent = isIntentToken(rawIntent) ? rawIntent : null;
+  const pathway = intent ? PATHWAY_INTRO[intent] : null;
 
-  useDocumentMeta({
-    title: 'Request a Management Proposal | AxisPoint Partners',
-    description:
-      'Reach AxisPoint directly. Proposals cover staffing, reporting, the transition plan, and who answers for the property. Houston, Texas, serving owners statewide.',
-    path: '/contact',
-  });
+  useDocumentMeta({ ...(pathway ? pathway.meta : GENERIC_META), path: '/contact' });
 
+  if (pathway) {
+    /* Compact framing. One line of context, then straight into the intake, whose
+       title carries the h1. */
+    return (
+      <section className={`${GUTTER} pt-7 lg:pt-10 pb-[54px] lg:pb-[100px]`}>
+        <div className={MEASURE}>
+          <div
+            className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+            style={{ marginBottom: 20 }}
+          >
+            <Eyebrow className="text-v2-teal">Contact</Eyebrow>
+            <span className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 14 }}>
+              {pathway.label}
+            </span>
+          </div>
+          <Intake headingLevel={1} />
+        </div>
+      </section>
+    );
+  }
+
+  /* Generic framing: neutral heading suitable for every pathway, then the gateway. */
   return (
     <>
-      {/* ── Hero. The approved contact page carries no photograph and no closing band. ── */}
-      <section className={`${GUTTER} pt-11 lg:pt-[84px] pb-10 lg:pb-16 border-b border-[rgba(28,22,40,0.12)]`}>
+      <section
+        className={`${GUTTER} pt-11 lg:pt-[84px] pb-10 lg:pb-16 border-b border-[rgba(28,22,40,0.12)]`}
+      >
         <div className={MEASURE}>
           <Eyebrow className="text-v2-teal" style={{ marginBottom: 18 }}>
             Contact
@@ -56,68 +110,34 @@ function ContactPage() {
           <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-20 items-end">
             <h1
               className="m-0 font-semibold"
-              style={{ fontSize: 'clamp(36px,4.2vw,58px)', letterSpacing: '-0.045em', lineHeight: 1, textWrap: 'pretty' }}
+              style={{
+                fontSize: 'clamp(36px,4.2vw,58px)',
+                letterSpacing: '-0.045em',
+                lineHeight: 1,
+                textWrap: 'pretty',
+              }}
             >
-              Request a management proposal
+              Contact AxisPoint
             </h1>
             <p
               className="m-0 text-[rgba(28,22,40,0.7)]"
-              style={{ fontSize: 'clamp(17px,1.3vw,19px)', lineHeight: 1.5, maxWidth: '42ch', textWrap: 'pretty' }}
+              style={{
+                fontSize: 'clamp(17px,1.3vw,19px)',
+                lineHeight: 1.5,
+                maxWidth: '42ch',
+                textWrap: 'pretty',
+              }}
             >
-              Reach AxisPoint directly. Proposals cover staffing, reporting, the transition plan,
-              and who answers for the property.
+              Partner-led from Houston, serving owners across Texas. Tell us what you need and a
+              partner reads it.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── What to send, and the intake ── */}
-      <section className={`${GUTTER} ${SECTION}`}>
-        <div className={`${MEASURE} grid lg:grid-cols-[0.9fr_1fr] gap-8 lg:gap-20 items-start`}>
-          <div>
-            <h2
-              className="m-0 font-semibold border-t-[3px] border-v2-purple pt-4"
-              style={{ fontSize: 'clamp(22px,2.2vw,28px)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
-            >
-              What to send
-            </h2>
-            <p
-              className="mt-[18px] mb-0 text-[rgba(28,22,40,0.66)]"
-              style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)', lineHeight: 1.65, maxWidth: '40ch' }}
-            >
-              The property, the current management situation, and the change you are considering. A
-              partner reads it and responds.
-            </p>
-            <div className="mt-[30px] grid gap-2.5" style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)' }}>
-              <a
-                href="mailto:info@axispoint.llc"
-                className="font-semibold justify-self-start border-b border-[rgba(28,22,40,0.3)] rounded-v2 inline-flex items-center hover:text-v2-teal-support"
-                style={{ paddingBottom: 3, minHeight: 44 }}
-              >
-                info@axispoint.llc
-              </a>
-              <span className="text-[rgba(28,22,40,0.6)]">Houston, Texas. Serving owners statewide.</span>
-            </div>
-          </div>
-
-          {/* The approved panel. The V1 ContactForm is mounted inside it unchanged. */}
-          <div className="border border-[rgba(28,22,40,0.2)] bg-[#FFFCF6] p-[26px_20px] lg:p-10">
-            <Eyebrow className="text-v2-teal">Request a Management Proposal</Eyebrow>
-            <div className="mt-6">
-              {/*
-                `className` is ContactForm's existing integration prop, the same one
-                apps/qr already passes. Nothing inside the form is modified.
-
-                It is supplied here for two reasons. Its default class string begins
-                with `rv`, the V1 scroll-reveal class that sits at opacity 0 until the
-                old useReveal observer added `.in`; that hook belonged to the V1 pages
-                removed in this pass, so the default would leave the form permanently
-                invisible. The default also draws its own white card with a 22px radius
-                and a shadow, which would sit as a second box inside the approved panel.
-              */}
-              <ContactForm initialRole={initialRole} className="w-full" />
-            </div>
-          </div>
+      <section className={`${GUTTER} py-[54px] lg:py-[100px]`}>
+        <div className={MEASURE}>
+          <Intake headingLevel={2} />
         </div>
       </section>
     </>
