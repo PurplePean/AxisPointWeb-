@@ -3,14 +3,17 @@ import { useEffect } from 'react';
 import Nav from './Nav';
 import Footer from './Footer';
 
+/**
+ * The shared public-site shell: skip link, header, main landmark, footer.
+ *
+ * The header is no longer fixed, so `main` needs no top offset. The approved
+ * sources show the header participating in normal document flow with a hairline
+ * rule beneath it, not floating over the hero with a blur.
+ */
 function Layout() {
   const { pathname, hash } = useLocation();
 
-  // Scroll to top on route change, unless the destination carries a hash. The
-  // homepage routes into /services#property-management, #asset-management and
-  // #investor-services; without this the unconditional scroll-to-top landed
-  // every one of those links at the top of the page. Targets carry scroll-mt
-  // so they clear the fixed nav.
+  // Scroll to top on route change, unless the destination carries a hash.
   useEffect(() => {
     const target = hash ? document.getElementById(hash.slice(1)) : null;
     if (target) {
@@ -21,11 +24,22 @@ function Layout() {
   }, [pathname, hash]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-v2-surface text-v2-ink">
+      {/* Visible only on focus, and it lands on the main landmark. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:inline-flex focus:items-center focus:rounded-v2 focus:bg-v2-teal focus:px-5 focus:font-bold focus:text-v2-action-label"
+        style={{ minHeight: 44 }}
+      >
+        Skip to main content
+      </a>
+
       <Nav />
-      <main className="flex-1 pt-nav">
+
+      <main id="main" tabIndex={-1} className="flex-1">
         <Outlet />
       </main>
+
       <Footer />
     </div>
   );

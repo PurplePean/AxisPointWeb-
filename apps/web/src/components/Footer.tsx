@@ -1,117 +1,115 @@
 import { Link } from 'react-router-dom';
-import Logo from './Logo';
+import { Mark } from '@axispoint/brand';
 
 /**
- * Shared site footer, used on Home, Services, Partners, and Contact.
+ * Shared site footer, built from the approved source `AxisPointFooter.dc.html`
+ * (design@2026-07-30).
  *
- * On the homepage the closing CTA sits directly above it on the same dark field
- * and resolves into #0D0A17, so the two read as a single closing block. The
- * hairline below the footer's top padding is the only divider between them,
- * and it reads as the page-to-footer boundary on every other route.
+ * Structure and copy are the approved ones: identity with the positioning line,
+ * a Services column, a Firm column, a Houston/contact column, and a legal row.
+ * The field is #141020 with 62% white body text and white column headings, and
+ * the lockup uses the lightened `onDark` purples the approved source specifies
+ * for this field.
  *
- * Deliberately institutional and short: identity, location, navigation, service
- * anchors, the referral pathway, direct contact, legal. It is also the single
- * source of direct contact details on the site, which is why the homepage closing
- * CTA carries a button only. Not a sitemap, and Learn is not part of the launch
- * site and must not be reintroduced here.
+ * Nothing here is invented. No street address, phone number, metric, testimonial,
+ * certification, client relationship, or social link appears, because none appears
+ * in the approved source.
+ *
+ * Two deliberate deviations, both recorded in the pull request:
+ *  1. The approved board's bottom-right "Design concept" label is omitted. It marks
+ *     the artefact as a concept board and would be false on a live site.
+ *  2. The existing legal disclaimer is retained. The approved footer's legal row is
+ *     only the copyright line, but removing real legal language is not a design
+ *     decision this pass is authorised to make. Flagged for owner confirmation.
  */
 
 const SERVICES: [string, string][] = [
-  ['Property Management', '/services#property-management'],
-  ['Asset Management', '/services#asset-management'],
-  ['Investor Services', '/services#investor-services'],
+  ['Property Management', '/property-management'],
+  ['Asset Management', '/asset-management'],
+  ['Investor Services', '/investor-services'],
 ];
 
-/* Submit a Referral points at the bare /contact picker on purpose: no public intent
-   token resolves to the referral role, so the picker is the real entry point. */
-const COMPANY: [string, string][] = [
-  ['Services', '/services'],
-  ['Partners', '/team'],
-  ['Submit a Referral', '/contact'],
+const FIRM: [string, string][] = [
+  ['Partners', '/partners'],
   ['Contact', '/contact'],
 ];
 
+const linkClass =
+  'text-[rgba(255,255,255,0.62)] hover:text-v2-teal transition-colors rounded-v2 inline-flex items-center';
+
 function ColumnHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h5 className="uppercase font-semibold text-hint mb-4" style={{ fontSize: '0.62rem', letterSpacing: '0.14em' }}>
+    <div
+      className="font-bold uppercase text-white"
+      style={{ fontSize: 11, letterSpacing: '0.14em', marginBottom: 14 }}
+    >
       {children}
-    </h5>
+    </div>
   );
 }
 
 function Footer() {
   return (
-    <footer className="bg-[#0D0A17] text-body">
-      <div className="max-w-[1160px] mx-auto px-7">
-
-        {/* Identity, services, navigation, contact. Two columns on mobile so the
-            four blocks do not stack into a long ribbon; the 44px link tap targets
-            from the global mobile stylesheet are preserved either way. */}
-        <div className="border-t border-white/10 pt-14 max-md:pt-8 pb-12 max-md:pb-6 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1.1fr] gap-x-12 max-md:gap-x-6 gap-y-10 max-md:gap-y-7">
-          <div className="max-md:col-span-2">
-            <Logo height={30} className="brightness-0 invert opacity-60" />
-            <p className="text-sm text-hint leading-relaxed mt-5 max-md:mt-4 max-w-xs">
-              Commercial property management for owners across Texas.
-            </p>
-            <p className="text-sm text-hint mt-4 max-md:mt-3">Houston, Texas</p>
+    <footer
+      className="bg-v2-footer text-[rgba(255,255,255,0.62)] px-5 md:px-10 lg:px-[72px] py-[46px] lg:py-[70px]"
+      style={{ fontSize: 14 }}
+    >
+      <div className="max-w-v2 grid grid-cols-2 lg:grid-cols-[1.5fr_0.8fr_0.8fr_1fr] gap-10">
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <Mark variant="onDark" mode="lockup" height={23} />
           </div>
-
-          <div>
-            <ColumnHeading>Services</ColumnHeading>
-            <div className="flex flex-col gap-2.5 max-md:gap-0">
-              {SERVICES.map(([label, to]) => (
-                <Link key={to} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <ColumnHeading>Company</ColumnHeading>
-            <div className="flex flex-col gap-2.5 max-md:gap-0">
-              {COMPANY.map(([label, to]) => (
-                <Link key={label} to={to} className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
-                  {label}
-                </Link>
-              ))}
-              <a
-                href="https://qr.axispoint.llc"
-                className="text-sm text-[#B9B4C4] hover:text-teal transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Digital Card
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <ColumnHeading>Contact</ColumnHeading>
-            <div className="flex flex-col gap-2.5 max-md:gap-0">
-              <a href="mailto:zach@axispoint.llc" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
-                zach@axispoint.llc
-              </a>
-              <a href="tel:+18325802815" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
-                (832) 580-2815
-              </a>
-              <Link to="/contact?intent=property-management" className="text-sm text-[#B9B4C4] hover:text-teal transition-colors">
-                Start a conversation
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom: legal */}
-        <div className="border-t border-white/10 py-8 max-md:!py-5 flex flex-col gap-3">
-          <p className="text-xs text-hint leading-relaxed max-w-3xl">
-            Brokerage and leasing activities are conducted through our licensed partner. AxisPoint
-            Partners does not provide tax or legal advice. This website is intended for
-            informational purposes only and does not constitute an offer to sell securities.
+          <p style={{ margin: 0, lineHeight: 1.6, maxWidth: '34ch' }}>
+            Property management first, with asset management available when the property calls for
+            a strategic layer above it.
           </p>
-          <p className="text-xs text-hint">© 2026 AxisPoint Partners LLC. All rights reserved.</p>
         </div>
 
+        <div>
+          <ColumnHeading>Services</ColumnHeading>
+          <div className="grid gap-2.5">
+            {SERVICES.map(([label, to]) => (
+              <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <ColumnHeading>Firm</ColumnHeading>
+          <div className="grid gap-2.5">
+            {FIRM.map(([label, to]) => (
+              <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <ColumnHeading>Houston, Texas</ColumnHeading>
+          <div className="grid gap-2.5">
+            <a href="mailto:info@axispoint.llc" className={linkClass} style={{ minHeight: 44 }}>
+              info@axispoint.llc
+            </a>
+            <span className="inline-flex items-center" style={{ minHeight: 44 }}>
+              Serving owners statewide across Texas
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="flex flex-wrap justify-between gap-3 border-t border-white/[0.12] text-[rgba(255,255,255,0.45)]"
+        style={{ marginTop: 44, paddingTop: 18, fontSize: 12 }}
+      >
+        <p style={{ margin: 0, maxWidth: '80ch', lineHeight: 1.6 }}>
+          Brokerage and leasing activities are conducted through our licensed partner. AxisPoint
+          Partners does not provide tax or legal advice. This website is intended for informational
+          purposes only and does not constitute an offer to sell securities.
+        </p>
+        <p style={{ margin: 0 }}>&copy; 2026 AxisPoint Partners</p>
       </div>
     </footer>
   );
