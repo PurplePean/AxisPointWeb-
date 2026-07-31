@@ -284,7 +284,12 @@ export const BOOKING_FIXTURE = {
   modes: ['Phone call', 'Video meeting'],
   timezone: 'Central Time, Houston',
   durationLabel: '30 minutes',
-  withLabel: 'Zachary Russell or Ethaniel Vu, Partner',
+  /**
+   * Neutral until a backend actually assigns someone. Naming a specific partner in a
+   * simulated confirmation would be an invented assignment, and no assignment logic
+   * exists. A future backend that returns a real assignee can replace this.
+   */
+  withLabel: 'AxisPoint Partners',
 };
 
 export function isDayUnavailable(day: number): boolean {

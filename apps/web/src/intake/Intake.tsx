@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   APPROVED_LANGUAGES,
@@ -56,6 +57,56 @@ function StepFooterNote({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ── Heading levels ────────────────────────────────────────────────────────── */
+
+/**
+ * Intake screen titles are level-aware, so the page always carries exactly one h1.
+ *
+ * On generic `/contact` the page owns the h1 ("Contact AxisPoint") and intake screens
+ * sit beneath it as h2. On a preselected-intent route there is no generic hero, so the
+ * intake's own screen title becomes the page h1 and its sub-heading moves up with it.
+ *
+ * The level travels by context rather than by prop so that every screen and the
+ * gateway pick it up without threading an argument through each one.
+ */
+export type HeadingLevel = 1 | 2;
+
+const HeadingLevelContext = createContext<HeadingLevel>(2);
+
+function ScreenTitle({
+  className,
+  style,
+  children,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const Tag = useContext(HeadingLevelContext) === 1 ? 'h1' : 'h2';
+  return (
+    <Tag className={className} style={style}>
+      {children}
+    </Tag>
+  );
+}
+
+function SubTitle({
+  className,
+  style,
+  children,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const Tag = useContext(HeadingLevelContext) === 1 ? 'h2' : 'h3';
+  return (
+    <Tag className={className} style={style}>
+      {children}
+    </Tag>
+  );
+}
+
 /* ── Gateway ───────────────────────────────────────────────────────────────── */
 
 function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void }) {
@@ -87,15 +138,26 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
 
   return (
     <div style={{ maxWidth: 1080 }}>
-      <h2
+      <ScreenTitle
         className="m-0 font-semibold"
-        style={{ fontSize: 'clamp(36px,4.4vw,56px)', letterSpacing: '-0.045em', lineHeight: 1.02, textWrap: 'pretty', maxWidth: '20ch' }}
+        style={{
+          fontSize: 'clamp(36px,4.4vw,56px)',
+          letterSpacing: '-0.045em',
+          lineHeight: 1.02,
+          textWrap: 'pretty',
+          maxWidth: '20ch',
+        }}
       >
         What would you like to discuss?
-      </h2>
+      </ScreenTitle>
       <p
         className="text-[rgba(28,22,40,0.68)]"
-        style={{ margin: '20px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.5, maxWidth: '46ch' }}
+        style={{
+          margin: '20px 0 44px',
+          fontSize: 'clamp(16.5px,1.4vw,18px)',
+          lineHeight: 1.5,
+          maxWidth: '46ch',
+        }}
       >
         Choose the path that best matches your situation. You can change it later.
       </p>
@@ -121,7 +183,11 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
             </span>
             <span
               className="block font-semibold"
-              style={{ fontSize: 'clamp(30px,3vw,38px)', letterSpacing: '-0.035em', lineHeight: 1.06 }}
+              style={{
+                fontSize: 'clamp(30px,3vw,38px)',
+                letterSpacing: '-0.035em',
+                lineHeight: 1.06,
+              }}
             >
               Property Owner
             </span>
@@ -136,7 +202,10 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
             className="inline-flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label whitespace-nowrap"
             style={{ minHeight: 54, padding: '0 24px', fontSize: 15 }}
           >
-            Start property details <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+            Start property details{' '}
+            <span aria-hidden="true" style={{ fontSize: 16 }}>
+              &#8594;
+            </span>
           </span>
         </span>
       </button>
@@ -148,13 +217,27 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
             type="button"
             onClick={() => onChoose(a.pathway, a.scope)}
             className="block w-full text-left cursor-pointer bg-transparent hover:border-t-v2-purple"
-            style={{ boxSizing: 'border-box', border: 0, borderTop: '1px solid rgba(28,22,40,0.2)', padding: '20px 0' }}
+            style={{
+              boxSizing: 'border-box',
+              border: 0,
+              borderTop: '1px solid rgba(28,22,40,0.2)',
+              padding: '20px 0',
+            }}
           >
             <span className="flex items-baseline justify-between gap-4">
-              <span className="block font-semibold" style={{ fontSize: 19, letterSpacing: '-0.025em' }}>
+              <span
+                className="block font-semibold"
+                style={{ fontSize: 19, letterSpacing: '-0.025em' }}
+              >
                 {a.title}
               </span>
-              <span aria-hidden="true" className="text-[rgba(28,22,40,0.45)]" style={{ fontSize: 16 }}>&#8594;</span>
+              <span
+                aria-hidden="true"
+                className="text-[rgba(28,22,40,0.45)]"
+                style={{ fontSize: 16 }}
+              >
+                &#8594;
+              </span>
             </span>
             <span
               className="block text-[rgba(28,22,40,0.62)]"
@@ -182,7 +265,15 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
 
 /* ── Progress ledger ───────────────────────────────────────────────────────── */
 
-function Ledger({ step, draft, onChangePath }: { step: 1 | 2 | 3; draft: ReturnType<typeof useIntake>['draft']; onChangePath: () => void }) {
+function Ledger({
+  step,
+  draft,
+  onChangePath,
+}: {
+  step: 1 | 2 | 3;
+  draft: ReturnType<typeof useIntake>['draft'];
+  onChangePath: () => void;
+}) {
   const rows = [
     {
       num: '01',
@@ -192,12 +283,25 @@ function Ledger({ step, draft, onChangePath }: { step: 1 | 2 | 3; draft: ReturnT
         : 'Type, location, and scale',
       done: step > 1,
     },
-    { num: '02', label: 'Situation', value: draft.situation.current || 'What needs to change', done: step > 2 },
-    { num: '03', label: 'Contact', value: draft.contact.fullName || 'How we follow up', done: false },
+    {
+      num: '02',
+      label: 'Situation',
+      value: draft.situation.current || 'What needs to change',
+      done: step > 2,
+    },
+    {
+      num: '03',
+      label: 'Contact',
+      value: draft.contact.fullName || 'How we follow up',
+      done: false,
+    },
   ];
 
   return (
-    <div className="lg:sticky lg:top-8 border-t border-[rgba(28,22,40,0.16)]" style={{ paddingTop: 18 }}>
+    <div
+      className="lg:sticky lg:top-8 border-t border-[rgba(28,22,40,0.16)]"
+      style={{ paddingTop: 18 }}
+    >
       <div className="flex items-baseline justify-between gap-3" style={{ marginBottom: 18 }}>
         <span
           className="font-bold uppercase text-[rgba(28,22,40,0.5)]"
@@ -219,7 +323,11 @@ function Ledger({ step, draft, onChangePath }: { step: 1 | 2 | 3; draft: ReturnT
           const current = step === i + 1;
           const active = current || r.done;
           return (
-            <li key={r.num} className="block lg:pb-[18px]" aria-current={current ? 'step' : undefined}>
+            <li
+              key={r.num}
+              className="block lg:pb-[18px]"
+              aria-current={current ? 'step' : undefined}
+            >
               <div
                 style={{
                   height: 3,
@@ -230,20 +338,33 @@ function Ledger({ step, draft, onChangePath }: { step: 1 | 2 | 3; draft: ReturnT
               <div className="flex items-baseline gap-2">
                 <span
                   className="font-bold"
-                  style={{ fontSize: 11, letterSpacing: '0.1em', color: active ? '#1B8DA2' : 'rgba(28,22,40,0.4)' }}
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: '0.1em',
+                    color: active ? '#1B8DA2' : 'rgba(28,22,40,0.4)',
+                  }}
                 >
                   {r.num}
                 </span>
                 <span
                   className="font-semibold"
-                  style={{ fontSize: 15, letterSpacing: '-0.015em', color: active ? '#1C1628' : 'rgba(28,22,40,0.5)' }}
+                  style={{
+                    fontSize: 15,
+                    letterSpacing: '-0.015em',
+                    color: active ? '#1C1628' : 'rgba(28,22,40,0.5)',
+                  }}
                 >
                   {r.label}
                 </span>
               </div>
               <div
                 className="hidden lg:block"
-                style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: active ? 'rgba(28,22,40,0.62)' : 'rgba(28,22,40,0.42)' }}
+                style={{
+                  marginTop: 5,
+                  fontSize: 13,
+                  lineHeight: 1.45,
+                  color: active ? 'rgba(28,22,40,0.62)' : 'rgba(28,22,40,0.42)',
+                }}
               >
                 {r.value}
               </div>
@@ -257,7 +378,19 @@ function Ledger({ step, draft, onChangePath }: { step: 1 | 2 | 3; draft: ReturnT
 
 /* ── The intake ────────────────────────────────────────────────────────────── */
 
-export default function Intake() {
+/**
+ * `headingLevel` is 2 on generic /contact, where the page hero owns the h1, and 1 on a
+ * preselected-intent route, where the intake's own title is the page h1.
+ */
+export default function Intake({ headingLevel = 2 }: { headingLevel?: HeadingLevel }) {
+  return (
+    <HeadingLevelContext.Provider value={headingLevel}>
+      <IntakeScreens />
+    </HeadingLevelContext.Provider>
+  );
+}
+
+function IntakeScreens() {
   const [params] = useSearchParams();
   const rawIntent = params.get('intent');
   const intent = isIntentToken(rawIntent) ? rawIntent : null;
@@ -272,7 +405,8 @@ export default function Intake() {
   const sending = submitState === 'sending';
   const failed = submitState === 'failed';
   const scale = SCALE_BY_TYPE[draft.property.type] ?? SCALE_FALLBACK;
-  const isPortfolio = draft.property.scope === 'Portfolio' || draft.property.type === 'Mixed portfolio';
+  const isPortfolio =
+    draft.property.scope === 'Portfolio' || draft.property.type === 'Mixed portfolio';
   const firstName = (draft.contact.fullName || 'there').trim().split(' ')[0];
   const emailShown = draft.contact.email || 'your email';
 
@@ -282,8 +416,8 @@ export default function Intake() {
       style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.5, maxWidth: '60ch' }}
     >
       Development preview. Nothing is submitted and no request leaves the browser. Append{' '}
-      <code>?state=loading|invalid|failed|success|booking|scheduled|skipped</code> to inspect a state,
-      or use an email beginning <code>fail@</code> to see the recoverable failure.
+      <code>?state=loading|invalid|failed|success|booking|scheduled|skipped</code> to inspect a
+      state, or use an email beginning <code>fail@</code> to see the recoverable failure.
     </p>
   ) : null;
 
@@ -294,17 +428,28 @@ export default function Intake() {
         <SuccessKicker>
           {draft.pathway === 'management-proposal' ? 'Property details sent' : 'Inquiry sent'}
         </SuccessKicker>
-        <h2
+        <ScreenTitle
           className="m-0 font-serif"
-          style={{ fontSize: 'clamp(38px,4.4vw,58px)', fontWeight: 500, lineHeight: 1.06, textWrap: 'pretty', maxWidth: '20ch' }}
+          style={{
+            fontSize: 'clamp(38px,4.4vw,58px)',
+            fontWeight: 500,
+            lineHeight: 1.06,
+            textWrap: 'pretty',
+            maxWidth: '20ch',
+          }}
         >
           {draft.pathway === 'management-proposal'
             ? `Thank you, ${firstName}. We have your property details.`
             : `Thank you, ${firstName}. Your inquiry is with us.`}
-        </h2>
+        </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
-          style={{ margin: '24px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.55, maxWidth: '48ch' }}
+          style={{
+            margin: '24px 0 44px',
+            fontSize: 'clamp(16.5px,1.4vw,18px)',
+            lineHeight: 1.55,
+            maxWidth: '48ch',
+          }}
         >
           {draft.pathway === 'management-proposal'
             ? 'Zachary or Ethaniel will review the information and follow up directly.'
@@ -324,18 +469,28 @@ export default function Intake() {
           <dl className="grid grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-3.5 m-0">
             {(draft.pathway === 'management-proposal'
               ? [
-                  ['Property', (draft.property.type || 'Not specified') + (draft.property.location ? `, ${draft.property.location}` : '')],
+                  [
+                    'Property',
+                    (draft.property.type || 'Not specified') +
+                      (draft.property.location ? `, ${draft.property.location}` : ''),
+                  ],
                   ['Situation', draft.situation.current || 'Not specified'],
                   ['Involvement', draft.situation.involvement || 'Not specified'],
                 ]
               : [
-                  ['Pathway', draft.pathway === 'investor-services' ? 'Investor Services' : 'General inquiry'],
+                  [
+                    'Pathway',
+                    draft.pathway === 'investor-services' ? 'Investor Services' : 'General inquiry',
+                  ],
                   ['Topic', draft.topic || 'Not specified'],
                   ['Follow-up language', draft.contact.followUpLanguage || 'English'],
                 ]
             ).map(([k, v]) => (
               <div key={k}>
-                <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5, marginBottom: 4 }}>
+                <dt
+                  className="text-[rgba(28,22,40,0.55)]"
+                  style={{ fontSize: 12.5, marginBottom: 4 }}
+                >
                   {k}
                 </dt>
                 <dd className="m-0 font-medium" style={{ fontSize: 16 }}>
@@ -349,7 +504,10 @@ export default function Intake() {
         {draft.pathway === 'management-proposal' ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5">
             <button type="button" onClick={m.goSchedule} style={primaryButton()}>
-              Schedule a 30-Minute Call <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+              Schedule a 30-Minute Call{' '}
+              <span aria-hidden="true" style={{ fontSize: 16 }}>
+                &#8594;
+              </span>
             </button>
             <button
               type="button"
@@ -361,7 +519,11 @@ export default function Intake() {
             </button>
           </div>
         ) : (
-          <Link to="/" className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center" style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}>
+          <Link
+            to="/"
+            className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
+            style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
+          >
             Back to AxisPoint
           </Link>
         )}
@@ -376,15 +538,25 @@ export default function Intake() {
         >
           Optional next step
         </div>
-        <h2
+        <ScreenTitle
           className="m-0 font-semibold"
-          style={{ fontSize: 'clamp(31px,3.6vw,46px)', letterSpacing: '-0.04em', lineHeight: 1.04, maxWidth: '22ch' }}
+          style={{
+            fontSize: 'clamp(31px,3.6vw,46px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.04,
+            maxWidth: '22ch',
+          }}
         >
           Schedule a 30-minute call
-        </h2>
+        </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
-          style={{ margin: '16px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.5, maxWidth: '46ch' }}
+          style={{
+            margin: '16px 0 44px',
+            fontSize: 'clamp(16.5px,1.4vw,18px)',
+            lineHeight: 1.5,
+            maxWidth: '46ch',
+          }}
         >
           Your property details are already sent. Pick a time only if it is useful to you.
         </p>
@@ -394,11 +566,19 @@ export default function Intake() {
             <div className="font-semibold" style={{ fontSize: 14, marginBottom: 12 }}>
               Select a date
             </div>
-            <div style={{ background: '#FFFCF6', border: '1px solid rgba(28,22,40,0.2)', padding: 18 }}>
+            <div
+              style={{ background: '#FFFCF6', border: '1px solid rgba(28,22,40,0.2)', padding: 18 }}
+            >
               <div className="flex items-center justify-between gap-3" style={{ marginBottom: 16 }}>
-                <span className="font-semibold" style={{ fontSize: 15 }}>{BOOKING_FIXTURE.monthLabel}</span>
+                <span className="font-semibold" style={{ fontSize: 15 }}>
+                  {BOOKING_FIXTURE.monthLabel}
+                </span>
               </div>
-              <div className="grid grid-cols-7 gap-1" style={{ marginBottom: 6 }} aria-hidden="true">
+              <div
+                className="grid grid-cols-7 gap-1"
+                style={{ marginBottom: 6 }}
+                aria-hidden="true"
+              >
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                   <span
                     key={`${d}${i}`}
@@ -495,8 +675,14 @@ export default function Intake() {
               />
             </div>
 
-            <div className="border-t border-[rgba(28,22,40,0.2)]" style={{ marginTop: 28, paddingTop: 20 }}>
-              <div className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5, marginBottom: 6 }}>
+            <div
+              className="border-t border-[rgba(28,22,40,0.2)]"
+              style={{ marginTop: 28, paddingTop: 20 }}
+            >
+              <div
+                className="text-[rgba(28,22,40,0.55)]"
+                style={{ fontSize: 12.5, marginBottom: 6 }}
+              >
                 Selected
               </div>
               <div className="font-semibold" style={{ fontSize: 16 }}>
@@ -525,7 +711,10 @@ export default function Intake() {
                   cursor: m.bookingReady ? 'pointer' : 'not-allowed',
                 }}
               >
-                Confirm this time <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+                Confirm this time{' '}
+                <span aria-hidden="true" style={{ fontSize: 16 }}>
+                  &#8594;
+                </span>
               </button>
             </div>
           </div>
@@ -536,12 +725,17 @@ export default function Intake() {
     scheduled: (
       <div style={{ maxWidth: 820 }}>
         <SuccessKicker>Call confirmed</SuccessKicker>
-        <h2
+        <ScreenTitle
           className="m-0 font-serif"
-          style={{ fontSize: 'clamp(38px,4.4vw,58px)', fontWeight: 500, lineHeight: 1.06, maxWidth: '22ch' }}
+          style={{
+            fontSize: 'clamp(38px,4.4vw,58px)',
+            fontWeight: 500,
+            lineHeight: 1.06,
+            maxWidth: '22ch',
+          }}
         >
           You are on the calendar.
-        </h2>
+        </ScreenTitle>
         <dl
           className="border-y border-[rgba(28,22,40,0.2)] grid gap-4 m-0"
           style={{ margin: '30px 0 44px', padding: '22px 0', maxWidth: 560 }}
@@ -556,20 +750,34 @@ export default function Intake() {
             ['With', BOOKING_FIXTURE.withLabel],
           ].map(([k, v]) => (
             <div key={k} className="grid lg:grid-cols-[120px_1fr] gap-y-2 gap-x-6">
-              <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5 }}>{k}</dt>
-              <dd className="m-0 font-medium" style={{ fontSize: 16 }}>{v}</dd>
+              <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5 }}>
+                {k}
+              </dt>
+              <dd className="m-0 font-medium" style={{ fontSize: 16 }}>
+                {v}
+              </dd>
             </div>
           ))}
         </dl>
-        <p className="text-[rgba(28,22,40,0.62)]" style={{ margin: '0 0 30px', fontSize: 14.5, lineHeight: 1.6, maxWidth: '50ch' }}>
+        <p
+          className="text-[rgba(28,22,40,0.62)]"
+          style={{ margin: '0 0 30px', fontSize: 14.5, lineHeight: 1.6, maxWidth: '50ch' }}
+        >
           A calendar invitation goes to {emailShown}. Reply to it if you need to move the time.
         </p>
         {m.isDev && (
-          <p className="text-[rgba(28,22,40,0.55)]" style={{ margin: '0 0 30px', fontSize: 13, maxWidth: '50ch' }}>
+          <p
+            className="text-[rgba(28,22,40,0.55)]"
+            style={{ margin: '0 0 30px', fontSize: 13, maxWidth: '50ch' }}
+          >
             Simulated confirmation. No calendar event was created and no invitation was sent.
           </p>
         )}
-        <Link to="/" className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center" style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}>
+        <Link
+          to="/"
+          className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
+          style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
+        >
           Back to AxisPoint
         </Link>
       </div>
@@ -578,24 +786,41 @@ export default function Intake() {
     skipped: (
       <div style={{ maxWidth: 720 }}>
         <SuccessKicker>Property details sent</SuccessKicker>
-        <h2
+        <ScreenTitle
           className="m-0 font-serif"
-          style={{ fontSize: 'clamp(38px,4.4vw,58px)', fontWeight: 500, lineHeight: 1.06, maxWidth: '20ch' }}
+          style={{
+            fontSize: 'clamp(38px,4.4vw,58px)',
+            fontWeight: 500,
+            lineHeight: 1.06,
+            maxWidth: '20ch',
+          }}
         >
           No call scheduled. Nothing more is needed from you.
-        </h2>
+        </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
-          style={{ margin: '24px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.55, maxWidth: '50ch' }}
+          style={{
+            margin: '24px 0 44px',
+            fontSize: 'clamp(16.5px,1.4vw,18px)',
+            lineHeight: 1.55,
+            maxWidth: '50ch',
+          }}
         >
-          Your property details are with Zachary and Ethaniel, and they will reach you at {emailShown}.
-          You can still pick a time if it becomes useful.
+          Your property details are with Zachary and Ethaniel, and they will reach you at{' '}
+          {emailShown}. You can still pick a time if it becomes useful.
         </p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5">
           <button type="button" onClick={m.goSchedule} style={secondaryButton}>
-            Schedule a 30-Minute Call <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+            Schedule a 30-Minute Call{' '}
+            <span aria-hidden="true" style={{ fontSize: 16 }}>
+              &#8594;
+            </span>
           </button>
-          <Link to="/" className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center" style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}>
+          <Link
+            to="/"
+            className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
+            style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
+          >
             Back to AxisPoint
           </Link>
         </div>
@@ -603,7 +828,13 @@ export default function Intake() {
     ),
   };
 
-  if (closing[screen]) return <>{devBanner}{closing[screen]}</>;
+  if (closing[screen])
+    return (
+      <>
+        {devBanner}
+        {closing[screen]}
+      </>
+    );
 
   /* ── Gateway ── */
   if (screen === 'gateway') {
@@ -627,7 +858,10 @@ export default function Intake() {
             className="flex items-baseline justify-between gap-4 border-t-[3px] border-v2-purple"
             style={{ paddingTop: 14, marginBottom: 22 }}
           >
-            <span className="font-bold uppercase text-[rgba(28,22,40,0.6)]" style={{ fontSize: 11.5, letterSpacing: '0.14em' }}>
+            <span
+              className="font-bold uppercase text-[rgba(28,22,40,0.6)]"
+              style={{ fontSize: 11.5, letterSpacing: '0.14em' }}
+            >
               {copy.kicker}
             </span>
             <button
@@ -639,15 +873,26 @@ export default function Intake() {
               Change path
             </button>
           </div>
-          <h2
+          <ScreenTitle
             className="m-0 font-semibold"
-            style={{ fontSize: 'clamp(31px,3.6vw,46px)', letterSpacing: '-0.04em', lineHeight: 1.04, textWrap: 'pretty', maxWidth: '24ch' }}
+            style={{
+              fontSize: 'clamp(31px,3.6vw,46px)',
+              letterSpacing: '-0.04em',
+              lineHeight: 1.04,
+              textWrap: 'pretty',
+              maxWidth: '24ch',
+            }}
           >
             {copy.title}
-          </h2>
+          </ScreenTitle>
           <p
             className="text-[rgba(28,22,40,0.68)]"
-            style={{ margin: '16px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.5, maxWidth: '50ch' }}
+            style={{
+              margin: '16px 0 44px',
+              fontSize: 'clamp(16.5px,1.4vw,18px)',
+              lineHeight: 1.5,
+              maxWidth: '50ch',
+            }}
           >
             {copy.lead}
           </p>
@@ -663,14 +908,28 @@ export default function Intake() {
           {failed && (
             <Alert innerRef={m.alertRef} assertive>
               <span className="block">
-                <strong style={{ fontWeight: 700 }}>We couldn&rsquo;t send your inquiry.</strong> Your answers are
-                still here. Try again or contact AxisPoint directly.
+                <strong style={{ fontWeight: 700 }}>We couldn&rsquo;t send your inquiry.</strong>{' '}
+                Your answers are still here. Try again or contact AxisPoint directly.
               </span>
-              <span className="flex flex-wrap items-center gap-x-[18px] gap-y-2" style={{ marginTop: 12 }}>
-                <button type="button" onClick={m.retry} style={{ ...primaryButton(), minHeight: 44, padding: '0 16px', fontSize: 14.5 }}>
-                  Try again <span aria-hidden="true" style={{ fontSize: 15 }}>&#8594;</span>
+              <span
+                className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
+                style={{ marginTop: 12 }}
+              >
+                <button
+                  type="button"
+                  onClick={m.retry}
+                  style={{ ...primaryButton(), minHeight: 44, padding: '0 16px', fontSize: 14.5 }}
+                >
+                  Try again{' '}
+                  <span aria-hidden="true" style={{ fontSize: 15 }}>
+                    &#8594;
+                  </span>
                 </button>
-                <a href="mailto:info@axispoint.llc" className="font-semibold border-b border-[rgba(28,22,40,0.35)]" style={{ fontSize: 14.5, paddingBottom: 2 }}>
+                <a
+                  href="mailto:info@axispoint.llc"
+                  className="font-semibold border-b border-[rgba(28,22,40,0.35)]"
+                  style={{ fontSize: 14.5, paddingBottom: 2 }}
+                >
                   info@axispoint.llc
                 </a>
               </span>
@@ -682,15 +941,52 @@ export default function Intake() {
               label={copy.topicLabel}
               value={draft.topic}
               onChange={m.setTopic}
-              options={[{ value: '', text: 'Select one' }, ...copy.topics.map((t) => ({ value: t, text: t }))]}
+              options={[
+                { value: '', text: 'Select one' },
+                ...copy.topics.map((t) => ({ value: t, text: t })),
+              ]}
             />
             <div className="grid sm:grid-cols-2 gap-[26px] lg:gap-x-5 lg:gap-y-8">
-              <TextField label="Full name" value={draft.contact.fullName} onChange={(v) => m.setContact('fullName', v)} autoComplete="name" error={errors.fullName} help={NAME_HELP} />
-              <TextField label="Email" type="email" value={draft.contact.email} onChange={(v) => m.setContact('email', v)} autoComplete="email" error={errors.email} help={EMAIL_HELP} />
-              <TextField label="Phone" type="tel" optional value={draft.contact.phone} onChange={(v) => m.setContact('phone', v)} autoComplete="tel" placeholder="(713) 000 0000" />
-              <TextField label={copy.organizationLabel} optional value={draft.contact.organization} onChange={(v) => m.setContact('organization', v)} autoComplete="organization" />
+              <TextField
+                label="Full name"
+                value={draft.contact.fullName}
+                onChange={(v) => m.setContact('fullName', v)}
+                autoComplete="name"
+                error={errors.fullName}
+                help={NAME_HELP}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={draft.contact.email}
+                onChange={(v) => m.setContact('email', v)}
+                autoComplete="email"
+                error={errors.email}
+                help={EMAIL_HELP}
+              />
+              <TextField
+                label="Phone"
+                type="tel"
+                optional
+                value={draft.contact.phone}
+                onChange={(v) => m.setContact('phone', v)}
+                autoComplete="tel"
+                placeholder="(713) 000 0000"
+              />
+              <TextField
+                label={copy.organizationLabel}
+                optional
+                value={draft.contact.organization}
+                onChange={(v) => m.setContact('organization', v)}
+                autoComplete="organization"
+              />
             </div>
-            <TextArea label={copy.noteLabel} value={draft.situation.notes} onChange={(v) => m.setSituation('notes', v)} placeholder={copy.notePlaceholder} />
+            <TextArea
+              label={copy.noteLabel}
+              value={draft.situation.notes}
+              onChange={(v) => m.setSituation('notes', v)}
+              placeholder={copy.notePlaceholder}
+            />
             <SelectField
               label="Language for follow-up"
               optional
@@ -708,7 +1004,12 @@ export default function Intake() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3.5" style={{ marginTop: 44 }}>
-            <button type="button" onClick={m.submit} disabled={sending} style={primaryButton(sending)}>
+            <button
+              type="button"
+              onClick={m.submit}
+              disabled={sending}
+              style={primaryButton(sending)}
+            >
               {sending ? 'Sending' : copy.action}
             </button>
             <StepFooterNote>No documents needed at this stage.</StepFooterNote>
@@ -722,35 +1023,64 @@ export default function Intake() {
   return (
     <>
       {devBanner}
-      <div className="grid lg:grid-cols-[0.34fr_1fr] gap-8 lg:gap-[72px] items-start" style={{ maxWidth: 1200 }}>
+      <div
+        className="grid lg:grid-cols-[0.34fr_1fr] gap-8 lg:gap-[72px] items-start"
+        style={{ maxWidth: 1200 }}
+      >
         <Ledger step={step} draft={draft} onChangePath={m.backToGateway} />
 
         <div>
           {step === 1 && (
             <div>
-              <h2
+              <ScreenTitle
                 className="m-0 font-semibold"
-                style={{ fontSize: 'clamp(31px,3.6vw,46px)', letterSpacing: '-0.04em', lineHeight: 1.04, textWrap: 'pretty', maxWidth: '22ch' }}
+                style={{
+                  fontSize: 'clamp(31px,3.6vw,46px)',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.04,
+                  textWrap: 'pretty',
+                  maxWidth: '22ch',
+                }}
               >
                 Tell us about your property.
-              </h2>
+              </ScreenTitle>
               <p
                 className="text-[rgba(28,22,40,0.68)]"
-                style={{ margin: '18px 0 44px', fontSize: 'clamp(16.5px,1.4vw,18px)', lineHeight: 1.5, maxWidth: '52ch' }}
+                style={{
+                  margin: '18px 0 44px',
+                  fontSize: 'clamp(16.5px,1.4vw,18px)',
+                  lineHeight: 1.5,
+                  maxWidth: '52ch',
+                }}
               >
-                A few details will help us understand what you own, what needs to change, and whether
-                AxisPoint is the right operating partner.
+                A few details will help us understand what you own, what needs to change, and
+                whether AxisPoint is the right operating partner.
               </p>
-              <h3
+              <SubTitle
                 className="m-0 font-semibold border-t-[3px] border-v2-purple"
-                style={{ fontSize: 'clamp(20px,2vw,24px)', letterSpacing: '-0.03em', paddingTop: 16, marginBottom: 22 }}
+                style={{
+                  fontSize: 'clamp(20px,2vw,24px)',
+                  letterSpacing: '-0.03em',
+                  paddingTop: 16,
+                  marginBottom: 22,
+                }}
               >
                 What are we discussing?
-              </h3>
+              </SubTitle>
 
               <div className="grid gap-[26px] lg:gap-8">
-                <ChoiceGroup legend="Property type" options={PROPERTY_TYPES.map((label) => ({ label }))} value={draft.property.type} onChange={(v) => m.setProperty('type', v)} />
-                <ChoiceGroup legend="Property scope" options={PROPERTY_SCOPES.map((label) => ({ label }))} value={draft.property.scope} onChange={(v) => m.setProperty('scope', v)} />
+                <ChoiceGroup
+                  legend="Property type"
+                  options={PROPERTY_TYPES.map((label) => ({ label }))}
+                  value={draft.property.type}
+                  onChange={(v) => m.setProperty('type', v)}
+                />
+                <ChoiceGroup
+                  legend="Property scope"
+                  options={PROPERTY_SCOPES.map((label) => ({ label }))}
+                  value={draft.property.scope}
+                  onChange={(v) => m.setProperty('scope', v)}
+                />
 
                 <div style={{ maxWidth: 480 }}>
                   <TextField
@@ -764,7 +1094,10 @@ export default function Intake() {
                 </div>
 
                 <div>
-                  <div className={`grid gap-4 ${isPortfolio ? 'lg:grid-cols-[1fr_0.7fr]' : ''}`} style={{ maxWidth: 620 }}>
+                  <div
+                    className={`grid gap-4 ${isPortfolio ? 'lg:grid-cols-[1fr_0.7fr]' : ''}`}
+                    style={{ maxWidth: 620 }}
+                  >
                     <TextField
                       label={scale.label}
                       value={draft.property.scaleUnknown ? '' : draft.property.scale}
@@ -774,7 +1107,13 @@ export default function Intake() {
                       disabled={draft.property.scaleUnknown}
                     />
                     {isPortfolio && (
-                      <TextField label="Number of properties" value={draft.property.propertyCount} onChange={(v) => m.setProperty('propertyCount', v)} placeholder="For example 6" inputMode="numeric" />
+                      <TextField
+                        label="Number of properties"
+                        value={draft.property.propertyCount}
+                        onChange={(v) => m.setProperty('propertyCount', v)}
+                        placeholder="For example 6"
+                        inputMode="numeric"
+                      />
                     )}
                   </div>
                   {/* "Not sure" sits beside the field and disables it rather than hiding it, so the layout does not jump. */}
@@ -792,17 +1131,32 @@ export default function Intake() {
                   >
                     <span
                       aria-hidden="true"
-                      style={{ width: 13, height: 13, border: draft.property.scaleUnknown ? '4px solid #24A5BC' : '1.5px solid rgba(28,22,40,0.4)', background: '#FFFFFF' }}
+                      style={{
+                        width: 13,
+                        height: 13,
+                        border: draft.property.scaleUnknown
+                          ? '4px solid #24A5BC'
+                          : '1.5px solid rgba(28,22,40,0.4)',
+                        background: '#FFFFFF',
+                      }}
                     />
-                    <span className="font-medium" style={{ fontSize: 14.5 }}>Not sure</span>
+                    <span className="font-medium" style={{ fontSize: 14.5 }}>
+                      Not sure
+                    </span>
                   </button>
                   <FieldMessage>{scale.help}</FieldMessage>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3.5" style={{ marginTop: 44 }}>
+              <div
+                className="flex flex-wrap items-center gap-x-5 gap-y-3.5"
+                style={{ marginTop: 44 }}
+              >
                 <button type="button" onClick={m.next} style={primaryButton()}>
-                  Continue <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+                  Continue{' '}
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>
+                    &#8594;
+                  </span>
                 </button>
                 <StepFooterNote>Step 1 of 3. About 60 to 90 seconds in total.</StepFooterNote>
               </div>
@@ -811,22 +1165,41 @@ export default function Intake() {
 
           {step === 2 && (
             <div>
-              <h2
+              <ScreenTitle
                 className="m-0 font-semibold"
-                style={{ fontSize: 'clamp(31px,3.6vw,46px)', letterSpacing: '-0.04em', lineHeight: 1.04, marginBottom: 22 }}
+                style={{
+                  fontSize: 'clamp(31px,3.6vw,46px)',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.04,
+                  marginBottom: 22,
+                }}
               >
                 What needs to change?
-              </h2>
+              </ScreenTitle>
 
               <div className="grid gap-[26px] lg:gap-8">
-                <ChoiceGroup legend="Current situation" options={SITUATION_OPTIONS.map((label) => ({ label }))} value={draft.situation.current} onChange={(v) => m.setSituation('current', v)} />
-                <ChoiceGroup legend="Where would you like AxisPoint involved?" columns={1} options={INVOLVEMENT_OPTIONS} value={draft.situation.involvement} onChange={(v) => m.setSituation('involvement', v)} />
+                <ChoiceGroup
+                  legend="Current situation"
+                  options={SITUATION_OPTIONS.map((label) => ({ label }))}
+                  value={draft.situation.current}
+                  onChange={(v) => m.setSituation('current', v)}
+                />
+                <ChoiceGroup
+                  legend="Where would you like AxisPoint involved?"
+                  columns={1}
+                  options={INVOLVEMENT_OPTIONS}
+                  value={draft.situation.involvement}
+                  onChange={(v) => m.setSituation('involvement', v)}
+                />
                 <div style={{ maxWidth: 420 }}>
                   <SelectField
                     label="Timing"
                     value={draft.situation.timing}
                     onChange={(v) => m.setSituation('timing', v)}
-                    options={[{ value: '', text: 'Select a timeframe' }, ...TIMING_OPTIONS.map((t) => ({ value: t, text: t }))]}
+                    options={[
+                      { value: '', text: 'Select a timeframe' },
+                      ...TIMING_OPTIONS.map((t) => ({ value: t, text: t })),
+                    ]}
                   />
                 </div>
                 <div style={{ maxWidth: 620 }}>
@@ -839,12 +1212,21 @@ export default function Intake() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3.5" style={{ marginTop: 44 }}>
+              <div
+                className="flex flex-wrap items-center gap-x-5 gap-y-3.5"
+                style={{ marginTop: 44 }}
+              >
                 <button type="button" onClick={m.back} style={secondaryButton}>
-                  <span aria-hidden="true" style={{ fontSize: 16 }}>&#8592;</span> Back
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>
+                    &#8592;
+                  </span>{' '}
+                  Back
                 </button>
                 <button type="button" onClick={m.next} style={primaryButton()}>
-                  Continue <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+                  Continue{' '}
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>
+                    &#8594;
+                  </span>
                 </button>
               </div>
             </div>
@@ -852,24 +1234,50 @@ export default function Intake() {
 
           {step === 3 && (
             <div>
-              <h2
+              <ScreenTitle
                 className="m-0 font-semibold"
-                style={{ fontSize: 'clamp(31px,3.6vw,46px)', letterSpacing: '-0.04em', lineHeight: 1.04, marginBottom: 22 }}
+                style={{
+                  fontSize: 'clamp(31px,3.6vw,46px)',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.04,
+                  marginBottom: 22,
+                }}
               >
                 How should we follow up?
-              </h2>
+              </ScreenTitle>
 
               {failed && (
                 <Alert innerRef={m.alertRef} assertive>
                   <span className="block">
-                    <strong style={{ fontWeight: 700 }}>We couldn&rsquo;t send your property details.</strong> Your
-                    answers are still here. Try again or contact AxisPoint directly.
+                    <strong style={{ fontWeight: 700 }}>
+                      We couldn&rsquo;t send your property details.
+                    </strong>{' '}
+                    Your answers are still here. Try again or contact AxisPoint directly.
                   </span>
-                  <span className="flex flex-wrap items-center gap-x-[18px] gap-y-2" style={{ marginTop: 12 }}>
-                    <button type="button" onClick={m.retry} style={{ ...primaryButton(), minHeight: 44, padding: '0 16px', fontSize: 14.5 }}>
-                      Try again <span aria-hidden="true" style={{ fontSize: 15 }}>&#8594;</span>
+                  <span
+                    className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
+                    style={{ marginTop: 12 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={m.retry}
+                      style={{
+                        ...primaryButton(),
+                        minHeight: 44,
+                        padding: '0 16px',
+                        fontSize: 14.5,
+                      }}
+                    >
+                      Try again{' '}
+                      <span aria-hidden="true" style={{ fontSize: 15 }}>
+                        &#8594;
+                      </span>
                     </button>
-                    <a href="mailto:info@axispoint.llc" className="font-semibold border-b border-[rgba(28,22,40,0.35)]" style={{ fontSize: 14.5, paddingBottom: 2 }}>
+                    <a
+                      href="mailto:info@axispoint.llc"
+                      className="font-semibold border-b border-[rgba(28,22,40,0.35)]"
+                      style={{ fontSize: 14.5, paddingBottom: 2 }}
+                    >
                       info@axispoint.llc
                     </a>
                   </span>
@@ -878,17 +1286,53 @@ export default function Intake() {
               {Object.keys(errors).length > 0 && (
                 <Alert innerRef={failed ? undefined : m.alertRef} assertive>
                   <strong style={{ fontWeight: 700 }}>
-                    {Object.keys(errors).length === 1 ? 'One field needs attention.' : 'Two fields need attention.'}
+                    {Object.keys(errors).length === 1
+                      ? 'One field needs attention.'
+                      : 'Two fields need attention.'}
                   </strong>{' '}
-                  Add your full name and an email address we can reply to, then send the property details again.
+                  Add your full name and an email address we can reply to, then send the property
+                  details again.
                 </Alert>
               )}
 
-              <div className="grid sm:grid-cols-2 gap-[26px] lg:gap-x-5 lg:gap-y-8" style={{ maxWidth: 620 }}>
-                <TextField label="Full name" value={draft.contact.fullName} onChange={(v) => m.setContact('fullName', v)} autoComplete="name" error={errors.fullName} help={NAME_HELP} />
-                <TextField label="Email" type="email" value={draft.contact.email} onChange={(v) => m.setContact('email', v)} autoComplete="email" error={errors.email} help={EMAIL_HELP} />
-                <TextField label="Phone" type="tel" optional value={draft.contact.phone} onChange={(v) => m.setContact('phone', v)} autoComplete="tel" placeholder="(713) 000 0000" help="Add a number if you prefer a direct call." />
-                <TextField label="Company or ownership group" optional value={draft.contact.organization} onChange={(v) => m.setContact('organization', v)} autoComplete="organization" />
+              <div
+                className="grid sm:grid-cols-2 gap-[26px] lg:gap-x-5 lg:gap-y-8"
+                style={{ maxWidth: 620 }}
+              >
+                <TextField
+                  label="Full name"
+                  value={draft.contact.fullName}
+                  onChange={(v) => m.setContact('fullName', v)}
+                  autoComplete="name"
+                  error={errors.fullName}
+                  help={NAME_HELP}
+                />
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={draft.contact.email}
+                  onChange={(v) => m.setContact('email', v)}
+                  autoComplete="email"
+                  error={errors.email}
+                  help={EMAIL_HELP}
+                />
+                <TextField
+                  label="Phone"
+                  type="tel"
+                  optional
+                  value={draft.contact.phone}
+                  onChange={(v) => m.setContact('phone', v)}
+                  autoComplete="tel"
+                  placeholder="(713) 000 0000"
+                  help="Add a number if you prefer a direct call."
+                />
+                <TextField
+                  label="Company or ownership group"
+                  optional
+                  value={draft.contact.organization}
+                  onChange={(v) => m.setContact('organization', v)}
+                  autoComplete="organization"
+                />
                 <SelectField
                   label="Language for follow-up"
                   optional
@@ -908,14 +1352,23 @@ export default function Intake() {
                 className="text-[rgba(28,22,40,0.62)]"
                 style={{ margin: '22px 0 44px', fontSize: 14.5, lineHeight: 1.6, maxWidth: '52ch' }}
               >
-                AxisPoint will use this information to review your inquiry and follow up with you directly.
+                AxisPoint will use this information to review your inquiry and follow up with you
+                directly.
               </p>
 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3.5">
                 <button type="button" onClick={m.back} style={secondaryButton}>
-                  <span aria-hidden="true" style={{ fontSize: 16 }}>&#8592;</span> Back
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>
+                    &#8592;
+                  </span>{' '}
+                  Back
                 </button>
-                <button type="button" onClick={m.submit} disabled={sending} style={primaryButton(sending)}>
+                <button
+                  type="button"
+                  onClick={m.submit}
+                  disabled={sending}
+                  style={primaryButton(sending)}
+                >
                   {sending ? 'Sending' : 'Send Property Details'}
                 </button>
               </div>
