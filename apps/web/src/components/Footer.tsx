@@ -51,6 +51,7 @@ function ColumnHeading({ children }: { children: React.ReactNode }) {
 function Footer() {
   return (
     <footer
+      id="site-footer"
       className="bg-v2-footer text-[rgba(255,255,255,0.62)] px-5 md:px-10 lg:px-[72px] py-[46px] lg:py-[70px]"
       style={{ fontSize: 14 }}
     >

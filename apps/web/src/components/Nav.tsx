@@ -129,6 +129,10 @@ function Nav() {
           <Link
             to="/"
             className="inline-flex items-center rounded-v2"
+            /* The approved lockup is 23px, which is well under a 44px touch target.
+               Vertical padding grows the hit area and an equal negative margin pulls
+               the layout back, so the header keeps its approved 63px height. */
+            style={{ padding: '11px 0', margin: '-11px 0' }}
             aria-label="AxisPoint, home"
           >
             <Mark variant="fullcolor" mode="lockup" height={23} />
@@ -207,7 +211,12 @@ function Nav() {
             className="flex items-center justify-between gap-6 border-b border-[rgba(28,22,40,0.12)] px-5"
             style={{ paddingTop: 20, paddingBottom: 20 }}
           >
-            <Link to="/" className="inline-flex items-center rounded-v2" aria-label="AxisPoint, home">
+            <Link
+              to="/"
+              className="inline-flex items-center rounded-v2"
+              style={{ padding: '11px 0', margin: '-11px 0' }}
+              aria-label="AxisPoint, home"
+            >
               <Mark variant="fullcolor" mode="lockup" height={23} />
             </Link>
             <button
