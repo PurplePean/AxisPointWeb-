@@ -1,6 +1,7 @@
 # Approved V2 design sources
 
-**Approved design version: `design@2026-07-30`**
+**Approved design versions: `design@2026-07-30` (site, intake, QR) and
+`design@2026-07-31` (global language selector)**
 
 This file is the bridge between the approved design package and the code. It records which
 design file is authoritative for which surface, which files are required dependencies, which
@@ -42,6 +43,48 @@ recorded. The three earlier folders are historical record with no unique content
 | QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Seven values remain unresolved, see below |
 | Communications and email (Pass 2A) | `AxisPoint Communications System.dc.html` | Approved. Belongs to a later email/backend pass |
 | Letterhead and Management Proposal document (Pass 2B) | `AxisPoint Proposal and Letterhead System.dc.html` | Approved for future use. **Implementation deferred, not required for launch** |
+
+### Language selector, `design@2026-07-31`
+
+| | |
+|---|---|
+| **Package** | `AxisPoint-Design-Language-Selector-Approved-2026-07-31/` |
+| **Authoritative** | `AxisPoint Language Selector.dc.html` |
+| **Index** | `AxisPoint Design Index.dc.html`, updated in the same export |
+| **Cumulative** | Verified: every earlier file is byte-identical, only the Index changed and one file was added |
+
+Approved timing and geometry, implemented in `apps/web/src/components/LanguageSelector.tsx`:
+
+- 1500ms hold, 130ms opacity crossfade, one word at a time
+- No slide, marquee, ticker, bounce, or typewriter motion
+- Fixed 82px decorative slot on desktop, 62px in the compact trigger, so the navigation never moves
+- 1px by 16px hairline divider between decoration and state
+- Active locale in its own slot, never animated
+- Menu capped near 340px with roughly six rows visible, 54px desktop rows and 60px mobile rows
+- Compact mobile trigger holds 152px and shows the two-letter locale code
+- Pause on hover, on keyboard focus, and while open; selection stops the cycle for the session
+- Reduced motion is static
+
+**Registry rules, decided by the board and implemented in `apps/web/src/i18n/locales.ts`:**
+
+- The cycle and the menu derive from **one** registry. There is no second list, and the nine
+  locales are never hard-coded into the animation.
+- A locale participates only when it is explicitly `enabled` **and** translation `reviewed`.
+- With fewer than two available locales the trigger stays static. That is production today.
+- An unavailable or unknown locale falls back to English.
+- Unavailable translations are never advertised.
+- No routing, persistence, `hreflang`, or backend behaviour is defined by this component.
+
+**Fonts.** Figtree remains the brand utility typeface. The Noto script families are
+language-support fonts, not a third brand face, and Simplified and Traditional Chinese use
+distinct families that are never substituted for each other. Devanagari, Gujarati, Gurmukhi,
+and Arabic script carry a 1.55 line height. **No script font is added to the production
+document**: only English ships, so the production font payload is unchanged, and the
+development preview loads the Noto families on demand. Add a family to the document head only
+when its locale is approved for launch, and record the weight then.
+
+**Still required before any locale launches:** a professional translation pass, and
+native-reader verification of the CJK and Indic words, which the board calls out explicitly.
 
 ### Route map
 

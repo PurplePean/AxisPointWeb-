@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Mark } from '@axispoint/brand';
+import LanguageSelector from './LanguageSelector';
+import { DEFAULT_LOCALE, type LocaleCode } from '../i18n/locales';
 
 /**
  * Shared site header, built from the approved V2 sources (design@2026-07-30):
@@ -28,29 +30,20 @@ const LINKS: { to: string; label: string }[] = [
 const CTA = { to: '/contact?intent=property-management', label: 'Request a Management Proposal' };
 
 /**
- * The approved closed-state English control, rendered as an honest static label.
+ * The static English label that stood here through Passes 2 to 5 is replaced by the
+ * approved two-slot selector (design@2026-07-31). The control is real now; the site
+ * is still English-only, and selecting a language changes the control alone.
  *
- * The full selector (open/hover/focus states, nine locales, routing, persistence)
- * belongs to the localization pass. Rendering a button that opens nothing, or an
- * empty menu, would be fabricated behaviour, so this is deliberately not
- * interactive: no button element, no aria-haspopup, no tab stop. It reports the
- * current language and nothing more.
+ * Locale state is held here so the selector stays controlled, with an explicit change
+ * callback the later localization pass can take over. Nothing is persisted, no URL is
+ * rewritten, and no page copy changes.
  */
-function CurrentLanguage({ compact = false }: { compact?: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center gap-2 rounded-v2 border border-[rgba(28,22,40,0.22)] font-semibold text-v2-ink"
-      style={{ minHeight: 40, padding: compact ? '0 10px' : '0 12px', fontSize: 13 }}
-    >
-      <span className="sr-only">Current language: </span>
-      English
-      <span aria-hidden="true" style={{ color: 'rgba(28,22,40,0.5)' }}>&#9662;</span>
-    </span>
-  );
-}
 
 function Nav() {
   const [open, setOpen] = useState(false);
+  /* Controlled locale, held here and not persisted. The localization pass takes over
+     this state and decides what a change actually does. */
+  const [locale, setLocale] = useState<LocaleCode>(DEFAULT_LOCALE);
   const { pathname, search } = useLocation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -92,7 +85,7 @@ function Nav() {
       const panel = panelRef.current;
       if (!panel) return;
       const focusable = panel.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -162,7 +155,7 @@ function Nav() {
               </NavLink>
             ))}
 
-            <CurrentLanguage />
+            <LanguageSelector value={locale} onChange={setLocale} />
 
             <Link
               to={CTA.to}
@@ -176,7 +169,7 @@ function Nav() {
           {/* Mobile control cluster: the approved static language label, the word
               Menu, and the approved two-bar treatment. */}
           <div className="flex lg:hidden items-center gap-3.5">
-            <CurrentLanguage compact />
+            <LanguageSelector value={locale} onChange={setLocale} compact />
             <button
               ref={triggerRef}
               type="button"
@@ -229,7 +222,16 @@ function Nav() {
               className="inline-flex items-center justify-center rounded-v2"
               style={{ minWidth: 44, minHeight: 44 }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -251,7 +253,9 @@ function Nav() {
                   style={{ minHeight: 54, fontSize: 15 }}
                 >
                   {link.label}
-                  <span aria-hidden="true" style={{ fontSize: 17, color: 'rgba(28,22,40,0.45)' }}>&#8594;</span>
+                  <span aria-hidden="true" style={{ fontSize: 17, color: 'rgba(28,22,40,0.45)' }}>
+                    &#8594;
+                  </span>
                 </NavLink>
               ))}
             </div>
