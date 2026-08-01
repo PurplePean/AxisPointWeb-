@@ -128,15 +128,25 @@ export default function LanguageSelector({
   const word = (available[idx] ?? active).nativeWord;
   const wordLocale = available[idx] ?? active;
 
-  /* ── Selection ── */
+  /* ── Selection ──
+     The decorative slot moves to the chosen locale's own word before it freezes, so
+     the two slots agree: "زبان | اردو", never the previously cycling word beside a
+     different active locale. This mirrors the approved board's `pick`, which sets the
+     cycle index and visibility alongside the selection.
+
+     `chosen` keeps `frozen` true from here on, so reopening and closing the menu
+     never restarts the cycle. */
   const select = useCallback(
     (code: LocaleCode) => {
+      const at = available.findIndex((l) => l.code === code);
+      if (at >= 0) setIdx(at);
+      setVisible(true);
       setChosen(code);
       setOpen(false);
       onChange?.(code);
       triggerRef.current?.focus();
     },
-    [onChange]
+    [available, onChange]
   );
 
   const openMenu = useCallback(() => {
