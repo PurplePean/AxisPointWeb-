@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-07-31 (Code Pass 5)_
+_Last updated: 2026-07-31 (Code Pass 6)_
 
 ## Where things stand
 
 | | |
 |---|---|
-| **Approved design version** | `design@2026-07-30` (QR Frontend export). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 5 — approved V2 QR frontend, complete |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend |
-| **Next pass** | Localization foundation, then the V2 backend contract and GAS project |
+| **Approved design versions** | `design@2026-07-30` (site, intake, QR) and `design@2026-07-31` (language selector). See [`design-sources.md`](design-sources.md) |
+| **Current code pass** | Pass 6 — approved global language selector component, complete |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component |
+| **Next pass** | Translation and locale routing, then the V2 backend contract and GAS project |
 
 ## Routes
 
@@ -84,6 +84,29 @@ Filling in two fields per partner is the only change required afterwards.
 are inside `packages/brand` itself. The code is retained deliberately: deleting it was not
 required for this pass, and it is the reference for behaviours the V2 backend contract has not
 yet replaced. Retire it in a dedicated cleanup once the backend work is settled.
+
+**The language selector is a real control, but the site is still English-only.** The approved
+two-slot selector replaced the static English label in the header. Selecting a language changes
+the control alone: nothing is translated, no route changes, no choice is persisted, and no
+locale is stored with a submission.
+
+**Production shows English only, and the trigger is static.** English is the one locale that is
+both enabled and translation-reviewed, and the approved rule is that the trigger does not cycle
+with fewer than two available locales. The other eight sit in the registry as
+`enabled: false, review: 'unreviewed'`, so they are never advertised.
+
+**Remaining dependencies before any second locale launches:**
+
+1. A professional translation pass per locale. Nothing here is reviewed copy.
+2. Native-reader verification of the CJK and Indic words, which the approved board requires
+   explicitly, including whether the 1.5s hold reads as a flicker in any script.
+3. A decision on which locales launch and in what order.
+4. Adding that script's font family to the production document, and recording its weight. No
+   script font ships today; the development preview loads them on demand.
+5. Locale routing, persistence, `hreflang`, and storing the locale with a submission. All out
+   of scope for the component pass.
+
+Enabling a locale is then a two-field change in `apps/web/src/i18n/locales.ts`.
 
 **Legal copy review is a prelaunch check.** The footer disclaimer is carried forward unchanged.
 
