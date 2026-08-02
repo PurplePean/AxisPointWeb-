@@ -1,0 +1,12 @@
+# ALLOWLIST, not a blocklist. Written before any Node-only file exists.
+#
+# Apps Script runs every pushed file's top-level statements in one shared global
+# scope on every invocation. A pushed Node test file opens with require(), which
+# GAS has no definition for, and every doPost and every trigger then throws. That
+# is a full backend outage caused entirely by files that are not source.
+#
+# Deny everything, then re-allow only the deployable set.
+**/**
+
+!appsscript.json
+!src/*.js

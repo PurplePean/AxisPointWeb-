@@ -1,0 +1,99 @@
+# scripts/gas-v2 — V2 Apps Script backend
+
+The clean-slate V2 backend. It shares nothing with `scripts/gas` (V1), which stays in
+place, untouched, and still deployed.
+
+**Nothing here is connected to anything.** There is no `.clasp.json`, no Apps Script
+project, no Sheet, no trigger, no deployment, and neither frontend points at it. The
+code is written, tested, and reviewable; bringing it up is a separate, separately
+authorized operation. See [`docs/deployment.md`](../../docs/deployment.md).
+
+## What is here
+
+```
+.claspignore       allowlist: deny everything, re-allow appsscript.json and src/*.js
+appsscript.json    manifest (V8, project time zone, OAuth scopes)
+src/               the deployable source, one shared global scope
+tests/             Node test suite; never pushed
+```
+
+### src, in dependency order
+
+| File | Responsibility |
+|---|---|
+| `Tokens.js` | The stable snake_case wire vocabulary for `schemaVersion` 1. |
+| `Util.js` | Ids, ISO time, normalization, redaction. No Google service. |
+| `Config.js` | Script Property names, worker bounds, business hours, SLA targets. |
+| `Contract.js` | Envelope parsing and validation. The boundary. |
+| `Attribution.js` | Attribution flattening, partner-slug resolution, locale records. |
+| `Domain.js` | Lead and Contact builders, merge rules, row projection. |
+| `Matching.js` | Identity suggestions. Suggests; never merges. |
+| `Sla.js` | Business-hours due-time arithmetic. |
+| `Spam.js` | Screening. Flags; never discards. |
+| `Routing.js` | Who gets notified, and who provisionally owns the lead. |
+| `Worker.js` | The bounded at-least-once work-queue state machine. |
+| `Notifications.js` | Acknowledgement and partner-notification handlers. |
+| `Booking.js` | The post-submission booking command and its queued calendar write. |
+| `Intake.js` | Submission orchestration: store, then queue, then return. |
+| `Ports.js` | Every outside-world interface, plus the not-configured stubs. |
+| `SheetRepository.js` | Sheet-backed repositories, resolved by header name. |
+| `GoogleServices.js` | The only file that calls a Google service. |
+| `Runtime.js` | Production wiring. |
+| `Entry.js` | `doPost`, `doGet`, `runWorkerTrigger`, response shaping. |
+
+## The rules this project is built on
+
+**`.claspignore` is an allowlist, and that is load-bearing.** Apps Script evaluates
+every pushed file's top-level statements in one shared global scope on every
+invocation. A pushed Node test file opens with `require()`, which GAS has no
+definition for, and from that moment every `doPost` and every trigger throws. That is
+a full backend outage caused by files that are not source. So the file denies `**/**`
+first and re-allows only `appsscript.json` and `src/*.js`. `tests/deployability.test.js`
+asserts it stays that way.
+
+**No file reads another file's value at load time.** Apps Script decides evaluation
+order, not this repository, so a top-level `var X = SOME_CONSTANT_FROM_ANOTHER_FILE`
+throws for every request if the order is not what the author assumed. Cross-file
+values are read inside function bodies. A test loads `src` in reverse order to prove it.
+
+**Google services live behind ports.** `GoogleServices.js` is the only file that names
+`SpreadsheetApp`, `MailApp`, `CalendarApp`, `LockService`, or `PropertiesService`
+(`Entry.js` additionally uses `ContentService` to shape its response). Everything else
+is plain JavaScript, which is why the suite runs the real decision code under Node
+rather than a parallel reimplementation of it.
+
+**No environment value is in this directory.** No project id, Sheet id, deployment id,
+calendar id, endpoint, or address. Configuration is read from Script Properties by
+name at call time, and a missing property fails closed with a stable code rather than
+falling back to some other environment's resource.
+
+**Storage happens before side effects.** The durable record is the only artifact that
+cannot be reconstructed. Email and calendar work is queued and executed by a trigger,
+so a mail quota failure costs a delayed notification, not a lost lead.
+
+**Delivery is bounded at-least-once, and no stronger claim is made.** A handler can run
+twice: the side effect happens, the process dies before the item is marked done, and
+the next cycle retries. Attempts are bounded (`WORKER_MAX_ATTEMPTS`), so a permanently
+failing item stops instead of emailing forever. `worker.test.js` contains a test that
+deliberately demonstrates the duplicate, so nobody later upgrades the wording.
+
+## What is deliberately not implemented
+
+| Not implemented | Why | What the code does instead |
+|---|---|---|
+| Email templates | The approved email design is separate work. Interim wording would put unapproved copy in front of real people. | `deps.templates` is a port wired to `notImplementedTemplates()`, which fails **permanently**. The lead is stored; `ackEmailStatus` shows the failure. |
+| Google People sync | Scoped to a later pass. | `contactSyncStatus` is `not_configured`. No contacts scope is requested in the manifest. |
+| Frontend wiring | Neither app has a submission surface pointed here. | Nothing in `apps/` changed. |
+| Referral resolution | `refToken` is carried but inert by contract. | Stored verbatim; never resolved, linked, or reported on. |
+
+## Running the tests
+
+```
+pnpm test:gas-v2
+```
+
+Node's built-in runner, no dependencies. The suite loads every `src/*.js` file into
+one VM context supplied with only the globals Apps Script provides, so a Node
+dependency creeping into `src` fails here instead of after a push.
+
+See [`tests/README.md`](tests/README.md) for what each suite guards.
