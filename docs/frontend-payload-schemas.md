@@ -3,6 +3,10 @@
 The exact JSON POSTed to the GAS endpoint for each lead type. Verified against
 `packages/brand/src/components/form/utils.ts` and `types.ts`.
 
+**This describes the V1 payloads that the deployed V1 backend accepts.** The V2 wire
+contract is a different, versioned envelope documented in
+[`backend-v2-contract.md`](backend-v2-contract.md). No frontend sends it yet.
+
 Both apps render the **same** shared `<ContactForm>` from `@axispoint/brand`,
 which reads `VITE_FORM_ENDPOINT` and `fetch`-POSTs the payload:
 

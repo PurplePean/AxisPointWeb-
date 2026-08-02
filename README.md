@@ -56,7 +56,8 @@ This is a pnpm monorepo:
 - **apps/qr** — QR digital card microsite (qr.axispoint.llc)
 - **packages/brand** — shared brand tokens, team data, types, and the shared contact form
 - **content/** — markdown scaffold, currently empty
-- **scripts/gas/** — Google Apps Script backend (`Code.gs`) and email template mirrors
+- **scripts/gas/** — V1 Google Apps Script backend (`Code.gs`) and email template mirrors. **Deployed**
+- **scripts/gas-v2/** — V2 Apps Script backend, written and tested but connected to nothing: no project, Sheet, trigger, or deployment
 - **scripts/hosting/** — cPanel and Namecheap automation for the hosting stack
 - **docs/** — verified source of truth documentation
 
@@ -70,7 +71,8 @@ This is a pnpm monorepo:
 | [`docs/STATUS.md`](docs/STATUS.md) | Current pass, open owner decisions, deployment state, rollback anchors |
 | [`docs/branching.md`](docs/branching.md) | Branching, merging, and what "going live" actually means |
 | [`docs/deployment.md`](docs/deployment.md) | Deployment IDs, `clasp push` vs `clasp deploy`, hosting inventory |
-| [`docs/backend-architecture.md`](docs/backend-architecture.md) | `Code.gs` function map, lead model, schema |
+| [`docs/backend-architecture.md`](docs/backend-architecture.md) | V1 `Code.gs` function map, lead model, schema |
+| [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) | V2 wire contract (`schemaVersion` 1), tokens, error codes, delivery guarantee |
 | [`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md) | Exact payload shape per lead type |
 | [`docs/email-templates.md`](docs/email-templates.md) | Template inventory and the embedded constant vs mirror file pattern |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Dated log of architecture level changes |
@@ -117,7 +119,8 @@ interrupts whatever is running there.
 | `pnpm type-check` | TypeScript across the workspace |
 | `pnpm lint` | ESLint. Currently only `apps/web` defines a lint script |
 | `pnpm format` | Prettier |
-| `pnpm test:gas` | Run the Apps Script backend test suite (Node's built in runner, no install step) |
+| `pnpm test:gas` | Run the V1 Apps Script backend test suite (Node's built in runner, no install step) |
+| `pnpm test:gas-v2` | Run the V2 Apps Script backend test suite |
 | `pnpm gas:push` | `clasp push`. Updates the Apps Script project HEAD. **Not a deployment** |
 
 ## Testing
@@ -131,7 +134,13 @@ The suite also enforces template parity: every embedded `TEMPLATE_*` constant in
 match its mirror file under `scripts/gas/emails/`. Those two copies must be edited together, and
 this test is what catches it when they are not.
 
-CI runs type-check, lint, both app builds, and the GAS suite.
+`pnpm test:gas-v2` runs the V2 suite under `scripts/gas-v2/tests/`. It loads every `src/*.js`
+file into one VM context supplied with only the globals Apps Script provides, reproducing the
+single shared global scope of the real runtime. A Node dependency creeping into V2 source fails
+there rather than after a push.
+
+CI runs type-check, lint, both app builds, and both GAS suites as separate steps, so a failure
+names which backend broke.
 
 ## Deployment status
 

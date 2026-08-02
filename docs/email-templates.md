@@ -3,6 +3,10 @@
 All transactional email is sent from `scripts/gas/Code.gs` via `GmailApp`.
 Verified against source as of this commit.
 
+**V1 only.** The V2 backend deliberately ships no templates: rendering sits behind a port
+that fails permanently until the approved email design pass lands. See
+[`backend-v2-contract.md`](backend-v2-contract.md).
+
 ## Two storage forms — embedded constant vs standalone `.html` mirror
 
 Each HTML template exists **twice**:

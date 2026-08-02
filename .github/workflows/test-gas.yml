@@ -1,9 +1,9 @@
 name: GAS tests
 
-# Runs the committed Apps Script backend test suite (scripts/gas/tests) on every
-# push and PR. Additive and independent: does not touch ci.yml, deploy-web.yml,
-# or deploy-qr.yml. The suite has no npm dependencies (Node's built-in test
-# runner), so there is no install step.
+# Runs both committed Apps Script backend test suites (scripts/gas/tests and
+# scripts/gas-v2/tests) on every push and PR. Additive and independent: does not
+# touch ci.yml, deploy-web.yml, or deploy-qr.yml. Neither suite has npm
+# dependencies (Node's built-in test runner), so there is no install step.
 
 on:
   pull_request:
@@ -29,5 +29,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run GAS test suite
+      - name: Run V1 GAS test suite
         run: pnpm test:gas
+
+      # The V2 backend is a separate project (scripts/gas-v2) with its own suite. It
+      # runs as its own step so a failure names which backend broke, and so the V1
+      # suite keeps running unchanged while both exist.
+      - name: Run V2 GAS test suite
+        run: pnpm test:gas-v2

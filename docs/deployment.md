@@ -1,6 +1,43 @@
 # Deployment
 
-## Google Apps Script backend
+## Two Apps Script backends now exist in this repository
+
+| | `scripts/gas` (V1) | `scripts/gas-v2` (V2) |
+|---|---|---|
+| Apps Script project | Yes, IDs below | **None.** No `.clasp.json` |
+| Deployed | **Yes, production @28.** Serving the live sites | **No** |
+| Sheet, Script Properties, triggers | Yes | **None created** |
+| Frontend pointed at it | Yes, via `FORM_ENDPOINT` | **No** |
+| Status | `deployed` | `merged` |
+
+Everything in the rest of this section is about **V1**, which is the deployed backend and
+stays that way until the V2 project is deliberately brought up. V2's own rules live in
+[`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire contract in
+[`backend-v2-contract.md`](backend-v2-contract.md).
+
+### Bringing the V2 backend up (not done, not authorized by any merge)
+
+Each of these is a separate external mutation. None is implied by merging V2 code, and none
+has been performed.
+
+1. Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).
+2. Create the Sheet with the four tabs `Leads`, `Contacts`, `Log`, `Work`, header rows per
+   `expectedTabLayout()` in `src/SheetRepository.js`.
+3. Set the Script Properties named in `src/Config.js`: `AXP_SHEET_ID`, `AXP_CALENDAR_ID`,
+   `AXP_PARTNER_NOTIFY_TO`, `AXP_PARTNER_EMAIL_MAP`, `AXP_REPLY_TO`, `AXP_FROM_NAME`,
+   `AXP_RUN_MODE`. **No value for any of these exists in this repository.** Leave
+   `AXP_RUN_MODE` unset or `dry_run` until a live send is intended; an unset mode is
+   `dry_run`, never `live`.
+4. `cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
+   `appsscript.json` and the `src/*.js` files. The `.claspignore` allowlist is the only thing
+   keeping the Node test suite out, and pushing it would take the backend down.
+5. Install a 5-minute time-driven trigger on `runWorkerTrigger`.
+6. `clasp deploy` to create the web app, then point a frontend at it. That is a separate
+   decision again, and the calendar-access gotcha below applies identically.
+
+The same `push` vs `deploy -i` distinction, and the same reauth friction, apply to V2.
+
+## Google Apps Script backend (V1)
 
 | Identifier | Value |
 |---|---|
@@ -71,6 +108,11 @@ Before any push that adds files under `scripts/gas/`, run `clasp status` and
 confirm the tracked list is exactly those 9 files. If new Node-only tooling is
 added there, it stays excluded automatically — do not convert `.claspignore`
 into a blocklist.
+
+`scripts/gas-v2/.claspignore` follows the same rule and was written **before** any
+Node-only file existed in that directory. It denies `**/**` and re-allows only
+`appsscript.json` and `src/*.js`. `scripts/gas-v2/tests/deployability.test.js` asserts that
+shape on every CI run, so the allowlist cannot quietly become a blocklist.
 
 ### Gotcha: the deploying account needs *edit* access to `BOOKING_CALENDAR_ID`
 
