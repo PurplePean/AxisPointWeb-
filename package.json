@@ -17,6 +17,7 @@
     "lint": "pnpm -r lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test:gas": "node --test \"scripts/gas/tests/**/*.test.js\"",
+    "test:gas-v2": "node --test \"scripts/gas-v2/tests/**/*.test.js\"",
     "gas:push": "cd scripts/gas && clasp push"
   },
   "devDependencies": {
