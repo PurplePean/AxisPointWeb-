@@ -5,6 +5,10 @@ Single-file Google Apps Script Web App that backs the contact form for both
 transactional email, syncs Google Contacts, creates Calendar booking events,
 and runs three time-based digests plus an installable edit trigger.
 
+**This file describes V1 only.** V1 is the deployed backend. The separate V2 backend in
+`scripts/gas-v2` shares no code with it and has its own contract in
+[`backend-v2-contract.md`](backend-v2-contract.md); nothing in V2 is deployed or connected.
+
 All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 
 ## ✅ The unified schema is LIVE. `USE_UNIFIED_SCHEMA = true`.
