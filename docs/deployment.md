@@ -23,15 +23,33 @@ has been performed.
 1. Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).
 2. Create the Sheet with the four tabs `Leads`, `Contacts`, `Log`, `Work`, header rows per
    `expectedTabLayout()` in `src/SheetRepository.js`.
-3. Set the Script Properties named in `src/Config.js`: `AXP_SHEET_ID`, `AXP_CALENDAR_ID`,
-   `AXP_PARTNER_NOTIFY_TO`, `AXP_PARTNER_EMAIL_MAP`, `AXP_REPLY_TO`, `AXP_FROM_NAME`,
-   `AXP_RUN_MODE`. **No value for any of these exists in this repository.** Leave
-   `AXP_RUN_MODE` unset or `dry_run` until a live send is intended; an unset mode is
-   `dry_run`, never `live`.
+3. Set the Script Properties named in `src/Config.js`. **No value for any of these exists
+   in this repository.** Leave `AXP_RUN_MODE` unset or `dry_run` until a live send is
+   intended; an unset mode is `dry_run`, never `live`.
+
+   Storage and routing: `AXP_SHEET_ID`, `AXP_CALENDAR_ID`, `AXP_PARTNER_NOTIFY_TO`,
+   `AXP_PARTNER_EMAIL_MAP`, `AXP_REPLY_TO`, `AXP_FROM_NAME`, `AXP_RUN_MODE`.
+
+   Email identity: `AXP_PARTNER_DIRECT_EMAIL_MAP`, `AXP_PARTNER_DIRECT_PHONE_MAP`,
+   `AXP_FIRM_EMAIL`, `AXP_FIRM_PHONE`, `AXP_WEBSITE_URL`, `AXP_LOGO_URL`.
+
+   **Two launch blockers:** `AXP_REPLY_TO_MONITORED` and
+   `AXP_REMOVAL_PROCEDURE_CONFIGURED`. The QR acknowledgement's approved copy promises
+   that a reply reaches a human who will correct or remove a record. Until a monitored
+   mailbox and a written procedure with a named accountable person exist, set neither
+   flag: the email then omits those lines rather than promising something nobody will
+   keep. `doGet` reports both by name.
 4. `cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
    `appsscript.json` and the `src/*.js` files. The `.claspignore` allowlist is the only thing
    keeping the Node test suite out, and pushing it would take the backend down.
-5. Install a 5-minute time-driven trigger on `runWorkerTrigger`.
+5. Install the time-driven triggers. **This repository installs none of them**, and none
+   of the handlers has ever run:
+   - `runWorkerTrigger`, every 5 minutes, for the delivery queue.
+   - `runDailyQrDigestTrigger`, daily at 8:00 AM `America/Chicago`, for the internal QR
+     Contact digest.
+   - `runRetentionMaintenanceTrigger`, for operational-record retention. Run it once by
+     hand with `{ dryRun: true }` against real data first: it reports what it would remove
+     without removing anything. It never selects a business record.
 6. `clasp deploy` to create the web app, then point a frontend at it. That is a separate
    decision again, and the calendar-access gotcha below applies identically.
 

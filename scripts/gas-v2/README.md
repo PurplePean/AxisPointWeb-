@@ -15,6 +15,7 @@ authorized operation. See [`docs/deployment.md`](../../docs/deployment.md).
 appsscript.json    manifest (V8, project time zone, OAuth scopes)
 src/               the deployable source, one shared global scope
 tests/             Node test suite; never pushed
+tools/             local-only utilities; never pushed
 ```
 
 ### src, in dependency order
@@ -22,11 +23,16 @@ tests/             Node test suite; never pushed
 | File | Responsibility |
 |---|---|
 | `Tokens.js` | The stable snake_case wire vocabulary for `schemaVersion` 1. |
+| `Labels.js` | Wire value to human label. No email ever prints a token. |
 | `Util.js` | Ids, ISO time, normalization, redaction. No Google service. |
 | `Config.js` | Script Property names, worker bounds, business hours, SLA targets. |
 | `Contract.js` | Envelope parsing and validation. The boundary. |
 | `Attribution.js` | Attribution flattening, partner-slug resolution, locale records. |
 | `Domain.js` | Lead and Contact builders, merge rules, row projection. |
+| `Html.js` | Email-safe HTML primitives and escaping. |
+| `Templates.js` | The five approved templates, one pure function each. |
+| `Digest.js` | The daily QR Contact digest: eligibility, routing, splitting, delivery-bound state. |
+| `Retention.js` | Retention selection and the callable maintenance handler. |
 | `Matching.js` | Identity suggestions. Suggests; never merges. |
 | `Sla.js` | Business-hours due-time arithmetic. |
 | `Spam.js` | Screening. Flags; never discards. |
@@ -81,10 +87,12 @@ deliberately demonstrates the duplicate, so nobody later upgrades the wording.
 
 | Not implemented | Why | What the code does instead |
 |---|---|---|
-| Email templates | The approved email design is separate work. Interim wording would put unapproved copy in front of real people. | `deps.templates` is a port wired to `notImplementedTemplates()`, which fails **permanently**. The lead is stored; `ackEmailStatus` shows the failure. |
+| Frontend wiring | Scoped to a later pass. | No app sends anything, and no endpoint exists. |
 | Google People sync | Scoped to a later pass. | `contactSyncStatus` is `not_configured`. No contacts scope is requested in the manifest. |
-| Frontend wiring | Neither app has a submission surface pointed here. | Nothing in `apps/` changed. |
+| Trigger installation | Every schedule is a deliberate external operation. | The worker, digest, and retention handlers are callable and unscheduled. See [`docs/deployment.md`](../../docs/deployment.md). |
+| Automated reply ingestion and deletion | Correction and removal are manual human procedures. | The promise is gated on two configuration flags and omitted when it cannot be kept. |
 | Referral resolution | `refToken` is carried but inert by contract. | Stored verbatim; never resolved, linked, or reported on. |
+| A business-record purge | Business records have no automatic expiry. | `planRetention` has no key for one, asserted by test. |
 
 ## Running the tests
 
@@ -97,3 +105,19 @@ one VM context supplied with only the globals Apps Script provides, so a Node
 dependency creeping into `src` fails here instead of after a push.
 
 See [`tests/README.md`](tests/README.md) for what each suite guards.
+
+## Rendering the email specimens
+
+```
+node scripts/gas-v2/tools/render-previews.js <outdir>
+```
+
+Renders every approved specimen with the production renderer, fake configuration, and fake
+records, then writes a self-contained contact sheet showing each at 600, 390, and 320 with
+a dark approximation. It sends nothing and reads nothing from Google. Point it outside the
+repository.
+
+**A browser is not an email client.** Gmail strips the document head, Outlook renders
+through the Word engine, and iOS Mail and Android apply their own dark transforms. These
+previews verify structure, content, escaping, and reflow. They are not evidence that any
+real client renders correctly, and no real client has been tested.

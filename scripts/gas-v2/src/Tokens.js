@@ -87,7 +87,7 @@ var LAUNCH_READY_LOCALES = ['en'];
 
 var SOURCE_CATEGORIES = ['website', 'qr'];
 
-/** The only slugs that may resolve to a partner. Anything else is the firm fallback. */
+/** The only slugs that may resolve to a partner. Anything else is not a partner. */
 var PARTNER_SLUGS = ['zachary-russell', 'ethaniel-vu'];
 
 var PARTNERS = ['zachary_russell', 'ethaniel_vu'];
@@ -96,6 +96,29 @@ var SLUG_TO_PARTNER = {
   'zachary-russell': 'zachary_russell',
   'ethaniel-vu': 'ethaniel_vu'
 };
+
+/** The firm card's own slug. Scanning it is a real, intentional acquisition event. */
+var FIRM_SLUG = 'axispoint-partners';
+
+/**
+ * Acquisition attribution: which card produced this Contact.
+ *
+ * DELIBERATELY A SEPARATE ENUM FROM `PARTNERS`. `firm` is not a partner and must never
+ * become assignable, notifiable, or selectable as one; putting it in `PARTNERS` would
+ * make that mistake possible everywhere the partner list is iterated. Keeping the two
+ * lists apart also preserves the distinction the design requires: a scan of the firm
+ * card (`firm`) is a different fact from a card that did not resolve (`unknown`), and
+ * collapsing them would lose the evidence that a printed card is broken.
+ *
+ * This value is IMMUTABLE once written. Ownership is a separate, mutable field.
+ */
+var ACQUISITION_SOURCES = ['zachary_russell', 'ethaniel_vu', 'firm', 'unknown'];
+
+/** Follow-up state on a Contact. No email ever changes it. */
+var FOLLOW_UP_STATES = ['not_contacted', 'contacted'];
+
+/** Digest lifecycle for a QR Contact. `delivered` is set only after a confirmed send. */
+var DIGEST_STATUSES = ['pending_digest', 'delivered', 'excluded_spam', 'not_applicable'];
 
 /**
  * Approved display strings, listed ONLY so the backend can recognise and reject them

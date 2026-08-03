@@ -1,18 +1,24 @@
 /**
  * SLA due-time arithmetic.
  *
- * The commitment is measured in BUSINESS hours, not elapsed hours. A Friday evening
- * inquiry with a four hour target is due Monday late morning, not Saturday at
- * midnight. A wall-clock deadline would mark almost every weekend lead breached
- * before anyone could have answered it, which makes the whole field worthless.
+ * ONE POLICY, ONE NUMBER: every website service inquiry is due at 5:00 PM local time on
+ * the NEXT BUSINESS DAY. Monday through Friday. Holidays are ignored at launch, and
+ * that is a stated simplification rather than an oversight: a holiday calendar nobody
+ * maintains produces wrong deadlines silently, which is worse than a deadline everyone
+ * knows ignores holidays.
  *
- * This module is pure. It takes an explicit offset resolver so it never depends on
- * the Apps Script runtime's time zone, and so daylight saving is testable.
+ * This replaces the pathway-specific 4 / 8 / 24 business-hour policy from Pass 8. Three
+ * different clocks running against three pathways meant nobody could answer "when is
+ * this due" without first checking which pathway it was, so in practice nobody checked
+ * at all. One deadline that everyone can state from memory is a deadline that gets met.
+ *
+ * The module is pure. It takes an explicit offset resolver, so it never depends on the
+ * runtime's time zone and daylight saving is testable.
  */
 
 /**
- * Minutes to add to UTC to get local business time. Supplied by the caller because
- * only the host runtime knows the real offset for a given instant. In Apps Script the
+ * Minutes to add to UTC to get local business time. Supplied by the caller because only
+ * the host runtime knows the real offset for a given instant. In Apps Script the
  * adapter passes a resolver backed by the runtime's own zone data; tests pass a fixed
  * one, so nothing here depends on the machine the tests run on.
  */
@@ -45,62 +51,35 @@ function localHourOnSameDay(date, hour, offsetResolver) {
 }
 
 /**
- * Moves an instant forward to the next moment inside business hours. An instant
- * already inside the window is returned unchanged.
- */
-function advanceToBusinessHours(date, offsetResolver) {
-  var cursor = new Date(date.getTime());
-  for (var guard = 0; guard < 14; guard++) {
-    var parts = toLocalParts(cursor, offsetResolver);
-    if (!isBusinessDay(parts.weekday)) {
-      cursor = new Date(localHourOnSameDay(cursor, BUSINESS_START_HOUR, offsetResolver).getTime() + 24 * 60 * 60000);
-      continue;
-    }
-    if (parts.hour < BUSINESS_START_HOUR) {
-      return localHourOnSameDay(cursor, BUSINESS_START_HOUR, offsetResolver);
-    }
-    if (parts.hour >= BUSINESS_END_HOUR) {
-      cursor = new Date(localHourOnSameDay(cursor, BUSINESS_START_HOUR, offsetResolver).getTime() + 24 * 60 * 60000);
-      continue;
-    }
-    return cursor;
-  }
-  return cursor;
-}
-
-/**
- * Adds business hours to an instant, walking one business day at a time.
+ * The next business day strictly after the local day containing `date`.
  *
- * The loop is bounded. An unbounded walk would hang the whole request if the business
- * calendar were ever misconfigured to have no open days.
+ * "Next" is deliberately strict even for a submission that arrives at 9:01 AM Monday:
+ * the commitment is a full working day, not the remainder of today. The loop is bounded
+ * so a misconfigured business calendar with no open days cannot hang a request.
  */
-function addBusinessHours(start, hours, offsetResolver) {
-  var cursor = advanceToBusinessHours(start, offsetResolver);
-  var remainingMs = hours * 60 * 60000;
+function nextBusinessDayStart(date, offsetResolver) {
+  var cursor = new Date(localHourOnSameDay(date, 0, offsetResolver).getTime() + 24 * 60 * 60000);
 
-  for (var guard = 0; guard < 400 && remainingMs > 0; guard++) {
-    var endOfDay = localHourOnSameDay(cursor, BUSINESS_END_HOUR, offsetResolver);
-    var availableMs = endOfDay.getTime() - cursor.getTime();
-
-    if (remainingMs <= availableMs) {
-      return new Date(cursor.getTime() + remainingMs);
-    }
-    remainingMs -= availableMs;
-    cursor = advanceToBusinessHours(new Date(endOfDay.getTime() + 60000), offsetResolver);
+  for (var guard = 0; guard < 10; guard++) {
+    var parts = toLocalParts(cursor, offsetResolver);
+    if (isBusinessDay(parts.weekday)) return cursor;
+    cursor = new Date(localHourOnSameDay(cursor, 0, offsetResolver).getTime() + 24 * 60 * 60000);
   }
   return cursor;
 }
 
 /**
  * Due instant for a submission, or null when the submission carries no response
- * commitment. Contact Exchange is a record of a handshake, not a request for a reply,
- * so it deliberately has no due time rather than a fake distant one.
+ * commitment.
+ *
+ * A Contact Exchange is a record of a handshake, not a request for a reply, so it
+ * deliberately has no due time rather than a fake distant one that would put it in the
+ * same overdue reports as a real inquiry.
  */
 function computeSlaDueAt(submissionKind, pathway, receivedAt, offsetResolver) {
   if (submissionKind !== 'service_inquiry') return null;
-  var hours = SLA_BUSINESS_HOURS[pathway];
-  if (typeof hours !== 'number') return null;
-  return addBusinessHours(new Date(receivedAt), hours, offsetResolver);
+  var day = nextBusinessDayStart(new Date(receivedAt), offsetResolver);
+  return localHourOnSameDay(day, SLA_DUE_HOUR, offsetResolver);
 }
 
 /**

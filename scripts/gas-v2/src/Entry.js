@@ -67,14 +67,10 @@ function doGet() {
     return jsonOutput(successBody({
       service: 'axispoint-intake',
       runMode: config.runMode,
-      capabilities: {
-        intake: isConfigured(config, 'intake'),
-        acknowledge: isConfigured(config, 'acknowledge'),
-        notify: isConfigured(config, 'notify'),
-        booking: isConfigured(config, 'booking')
-      },
-      // Honest about the one thing that is wired but not implemented.
-      templatesImplemented: false
+      // Capability readiness AND promise keepability, reported separately. A deployment
+      // can be able to send while the copy it would send is not yet true; see
+      // configHealth in Config.js.
+      health: configHealth(config)
     }));
   } catch (e) {
     return jsonOutput(errorBody('SERVICE_UNAVAILABLE'));
@@ -116,11 +112,18 @@ function handlePost(rawBody, wiring) {
   try {
     if (envelope.submissionKind === 'booking_request') {
       var booking = executeBookingCommand(envelope, deps);
-      if (!booking.ok) return errorBody(booking.code);
+      // A refusal still returns its final status, so the client can say "that slot is
+      // taken" rather than a generic failure. `confirmed` is reachable only from a
+      // successful Calendar write; see Booking.js.
+      if (!booking.ok) {
+        var refused = errorBody(booking.code);
+        refused.bookingStatus = booking.status;
+        return refused;
+      }
       return successBody({
         submissionKind: 'booking_request',
         bookingRequestId: envelope.bookingRequestId,
-        calendarStatus: booking.status,
+        bookingStatus: booking.status,
         replay: booking.replay === true
       });
     }
@@ -170,4 +173,25 @@ function tryLog(deps, entry) {
 function runWorkerTrigger() {
   var deps = buildProductionDeps();
   return runWorkerCycle(deps, defaultWorkHandlers());
+}
+
+/**
+ * Callable handler for the daily internal QR Contact digest.
+ *
+ * Intended schedule: 8:00 AM America/Chicago. NO TRIGGER IS INSTALLED BY THIS
+ * REPOSITORY. Scheduling it is a separate, deliberate operation performed against a real
+ * Apps Script project, so this pass leaves it callable and unscheduled.
+ */
+function runDailyQrDigestTrigger() {
+  return runDailyQrDigest(buildProductionDeps());
+}
+
+/**
+ * Callable handler for operational-record retention.
+ *
+ * Business records are never selected. See Retention.js. Also unscheduled by design, and
+ * worth running once with `{ dryRun: true }` against real data before it is scheduled.
+ */
+function runRetentionMaintenanceTrigger(options) {
+  return runRetentionMaintenance(buildProductionDeps(), options || {});
 }

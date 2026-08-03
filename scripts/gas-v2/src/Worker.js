@@ -23,8 +23,9 @@ var WORK_STATES = ['pending', 'succeeded', 'failed', 'abandoned'];
 
 var WORK_KINDS = [
   'send_acknowledgement',
+  'send_qr_acknowledgement',
   'notify_partners',
-  'create_booking_event'
+  'send_booking_confirmation'
 ];
 
 /**

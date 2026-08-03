@@ -6,7 +6,8 @@ This file is read automatically by Claude Code at the start of every session in 
 - apps/web — main site (axispoint.llc)
 - apps/qr — QR/digital-card microsite (qr.axispoint.llc), imports ContactForm from packages/brand directly — not a duplicate
 - packages/brand — shared components, including the Contact form and its full step logic
-- scripts/gas — Apps Script backend source (Code.gs) + email template mirrors
+- scripts/gas — V1 Apps Script backend source (Code.gs) + email template mirrors. **Deployed**
+- scripts/gas-v2 — V2 Apps Script backend. Written and tested; no project, Sheet, trigger, endpoint, or deployment exists
 
 ## Before doing anything else
 
@@ -124,7 +125,7 @@ Apps Script can't run outside its own runtime, but pure logic (routing, payload 
 
 ## Known gotchas (learned the hard way this project)
 
-- Email templates have two copies that must be kept in sync manually: the standalone HTML files under scripts/gas/emails/ are a source-of-truth mirror only — Apps Script actually renders the embedded template string constants inside Code.gs at runtime. Editing only one copy silently breaks production. Check both.
+- **V1 only:** email templates have two copies that must be kept in sync manually. The standalone HTML files under scripts/gas/emails/ are a source-of-truth mirror only — Apps Script actually renders the embedded template string constants inside Code.gs at runtime. Editing only one copy silently breaks production. Check both. **This does not apply to V2:** `scripts/gas-v2` has exactly one copy of each template, as a pure function in `src/Templates.js`, and the duplication pattern was deliberately not carried forward.
 - Display labels and wire values can differ. A frontend card or button's visible text (e.g. "RE Professional") is not necessarily the value sent in the payload (e.g. "pro"). Always verify the actual submitted value in code, don't infer it from UI copy.
 - No user-facing copy should contain em dashes. Replace with commas, periods, or rephrasing. This applies sitewide, not just to any one page — check for this as part of any content-editing task even if not explicitly asked.
 - clasp commands (push, deploy, and others) can each independently trigger invalid_grant / invalid_rapt reauth errors, and can do so multiple times in a single session even right after a successful clasp login. A successful login does not immunize the next command. This is expected Google reauth friction, not a one-off and not a broken script: re-run clasp login, then re-run the command. Never start debugging Code.gs because a clasp command failed this way.

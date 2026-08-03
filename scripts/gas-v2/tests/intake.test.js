@@ -144,9 +144,10 @@ test('linking to an existing contact never discards what was already stored', ()
   assert.equal(stored.company, 'Whitfield Holdings');
 });
 
-test('a weak name-only similarity does NOT link automatically', () => {
-  // Two different people who share a name must stay two people. The similarity is
-  // recorded for a human instead.
+test('a shared name is not a link and is not even a suggestion', () => {
+  // Two different people who share a name must stay two people, and the name similarity
+  // is not worth reporting: a suggestion a partner learns to ignore hides the exact
+  // match that mattered.
   const contacts = fakeContactRepository([
     {
       contactId: 'existing-1',
@@ -162,11 +163,13 @@ test('a weak name-only similarity does NOT link automatically', () => {
 
   assert.notEqual(result.contactId, 'existing-1');
   assert.equal(contacts.store.rows.length, 2);
-  assert.match(deps.leads.store.rows[0].possibleMatches, /existing-1:weak:name_only/);
+  assert.equal(deps.leads.store.rows[0].possibleMatches, '');
+  assert.equal(deps.leads.store.rows[0].matchNote, '');
 });
 
-test('two conflicting strong matches create a new contact and surface both', () => {
-  // The stored data already disagrees with itself. Silently picking one hides that.
+test('two conflicting exact matches create a new contact and surface both', () => {
+  // An exact email points at one person and an exact phone at another. The stored data
+  // already disagrees with itself, and silently picking one hides that.
   const contacts = fakeContactRepository([
     { contactId: 'a-1', fullName: 'Dana Whitfield', email: 'dana@whitfieldholdings.test', phone: '', company: '', leadCount: 1 },
     { contactId: 'b-2', fullName: 'Dana W', email: '', phone: '(214) 555-0117', company: '', leadCount: 1 },
@@ -176,8 +179,8 @@ test('two conflicting strong matches create a new contact and surface both', () 
 
   assert.notEqual(result.contactId, 'a-1');
   assert.notEqual(result.contactId, 'b-2');
-  assert.match(deps.leads.store.rows[0].possibleMatches, /a-1:strong/);
-  assert.match(deps.leads.store.rows[0].possibleMatches, /b-2:strong/);
+  assert.match(deps.leads.store.rows[0].possibleMatches, /a-1:exact/);
+  assert.match(deps.leads.store.rows[0].possibleMatches, /b-2:exact/);
 });
 
 /* ── Queued work ──────────────────────────────────────────────────────────── */
@@ -256,4 +259,67 @@ test('a contact exchange carries no SLA due time', () => {
   const deps = buildDeps();
   const result = submit(fx.contactExchange(), deps);
   assert.equal(result.slaDueAt, null);
+});
+
+test('a QR contact queues an acknowledgement and NO immediate partner notification', () => {
+  // The immediate per-scan notification is replaced by the 8:00 AM digest. One email per
+  // scanned card is unreadable after a conference table.
+  const deps = buildDeps();
+  submit(fx.contactExchange(), deps);
+
+  assert.deepEqual(Array.from(deps.work.kinds()), ['send_qr_acknowledgement']);
+  assert.equal(Array.from(deps.work.kinds()).indexOf('notify_partners'), -1);
+});
+
+test('a QR contact records that its notification is deferred, not pending', () => {
+  // 'pending' forever would read as a stuck queue rather than an intentional wait.
+  const deps = buildDeps();
+  submit(fx.contactExchange(), deps);
+  assert.equal(deps.leads.store.rows[0].partnerNotifyStatus, 'deferred_to_digest');
+  assert.equal(deps.leads.store.rows[0].digestStatus, 'pending_digest');
+});
+
+test('a website inquiry still queues an immediate internal notification', () => {
+  const deps = buildDeps();
+  submit(fx.managementProposal(), deps);
+  assert.deepEqual(
+    Array.from(deps.work.kinds()).sort(),
+    ['notify_partners', 'send_acknowledgement'],
+  );
+});
+
+/* ── Attribution and ownership ────────────────────────────────────────────── */
+
+test('a resolved partner scan records attribution and assigns nobody', () => {
+  // A scan gave that partner a name, not a claim.
+  const deps = buildDeps();
+  submit(fx.contactExchange(), deps);
+
+  const lead = deps.leads.store.rows[0];
+  assert.equal(lead.acquisitionSource, 'zachary_russell');
+  assert.equal(lead.scannedPartner, 'zachary_russell');
+  assert.equal(lead.ownerPartner, '');
+  assert.equal(deps.contacts.store.rows[0].ownerPartner, '');
+  assert.equal(deps.contacts.store.rows[0].followUpState, 'not_contacted');
+});
+
+test('the firm card and an unresolved card stay distinguishable', () => {
+  const deps = buildDeps();
+  submit(fx.qrSubmission(1, 'axispoint-partners'), deps);
+  submit(fx.qrSubmission(2, 'retired-card'), deps);
+
+  assert.equal(deps.leads.store.rows[0].acquisitionSource, 'firm');
+  assert.equal(deps.leads.store.rows[1].acquisitionSource, 'unknown');
+});
+
+test('firm is not a partner and never becomes one', () => {
+  const deps = buildDeps();
+  submit(fx.qrSubmission(3, 'axispoint-partners'), deps);
+  assert.equal(deps.leads.store.rows[0].scannedPartner, '', 'firm must not occupy a partner field');
+});
+
+test('a website submission has no acquisition source at all', () => {
+  const deps = buildDeps();
+  submit(fx.managementProposal(), deps);
+  assert.equal(deps.leads.store.rows[0].acquisitionSource, '');
 });

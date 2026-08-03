@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-02 (Code Pass 8)_
+_Last updated: 2026-08-02 (Code Pass 9A)_
 
 ## Where things stand
 
 | | |
 |---|---|
-| **Approved design versions** | `design@2026-07-30` (site, intake, QR) and `design@2026-07-31` (language selector). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 8 — clean V2 backend scaffold and contract implementation, complete (code only, nothing connected) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract |
-| **Next pass** | Email-template implementation (Pass 2A), then frontend endpoint wiring. Both are blocked on the open backend decisions below |
+| **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
+| **Current code pass** | Pass 9A, approved communications and reconciled backend policy, complete (code only, nothing connected) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation |
+| **Next pass** | Code Pass 9B, then staging. Frontend endpoint wiring has **not** started |
 
 ## Routes
 
@@ -121,19 +121,30 @@ project, Sheet, Script Property, trigger, or deployment, and neither frontend po
 `clasp push` or `clasp deploy` has been run and none is implied by the merge. V1
 (`scripts/gas/Code.gs`) is untouched and remains the deployed backend.
 
-The suite is `pnpm test:gas-v2` (238 tests), running in CI alongside the unchanged V1 suite.
+**Emails, the digest, retention maintenance, and Calendar are coded, locally tested,
+committed, and merged. None of them is live.** No email has been sent, no digest has run, no
+Calendar has been touched, and no trigger exists.
+
+The suite is `pnpm test:gas-v2` (351 tests), running in CI alongside the unchanged V1 suite.
 
 **What Pass 8 settled, in code:** the discriminated envelope and its versioning, the stable
 snake_case token vocabulary with display strings rejected outright, server-owned field
-rejection, the Lead/Contact split, suggestion-only identity matching, business-hours SLA
-arithmetic, flag-never-discard spam screening, notification routing (a QR scan identifies a
-card, not an owner), booking as a post-submission command, and a bounded at-least-once work
-queue whose duplicate-delivery limit is asserted by a test rather than papered over.
+rejection, the Lead/Contact split, suggestion-only identity matching, flag-never-discard spam
+screening, booking as a post-submission command, and a bounded at-least-once work queue whose
+duplicate-delivery limit is asserted by a test rather than papered over.
 
-**What Pass 8 deliberately did not do:** email templates (the port fails permanently and says
-so), Google People sync (`contactSyncStatus: not_configured`, no contacts scope requested),
-frontend wiring, referral resolution (`refToken` is inert by contract), and origin enforcement
-(an Apps Script web app cannot read the `Origin` header, so it is documented rather than faked).
+**What Pass 9A added:** the approved email templates as one canonical renderer, the QR Contact
+acknowledgement, the conditional daily QR digest with delivery-bound state and size splitting,
+and the retention policy. It also **corrected ten Pass 8 positions** within `schemaVersion` 1,
+listed in [`backend-v2-contract.md`](backend-v2-contract.md) §16. The headline corrections:
+Contact Exchange now gets an acknowledgement, per-scan notification is replaced by the digest,
+a QR scan no longer assigns ownership, matching is exact-evidence-only, phone is 7 to 20 digits
+compared in full, SLA is one number (5:00 PM next business day), and booking never falsely
+confirms.
+
+**What Pass 9A deliberately did not do:** frontend wiring, any real endpoint, any Google
+resource, any trigger installation, any real email, any Calendar operation, Google People sync,
+referral behaviour, and any dashboard or CRM surface.
 
 ### Open backend decisions still outstanding
 
@@ -143,13 +154,13 @@ The contract now states a defensible position for each of these, so they are dec
 | Decision | Position taken in code |
 |---|---|
 | Required vs optional fields | `fullName` and `email` required on an inquiry; Contact Exchange needs one of email or phone |
-| Booking availability rules | Mon–Fri 09:00–17:00 project time, 60 minutes to 60 days ahead, both ends inside one day |
+| Booking availability rules | Management Proposal only. Mon to Fri, 09:00 to 17:00 project time, 60 minutes to 60 days ahead, both ends inside one day |
 | Whether the referral code is transmitted | Accepted and stored verbatim, resolved to nothing |
-| Dedupe and merge semantics | Exact email or phone links; everything weaker is a suggestion for a human |
-| Retention | Not implemented. No purge job exists |
+| Dedupe and merge semantics | Exact normalized email or exact normalized full phone links. Nothing weaker is evidence |
+| Retention | **Settled and implemented.** Business records never expire; operational records expire at 90 days; pending work is never purged. No trigger installed |
 | V1 lead migration | Not implemented (documented default: no) |
 | Email recipients | Read from Script Properties by name; no address exists in the repository |
-| SLA targets | 4 / 8 / 24 business hours by pathway; Contact Exchange has none |
+| SLA targets | **Settled.** One policy: 5:00 PM `America/Chicago` on the next business day, every pathway. Contact Exchange has none |
 
 ## Deployment state
 
@@ -193,8 +204,17 @@ link expiry.
 
 **Backend, blocks bringing the V2 project up (no longer blocks writing it):** confirm or change
 the positions in the table above, and decide the Sheet, calendar, and notification addresses
-that the Script Properties will hold. Retention has no implementation at all and needs a real
-answer before production data accumulates.
+that the Script Properties will hold.
+
+**Two hard launch blockers for the QR acknowledgement**, reported by the backend's own health
+check and enforced in the template rather than assumed:
+
+1. A **monitored Reply-To mailbox**. The approved copy promises that a reply reaches a human.
+2. A **documented correction and removal procedure with a named accountable person**. Removal
+   is manual; no automated system exists or is designed.
+
+Until both are configured, the correction and removal lines are omitted from the email
+entirely rather than printed and unkeepable.
 
 ## Known risks
 

@@ -35,15 +35,18 @@ the failure it guards is a real person dragging a column in the live Sheet.
 | `tokens.test.js` | A renamed wire token orphaning every historical row that used the old one, with no error anywhere. |
 | `contract.test.js` | A display string accepted as a wire value (making the copy deck the contract), a client setting its own server-owned field, or a pathway accepting another pathway's blocks. |
 | `spam.test.js` | A real owner inquiry being discarded. Screening must flag and never drop, and a client-supplied signal must never be able to clear a flag. |
-| `matching.test.js` | An automatic merge of two people who share a name. Unrecoverable through normal use, and nobody finds out. |
-| `sla.test.js` | Wall-clock deadlines marking every evening and weekend lead breached before anyone could answer, making the field meaningless. |
+| `matching.test.js` | An automatic merge of two people who share a name, or a phone tail collision merging two unrelated international numbers. Unrecoverable through normal use, and nobody finds out. |
+| `sla.test.js` | The pathway-specific clocks coming back, and weekend arrivals getting a deadline nobody could have met. |
 | `domain.test.js` | The Lead/Contact split collapsing, and a second submission erasing what the first recorded. |
 | `routing.test.js` | A QR scan being treated as an ownership assignment, or a notification reaching nobody. |
 | `intake.test.js` | A double-clicked submit creating two leads; storage happening after a side effect; personal data reaching the log. |
 | `worker.test.js` | An unbounded retry emailing somebody every five minutes forever, and the at-least-once guarantee being quietly overstated. |
-| `booking.test.js` | A calendar conflict rejecting an inquiry, a duplicate hold, or a superseded booking landing anyway. |
+| `booking.test.js` | A booking reported confirmed before the calendar agreed. Somebody sits by a phone at 10:30 for a meeting that does not exist. |
 | `entry.test.js` | An internal value (Sheet id, address, stack) crossing the boundary, and an uncaught exception returning unreadable HTML instead of JSON. |
 | `sheet-repository.test.js` | Position-based column access writing values into the wrong columns after somebody reorders the Sheet. |
+| `templates.test.js` | Unescaped user content reaching a real inbox, the QR acknowledgement echoing an unverified record back, a promise nobody can keep, or an invented phone number. |
+| `digest.test.js` | An empty digest that sends anyway, a Contact marked delivered when the email never arrived, routing that reads as an assignment, or a digest that clips in Gmail. |
+| `retention.test.js` | A purge that takes a business record, or one that removes work which has not run yet. The only subsystem whose bug is permanent. |
 | `deployability.test.js` | A pushed test file taking the whole backend down, a load-order dependency, or an environment value committed to the repository. |
 
 ## Helpers

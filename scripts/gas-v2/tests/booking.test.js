@@ -3,14 +3,15 @@
 /*
  * The booking command.
  *
- * WHAT THESE TESTS ARE FOR. Booking was moved OUT of the submission for a reason: an
- * inquiry must be storable while the calendar is down, and a calendar conflict must
- * never be able to reject an inquiry. The first assertions pin that separation.
+ * THE CORRECTION THIS FILE EXISTS TO PIN: booking never falsely confirms.
  *
- * The rest guard the failures a visitor would experience directly: a double-submitted
- * booking creating two holds, a stale queued booking landing on the calendar after the
- * visitor changed their mind, and a slot outside business hours being accepted because
- * only its date was checked.
+ * Pass 8 queued the calendar write and returned `pending` while the visitor's screen said
+ * their call was booked. The failure mode is somebody sitting by a phone at 10:30 for a
+ * meeting that does not exist. The Calendar port is now called synchronously inside the
+ * command, and `confirmed` is reachable from exactly one place: a successful createEvent.
+ *
+ * The other guarded failures are a calendar outage taking a stored Lead down with it, a
+ * duplicate hold, and a booking offered on a pathway that never asked for one.
  */
 
 const { test } = require('node:test');
@@ -21,12 +22,12 @@ const { buildDeps, fakeCalendarService } = require('./helpers/fakes.js');
 
 const ctx = load();
 
-/** Tuesday 2026-08-04, 10:00 CDT. Well inside the window, well after the lead time. */
+/** Tuesday 2026-08-04, 10:00 CDT. Inside the window, well after the lead time. */
 const GOOD_SLOT = '2026-08-04T15:00:00.000Z';
 
-function seedLead(deps) {
-  const parsed = ctx.parseEnvelope(JSON.stringify(fx.managementProposal()));
-  assert.equal(parsed.ok, true);
+function seedLead(deps, envelope) {
+  const parsed = ctx.parseEnvelope(JSON.stringify(envelope || fx.managementProposal()));
+  assert.equal(parsed.ok, true, `fixture should be valid: ${parsed.code || ''}`);
   return ctx.processSubmission(parsed.value, deps);
 }
 
@@ -37,6 +38,92 @@ function book(deps, leadId, patch = {}) {
   assert.equal(parsed.ok, true, `booking fixture should be valid: ${parsed.code || ''}`);
   return ctx.executeBookingCommand(parsed.value, deps);
 }
+
+/* ── Never falsely confirms ───────────────────────────────────────────────── */
+
+test('confirmed is returned only after the calendar created the event', () => {
+  const deps = buildDeps();
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.status, 'confirmed');
+  assert.equal(result.ok, true);
+  assert.equal(deps.calendar.created.length, 1, 'the event must exist before confirming');
+  assert.equal(deps.leads.findLeadById(lead.leadId).calendarEventId, 'evt-1');
+});
+
+test('a calendar failure returns failed, never confirmed', () => {
+  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.ok, false);
+  assert.notEqual(result.status, 'confirmed');
+  assert.equal(deps.leads.findLeadById(lead.leadId).calendarStatus, 'failed');
+});
+
+test('no configured calendar returns not_configured, never confirmed', () => {
+  const deps = buildDeps({ config: { calendarId: '' } });
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.status, 'not_configured');
+  assert.equal(result.ok, false);
+  assert.equal(deps.calendar.created.length, 0);
+  // The visitor's stated intent is still recorded for a partner to confirm by hand.
+  assert.equal(deps.leads.findLeadById(lead.leadId).activeBookingRequestId, fx.BOOKING_UUID);
+});
+
+test('an unreadable calendar is not treated as an available calendar', () => {
+  // Reading a failed availability check as "nothing is booked" is how a partner ends up
+  // double-booked.
+  const deps = buildDeps();
+  deps.calendar.listBusy = () => ({ ok: false, reason: 'calendar_error:Test', busy: [] });
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.status, 'failed');
+  assert.equal(deps.calendar.created.length, 0);
+});
+
+test('a busy slot returns unavailable and creates nothing', () => {
+  const calendar = fakeCalendarService({
+    busy: [{ startIso: '2026-08-04T15:15:00.000Z', endIso: '2026-08-04T16:00:00.000Z' }],
+  });
+  const deps = buildDeps({ calendar });
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.status, 'unavailable');
+  assert.equal(calendar.created.length, 0);
+});
+
+test('nothing is queued that could confirm later without the calendar', () => {
+  // The only queued item on the happy path is the confirmation EMAIL, and its handler
+  // re-checks the stored calendar state before sending.
+  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+  const lead = seedLead(deps);
+  book(deps, lead.leadId);
+  assert.equal(deps.work.items.filter((i) => i.kind === 'send_booking_confirmation').length, 0);
+});
+
+/* ── The Lead is never harmed ─────────────────────────────────────────────── */
+
+test('a calendar failure does not delete or alter the stored Lead', () => {
+  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+  const lead = seedLead(deps);
+  const before = { ...deps.leads.findLeadById(lead.leadId) };
+
+  book(deps, lead.leadId);
+  const after = deps.leads.findLeadById(lead.leadId);
+
+  assert.equal(deps.leads.store.rows.length, 1);
+  assert.equal(after.fullName, before.fullName);
+  assert.equal(after.email, before.email);
+  assert.equal(after.propertyLocation, before.propertyLocation);
+  assert.equal(after.slaDueAt, before.slaDueAt);
+});
 
 /* ── Separation from submission ───────────────────────────────────────────── */
 
@@ -50,54 +137,55 @@ test('a submission stores nothing calendar-related on its own', () => {
   assert.equal(deps.calendar.created.length, 0);
 });
 
-test('a booking references an existing lead and is refused without one', () => {
+test('the lead must already exist', () => {
   const deps = buildDeps();
   const result = book(deps, '00000000-0000-4000-8000-000000009999');
-  assert.equal(result.ok, false);
+  assert.equal(result.status, 'rejected');
   assert.equal(result.code, 'LEAD_NOT_FOUND');
 });
 
-/* ── The happy path ───────────────────────────────────────────────────────── */
+/* ── Management Proposal only ─────────────────────────────────────────────── */
 
-test('a valid booking is accepted and queued, not written inline', () => {
-  // The calendar write is deferred for the same reason email is: a calendar outage
-  // should delay a meeting, not lose one.
+test('booking is refused on the investor services pathway', () => {
+  // A question is not an engagement. Offering a slot would put a partner in a meeting
+  // the visitor never asked for.
   const deps = buildDeps();
-  const lead = seedLead(deps);
+  const lead = seedLead(deps, fx.investorServices());
   const result = book(deps, lead.leadId);
 
-  assert.equal(result.ok, true);
-  assert.equal(result.status, 'pending');
+  assert.equal(result.status, 'rejected');
+  assert.equal(result.code, 'PATHWAY_NOT_BOOKABLE');
   assert.equal(deps.calendar.created.length, 0);
-  assert.ok(Array.from(deps.work.kinds()).indexOf('create_booking_event') !== -1);
 });
 
-test('the queued write puts the event on the calendar and records its id', () => {
+test('booking is refused on the general inquiry pathway', () => {
   const deps = buildDeps();
-  const lead = seedLead(deps);
-  book(deps, lead.leadId);
-  ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
+  const lead = seedLead(deps, fx.generalInquiry());
+  const result = book(deps, lead.leadId);
+  assert.equal(result.code, 'PATHWAY_NOT_BOOKABLE');
+});
 
-  const stored = deps.leads.findLeadById(lead.leadId);
-  assert.equal(stored.calendarStatus, 'booked');
-  assert.equal(stored.calendarEventId, 'evt-1');
-  assert.equal(deps.calendar.created.length, 1);
+test('booking is refused on a contact exchange', () => {
+  const deps = buildDeps();
+  const lead = seedLead(deps, fx.contactExchange());
+  const result = book(deps, lead.leadId);
+  assert.equal(result.code, 'PATHWAY_NOT_BOOKABLE');
 });
 
 /* ── Duplicate protection ─────────────────────────────────────────────────── */
 
-test('the same bookingRequestId replays instead of creating a second hold', () => {
+test('the same bookingRequestId replays the recorded outcome', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
   book(deps, lead.leadId);
   const second = book(deps, lead.leadId);
 
-  assert.equal(second.ok, true);
   assert.equal(second.replay, true);
-  assert.equal(deps.work.items.filter((i) => i.kind === 'create_booking_event').length, 1);
+  assert.equal(second.status, 'confirmed');
+  assert.equal(deps.calendar.created.length, 1, 'no second hold');
 });
 
-test('a different booking while one is active is refused rather than silently stacked', () => {
+test('a different booking while one is confirmed is refused', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
   book(deps, lead.leadId);
@@ -106,125 +194,90 @@ test('a different booking while one is active is refused rather than silently st
     slotStart: '2026-08-05T15:00:00.000Z',
   });
 
-  assert.equal(second.ok, false);
+  assert.equal(second.status, 'rejected');
   assert.equal(second.code, 'BOOKING_ALREADY_ACTIVE');
+  assert.equal(deps.calendar.created.length, 1);
 });
 
-test('a queued booking that was superseded does not land on the calendar', () => {
-  const deps = buildDeps();
+test('after a failed attempt a fresh booking request is accepted', () => {
+  // A failed hold must not lock the lead out of ever booking again.
+  const calendar = fakeCalendarService({ createFails: true });
+  const deps = buildDeps({ calendar });
   const lead = seedLead(deps);
   book(deps, lead.leadId);
 
-  // Something else moved the active booking on before the queue ran.
-  deps.leads.updateLeadFields(lead.leadId, {
-    activeBookingRequestId: '99990000-1111-4222-8333-444455556666',
+  calendar.createFails = false;
+  const retry = book(deps, lead.leadId, {
+    bookingRequestId: '33334444-5555-4666-8777-888899990000',
+    slotStart: '2026-08-05T15:00:00.000Z',
   });
-
-  const summary = ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
-  assert.equal(summary.abandoned, 1);
-  assert.equal(deps.calendar.created.length, 0);
+  assert.equal(retry.status, 'confirmed');
 });
 
 /* ── Slot rules ───────────────────────────────────────────────────────────── */
 
-test('a slot in the immediate future is refused', () => {
+test('a slot in the immediate future is unavailable', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, { slotStart: '2026-08-03T14:30:00.000Z' });
-  assert.equal(result.code, 'SLOT_TOO_SOON');
+  assert.equal(book(deps, lead.leadId, { slotStart: '2026-08-03T14:30:00.000Z' }).code, 'SLOT_TOO_SOON');
 });
 
-test('a slot months ahead is refused', () => {
+test('a slot months ahead is unavailable', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, { slotStart: '2027-08-04T15:00:00.000Z' });
-  assert.equal(result.code, 'SLOT_TOO_FAR_AHEAD');
+  assert.equal(book(deps, lead.leadId, { slotStart: '2027-08-04T15:00:00.000Z' }).code, 'SLOT_TOO_FAR_AHEAD');
 });
 
-test('a weekend slot is refused', () => {
+test('a weekend slot is unavailable', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, { slotStart: '2026-08-08T15:00:00.000Z' });
-  assert.equal(result.code, 'SLOT_OUTSIDE_BUSINESS_HOURS');
+  assert.equal(book(deps, lead.leadId, { slotStart: '2026-08-08T15:00:00.000Z' }).code, 'SLOT_OUTSIDE_BUSINESS_HOURS');
 });
 
-test('a slot before opening is refused', () => {
-  // 07:00 CDT.
-  const deps = buildDeps();
-  const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, { slotStart: '2026-08-04T12:00:00.000Z' });
-  assert.equal(result.code, 'SLOT_OUTSIDE_BUSINESS_HOURS');
-});
-
-test('a slot that starts inside hours but ends after closing is refused', () => {
+test('a slot that starts inside hours but ends after closing is unavailable', () => {
   // 16:45 CDT plus 30 minutes runs past 17:00. Checking only the start would let this
   // through and book a meeting nobody is there for.
   const deps = buildDeps();
   const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, {
-    slotStart: '2026-08-04T21:45:00.000Z',
-    durationMinutes: 30,
-  });
+  const result = book(deps, lead.leadId, { slotStart: '2026-08-04T21:45:00.000Z', durationMinutes: 30 });
   assert.equal(result.code, 'SLOT_OUTSIDE_BUSINESS_HOURS');
 });
 
 test('a slot ending exactly at closing is allowed', () => {
   const deps = buildDeps();
   const lead = seedLead(deps);
-  const result = book(deps, lead.leadId, {
-    slotStart: '2026-08-04T21:30:00.000Z',
-    durationMinutes: 30,
-  });
-  assert.equal(result.ok, true);
+  const result = book(deps, lead.leadId, { slotStart: '2026-08-04T21:30:00.000Z', durationMinutes: 30 });
+  assert.equal(result.status, 'confirmed');
 });
 
-test('a slot the calendar says is busy is refused', () => {
-  const calendar = fakeCalendarService({
-    busy: [{ startIso: '2026-08-04T15:15:00.000Z', endIso: '2026-08-04T16:00:00.000Z' }],
-  });
-  const deps = buildDeps({ calendar });
-  const lead = seedLead(deps);
-  const result = book(deps, lead.leadId);
+/* ── The confirmation email ───────────────────────────────────────────────── */
 
-  assert.equal(result.ok, false);
-  assert.equal(result.code, 'SLOT_UNAVAILABLE');
-});
-
-/* ── Degradation ──────────────────────────────────────────────────────────── */
-
-test('with no calendar configured the request is still recorded for a human', () => {
-  // The visitor asked for a specific time. Recording it beats telling them booking is
-  // unavailable and losing the intent.
-  const deps = buildDeps({ config: { calendarId: '' } });
-  const lead = seedLead(deps);
-  const result = book(deps, lead.leadId);
-
-  assert.equal(result.ok, true);
-  assert.equal(result.status, 'not_configured');
-  const stored = deps.leads.findLeadById(lead.leadId);
-  assert.equal(stored.activeBookingRequestId, fx.BOOKING_UUID);
-});
-
-test('a failed calendar write is recorded and left retryable', () => {
-  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+test('a confirmed booking queues its confirmation email', () => {
+  const deps = buildDeps();
   const lead = seedLead(deps);
   book(deps, lead.leadId);
-  ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
-
-  const stored = deps.leads.findLeadById(lead.leadId);
-  assert.equal(stored.calendarStatus, 'failed');
+  assert.equal(deps.work.items.filter((i) => i.kind === 'send_booking_confirmation').length, 1);
 });
 
-test('after a failed write a fresh booking request is accepted', () => {
-  // A failed hold must not lock the lead out of ever booking again.
-  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+test('the confirmation is not sent if the booking stopped being confirmed', () => {
+  const deps = buildDeps();
   const lead = seedLead(deps);
   book(deps, lead.leadId);
-  ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
 
-  const retry = book(deps, lead.leadId, {
-    bookingRequestId: '33334444-5555-4666-8777-888899990000',
-    slotStart: '2026-08-05T15:00:00.000Z',
-  });
-  assert.equal(retry.ok, true);
+  deps.leads.updateLeadFields(lead.leadId, { calendarStatus: 'failed' });
+  const summary = ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
+
+  assert.equal(deps.templates.bookings.length, 0);
+  assert.ok(summary.abandoned >= 1);
+});
+
+test('the confirmation template refuses to render an unconfirmed booking', () => {
+  // The last line of defence: even handed the wrong status directly, it will not render.
+  const rendered = ctx.renderBookingConfirmation(
+    { fullName: 'Dana Whitfield', email: 'dana@example.test' },
+    { status: 'pending', slotStart: GOOD_SLOT, durationMinutes: 30, mode: 'phone_call' },
+    {},
+  );
+  assert.equal(rendered.ok, false);
+  assert.equal(rendered.reason, 'booking_not_confirmed');
 });

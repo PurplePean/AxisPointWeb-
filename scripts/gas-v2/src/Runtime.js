@@ -28,9 +28,8 @@ function buildProductionDeps() {
     calendar: isConfigured(config, 'booking')
       ? makeCalendarService(config)
       : notConfiguredCalendarService('calendar_not_configured'),
-    // Rendering is a later pass. The port is wired to an explicit not-implemented
-    // stub so the failure is a named, visible state rather than a crash.
-    templates: notImplementedTemplates(),
+    // The approved communications templates, implemented in Pass 9A.
+    templates: realTemplates(),
     launchReadyLocales: LAUNCH_READY_LOCALES
   };
 

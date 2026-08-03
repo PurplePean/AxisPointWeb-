@@ -62,8 +62,20 @@ test('a booking request returns its own shape', () => {
   const body = post(fx.bookingRequest({ leadId: lead.leadId, slotStart: '2026-08-04T15:00:00.000Z' }), deps);
 
   assert.equal(body.ok, true);
-  assert.equal(body.calendarStatus, 'pending');
+  // A final status, never 'pending'. See booking.test.js.
+  assert.equal(body.bookingStatus, 'confirmed');
   assert.equal(body.bookingRequestId, fx.BOOKING_UUID);
+});
+
+test('a refused booking still reports its final status', () => {
+  // The client can say "that slot is taken" rather than a generic failure.
+  const deps = buildDeps({ config: { calendarId: '' } });
+  const lead = post(fx.managementProposal(), deps);
+  const body = post(fx.bookingRequest({ leadId: lead.leadId, slotStart: '2026-08-04T15:00:00.000Z' }), deps);
+
+  assert.equal(body.ok, false);
+  assert.equal(body.bookingStatus, 'not_configured');
+  assert.notEqual(body.bookingStatus, 'confirmed');
 });
 
 /* ── Error shape ──────────────────────────────────────────────────────────── */

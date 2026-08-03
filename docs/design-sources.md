@@ -1,7 +1,8 @@
 # Approved V2 design sources
 
-**Approved design versions: `design@2026-07-30` (site, intake, QR) and
-`design@2026-07-31` (global language selector)**
+**Approved design versions: `design@2026-07-30` (site, intake, QR),
+`design@2026-07-31` (global language selector), `design@2026-08-01` (QR Contact
+Exchange), and `design@2026-08-02` (QR Contact emails and the daily digest)**
 
 This file is the bridge between the approved design package and the code. It records which
 design file is authoritative for which surface, which files are required dependencies, which
@@ -18,17 +19,24 @@ asks for that citation.
   AxisPoint-Design-Pass-1-Approved-2026-07-29/
   AxisPoint-Design-Pass-2A-Approved-2026-07-29/
   AxisPoint-Design-Pass-2B-Approved-2026-07-29/
-  AxisPoint-QR-Frontend-Approved-2026-07-30/   <- design@2026-07-30, the working input
+  AxisPoint-QR-Frontend-Approved-2026-07-30/
+  AxisPoint-Design-Language-Selector-Approved-2026-07-31/
+  AxisPoint-Design-QR-Contact-Exchange-Approved-2026-08-01/
+  AxisPoint-Design-QR-Contact-Emails-Approved-2026-08-02/   <- newest export
 ```
 
 The archive is **external to this repository, read-only, and must not be modified, moved,
 renamed, repackaged, or committed.** Design files are large, binary-heavy, and carry
 unresolved photography licensing; this text manifest exists so they never need to be in git.
 
-**Only the 2026-07-30 QR export is a working input.** The four exports are cumulative: every
-shared design file is byte-identical across all four, and each pass strictly adds files. The
-only file that changes between exports is the Design Index itself, which grows as each pass is
-recorded. The three earlier folders are historical record with no unique content.
+**The newest export is the working input.** The seven exports are cumulative: every shared
+design file is byte-identical across all of them, and each pass strictly adds files. The only
+file that changes between exports is the Design Index itself, which grows as each pass is
+recorded. The earlier folders are historical record with no unique content.
+
+Package integrity is verified per pass by hashing the ZIPs **in this folder only**. Do not
+compare against similarly named copies elsewhere on the machine: they are not the source of
+truth, and a comparison against one proves nothing about the folder that is.
 
 ## Authoritative sources
 
@@ -41,8 +49,54 @@ recorded. The three earlier folders are historical record with no unique content
 | Localization behaviour and layout | `AxisPointLangSystem.dc.html`, `AxisPointLocaleProof.dc.html` | Authoritative for behaviour, layout, and direction. Translated copy is a **proof, not approved translation** |
 | Shared footer | `AxisPointFooter.dc.html` | See correction 3 |
 | QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Seven values remain unresolved, see below |
-| Communications and email (Pass 2A) | `AxisPoint Communications System.dc.html` | Approved. Belongs to a later email/backend pass |
+| Communications and email (Pass 2A) | `AxisPoint Communications System.dc.html`, `AxisPointEmail.dc.html` | Approved. Implemented in Code Pass 9A for the website acknowledgement, the internal notification, and the booking confirmation |
+| QR Contact emails and the daily digest | `AxisPoint QR Contact Emails.dc.html` | Approved at `design@2026-08-02`. Implemented in Code Pass 9A |
 | Letterhead and Management Proposal document (Pass 2B) | `AxisPoint Proposal and Letterhead System.dc.html` | Approved for future use. **Implementation deferred, not required for launch** |
+
+### QR Contact emails and daily digest, `design@2026-08-02`
+
+| | |
+|---|---|
+| **Package** | `AxisPoint-Design-QR-Contact-Emails-Approved-2026-08-02/` |
+| **Authoritative** | `AxisPoint QR Contact Emails.dc.html` |
+| **Depends on** | `AxisPoint Communications System.dc.html` and `AxisPointEmail.dc.html` for the Pass 2A shell, header, summary panel, and footer |
+| **Index** | `AxisPoint Design Index.dc.html`, updated in the same export |
+| **Cumulative** | Verified: all six earlier ZIP hashes are unchanged, one package was added |
+
+Implemented in Code Pass 9A. What the board settles, and where the code enforces it:
+
+- Two emails come out of a scanned card, and neither one sells anything: a transactional
+  confirmation, and one conditional internal digest at 8:00 AM that replaces per-scan
+  notification.
+- The confirmation echoes the **display name only**. The submitted address has not been
+  verified as the sender's, so no other submitted value appears.
+- Deliberately absent: response-time promise, sales copy, nurture enrollment, tracking
+  pixel, visible reference number, Save Contact action, invented values.
+- "Gathered through" and "Current owner" are two rows, always both present. Attribution is
+  immutable, ownership is current state read at generation time.
+- Zero new Contacts sends nothing at all. The window advances only on confirmed delivery.
+- Approximately 90 KB working ceiling per HTML part, splitting at Contact boundaries and
+  never truncating.
+
+Deviations from the drawn specimens, recorded rather than silently taken:
+
+1. **The internal action button is omitted.** The Pass 2A specimen draws "Open the lead
+   record" at a placeholder destination. The internal review surface still does not exist,
+   and the QR board's own rule is that a dead link in an internal email is worse than no
+   link.
+2. **One `<style>` block is used** to stack key above value below 480px, which is the
+   approved 390px behaviour. Every cell still carries its full inline style, so a client
+   that strips the head renders the side-by-side layout correctly. The layout does not
+   depend on the stylesheet.
+3. **Record cost is about 3.1 KB rather than the drawn 1.6 KB**, so thirty contacts split
+   into two numbered parts rather than fitting one email. Splitting is the approved
+   behaviour above the ceiling; nothing is truncated and nothing clips.
+
+Unresolved production variables from m12 remain unresolved and are read from Script
+Properties by name. Two are **launch blockers** and are reported by the backend's own
+health check: a monitored Reply-To mailbox, and a documented removal procedure with a
+named accountable person. Until both are configured the correction and removal lines are
+omitted from the email entirely.
 
 ### Language selector, `design@2026-07-31`
 

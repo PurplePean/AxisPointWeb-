@@ -185,7 +185,24 @@ function bookingRequest(patch = {}) {
   );
 }
 
+/**
+ * A Contact Exchange with a distinct submissionId, so several can be stored in one test.
+ * `slug` drives acquisition attribution: a partner slug, the firm card, or anything else
+ * (which resolves to unknown).
+ */
+function qrSubmission(n, slug, patch = {}) {
+  const id = `${String(n).padStart(8, '0')}-1111-4222-8333-444455556666`;
+  return deepMerge(
+    contactExchange({
+      submissionId: id,
+      attribution: { sourceDetail: slug },
+    }),
+    patch,
+  );
+}
+
 module.exports = {
+  qrSubmission,
   VALID_UUID,
   VALID_UUID_2,
   BOOKING_UUID,

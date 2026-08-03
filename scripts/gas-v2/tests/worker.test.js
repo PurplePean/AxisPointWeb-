@@ -229,16 +229,76 @@ test('different leads get different items even for the same kind', () => {
 
 /* ── Acknowledgement rules ────────────────────────────────────────────────── */
 
-test('a contact exchange gets no automated acknowledgement', () => {
-  // It is a handshake record. An unsolicited automated email to somebody who just
-  // swapped a card is the wrong move.
+test('a contact exchange with an email DOES get an acknowledgement', () => {
+  // This supersedes the Pass 8 rule that a Contact Exchange never gets one. Somebody who
+  // hands over their details and hears nothing has no way to know it worked, and no way
+  // to correct a typo in their own address.
   const deps = buildDeps();
   const result = seedLead(deps, fx.contactExchange());
   runCycle(deps);
 
   const lead = deps.leads.findLeadById(result.leadId);
-  assert.equal(lead.ackEmailStatus, 'skipped');
+  assert.equal(lead.ackEmailStatus, 'sent');
+  assert.equal(deps.templates.qrAcknowledgements.length, 1);
+  // It goes through the QR renderer, not the website one.
   assert.equal(deps.templates.acknowledgements.length, 0);
+});
+
+test('a phone-only contact exchange is valid and its acknowledgement is skipped', () => {
+  // The Contact is fully valid and appears in the digest. There is simply nowhere to
+  // write, and no SMS is designed. Skipped, not failed.
+  const deps = buildDeps();
+  const result = seedLead(deps, fx.contactExchange({ payload: { email: undefined } }));
+  runCycle(deps);
+
+  const lead = deps.leads.findLeadById(result.leadId);
+  assert.equal(lead.ackEmailStatus, 'skipped');
+  assert.equal(lead.digestStatus, 'pending_digest', 'it still reaches the digest');
+  assert.equal(deps.mail.sent.length, 0);
+});
+
+test('a suspected-spam contact exchange is stored and never acknowledged', () => {
+  // Otherwise the form is a way to mail a third party from an address nobody owns.
+  const deps = buildDeps();
+  const result = seedLead(deps, fx.contactExchange({ clientSignals: { honeypot: 'bot' } }));
+  runCycle(deps);
+
+  const lead = deps.leads.findLeadById(result.leadId);
+  assert.equal(lead.ackEmailStatus, 'skipped');
+  assert.equal(lead.digestStatus, 'excluded_spam');
+  assert.equal(deps.mail.sent.length, 0);
+  assert.equal(deps.leads.store.rows.length, 1, 'still stored');
+});
+
+test('a failed QR acknowledgement never removes the stored record', () => {
+  const deps = buildDeps({ mail: fakeMailService({ failTimes: 99 }) });
+  const result = seedLead(deps, fx.contactExchange());
+  runCycle(deps);
+
+  assert.equal(deps.leads.store.rows.length, 1);
+  assert.equal(deps.contacts.store.rows.length, 1);
+  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'failed');
+});
+
+test('a QR acknowledgement retry uses the existing bounded machinery', () => {
+  const deps = buildDeps({ mail: fakeMailService({ failTimes: 1 }) });
+  const result = seedLead(deps, fx.contactExchange());
+
+  runCycle(deps);
+  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'failed');
+
+  deps.clock.advanceMinutes(10);
+  runCycle(deps);
+  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'sent');
+  assert.equal(deps.mail.sent.length, 1, 'delivered once, not twice');
+});
+
+test('an unconfigured QR acknowledgement is recorded rather than silently dropped', () => {
+  const deps = buildDeps({ config: { firmEmail: '', websiteUrl: '' } });
+  const result = seedLead(deps, fx.contactExchange());
+  runCycle(deps);
+
+  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'not_configured');
 });
 
 test('a flagged submission gets no automated acknowledgement but partners are told', () => {
@@ -251,13 +311,24 @@ test('a flagged submission gets no automated acknowledgement but partners are to
   assert.equal(lead.partnerNotifyStatus, 'sent');
 });
 
-test('an unlaunched follow-up locale falls back to English rather than faking a translation', () => {
-  const templates = fakeTemplates();
-  const deps = buildDeps({ templates });
-  seedLead(deps, fx.investorServices());
+test('an unlaunched follow-up locale is recorded but never fakes a translation', () => {
+  // The visitor asked to be answered in Spanish. That preference is stored as an
+  // operational fact, and the acknowledgement still goes out in English rather than in a
+  // template pretending to be Spanish.
+  const deps = buildDeps();
+  const result = seedLead(deps, fx.investorServices());
   runCycle(deps);
 
-  assert.equal(templates.acknowledgements[0].locale, 'en');
+  const lead = deps.leads.findLeadById(result.leadId);
+  assert.equal(lead.preferredFollowUpLocale, 'es');
+  assert.equal(lead.preferredFollowUpStated, true);
+
+  const outbound = ctx.resolveOutboundLocale(
+    { preferredFollowUpLocale: 'es', pageLocale: 'en' },
+    ctx.LAUNCH_READY_LOCALES,
+  );
+  assert.equal(outbound.locale, 'en');
+  assert.equal(outbound.satisfied, false);
 });
 
 test('a missing service is recorded as not_configured, not as a silent success', () => {
