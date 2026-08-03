@@ -1,15 +1,16 @@
 'use strict';
 
 /*
- * Notification routing.
+ * Notification routing for website inquiries.
  *
- * WHAT THESE TESTS ARE FOR. The rule that a QR scan identifies a CARD and not an
- * OWNER is easy to state and easy to lose. The assertions below pin both halves: the
- * scanned partner is the obvious first responder, and ownership stays provisional and
- * separately stored so a reassignment is not fought by an automatic rule.
+ * QR Contacts are no longer routed here at all; they go to the daily digest, and
+ * `intake.test.js` asserts that no immediate partner notification is queued for one.
  *
- * The other guarded failure is a notification that reaches nobody. Every path is
- * asserted to produce at least one recipient whenever any address is configured.
+ * The rule this file pins is that ROUTING ASSIGNS NOTHING. Pass 8 let a resolved QR scan
+ * provisionally set `ownerPartner`, which meant a printed card decided who was
+ * accountable for a relationship and any reassignment was fighting an automatic rule.
+ * `ownerPartner` is now unassigned at intake, always, and the decision object no longer
+ * has a field to carry it.
  */
 
 const { test } = require('node:test');
@@ -23,86 +24,44 @@ const CLEAN = { spamSuspected: false };
 const FLAGGED = { spamSuspected: true, spamReason: 'honeypot_filled' };
 
 function lead(overrides = {}) {
-  return {
-    sourceCategory: 'website',
-    scannedPartner: '',
-    scannedSlugUnresolved: false,
-    ...overrides,
-  };
+  return { sourceCategory: 'website', ...overrides };
 }
 
-test('a website submission goes to the firm with no provisional owner', () => {
+test('a website submission goes to the firm', () => {
   const decision = ctx.routeNotification(lead(), CLEAN);
   assert.equal(decision.reason, 'website_submission_to_firm');
-  assert.equal(decision.ownerPartner, '');
   assert.equal(decision.useFirmFallback, true);
 });
 
-test('a scanned card notifies that partner and provisionally assigns them', () => {
-  const decision = ctx.routeNotification(
-    lead({ sourceCategory: 'qr', scannedPartner: 'zachary_russell' }),
-    CLEAN,
-  );
-  assert.equal(decision.reason, 'scanned_partner_card');
-  assert.equal(Array.from(decision.recipients).join(), 'zachary_russell');
-  assert.equal(decision.ownerPartner, 'zachary_russell');
-});
-
-test('a retired card slug reaches the whole firm and assigns nobody', () => {
-  // Guessing an owner here would attribute someone else's handshake to the wrong
-  // partner, which is worse than an extra email.
-  const decision = ctx.routeNotification(
-    lead({ sourceCategory: 'qr', scannedPartner: '', scannedSlugUnresolved: true }),
-    CLEAN,
-  );
-  assert.equal(decision.reason, 'unresolved_partner_slug');
-  assert.equal(decision.ownerPartner, '');
-  assert.equal(decision.useFirmFallback, true);
-});
-
-test('a flagged submission goes to the firm even when a card was scanned', () => {
-  // One partner quietly deciding a flagged lead was junk is how a real one is lost.
-  const decision = ctx.routeNotification(
-    lead({ sourceCategory: 'qr', scannedPartner: 'ethaniel_vu' }),
-    FLAGGED,
-  );
+test('a flagged submission goes to the firm with its own reason', () => {
+  // One partner quietly deciding a flagged lead was junk is how a real one is lost, so
+  // the reason travels with the message rather than the routing being silently identical.
+  const decision = ctx.routeNotification(lead(), FLAGGED);
   assert.equal(decision.reason, 'spam_suspected_firm_review');
-  assert.equal(decision.ownerPartner, '');
+});
+
+test('the decision carries no ownership field at all', () => {
+  // Not "ownerPartner is empty": the field is gone, so nothing downstream can read a
+  // routing decision as an assignment.
+  const decision = ctx.routeNotification(lead(), CLEAN);
+  assert.deepEqual(Object.keys(decision).sort(), ['reason', 'recipients', 'useFirmFallback']);
+  assert.equal('ownerPartner' in decision, false);
+});
+
+test('the QR routing reasons are gone', () => {
+  assert.equal(ctx.ROUTING_REASONS.SCANNED_PARTNER, undefined);
+  assert.equal(ctx.ROUTING_REASONS.UNRESOLVED_SLUG, undefined);
 });
 
 test('routing decides, it does not send', () => {
   const decision = ctx.routeNotification(lead(), CLEAN);
-  assert.deepEqual(Object.keys(decision).sort(), [
-    'ownerPartner',
-    'reason',
-    'recipients',
-    'useFirmFallback',
-  ]);
+  assert.equal(typeof decision.recipients.length, 'number');
 });
 
 /* ── Address resolution ───────────────────────────────────────────────────── */
 
-test('a scanned partner resolves to that partner address', () => {
-  const decision = ctx.routeNotification(
-    lead({ sourceCategory: 'qr', scannedPartner: 'zachary_russell' }),
-    CLEAN,
-  );
-  const to = ctx.resolveRecipients(decision, fakeConfig());
-  assert.deepEqual(Array.from(to), ['zr@example.test']);
-});
-
 test('a firm decision resolves to the firm-wide list', () => {
   const to = ctx.resolveRecipients(ctx.routeNotification(lead(), CLEAN), fakeConfig());
-  assert.deepEqual(Array.from(to), ['firm@example.test']);
-});
-
-test('an unconfigured partner address falls back to the firm rather than nobody', () => {
-  // An undeliverable notification is worse than an over-broad one.
-  const decision = ctx.routeNotification(
-    lead({ sourceCategory: 'qr', scannedPartner: 'zachary_russell' }),
-    CLEAN,
-  );
-  const to = ctx.resolveRecipients(decision, fakeConfig({ partnerEmailMap: {} }));
   assert.deepEqual(Array.from(to), ['firm@example.test']);
 });
 

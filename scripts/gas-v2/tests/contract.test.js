@@ -204,10 +204,55 @@ test('rejects a malformed email', () => {
   assert.equal(result.code, 'INVALID_EMAIL');
 });
 
-test('rejects a phone that is too short to be one', () => {
+/* ── Phone contract: 7 to 20 digits, no country assumption ────────────────── */
+
+test('rejects a phone with fewer than seven digits', () => {
   const result = parse(fx.managementProposal({ payload: { contact: { phone: '555-01' } } }));
   assert.equal(result.ok, false);
   assert.equal(result.code, 'INVALID_PHONE');
+});
+
+test('accepts a seven digit phone', () => {
+  // The shortest real subscriber number. The old ten-digit floor rejected it.
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '555-0198' } } }));
+  assert.equal(result.ok, true);
+});
+
+test('accepts a twenty digit phone', () => {
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '+12345678901234567890' } } }));
+  assert.equal(result.ok, true);
+});
+
+test('rejects a twenty-one digit phone', () => {
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '+123456789012345678901' } } }));
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'INVALID_PHONE');
+});
+
+test('accepts an international number with no country assumption', () => {
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '+44 20 7946 0958' } } }));
+  assert.equal(result.ok, true);
+});
+
+test('accepts an extension using the approved punctuation set', () => {
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '(713) 555-0198 x204' } } }));
+  assert.equal(result.ok, true);
+});
+
+test('rejects punctuation outside the approved set', () => {
+  // A paste accident or an injection attempt. Both are better refused than stored.
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: '713<script>5550198' } } }));
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'INVALID_PHONE');
+});
+
+test('the phone is stored exactly as typed, never reformatted', () => {
+  // A number rewritten into a shape the person did not write is one they cannot
+  // recognise as theirs.
+  const typed = '+44 (0)20 7946-0958';
+  const result = parse(fx.managementProposal({ payload: { contact: { phone: typed } } }));
+  assert.equal(result.ok, true);
+  assert.equal(result.value.payload.contact.phone, typed);
 });
 
 test('contact exchange accepts phone alone', () => {

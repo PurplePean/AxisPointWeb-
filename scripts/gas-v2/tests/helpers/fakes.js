@@ -102,6 +102,11 @@ function fakeLeadRepository() {
       const row = store.findBy('submissionId', submissionId);
       return row ? { ...row } : null;
     },
+    listPendingDigestSubmissions() {
+      return store.rows
+        .filter((r) => String(r.digestStatus) === 'pending_digest')
+        .map((r) => ({ ...r }));
+    },
     updateLeadFields(leadId, patch) {
       this.patches.push({ leadId, patch });
       return store.patch(leadId, patch);
@@ -124,15 +129,13 @@ function fakeContactRepository(seed = []) {
       const row = store.findBy('contactId', contactId);
       return row ? { ...row } : null;
     },
-    /** Same generous filter as the real adapter: email OR phone OR name. */
+    /** Same filter as the real adapter: exact email OR exact full phone digits. */
     listContactCandidates(keys) {
       return store.rows.filter((row) => {
         const email = String(row.email || '').trim().toLowerCase();
-        const phone = String(row.phone || '').replace(/\D+/g, '').slice(-10);
-        const name = String(row.fullName || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const phone = String(row.phone || '').replace(/\D+/g, '');
         if (keys.emailKey && email === keys.emailKey) return true;
         if (keys.phoneKey && phone === keys.phoneKey) return true;
-        if (keys.nameKey && name === keys.nameKey) return true;
         return false;
       });
     },
@@ -143,12 +146,23 @@ function fakeContactRepository(seed = []) {
   };
 }
 
-function fakeLogRepository() {
+function fakeLogRepository(seed = []) {
   return {
-    entries: [],
+    entries: seed.map((e) => ({ ...e })),
+    removed: [],
     append(entry) {
       this.entries.push({ ...entry });
       return true;
+    },
+    listAll() {
+      return this.entries.map((e) => ({ ...e }));
+    },
+    removeByIds(ids) {
+      const wanted = new Set(ids.map(String));
+      const before = this.entries.length;
+      this.entries = this.entries.filter((e) => !wanted.has(String(e.logId)));
+      this.removed.push(...ids);
+      return before - this.entries.length;
     },
     events() {
       return this.entries.map((e) => e.event);
@@ -156,9 +170,20 @@ function fakeLogRepository() {
   };
 }
 
-function fakeWorkRepository() {
+function fakeWorkRepository(seed = []) {
   return {
-    items: [],
+    items: seed.map((i) => ({ ...i })),
+    removed: [],
+    listAll() {
+      return this.items.map((i) => ({ ...i }));
+    },
+    removeByIds(ids) {
+      const wanted = new Set(ids.map(String));
+      const before = this.items.length;
+      this.items = this.items.filter((i) => !wanted.has(String(i.workId)));
+      this.removed.push(...ids);
+      return before - this.items.length;
+    },
     enqueue(item) {
       const existing = this.items.find((i) => i.idempotencyKey === item.idempotencyKey);
       if (existing) return existing.workId;
@@ -245,14 +270,44 @@ function fakeCalendarService(options = {}) {
 function fakeTemplates() {
   return {
     acknowledgements: [],
+    qrAcknowledgements: [],
     notifications: [],
-    renderAcknowledgement(lead, locale) {
-      this.acknowledgements.push({ leadId: lead.leadId, locale });
+    digests: [],
+    bookings: [],
+    renderAcknowledgement(lead) {
+      this.acknowledgements.push({ leadId: lead.leadId });
       return { ok: true, subject: 'ack', htmlBody: '<p>ack</p>', textBody: 'ack' };
     },
-    renderPartnerNotification(lead, decision) {
-      this.notifications.push({ leadId: lead.leadId, reason: decision.reason });
+    renderPartnerNotification(lead) {
+      this.notifications.push({ leadId: lead.leadId });
       return { ok: true, subject: 'notify', htmlBody: '<p>notify</p>', textBody: 'notify' };
+    },
+    renderQrAcknowledgement(lead) {
+      this.qrAcknowledgements.push({ leadId: lead.leadId, to: lead.email });
+      return { ok: true, subject: 'qr ack', htmlBody: '<p>qr</p>', textBody: 'qr' };
+    },
+    /**
+     * Records what the digest was asked to render, so tests assert on the model.
+     *
+     * Arrays are copied with Array.from because the source runs in a VM realm and its
+     * arrays never compare reference-equal to a Node literal.
+     */
+    renderQrDigest(model) {
+      const groups = Array.from(model.groups);
+      const records = groups.flatMap((g) => Array.from(g.records));
+      this.digests.push({
+        total: model.totalCount,
+        partIndex: model.partIndex,
+        partCount: model.partCount,
+        groups: groups.map((g) => g.key),
+        records: records.map((r) => r.submissionId),
+        owners: records.map((r) => r.currentOwner),
+      });
+      return { ok: true, subject: 'digest', htmlBody: '<p>digest</p>', textBody: 'digest' };
+    },
+    renderBookingConfirmation(lead, booking) {
+      this.bookings.push({ leadId: lead.leadId, status: booking.status });
+      return { ok: true, subject: 'booked', htmlBody: '<p>b</p>', textBody: 'b' };
     },
   };
 }
@@ -269,6 +324,27 @@ function fakeConfig(overrides = {}) {
     },
     replyTo: 'reply@example.test',
     fromName: 'AxisPoint',
+
+    // Both TRUE here so the default fixture renders the approved correction and removal
+    // lines. Tests that care about the promise gate blank them explicitly.
+    replyToMonitored: true,
+    removalProcedureConfigured: true,
+
+    partnerDirectEmail: {
+      zachary_russell: 'zr.direct@example.test',
+      ethaniel_vu: 'ev.direct@example.test',
+    },
+    partnerDirectPhone: {
+      zachary_russell: '(555) 010-0001',
+      ethaniel_vu: '(555) 010-0002',
+    },
+    firmEmail: 'firm@example.test',
+    // Deliberately empty: the approved rule omits the firm phone row until verified.
+    firmPhone: '',
+    websiteUrl: 'example.test',
+    // Deliberately empty: both emails must be complete with no logo asset.
+    logoUrl: '',
+
     runMode: 'live',
     ...overrides,
   };

@@ -1,57 +1,70 @@
 /**
  * Attribution and locale resolution.
  *
- * Two rules drive this file:
+ * THE GOVERNING DISTINCTION: acquisition attribution is immutable, ownership is current
+ * state. `acquisitionSource` records which card produced this record and never changes
+ * again. `ownerPartner` records who is responsible right now and starts unassigned for
+ * every record, including one gathered through a partner's own card.
  *
- * 1. A QR card identifies WHICH card was scanned. It does not assign ownership. The
- *    scanned partner is recorded as `scannedPartner`; who works the lead is decided
- *    by notification routing, which may or may not agree.
+ * A scan gave a partner a name, not a claim. Automatically assigning ownership from a
+ * scan would mean a reassignment is permanently fighting a rule that keeps reasserting
+ * itself, and it would let a printed card decide who is accountable for a relationship.
  *
- * 2. Page locale and preferred follow-up locale are different facts and are never
- *    collapsed. Someone can read the English page and ask to be called back in
- *    Spanish, and both halves matter operationally.
+ * Locale keeps two separate facts: page locale is where the visitor was, preferred
+ * follow-up is how they want to be answered. Someone can read the English page and ask
+ * to be called back in Spanish, and both halves matter operationally.
  */
 
 /**
- * Resolves a QR source detail to a known partner.
+ * Resolves a QR source detail to an acquisition source.
  *
- * Only the two approved slugs resolve. Anything else, including a slug that used to
- * exist, is the firm fallback: recorded as unresolved rather than guessed at, so a
- * stale card never silently attributes to the wrong person.
+ * Four outcomes, three of them distinct facts worth keeping apart:
+ *   - a partner slug resolves to that partner
+ *   - the firm card's own slug resolves to `firm`: a real, intentional scan
+ *   - anything else resolves to `unknown`: a card that did not resolve, which is
+ *     evidence that a printed card is wrong and must not be hidden inside `firm`
+ *   - a website submission has no acquisition source at all
  */
-function resolveScannedPartner(attribution) {
+function resolveAcquisitionSource(attribution) {
   if (!attribution || attribution.sourceCategory !== 'qr') {
-    return { scannedPartner: '', scannedSlug: '', resolved: false };
+    return { acquisitionSource: '', scannedPartner: '', resolved: false };
   }
+
   var slug = lowerTrim(attribution.sourceDetail);
-  var partner = Object.prototype.hasOwnProperty.call(SLUG_TO_PARTNER, slug)
-    ? SLUG_TO_PARTNER[slug]
-    : '';
-  return {
-    scannedPartner: partner,
-    scannedSlug: slug,
-    resolved: partner !== ''
-  };
+
+  if (Object.prototype.hasOwnProperty.call(SLUG_TO_PARTNER, slug)) {
+    var partner = SLUG_TO_PARTNER[slug];
+    return { acquisitionSource: partner, scannedPartner: partner, resolved: true };
+  }
+
+  if (slug === FIRM_SLUG) {
+    // The firm card is not a partner. `scannedPartner` stays empty precisely so no
+    // downstream code can treat "the firm" as an assignable person.
+    return { acquisitionSource: 'firm', scannedPartner: '', resolved: true };
+  }
+
+  return { acquisitionSource: 'unknown', scannedPartner: '', resolved: false };
 }
 
 /**
  * Flattens attribution into the fields storage keeps.
  *
  * `refToken` is carried through verbatim and inert. It is never resolved to a person,
- * never used to build a referral chain, never triggers a notification, and never
- * feeds reporting. It exists so that if referral tracking is built later the raw
- * signal was not thrown away in the meantime.
+ * never used to build a referral chain, never triggers a notification, and never feeds
+ * reporting. It exists so that if referral tracking is built later the raw signal was
+ * not thrown away in the meantime.
  */
 function buildAttributionRecord(attribution) {
-  var scan = resolveScannedPartner(attribution);
+  var scan = resolveAcquisitionSource(attribution);
   var utm = attribution.utm || {};
   return {
     sourceCategory: attribution.sourceCategory,
     sourceDetail: attribution.sourceDetail,
     landingPage: attribution.landingPage || '',
     intentToken: attribution.intentToken || '',
+    acquisitionSource: scan.acquisitionSource,
     scannedPartner: scan.scannedPartner,
-    scannedSlugUnresolved: attribution.sourceCategory === 'qr' && !scan.resolved,
+    scannedSlugUnresolved: scan.acquisitionSource === 'unknown',
     refToken: attribution.refToken || '',
     utmSource: utm.source || '',
     utmMedium: utm.medium || '',
@@ -64,10 +77,9 @@ function buildAttributionRecord(attribution) {
 /**
  * Locale record.
  *
- * `pageLocale` is where the visitor was. `preferredFollowUpLocale` is how they want
- * to be answered. When they did not say, follow-up falls back to the page locale for
- * routing purposes but the stored `preferredFollowUpStated` flag keeps the
- * distinction visible, so nobody later reads an inferred value as a stated one.
+ * When no preference was stated, follow-up falls back to the page locale for routing
+ * purposes, and `preferredFollowUpStated` keeps the distinction visible so nobody later
+ * reads an inferred value as a stated one.
  */
 function buildLocaleRecord(locale) {
   var page = locale.page;
@@ -80,12 +92,11 @@ function buildLocaleRecord(locale) {
 }
 
 /**
- * The locale outbound mail should use.
+ * The locale outbound mail should actually be written in.
  *
- * Only launch-ready locales may be used for real correspondence. Today that is
- * English alone, so a Spanish request is recorded and surfaced to the partner as a
- * language need rather than answered by an untranslated template pretending to be
- * Spanish. `launchReady` is supplied by the caller so this stays a pure decision.
+ * Only launch-ready locales may be used for real correspondence. Today that is English
+ * alone, so a Spanish request is recorded and surfaced to the partner as a language
+ * need rather than answered by an untranslated template pretending to be Spanish.
  */
 function resolveOutboundLocale(localeRecord, launchReadyLocales) {
   var wanted = localeRecord.preferredFollowUpLocale;

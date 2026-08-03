@@ -185,22 +185,29 @@ test('a missing tab is named plainly and does not leak the spreadsheet id', () =
 
 /* ── Contacts ─────────────────────────────────────────────────────────────── */
 
-test('candidate lookup matches on email, phone, or name', () => {
+test('candidate lookup matches on exact email or exact full phone digits', () => {
   const book = buildBook();
   const contacts = ctx.makeContactRepository(book);
   contacts.insertContact({ contactId: 'C-1', email: 'Dana@Whitfield.test', phone: '', fullName: 'Dana Whitfield' });
-  contacts.insertContact({ contactId: 'C-2', email: '', phone: '+1 (214) 555-0117', fullName: 'Someone Else' });
+  contacts.insertContact({ contactId: 'C-2', email: '', phone: '(214) 555-0117', fullName: 'Someone Else' });
   contacts.insertContact({ contactId: 'C-3', email: 'other@x.test', phone: '', fullName: 'Third Person' });
 
-  const byEmail = contacts.listContactCandidates({ emailKey: 'dana@whitfield.test', phoneKey: '', nameKey: '' });
+  const byEmail = contacts.listContactCandidates({ emailKey: 'dana@whitfield.test', phoneKey: '' });
   assert.equal(byEmail.length, 1);
   assert.equal(byEmail[0].contactId, 'C-1');
 
-  const byPhone = contacts.listContactCandidates({ emailKey: '', phoneKey: '2145550117', nameKey: '' });
+  const byPhone = contacts.listContactCandidates({ emailKey: '', phoneKey: '2145550117' });
   assert.equal(byPhone[0].contactId, 'C-2');
+});
 
-  const byName = contacts.listContactCandidates({ emailKey: '', phoneKey: '', nameKey: 'dana whitfield' });
-  assert.equal(byName[0].contactId, 'C-1');
+test('a shared name is not a candidate, because it can never become a match', () => {
+  // Filtering on name would read rows that matching is guaranteed to discard.
+  const book = buildBook();
+  const contacts = ctx.makeContactRepository(book);
+  contacts.insertContact({ contactId: 'C-1', email: 'a@x.test', phone: '', fullName: 'Dana Whitfield' });
+
+  const found = contacts.listContactCandidates({ emailKey: 'b@x.test', phoneKey: '' });
+  assert.equal(found.length, 0);
 });
 
 test('empty lookup keys match nothing rather than everything', () => {
@@ -208,7 +215,7 @@ test('empty lookup keys match nothing rather than everything', () => {
   const contacts = ctx.makeContactRepository(book);
   contacts.insertContact({ contactId: 'C-1', email: '', phone: '', fullName: '' });
 
-  const found = contacts.listContactCandidates({ emailKey: '', phoneKey: '', nameKey: '' });
+  const found = contacts.listContactCandidates({ emailKey: '', phoneKey: '' });
   assert.equal(found.length, 0);
 });
 

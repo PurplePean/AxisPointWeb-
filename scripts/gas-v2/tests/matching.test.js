@@ -3,11 +3,17 @@
 /*
  * Identity matching.
  *
- * WHAT THESE TESTS ARE FOR. An automatic merge of two people who happen to share a
- * name is unrecoverable through normal use, and nobody finds out. The assertions here
- * are therefore about restraint as much as recall: a shared free-mail domain must not
- * be evidence, a name alone must never be strong, and the function must return
- * suggestions rather than perform anything.
+ * EXACT EVIDENCE ONLY: an exact normalized email, or an exact normalized FULL phone
+ * digit string. The name, name-plus-company, and shared-domain suggestions from Pass 8
+ * are gone, and several tests below exist specifically to keep them gone. A suggestion a
+ * partner learns to ignore is worse than no suggestion, because the exact-match case it
+ * was hiding is the one that actually needed attention.
+ *
+ * The other correction pinned here is phone comparison. Comparing the last ten digits was
+ * a North American assumption that would collide two unrelated international numbers on
+ * their tails and merge two people.
+ *
+ * Matching SUGGESTS. It never merges.
  */
 
 const { test } = require('node:test');
@@ -21,7 +27,7 @@ const CANDIDATES = [
     contactId: 'c-001',
     fullName: 'Dana Whitfield',
     email: 'dana@whitfieldholdings.test',
-    phone: '(214) 555-0117',
+    phone: '(713) 555-0198',
     company: 'Whitfield Holdings',
   },
   {
@@ -40,117 +46,132 @@ const CANDIDATES = [
   },
 ];
 
-test('an exact email match is strong', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'D. Whitfield', email: 'DANA@whitfieldholdings.test', phone: '', company: '' },
-    CANDIDATES,
-  );
+function match(incoming) {
+  return ctx.findPossibleMatches(incoming, CANDIDATES);
+}
+
+/* ── What counts as evidence ──────────────────────────────────────────────── */
+
+test('an exact email match is found', () => {
+  const matches = match({ fullName: 'D. Whitfield', email: 'DANA@whitfieldholdings.test', phone: '' });
+  assert.equal(matches.length, 1);
   assert.equal(matches[0].contactId, 'c-001');
-  assert.equal(matches[0].confidence, 'strong');
+  assert.equal(matches[0].confidence, 'exact');
   assert.equal(matches[0].reason, 'email_exact');
 });
 
 test('email comparison ignores case and surrounding whitespace', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: '', email: '  Dana@WhitfieldHoldings.test ', phone: '', company: '' },
-    CANDIDATES,
-  );
+  const matches = match({ fullName: '', email: '  Dana@WhitfieldHoldings.test ', phone: '' });
   assert.equal(matches[0].contactId, 'c-001');
 });
 
-test('phone comparison ignores formatting and a leading country code', () => {
-  // +1 (214) 555-0117 and (214) 555-0117 are the same person's phone.
-  const matches = ctx.findPossibleMatches(
-    { fullName: '', email: '', phone: '+1 214.555.0117', company: '' },
-    CANDIDATES,
-  );
+test('phone comparison ignores punctuation and spacing', () => {
+  const matches = match({ fullName: '', email: '', phone: '713.555.0198' });
   assert.equal(matches[0].contactId, 'c-001');
-  assert.equal(matches[0].confidence, 'strong');
+  assert.equal(matches[0].reason, 'phone_exact');
 });
 
-test('name plus company is probable, not strong', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Marcus Alvarez', email: 'm.alvarez@other.test', phone: '', company: 'Alvarez Capital' },
-    CANDIDATES,
-  );
-  const marcus = matches.find((m) => m.contactId === 'c-003');
-  assert.equal(marcus.confidence, 'probable');
-});
-
-test('a shared free-mail domain is never evidence', () => {
-  // Two people both on gmail.com share nothing. Treating that as a signal would merge
-  // strangers who happen to have the same name.
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Dana Whitfield', email: 'different.dana@gmail.com', phone: '', company: '' },
-    CANDIDATES,
-  );
-  const byGmail = matches.find((m) => m.contactId === 'c-002');
-  assert.equal(byGmail.confidence, 'weak');
-  assert.equal(byGmail.reason, 'name_only');
-});
-
-test('the same name at the same company domain is probable', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Dana Whitfield', email: 'dana.whitfield@whitfieldholdings.test', phone: '', company: '' },
-    CANDIDATES,
-  );
-  const match = matches.find((m) => m.contactId === 'c-001');
-  assert.equal(match.confidence, 'probable');
-  assert.equal(match.reason, 'name_and_email_domain');
-});
-
-test('a name alone is never more than weak', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Dana Whitfield', email: '', phone: '', company: '' },
-    CANDIDATES,
-  );
-  matches.forEach((m) => assert.equal(m.confidence, 'weak'));
-});
-
-test('an unrelated person matches nothing', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Priya Raman', email: 'priya@ramanbrokers.test', phone: '972-555-0143', company: 'Raman Brokers' },
-    CANDIDATES,
-  );
+test('the FULL digit string is compared, so a country code makes it a different number', () => {
+  // +1 713 555 0198 is eleven digits; the stored number is ten. Under the old last-ten
+  // rule these collided. They are now two records for a human to judge, which is the
+  // conservative direction: a wrong merge is unrecoverable, a duplicate is not.
+  const matches = match({ fullName: '', email: '', phone: '+1 (713) 555-0198' });
   assert.equal(matches.length, 0);
+});
+
+test('two international numbers sharing a tail do not match', () => {
+  const candidates = [{ contactId: 'x-1', email: '', phone: '+44 20 7946 0958' }];
+  const matches = ctx.findPossibleMatches({ email: '', phone: '+1 202 794 60958' }, candidates);
+  assert.equal(matches.length, 0);
+});
+
+test('matching on both email and phone reports both reasons', () => {
+  const matches = match({ fullName: '', email: 'dana@whitfieldholdings.test', phone: '(713) 555-0198' });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].reason, 'email_exact,phone_exact');
+});
+
+/* ── What is NOT evidence ─────────────────────────────────────────────────── */
+
+test('a shared name alone is not evidence', () => {
+  const matches = match({ fullName: 'Dana Whitfield', email: '', phone: '' });
+  assert.equal(matches.length, 0);
+});
+
+test('name plus company is not evidence', () => {
+  const matches = match({ fullName: 'Marcus Alvarez', email: 'm.alvarez@other.test', phone: '', company: 'Alvarez Capital' });
+  assert.equal(matches.length, 0);
+});
+
+test('a shared email domain is not evidence', () => {
+  const matches = match({ fullName: 'Dana Whitfield', email: 'dana.whitfield@whitfieldholdings.test', phone: '' });
+  assert.equal(matches.length, 0);
+});
+
+test('a shared free-mail domain is not evidence', () => {
+  const matches = match({ fullName: 'Dana Whitfield', email: 'different.dana@gmail.com', phone: '' });
+  assert.equal(matches.length, 0);
+});
+
+test('probable and weak confidences no longer exist', () => {
+  assert.deepEqual(Object.keys(ctx.MATCH_CONFIDENCE), ['EXACT']);
+  assert.equal(ctx.GENERIC_EMAIL_DOMAINS, undefined);
 });
 
 test('an empty incoming record matches nothing rather than everything', () => {
   // An empty key must never equal an empty stored value. That mistake would match a
   // blank submission to every contact with a blank phone.
-  const matches = ctx.findPossibleMatches({ fullName: '', email: '', phone: '', company: '' }, CANDIDATES);
+  const matches = match({ fullName: '', email: '', phone: '' });
   assert.equal(matches.length, 0);
 });
 
-test('results are ordered strongest first', () => {
-  const matches = ctx.findPossibleMatches(
-    { fullName: 'Dana Whitfield', email: 'dana@whitfieldholdings.test', phone: '', company: '' },
-    CANDIDATES,
-  );
-  assert.equal(matches[0].confidence, 'strong');
-  assert.equal(matches[matches.length - 1].confidence, 'weak');
+test('an unrelated person matches nothing', () => {
+  const matches = match({ fullName: 'Priya Raman', email: 'priya@ramanbrokers.test', phone: '972-555-0143' });
+  assert.equal(matches.length, 0);
 });
+
+/* ── Output shape ─────────────────────────────────────────────────────────── */
 
 test('the suggestion list is capped', () => {
   const many = [];
   for (let i = 0; i < 20; i += 1) {
-    many.push({ contactId: `c-${i}`, fullName: 'Dana Whitfield', email: '', phone: '', company: '' });
+    many.push({ contactId: `c-${i}`, email: 'same@example.test', phone: '' });
   }
-  const matches = ctx.findPossibleMatches({ fullName: 'Dana Whitfield', email: '', phone: '', company: '' }, many);
+  const matches = ctx.findPossibleMatches({ email: 'same@example.test', phone: '' }, many);
   assert.equal(matches.length, 5);
 });
 
 test('matching performs nothing: it returns data only', () => {
-  // The candidates array is the only thing it could mutate, and it does not.
   const before = JSON.stringify(CANDIDATES);
-  ctx.findPossibleMatches({ fullName: 'Dana Whitfield', email: '', phone: '', company: '' }, CANDIDATES);
+  match({ fullName: 'Dana Whitfield', email: 'dana@whitfieldholdings.test', phone: '' });
   assert.equal(JSON.stringify(CANDIDATES), before);
 });
 
 test('the formatted cell names the id, the confidence, and the reason', () => {
   const formatted = ctx.formatPossibleMatches([
-    { contactId: 'c-001', confidence: 'strong', reason: 'email_exact' },
-    { contactId: 'c-002', confidence: 'weak', reason: 'name_only' },
+    { contactId: 'c-001', confidence: 'exact', reason: 'email_exact' },
+    { contactId: 'c-002', confidence: 'exact', reason: 'phone_exact' },
   ]);
-  assert.equal(formatted, 'c-001:strong:email_exact | c-002:weak:name_only');
+  assert.equal(formatted, 'c-001:exact:email_exact | c-002:exact:phone_exact');
+});
+
+/* ── The sentence a digest prints ─────────────────────────────────────────── */
+
+test('the match note names the evidence and says nothing was merged', () => {
+  const note = ctx.matchNoteFor([{ contactId: 'c-1', confidence: 'exact', reason: 'email_exact' }]);
+  assert.match(note, /shares this email address/);
+  assert.match(note, /Nothing was merged, changed, or overwritten\./);
+});
+
+test('the match note distinguishes phone evidence from email evidence', () => {
+  const byPhone = ctx.matchNoteFor([{ contactId: 'c-1', confidence: 'exact', reason: 'phone_exact' }]);
+  assert.match(byPhone, /shares this phone number/);
+
+  const both = ctx.matchNoteFor([{ contactId: 'c-1', confidence: 'exact', reason: 'email_exact,phone_exact' }]);
+  assert.match(both, /shares this email address and this phone number/);
+});
+
+test('no matches produces no note rather than an empty callout', () => {
+  assert.equal(ctx.matchNoteFor([]), '');
+  assert.equal(ctx.matchNoteFor(null), '');
 });

@@ -20,7 +20,12 @@ var QUALIFICATION_OUTCOMES = [
 ];
 
 /** Delivery states used by every bounded at-least-once side effect. */
-var DELIVERY_STATUSES = ['pending', 'sent', 'failed', 'skipped', 'not_configured'];
+var DELIVERY_STATUSES = [
+  'pending', 'sent', 'failed', 'skipped', 'not_configured',
+  /* A QR Contact is never notified immediately. Its notify status says so explicitly
+   * rather than sitting at 'pending' forever and reading as a stuck queue. */
+  'deferred_to_digest'
+];
 
 var CALENDAR_STATUSES = ['none', 'pending', 'booked', 'failed', 'not_configured'];
 
@@ -35,22 +40,44 @@ var LEAD_HEADERS = [
   'propertyScaleUnknown', 'propertyCount',
   'situationCurrent', 'situationInvolvement', 'situationTiming', 'situationNotes',
   'fullName', 'email', 'phone', 'organization',
+  // Contact Exchange only. Present on every row so the tab keeps one shape.
+  'contactCategory', 'roleOrTitle',
   'pageLocale', 'preferredFollowUpLocale', 'preferredFollowUpStated',
   'sourceCategory', 'sourceDetail', 'landingPage', 'intentToken',
-  'scannedPartner', 'scannedSlugUnresolved', 'refToken',
+  'acquisitionSource', 'scannedPartner', 'scannedSlugUnresolved', 'refToken',
   'utmSource', 'utmMedium', 'utmCampaign', 'utmContent', 'utmTerm',
   'leadStatus', 'ownerPartner', 'firstHumanContactAt',
   'qualificationOutcome', 'proposalSentAt',
-  'slaDueAt', 'possibleMatches', 'spamSuspected', 'spamReason',
+  'slaDueAt', 'possibleMatches', 'matchNote', 'spamSuspected', 'spamReason',
   'ackEmailStatus', 'partnerNotifyStatus',
+  // Digest state lives on the SUBMISSION. Each handover of a card is its own event with
+  // its own place in a digest, even when two of them are the same person, which is why
+  // the approved specimen shows a repeat visitor twice with a possible-match callout
+  // rather than silently collapsing the second visit into the first.
+  'digestStatus', 'digestDeliveredAt',
   'calendarStatus', 'calendarEventId', 'activeBookingRequestId'
 ];
 
+/**
+ * Contact columns.
+ *
+ * A Contact is a PERSON. `acquisitionSource` and `ownerPartner` sit next to each other
+ * on purpose: the first is which card first produced this person and never changes
+ * again, the second is who is responsible right now and starts unassigned for everyone.
+ * Storing them in one column would make an acquisition fact look like an assignment,
+ * which is exactly the confusion the approved digest design spends a section preventing.
+ *
+ * Delivery state lives on the SUBMISSION, not here. A person can hand over a card twice;
+ * each handover is its own event with its own acknowledgement and its own place in a
+ * digest, while the person stays one record.
+ */
 var CONTACT_HEADERS = [
   'contactId', 'createdAt', 'updatedAt',
   'fullName', 'email', 'phone', 'company', 'roleOrTitle', 'contactCategory',
   'preferredFollowUpLocale', 'firstSourceCategory', 'firstSourceDetail',
-  'scannedPartner', 'leadCount', 'lastLeadId', 'lastLeadAt',
+  'acquisitionSource', 'scannedPartner',
+  'ownerPartner', 'followUpState',
+  'leadCount', 'lastLeadId', 'lastLeadAt',
   'possibleMatches', 'contactSyncStatus'
 ];
 
@@ -106,6 +133,8 @@ function buildLead(envelope, ctx) {
     email: contact.email || '',
     phone: contact.phone || '',
     organization: contact.organization || contact.company || '',
+    contactCategory: isInquiry ? '' : (p.contactCategory || ''),
+    roleOrTitle: isInquiry ? '' : (p.roleOrTitle || ''),
 
     pageLocale: locale.pageLocale,
     preferredFollowUpLocale: locale.preferredFollowUpLocale,
@@ -115,6 +144,7 @@ function buildLead(envelope, ctx) {
     sourceDetail: attribution.sourceDetail,
     landingPage: attribution.landingPage,
     intentToken: attribution.intentToken,
+    acquisitionSource: attribution.acquisitionSource,
     scannedPartner: attribution.scannedPartner,
     scannedSlugUnresolved: attribution.scannedSlugUnresolved,
     refToken: attribution.refToken,
@@ -126,16 +156,25 @@ function buildLead(envelope, ctx) {
 
     // Operational fields. Server-owned, every one of them.
     leadStatus: 'new',
-    ownerPartner: ctx.ownerPartner || '',
+    // ALWAYS UNASSIGNED AT INTAKE, including a resolved partner QR scan. A scan is an
+    // acquisition fact, not an assignment; see Attribution.js.
+    ownerPartner: '',
     firstHumanContactAt: '',
     qualificationOutcome: 'pending',
     proposalSentAt: '',
     slaDueAt: ctx.slaDueAt ? toIso(ctx.slaDueAt) : '',
     possibleMatches: formatPossibleMatches(ctx.possibleMatches || []),
+    matchNote: matchNoteFor(ctx.possibleMatches || []),
     spamSuspected: ctx.screening ? ctx.screening.spamSuspected : false,
     spamReason: ctx.screening ? ctx.screening.spamReason : '',
     ackEmailStatus: ctx.ackStatus || 'pending',
-    partnerNotifyStatus: ctx.notifyStatus || 'pending',
+    // A QR Contact is never notified immediately; it waits for the 8:00 AM digest. The
+    // status says so rather than sitting at 'pending' forever and looking stuck.
+    partnerNotifyStatus: envelope.submissionKind === 'contact_exchange'
+      ? 'deferred_to_digest'
+      : (ctx.notifyStatus || 'pending'),
+    digestStatus: digestStatusFor(envelope, ctx),
+    digestDeliveredAt: '',
 
     calendarStatus: 'none',
     calendarEventId: '',
@@ -173,15 +212,37 @@ function buildContact(envelope, ctx) {
     preferredFollowUpLocale: locale.preferredFollowUpLocale,
     firstSourceCategory: attribution.sourceCategory,
     firstSourceDetail: attribution.sourceDetail,
+    acquisitionSource: attribution.acquisitionSource,
     scannedPartner: attribution.scannedPartner,
+
+    // Unassigned for everyone, including a Contact gathered through a partner's own
+    // card. A scan gave that partner a name, not a claim.
+    ownerPartner: '',
+    followUpState: 'not_contacted',
+
     leadCount: 1,
     lastLeadId: ctx.leadId,
     lastLeadAt: toIso(ctx.receivedAt),
     possibleMatches: formatPossibleMatches(ctx.possibleMatches || []),
+
     // Google People synchronization is deliberately not implemented in this pass.
     // The field records that truthfully instead of claiming a sync that never ran.
     contactSyncStatus: 'not_configured'
   };
+}
+
+/**
+ * Whether a submission enters the digest queue.
+ *
+ * Only a scanned card does. A flagged submission is stored and excluded, and the
+ * excluded state is written down rather than inferred, so nobody later reads "not
+ * pending" as "already sent". Everything else has no digest at all, which is a different
+ * fact again from "waiting", so it gets its own value.
+ */
+function digestStatusFor(envelope, ctx) {
+  if (envelope.submissionKind !== 'contact_exchange') return 'not_applicable';
+  if (ctx.screening && ctx.screening.spamSuspected) return 'excluded_spam';
+  return 'pending_digest';
 }
 
 /**

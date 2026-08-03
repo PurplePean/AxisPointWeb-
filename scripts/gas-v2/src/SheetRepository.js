@@ -132,6 +132,14 @@ function makeLeadRepository(book) {
       return null;
     },
 
+    /** Submissions waiting for a digest. The digest's whole eligibility query. */
+    listPendingDigestSubmissions: function () {
+      var table = readTable(sheet(), LEAD_HEADERS);
+      return table.rows.filter(function (row) {
+        return String(row.digestStatus) === 'pending_digest';
+      });
+    },
+
     updateLeadFields: function (leadId, patch) {
       var s = sheet();
       var table = readTable(s, LEAD_HEADERS);
@@ -168,16 +176,16 @@ function makeContactRepository(book) {
     /**
      * Narrows the candidate set before matching runs.
      *
-     * The filter is deliberately generous: it returns anything sharing an email, a
-     * phone, or a name. Matching decides confidence. A narrow filter here would hide
-     * the exact duplicates the suggestion list exists to surface.
+     * Email and phone only, matching the evidence rule exactly. Pass 8 also filtered on
+     * name, which is now dead weight: a name can no longer produce a match, so returning
+     * name-only rows would read the whole tab for candidates that are guaranteed to be
+     * discarded.
      */
     listContactCandidates: function (keys) {
       var table = readTable(sheet(), CONTACT_HEADERS);
       return table.rows.filter(function (row) {
         if (keys.emailKey && emailKey(row.email) === keys.emailKey) return true;
         if (keys.phoneKey && phoneKey(row.phone) === keys.phoneKey) return true;
-        if (keys.nameKey && lowerTrim(row.fullName) === keys.nameKey) return true;
         return false;
       });
     },
@@ -225,6 +233,34 @@ function makeLogRepository(book, ids, clock) {
         detail: entry.detail || ''
       });
       return true;
+    },
+
+    /** Retention reads the whole tab. It is small, and it is read once per maintenance run. */
+    listAll: function () {
+      var sheet = book.getSheetByName(TAB_NAMES.LOG);
+      if (!sheet) return [];
+      return readTable(sheet, LOG_HEADERS).rows;
+    },
+
+    /**
+     * Removes rows bottom-up.
+     *
+     * Deleting top-down would shift every row beneath the one just removed, so the
+     * second delete would take the wrong row. This is the classic silent Sheet bug and
+     * the reason the sort is not incidental.
+     */
+    removeByIds: function (ids) {
+      var sheet = book.getSheetByName(TAB_NAMES.LOG);
+      if (!sheet || !sheet.deleteRow) return 0;
+      var wanted = {};
+      ids.forEach(function (id) { wanted[String(id)] = true; });
+
+      var rows = readTable(sheet, LOG_HEADERS).rows
+        .filter(function (r) { return wanted[String(r.logId)]; })
+        .sort(function (a, b) { return b.__row - a.__row; });
+
+      rows.forEach(function (r) { sheet.deleteRow(r.__row); });
+      return rows.length;
     }
   };
 }
@@ -283,6 +319,26 @@ function makeWorkRepository(book) {
         due.push(deserialize(row));
       }
       return due;
+    },
+
+    /** Retention needs terminal items with their completion time. */
+    listAll: function () {
+      return readTable(sheet(), STORED_HEADERS).rows.map(deserialize);
+    },
+
+    /** Same bottom-up rule as the log, for the same reason. */
+    removeByIds: function (ids) {
+      var s = sheet();
+      if (!s.deleteRow) return 0;
+      var wanted = {};
+      ids.forEach(function (id) { wanted[String(id)] = true; });
+
+      var rows = readTable(s, STORED_HEADERS).rows
+        .filter(function (r) { return wanted[String(r.workId)]; })
+        .sort(function (a, b) { return b.__row - a.__row; });
+
+      rows.forEach(function (r) { s.deleteRow(r.__row); });
+      return rows.length;
     },
 
     markSucceeded: function (workId, next) { return this.__patch(workId, next); },

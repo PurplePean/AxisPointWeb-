@@ -51,13 +51,18 @@ function digitsOnly(value) {
 }
 
 /**
- * North American numbers are compared on their last ten digits so a leading 1, a
- * +1, or punctuation never makes the same phone look like two people.
+ * The COMPLETE normalized digit string. Punctuation and spacing are removed; nothing
+ * else is.
+ *
+ * Comparing only the last ten digits was a North American assumption, and it is wrong
+ * in the direction that matters: +44 20 7946 0958 and +1 202 794 60958 would collide
+ * on their tails and merge two unrelated people. Two numbers are the same number only
+ * when every digit matches, which also means +1 713 555 0198 and 713 555 0198 are
+ * correctly treated as different strings and left as two records for a human to judge,
+ * rather than merged on a guess about which country the caller is in.
  */
 function phoneKey(value) {
-  var d = digitsOnly(value);
-  if (d.length > 10) d = d.slice(-10);
-  return d;
+  return digitsOnly(value);
 }
 
 function emailKey(value) {
@@ -71,13 +76,35 @@ function emailDomain(value) {
 }
 
 /**
- * Accepts a plausible phone number without pretending to be a full validator. Ten
- * to fifteen digits covers North America and international dialing; anything outside
- * that is a typo or a bot, and both are better rejected at the boundary.
+ * The punctuation a person may legitimately type around a phone number, per the
+ * approved Contact Exchange design. Anything else is a paste accident or an injection
+ * attempt, and both are better refused at the boundary than stored.
+ */
+var PHONE_ALLOWED_PUNCTUATION = ' ()-.+/xX,#';
+
+/**
+ * Accepts a plausible phone number WITHOUT assuming a country.
+ *
+ * Seven digits is the shortest real subscriber number; twenty covers the longest
+ * international number plus an extension. The old 10-to-15 floor silently rejected
+ * valid short-form and extension-bearing numbers, and its ceiling assumed E.164.
+ *
+ * The value is never rewritten. Digits are DERIVED for validation and comparison; what
+ * the person typed is what gets stored, because a number reformatted into a shape they
+ * did not write is a number they cannot recognise as theirs.
  */
 function validatePhone(value, field) {
-  var d = digitsOnly(value);
-  if (d.length < 10 || d.length > 15) return { ok: false, code: 'INVALID_PHONE', field: field || null };
+  var raw = String(value === undefined || value === null ? '' : value);
+
+  for (var i = 0; i < raw.length; i++) {
+    var ch = raw.charAt(i);
+    if (ch >= '0' && ch <= '9') continue;
+    if (PHONE_ALLOWED_PUNCTUATION.indexOf(ch) !== -1) continue;
+    return { ok: false, code: 'INVALID_PHONE', field: field || null };
+  }
+
+  var d = digitsOnly(raw);
+  if (d.length < 7 || d.length > 20) return { ok: false, code: 'INVALID_PHONE', field: field || null };
   return { ok: true, value: value };
 }
 

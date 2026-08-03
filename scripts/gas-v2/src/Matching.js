@@ -1,97 +1,90 @@
 /**
  * Identity matching.
  *
- * This SUGGESTS, it never merges. Automatic merging of two records that turn out to
- * be different people is unrecoverable through normal use: the losing record's
- * history is gone and nobody knows it existed. Suggestion costs one glance; a wrong
- * merge costs a relationship.
+ * EXACT EVIDENCE ONLY. An exact normalized email, or an exact normalized full phone
+ * digit string. Nothing else.
  *
- * So the output is an ordered list of candidate ids with a confidence and a reason,
- * written to `possibleMatches` for a human to act on.
+ * Pass 8 also produced "probable" and "weak" suggestions from name, name plus company,
+ * and shared email domain. Those are removed. They were noise that trained a reader to
+ * dismiss the callout: two people can share a name, a company employs many people, and
+ * a shared domain is not evidence of anything. A suggestion a partner learns to ignore
+ * is worse than no suggestion, because the exact-match case it was hiding is the one
+ * that actually needed attention.
+ *
+ * This SUGGESTS, it never merges. An automatic merge of two records that turn out to be
+ * different people is unrecoverable through normal use: the losing record's history is
+ * gone and nobody knows it existed.
  */
 
-var MATCH_CONFIDENCE = { STRONG: 'strong', PROBABLE: 'probable', WEAK: 'weak' };
+var MATCH_CONFIDENCE = { EXACT: 'exact' };
 
-/** Free-mail domains carry no organizational signal and must never drive a match. */
-var GENERIC_EMAIL_DOMAINS = [
-  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'hotmail.com',
-  'outlook.com', 'live.com', 'msn.com', 'aol.com', 'icloud.com', 'me.com',
-  'mac.com', 'proton.me', 'protonmail.com', 'gmx.com', 'zoho.com'
-];
+var MATCH_REASONS = {
+  EMAIL: 'email_exact',
+  PHONE: 'phone_exact'
+};
 
 var MAX_SUGGESTIONS = 5;
 
 /**
- * `candidates` are existing contact records: { contactId, email, phone, fullName,
- * company }. Comparison is on normalized keys so formatting differences never split
- * one person into two.
+ * `candidates` are existing contact records: { contactId, email, phone }. Comparison is
+ * on normalized keys, so formatting differences never split one person into two, and
+ * an empty key never matches an empty stored value.
  */
 function findPossibleMatches(incoming, candidates) {
   var inEmail = emailKey(incoming.email);
   var inPhone = phoneKey(incoming.phone);
-  var inName = lowerTrim(incoming.fullName);
-  var inCompany = lowerTrim(incoming.company);
-  var inDomain = emailDomain(incoming.email);
-  var domainIsGeneric = inDomain === '' || GENERIC_EMAIL_DOMAINS.indexOf(inDomain) !== -1;
 
   var results = [];
 
   for (var i = 0; i < candidates.length; i++) {
     var c = candidates[i];
-    var cEmail = emailKey(c.email);
-    var cPhone = phoneKey(c.phone);
-    var cName = lowerTrim(c.fullName);
-    var cCompany = lowerTrim(c.company);
-
     var reasons = [];
-    var confidence = null;
 
-    if (inEmail && cEmail && inEmail === cEmail) {
-      reasons.push('email_exact');
-      confidence = MATCH_CONFIDENCE.STRONG;
-    } else if (inPhone && cPhone && inPhone === cPhone) {
-      reasons.push('phone_exact');
-      confidence = MATCH_CONFIDENCE.STRONG;
-    } else if (inName && cName && inName === cName && inCompany && cCompany && inCompany === cCompany) {
-      reasons.push('name_and_company');
-      confidence = MATCH_CONFIDENCE.PROBABLE;
-    } else if (inName && cName && inName === cName && !domainIsGeneric && emailDomain(c.email) === inDomain) {
-      // Same name at the same company domain. A shared free-mail domain is not a
-      // signal, which is why generic domains are excluded before this ever runs.
-      reasons.push('name_and_email_domain');
-      confidence = MATCH_CONFIDENCE.PROBABLE;
-    } else if (inName && cName && inName === cName) {
-      reasons.push('name_only');
-      confidence = MATCH_CONFIDENCE.WEAK;
-    }
+    if (inEmail && emailKey(c.email) === inEmail) reasons.push(MATCH_REASONS.EMAIL);
+    if (inPhone && phoneKey(c.phone) === inPhone) reasons.push(MATCH_REASONS.PHONE);
 
-    if (confidence) {
+    if (reasons.length > 0) {
       results.push({
         contactId: c.contactId,
-        confidence: confidence,
-        reason: reasons.join(','),
-        rank: confidenceRank(confidence)
+        confidence: MATCH_CONFIDENCE.EXACT,
+        reason: reasons.join(',')
       });
     }
   }
 
   results.sort(function (a, b) {
-    if (a.rank !== b.rank) return a.rank - b.rank;
     return String(a.contactId) < String(b.contactId) ? -1 : 1;
   });
 
   return results.slice(0, MAX_SUGGESTIONS);
 }
 
-function confidenceRank(confidence) {
-  if (confidence === MATCH_CONFIDENCE.STRONG) return 0;
-  if (confidence === MATCH_CONFIDENCE.PROBABLE) return 1;
-  return 2;
-}
-
-/** Compact, human-readable form for the `possibleMatches` cell. */
+/**
+ * Compact, human-readable form for the `possibleMatches` cell. Every entry is exact, so
+ * the confidence word is constant and the reason carries the information.
+ */
 function formatPossibleMatches(matches) {
   return matches.map(function (m) {
     return m.contactId + ':' + m.confidence + ':' + m.reason;
   }).join(' | ');
+}
+
+/**
+ * The sentence a digest prints inside a record.
+ *
+ * It names the evidence and states plainly that nothing was merged, because a partner
+ * seeing a duplicate needs to know the system did not quietly pick one.
+ */
+function matchNoteFor(matches) {
+  if (!matches || matches.length === 0) return '';
+  var reasons = matches.map(function (m) { return m.reason; }).join(',');
+  var byEmail = reasons.indexOf(MATCH_REASONS.EMAIL) !== -1;
+  var byPhone = reasons.indexOf(MATCH_REASONS.PHONE) !== -1;
+
+  var evidence;
+  if (byEmail && byPhone) evidence = 'shares this email address and this phone number';
+  else if (byEmail) evidence = 'shares this email address';
+  else evidence = 'shares this phone number';
+
+  return 'An existing contact ' + evidence + '. Nothing was merged, changed, or overwritten.';
 }

@@ -40,11 +40,6 @@ function processSubmission(envelope, deps) {
 
     var leadId = deps.ids.newId();
     var attribution = buildAttributionRecord(envelope.attribution);
-    var provisional = routeNotification({
-      sourceCategory: attribution.sourceCategory,
-      scannedPartner: attribution.scannedPartner,
-      scannedSlugUnresolved: attribution.scannedSlugUnresolved
-    }, screening);
 
     var lead = buildLead(envelope, {
       leadId: leadId,
@@ -52,8 +47,7 @@ function processSubmission(envelope, deps) {
       receivedAt: now,
       slaDueAt: slaDueAt,
       screening: screening,
-      possibleMatches: identity.possibleMatches,
-      ownerPartner: provisional.ownerPartner
+      possibleMatches: identity.possibleMatches
     });
 
     deps.leads.insertLead(lead);
@@ -111,18 +105,18 @@ function resolveIdentity(envelope, deps, now) {
 
   var candidates = deps.contacts.listContactCandidates({
     emailKey: emailKey(incoming.email),
-    phoneKey: phoneKey(incoming.phone),
-    nameKey: lowerTrim(incoming.fullName)
+    phoneKey: phoneKey(incoming.phone)
   });
 
   var matches = findPossibleMatches(incoming, candidates || []);
-  var strong = matches.filter(function (m) { return m.confidence === MATCH_CONFIDENCE.STRONG; });
 
-  // Two different strong candidates means the existing data already disagrees with
-  // itself. Picking one would hide that; a new record plus the suggestions surfaces it.
-  if (strong.length === 1) {
+  // Exactly one unambiguous exact identity links. Two different exact candidates means
+  // the stored data already disagrees with itself: an exact email points at one person
+  // and an exact phone at another. Picking one would hide that, so a new record plus
+  // both suggestions surfaces it for a human.
+  if (matches.length === 1) {
     return {
-      contactId: strong[0].contactId,
+      contactId: matches[0].contactId,
       isNew: false,
       possibleMatches: matches,
       incoming: incoming
@@ -178,21 +172,36 @@ function persistIdentity(identity, envelope, deps, ctx) {
 }
 
 /**
- * Queues the side effects. Both are enqueued even when the relevant service is not
- * configured: the handler records `not_configured` against the lead, which is a
- * visible, auditable state. Skipping the enqueue would leave `pending` forever and
- * look like a stuck queue instead of a missing setting.
+ * Queues the side effects.
+ *
+ * TWO DIFFERENT SHAPES, DELIBERATELY.
+ *
+ * A website service inquiry queues an acknowledgement AND an immediate internal
+ * notification. It is a request with a clock running on it, and a partner needs to know
+ * now.
+ *
+ * A QR Contact Exchange queues an acknowledgement and NO immediate notification. It goes
+ * into the 8:00 AM digest instead. A scanned card is an acquisition record, not a
+ * request, and one email per scan is unreadable after a conference.
+ *
+ * Work is enqueued even when the relevant service is not configured: the handler records
+ * `not_configured` against the record, which is a visible, auditable state. Skipping the
+ * enqueue would leave `pending` forever and look like a stuck queue instead of a missing
+ * setting.
  */
 function enqueueSubmissionWork(lead, deps, now) {
-  deps.work.enqueue(buildWorkItem('send_acknowledgement', lead.leadId, {}, {
-    workId: deps.ids.newId(),
-    now: now,
-    discriminator: 'ack'
-  }));
+  var isExchange = lead.submissionKind === 'contact_exchange';
 
-  deps.work.enqueue(buildWorkItem('notify_partners', lead.leadId, {}, {
-    workId: deps.ids.newId(),
-    now: now,
-    discriminator: 'notify'
-  }));
+  deps.work.enqueue(buildWorkItem(
+    isExchange ? 'send_qr_acknowledgement' : 'send_acknowledgement',
+    lead.leadId, {}, { workId: deps.ids.newId(), now: now, discriminator: 'ack' }
+  ));
+
+  if (!isExchange) {
+    deps.work.enqueue(buildWorkItem('notify_partners', lead.leadId, {}, {
+      workId: deps.ids.newId(),
+      now: now,
+      discriminator: 'notify'
+    }));
+  }
 }

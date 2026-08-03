@@ -17,6 +17,7 @@ var LEAD_REPOSITORY_PORT = [
   'insertLead',
   'findLeadById',
   'findLeadBySubmissionId',
+  'listPendingDigestSubmissions',
   'updateLeadFields'
 ];
 
@@ -28,10 +29,14 @@ var CONTACT_REPOSITORY_PORT = [
 ];
 
 var LOG_REPOSITORY_PORT = [
-  'append'
+  'append',
+  'listAll',
+  'removeByIds'
 ];
 
 var WORK_REPOSITORY_PORT = [
+  'listAll',
+  'removeByIds',
   'enqueue',
   'claimDue',
   'markSucceeded',
@@ -53,15 +58,19 @@ var CALENDAR_SERVICE_PORT = [
 /**
  * Message rendering.
  *
- * Deliberately a port with no production implementation in this pass. The approved
- * email design is a separate piece of work, and inventing an interim template now
- * would put unapproved wording in front of real people and then have to be unpicked.
- * The wiring, the queue, and the retry policy around it are complete and tested; only
- * the rendering is pending.
+ * IMPLEMENTED as of Pass 9A, from the approved communications design. `realTemplates()`
+ * in Templates.js is the production implementation; the port stays because it is what
+ * lets every handler be tested against a fake renderer without asserting on markup.
+ *
+ * `notImplementedTemplates()` is retained for the tests that prove a permanent render
+ * failure is abandoned rather than retried forever.
  */
 var TEMPLATE_PORT = [
   'renderAcknowledgement',
-  'renderPartnerNotification'
+  'renderPartnerNotification',
+  'renderQrAcknowledgement',
+  'renderQrDigest',
+  'renderBookingConfirmation'
 ];
 
 var CLOCK_PORT = [
@@ -137,13 +146,15 @@ function notConfiguredMailService(reason) {
  * `ackEmailStatus`, and a partner can respond by hand in the meantime.
  */
 function notImplementedTemplates() {
+  var fail = function (reason) {
+    return function () { return { ok: false, permanent: true, reason: reason }; };
+  };
   return {
-    renderAcknowledgement: function () {
-      return { ok: false, permanent: true, reason: 'acknowledgement_template_not_implemented' };
-    },
-    renderPartnerNotification: function () {
-      return { ok: false, permanent: true, reason: 'partner_template_not_implemented' };
-    }
+    renderAcknowledgement: fail('acknowledgement_template_not_implemented'),
+    renderPartnerNotification: fail('partner_template_not_implemented'),
+    renderQrAcknowledgement: fail('qr_acknowledgement_template_not_implemented'),
+    renderQrDigest: fail('qr_digest_template_not_implemented'),
+    renderBookingConfirmation: fail('booking_template_not_implemented')
   };
 }
 
