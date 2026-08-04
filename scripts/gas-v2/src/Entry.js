@@ -144,6 +144,20 @@ function handlePost(rawBody, wiring) {
       leadId: result.leadId,
       contactId: result.contactId,
       slaDueAt: result.slaDueAt || null,
+      /*
+       * FORWARDED, never computed here.
+       *
+       * `isBookablePathway` in Domain.js is the one definition of this policy, evaluated
+       * once at intake and returned by processSubmission. Re-deriving it at the transport
+       * boundary would be a second definition, which is exactly what Pass 9B deleted
+       * `BOOKABLE_PATHWAYS` to prevent.
+       *
+       * It is coerced to a strict boolean so the wire value is never a string, never
+       * undefined, and never absent. A frontend branching on it must be able to trust
+       * `=== true` without also handling 'TRUE' or a missing key, and a Contact Exchange
+       * or a non-bookable pathway must read as an explicit `false` rather than as nothing.
+       */
+      bookingEligible: result.bookingEligible === true,
       replay: result.replay === true
     });
   } catch (err) {

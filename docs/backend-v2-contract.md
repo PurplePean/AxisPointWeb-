@@ -13,6 +13,12 @@ frontend sends it and no endpoint exists. They are pre-deployment corrections, l
 Pass 9B corrected the storage boundary the same way, listed in
 [section 18](#18-pre-deployment-corrections-code-pass-9b).
 
+Pass 9C added `bookingEligible` to the success response (§1). That is an **additive
+response-field correction exposing a decision the backend already made**, not a new
+policy: the value was computed at intake, stored on the Lead, and returned by the domain
+layer, and only the transport layer was dropping it. **No response schema-version bump is
+required**, because no V2 frontend and no deployed V2 consumer exists to break.
+
 **Status: coded and locally tested only.** No frontend is connected. There is no Apps
 Script project, Sheet, Script Property, trigger, endpoint, or `.clasp.json`. Nothing has
 been deployed and no email, digest, or Calendar action has been sent or performed. V1
@@ -38,12 +44,44 @@ exception in an Apps Script web app returns an HTML error page a cross-origin `f
 cannot read, so the browser sees a network failure and the visitor sees nothing.
 
 ```jsonc
-// success
-{ "schemaVersion": 1, "ok": true, ... }
+// service_inquiry or contact_exchange success
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "submissionKind": "service_inquiry",
+  "submissionId": "<uuid the client generated>",
+  "leadId": "<uuid>",          // null on a contact_exchange
+  "contactId": "<uuid>",       // null on a service_inquiry
+  "slaDueAt": "2026-08-04T22:00:00.000Z",   // null when there is no commitment
+  "bookingEligible": true,     // always a strict boolean, never absent
+  "replay": false
+}
 
 // failure
 { "schemaVersion": 1, "ok": false, "error": { "code": "UNKNOWN_ENUM", "field": "payload.topic" } }
 ```
+
+### `bookingEligible` on the response
+
+Computed once at intake by `isBookablePathway` (§7), stored on the Lead, and **forwarded**
+by the transport layer. `Entry.js` never derives it: deriving it there would be a second
+definition of the policy, which is what Pass 9B deleted `BOOKABLE_PATHWAYS` to prevent.
+
+| Submission | `bookingEligible` |
+|---|---|
+| Management Proposal, scope `pm` / `pm_plus_am` / `undecided` | `true` |
+| Investor Services | `false` |
+| General Inquiry | `false` |
+| QR Contact Exchange | `false`, and `leadId` is `null` |
+
+It is **always a strict boolean and always present**, so a client can branch on `=== true`
+without also handling `'TRUE'`, `undefined`, or a missing key. The Sheet round-trips
+booleans as strings, which is why the coercion is explicit rather than incidental.
+
+A replay returns the same value as the first response, read back from the stored Lead.
+**The frontend must trust this field and must not implement its own booking policy.** The
+booking command separately re-evaluates the rule against the stored Lead, so a tampered
+snapshot cannot authorise a booking (§7).
 
 Nothing internal crosses the boundary: no stack trace, no Sheet id, no property name,
 no address, no row number, and no echo of what the visitor typed.
