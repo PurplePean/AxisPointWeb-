@@ -61,6 +61,39 @@ function selectEligibleSubmissions(submissions) {
 }
 
 /**
+ * Joins the pending Delivery rows to their immutable Submissions.
+ *
+ * The Delivery row owns the queue state and the Submission owns the content, so the digest
+ * reads both. Pass 9A read a Lead row instead, which is exactly the record a QR Contact
+ * Exchange no longer produces.
+ *
+ * A Delivery whose Submission is missing is skipped and logged rather than rendered blank.
+ * An empty record in a partner's morning email is worse than a missing one, because it
+ * looks like a real person whose details were lost.
+ */
+function loadPendingDigestSubmissions(deps) {
+  var pending = deps.deliveries.listPendingDigest();
+  var out = [];
+
+  for (var i = 0; i < pending.length; i++) {
+    var submission = deps.submissions.findBySubmissionId(pending[i].submissionId);
+    if (!submission) {
+      tryLog(deps, {
+        level: 'error',
+        event: 'digest_orphan_delivery',
+        submissionId: pending[i].submissionId,
+        detail: 'delivery row has no submission'
+      });
+      continue;
+    }
+    var merged = clone(submission);
+    merged.digestStatus = pending[i].digestStatus;
+    out.push(merged);
+  }
+  return out;
+}
+
+/**
  * Which partners receive which Contacts.
  *
  * A partner gets the Contacts gathered through their own validated card, plus every
@@ -169,7 +202,7 @@ function digestRecord(submission, ctx) {
   var contact = ctx.lookupContact(submission.contactId);
 
   return {
-    submissionId: submission.leadId,
+    submissionId: submission.submissionId,
     contactId: submission.contactId,
     name: normalizeWhitespace(submission.fullName),
     org: orgLine,
@@ -294,7 +327,7 @@ function countRecordCategories(groups) {
  * it does not close it, and nothing here claims otherwise.
  */
 function digestIdentity(plan) {
-  var ids = plan.contacts.map(function (s) { return String(s.leadId); }).sort().join(',');
+  var ids = plan.contacts.map(function (s) { return String(s.submissionId); }).sort().join(',');
   return 'qr_digest:' + plan.partner + ':' + stableHash(ids);
 }
 
@@ -309,7 +342,7 @@ function runDailyQrDigest(deps) {
     var now = deps.clock.now();
     var config = deps.config;
 
-    var eligible = selectEligibleSubmissions(deps.leads.listPendingDigestSubmissions());
+    var eligible = selectEligibleSubmissions(loadPendingDigestSubmissions(deps));
     if (eligible.length === 0) {
       // Deliberately silent. No email, no log noise, no state change.
       return { sent: 0, parts: 0, contacts: 0, skipped: 'no_eligible_contacts' };
@@ -346,7 +379,7 @@ function runDailyQrDigest(deps) {
     // supposed to carry it actually landed, which is what stops a shared Contact from
     // being marked delivered because one of the two partners received it.
     var outcome = {};
-    eligible.forEach(function (s) { outcome[s.leadId] = true; });
+    eligible.forEach(function (s) { outcome[s.submissionId] = true; });
 
     var summary = { sent: 0, parts: 0, contacts: 0, failed: 0, plans: plans.length };
 
@@ -354,18 +387,19 @@ function runDailyQrDigest(deps) {
       var plan = plans[i];
       var delivered = deliverPlan(plan, ctx, deps, summary);
       if (!delivered) {
-        plan.contacts.forEach(function (s) { outcome[s.leadId] = false; });
+        plan.contacts.forEach(function (s) { outcome[s.submissionId] = false; });
       }
     }
 
     var advanced = [];
-    Object.keys(outcome).forEach(function (submissionRowId) {
-      if (!outcome[submissionRowId]) return;
-      deps.leads.updateLeadFields(submissionRowId, {
+    Object.keys(outcome).forEach(function (submissionId) {
+      if (!outcome[submissionId]) return;
+      // Written to the DELIVERY row. The Submission is immutable and is never patched.
+      deps.deliveries.updateDelivery(submissionId, {
         digestStatus: 'delivered',
         digestDeliveredAt: toIso(now)
       });
-      advanced.push(submissionRowId);
+      advanced.push(submissionId);
     });
     summary.contacts = advanced.length;
 

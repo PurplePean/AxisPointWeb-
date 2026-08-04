@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-02 (Code Pass 9A)_
+_Last updated: 2026-08-03 (Code Pass 9B)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 9A, approved communications and reconciled backend policy, complete (code only, nothing connected) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation |
-| **Next pass** | Code Pass 9B, then staging. Frontend endpoint wiring has **not** started |
+| **Current code pass** | Pass 9B, corrected storage boundary and durable retry recovery, complete (code only, nothing connected) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule |
+| **Next pass** | QR Contact Exchange frontend and the shared submission client, then staging. Frontend endpoint wiring has **not** started |
 
 ## Routes
 
@@ -125,7 +125,52 @@ project, Sheet, Script Property, trigger, or deployment, and neither frontend po
 committed, and merged. None of them is live.** No email has been sent, no digest has run, no
 Calendar has been touched, and no trigger exists.
 
-The suite is `pnpm test:gas-v2` (351 tests), running in CI alongside the unchanged V1 suite.
+The suite is `pnpm test:gas-v2` (412 tests), running in CI alongside the unchanged V1 suite.
+
+### The six-tab storage model
+
+| Tab | Holds | Mutability |
+|---|---|---|
+| `Submissions` | One immutable record of every accepted request | **Insert-only** |
+| `Deliveries` | Acknowledgement, notification, and digest state | Mutable |
+| `Leads` | Website service inquiries **only** | Mutable |
+| `Contacts` | QR Contact Exchanges **only** | Mutable |
+| `Work` | The idempotent side-effect queue | Mutable |
+| `Log` | Operational history, retained 90 days | Append, then expire |
+
+Every accepted request creates one Submission and **exactly one** business record: a
+service inquiry creates a Lead and no Contact, a contact exchange creates a Contact and no
+Lead. Until Pass 9B every submission wrote a Lead row, which left QR rows in the Leads tab
+with an empty pathway and a qualification state nobody would ever set.
+
+**Matching flags and never links.** An exact normalized email or exact full normalized
+phone records a possible-match flag for a human. It never automatically links, merges,
+overwrites, or updates an existing Contact. Every QR exchange creates a new Contact.
+
+**Partial-write recovery is retry-triggered.** The Submission is written first because it
+cannot be reconstructed, which means a failure after it can leave a request half-written. A
+retry carrying the same `submissionId` and a materially identical payload, attribution, and
+locale repairs the missing Lead or Contact, Delivery row, or work items idempotently,
+using the fingerprint-verified retry envelope together with the Submission's recorded
+identifiers, timestamp, screening result, and match flags. Existing records are never
+duplicated. A reused `submissionId` carrying materially different data returns
+`SUBMISSION_ID_CONFLICT` and stores nothing.
+
+**There is no background sweep.** A request that is never retried stays half-written, and
+the repair is logged at error level so the event leaves evidence. Full contract in
+[`backend-v2-contract.md`](backend-v2-contract.md) §10 and §12.
+
+**Binding requirement on the future frontend:** the shared submission client must preserve
+the same `submissionId` and payload across transport retries. A client that mints a fresh
+id on retry creates duplicate business records.
+
+**`payloadFingerprint` is an idempotency and conflict-detection guard only.** It is not
+authentication, not authorization, and not a security credential.
+
+**One booking rule.** `isBookablePathway(pathway, serviceScope)` is the single definition,
+used by both the intake response and the booking command. `bookingEligible` is stored on
+the Lead as the intake-time snapshot for the frontend and a future dashboard; it is not a
+competing policy, and the command re-evaluates the rule against the stored Lead.
 
 **What Pass 8 settled, in code:** the discriminated envelope and its versioning, the stable
 snake_case token vocabulary with display strings rejected outright, server-owned field
@@ -158,6 +203,8 @@ The contract now states a defensible position for each of these, so they are dec
 | Whether the referral code is transmitted | Accepted and stored verbatim, resolved to nothing |
 | Dedupe and merge semantics | Exact normalized email or exact normalized full phone links. Nothing weaker is evidence |
 | Retention | **Settled and implemented.** Business records never expire; operational records expire at 90 days; pending work is never purged. No trigger installed |
+| Storage boundary | **Settled and implemented.** Six tabs; one Submission plus exactly one business record per request |
+| Duplicate handling | **Settled and implemented.** Flag only, never an automatic link or merge |
 | V1 lead migration | Not implemented (documented default: no) |
 | Email recipients | Read from Script Properties by name; no address exists in the repository |
 | SLA targets | **Settled.** One policy: 5:00 PM `America/Chicago` on the next business day, every pathway. Contact Exchange has none |

@@ -133,6 +133,11 @@ function handlePost(rawBody, wiring) {
     }
 
     var result = processSubmission(envelope, deps);
+
+    // A reused submissionId carrying different data is refused rather than reported as a
+    // replay, so the sender learns their new data was NOT stored.
+    if (!result.ok) return errorBody(result.code);
+
     return successBody({
       submissionKind: envelope.submissionKind,
       submissionId: envelope.submissionId,

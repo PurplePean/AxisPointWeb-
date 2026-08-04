@@ -84,6 +84,54 @@ function makeStore(idField) {
   };
 }
 
+/**
+ * The immutable audit store.
+ *
+ * It exposes no update method, exactly like the real adapter, so a test that tries to
+ * mutate a Submission fails the same way production would.
+ */
+function fakeSubmissionRepository(seed = []) {
+  const store = makeStore('submissionId');
+  seed.forEach((s) => store.insert(s));
+  return {
+    store,
+    inserted: [],
+    insertSubmission(submission) {
+      this.inserted.push(submission.submissionId);
+      return store.insert(submission);
+    },
+    findBySubmissionId(submissionId) {
+      const row = store.findBy('submissionId', submissionId);
+      return row ? { ...row } : null;
+    },
+  };
+}
+
+function fakeDeliveryRepository(seed = []) {
+  const store = makeStore('submissionId');
+  seed.forEach((d) => store.insert(d));
+  return {
+    store,
+    patches: [],
+    insertDelivery(delivery) {
+      return store.insert(delivery);
+    },
+    findBySubmissionId(submissionId) {
+      const row = store.findBy('submissionId', submissionId);
+      return row ? { ...row } : null;
+    },
+    listPendingDigest() {
+      return store.rows
+        .filter((r) => String(r.digestStatus) === 'pending_digest')
+        .map((r) => ({ ...r }));
+    },
+    updateDelivery(submissionId, patch) {
+      this.patches.push({ submissionId, patch });
+      return store.patch(submissionId, patch);
+    },
+  };
+}
+
 function fakeLeadRepository() {
   const store = makeStore('leadId');
   return {
@@ -98,14 +146,9 @@ function fakeLeadRepository() {
       const row = store.findBy('leadId', leadId);
       return row ? { ...row } : null;
     },
-    findLeadBySubmissionId(submissionId) {
-      const row = store.findBy('submissionId', submissionId);
+    findBySourceSubmissionId(submissionId) {
+      const row = store.rows.find((r) => String(r.sourceSubmissionId) === String(submissionId));
       return row ? { ...row } : null;
-    },
-    listPendingDigestSubmissions() {
-      return store.rows
-        .filter((r) => String(r.digestStatus) === 'pending_digest')
-        .map((r) => ({ ...r }));
     },
     updateLeadFields(leadId, patch) {
       this.patches.push({ leadId, patch });
@@ -127,6 +170,10 @@ function fakeContactRepository(seed = []) {
     },
     findContactById(contactId) {
       const row = store.findBy('contactId', contactId);
+      return row ? { ...row } : null;
+    },
+    findBySourceSubmissionId(submissionId) {
+      const row = store.rows.find((r) => String(r.sourceSubmissionId) === String(submissionId));
       return row ? { ...row } : null;
     },
     /** Same filter as the real adapter: exact email OR exact full phone digits. */
@@ -362,6 +409,8 @@ function buildDeps(overrides = {}) {
     ids: overrides.ids || fakeIds(),
     lock: overrides.lock || fakeLock(),
     offsetResolver: overrides.offsetResolver || fixedOffsetResolver(),
+    submissions: overrides.submissions || fakeSubmissionRepository(),
+    deliveries: overrides.deliveries || fakeDeliveryRepository(),
     leads: overrides.leads || fakeLeadRepository(),
     contacts: overrides.contacts || fakeContactRepository(overrides.seedContacts),
     log: overrides.log || fakeLogRepository(),
@@ -374,6 +423,8 @@ function buildDeps(overrides = {}) {
 }
 
 module.exports = {
+  fakeSubmissionRepository,
+  fakeDeliveryRepository,
   fakeIds,
   fakeClock,
   fakeLock,

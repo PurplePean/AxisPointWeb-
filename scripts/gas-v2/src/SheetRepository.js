@@ -11,6 +11,8 @@
  */
 
 var TAB_NAMES = {
+  SUBMISSIONS: 'Submissions',
+  DELIVERIES: 'Deliveries',
   LEADS: 'Leads',
   CONTACTS: 'Contacts',
   LOG: 'Log',
@@ -105,6 +107,77 @@ function requireSheet(book, name) {
   return sheet;
 }
 
+/* ── Submissions ──────────────────────────────────────────────────────────── */
+
+/**
+ * The immutable audit tab.
+ *
+ * Insert and read. There is no update or delete method, deliberately: an audit record
+ * that can be edited is not an audit record, and the absence of the method is what makes
+ * that true rather than a rule somebody has to follow.
+ */
+function makeSubmissionRepository(book) {
+  function sheet() { return requireSheet(book, TAB_NAMES.SUBMISSIONS); }
+
+  return {
+    insertSubmission: function (submission) {
+      appendRecord(sheet(), SUBMISSION_HEADERS, submission);
+      return submission.submissionId;
+    },
+
+    findBySubmissionId: function (submissionId) {
+      var table = readTable(sheet(), SUBMISSION_HEADERS);
+      for (var i = 0; i < table.rows.length; i++) {
+        if (String(table.rows[i].submissionId) === String(submissionId)) return table.rows[i];
+      }
+      return null;
+    }
+  };
+}
+
+/* ── Deliveries ───────────────────────────────────────────────────────────── */
+
+function makeDeliveryRepository(book) {
+  function sheet() { return requireSheet(book, TAB_NAMES.DELIVERIES); }
+
+  return {
+    insertDelivery: function (delivery) {
+      appendRecord(sheet(), DELIVERY_HEADERS, delivery);
+      return delivery.submissionId;
+    },
+
+    findBySubmissionId: function (submissionId) {
+      var table = readTable(sheet(), DELIVERY_HEADERS);
+      for (var i = 0; i < table.rows.length; i++) {
+        if (String(table.rows[i].submissionId) === String(submissionId)) return table.rows[i];
+      }
+      return null;
+    },
+
+    /** The digest's whole eligibility query. */
+    listPendingDigest: function () {
+      var table = readTable(sheet(), DELIVERY_HEADERS);
+      return table.rows.filter(function (row) {
+        return String(row.digestStatus) === 'pending_digest';
+      });
+    },
+
+    updateDelivery: function (submissionId, patch) {
+      var s = sheet();
+      var table = readTable(s, DELIVERY_HEADERS);
+      for (var i = 0; i < table.rows.length; i++) {
+        if (String(table.rows[i].submissionId) === String(submissionId)) {
+          var withStamp = clone(patch);
+          withStamp.updatedAt = toIso(new Date());
+          patchRecord(s, table.index, table.rows[i].__row, withStamp);
+          return true;
+        }
+      }
+      return false;
+    }
+  };
+}
+
 /* ── Leads ────────────────────────────────────────────────────────────────── */
 
 function makeLeadRepository(book) {
@@ -124,20 +197,13 @@ function makeLeadRepository(book) {
       return null;
     },
 
-    findLeadBySubmissionId: function (submissionId) {
+    /** The reconciliation lookup: the Lead produced BY this submission, if it landed. */
+    findBySourceSubmissionId: function (submissionId) {
       var table = readTable(sheet(), LEAD_HEADERS);
       for (var i = 0; i < table.rows.length; i++) {
-        if (String(table.rows[i].submissionId) === String(submissionId)) return table.rows[i];
+        if (String(table.rows[i].sourceSubmissionId) === String(submissionId)) return table.rows[i];
       }
       return null;
-    },
-
-    /** Submissions waiting for a digest. The digest's whole eligibility query. */
-    listPendingDigestSubmissions: function () {
-      var table = readTable(sheet(), LEAD_HEADERS);
-      return table.rows.filter(function (row) {
-        return String(row.digestStatus) === 'pending_digest';
-      });
     },
 
     updateLeadFields: function (leadId, patch) {
@@ -169,6 +235,15 @@ function makeContactRepository(book) {
       var table = readTable(sheet(), CONTACT_HEADERS);
       for (var i = 0; i < table.rows.length; i++) {
         if (String(table.rows[i].contactId) === String(contactId)) return table.rows[i];
+      }
+      return null;
+    },
+
+    /** The reconciliation lookup: the Contact produced BY this submission, if it landed. */
+    findBySourceSubmissionId: function (submissionId) {
+      var table = readTable(sheet(), CONTACT_HEADERS);
+      for (var i = 0; i < table.rows.length; i++) {
+        if (String(table.rows[i].sourceSubmissionId) === String(submissionId)) return table.rows[i];
       }
       return null;
     },
@@ -368,6 +443,8 @@ function makeWorkRepository(book) {
 /** Header rows a provisioning run would write. Declared here, never applied here. */
 function expectedTabLayout() {
   return [
+    { name: TAB_NAMES.SUBMISSIONS, headers: SUBMISSION_HEADERS },
+    { name: TAB_NAMES.DELIVERIES, headers: DELIVERY_HEADERS },
     { name: TAB_NAMES.LEADS, headers: LEAD_HEADERS },
     { name: TAB_NAMES.CONTACTS, headers: CONTACT_HEADERS },
     { name: TAB_NAMES.LOG, headers: LOG_HEADERS },

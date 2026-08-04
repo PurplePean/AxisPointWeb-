@@ -121,6 +121,17 @@ var FOLLOW_UP_STATES = ['not_contacted', 'contacted'];
 var DIGEST_STATUSES = ['pending_digest', 'delivered', 'excluded_spam', 'not_applicable'];
 
 /**
+ * Booking is offered on the Management Proposal pathway only, and within it on these
+ * scopes. Investor Services, General Inquiry, and Contact Exchange get no booking at
+ * launch: they are questions and handshakes, not engagements.
+ *
+ * `undecided` is included deliberately. The visitor is asking about management; they have
+ * simply not chosen between PM and PM plus AM yet, and refusing them a call for that would
+ * refuse the conversation that resolves it.
+ */
+var BOOKABLE_SERVICE_SCOPES = ['pm', 'pm_plus_am', 'undecided'];
+
+/**
  * Approved display strings, listed ONLY so the backend can recognise and reject them
  * with a specific error. Never used as stored values, never mapped to a token here.
  * The display-to-wire map belongs to the frontend connection pass.

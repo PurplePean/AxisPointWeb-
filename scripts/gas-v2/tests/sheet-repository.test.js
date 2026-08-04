@@ -43,9 +43,30 @@ const MANGLED_CONTACT_HEADERS = [
   'CONTACTID',
   ' email ',
   'fullName',
-  'leadCount',
+  'submissionCount',
   'phone',
-  'lastLeadId',
+  'lastSubmissionId',
+];
+
+/** Deliberately out of order and re-cased, like the others. */
+const MANGLED_SUBMISSION_HEADERS = [
+  'submissionKind',
+  ' submissionId ',
+  'CONTACTID',
+  'leadId',
+  'Analyst Notes',
+  'email',
+  'acquisitionSource',
+  'spamSuspected',
+];
+
+const MANGLED_DELIVERY_HEADERS = [
+  'digestStatus',
+  'SUBMISSIONID',
+  'ackEmailStatus',
+  'updatedAt',
+  'partnerNotifyStatus',
+  'digestDeliveredAt',
 ];
 
 const WORK_TAB_HEADERS = [
@@ -64,11 +85,70 @@ const WORK_TAB_HEADERS = [
 
 function buildBook() {
   return new FakeSpreadsheet({
+    Submissions: new FakeSheet('Submissions', [MANGLED_SUBMISSION_HEADERS.slice()]),
+    Deliveries: new FakeSheet('Deliveries', [MANGLED_DELIVERY_HEADERS.slice()]),
     Leads: new FakeSheet('Leads', [MANGLED_LEAD_HEADERS.slice()]),
     Contacts: new FakeSheet('Contacts', [MANGLED_CONTACT_HEADERS.slice()]),
     Work: new FakeSheet('Work', [WORK_TAB_HEADERS.slice()]),
   });
 }
+
+/* ── Submissions and Deliveries ───────────────────────────────────────────── */
+
+test('a submission lands in the columns its headers name', () => {
+  const book = buildBook();
+  const submissions = ctx.makeSubmissionRepository(book);
+  submissions.insertSubmission({
+    submissionId: 'S-1',
+    submissionKind: 'contact_exchange',
+    contactId: 'C-1',
+    email: 'dana@example.test',
+    acquisitionSource: 'zachary_russell',
+  });
+
+  const row = book.getSheetByName('Submissions').grid[1];
+  assert.equal(row[MANGLED_SUBMISSION_HEADERS.indexOf(' submissionId ')], 'S-1');
+  assert.equal(row[MANGLED_SUBMISSION_HEADERS.indexOf('CONTACTID')], 'C-1');
+  assert.equal(row[MANGLED_SUBMISSION_HEADERS.indexOf('acquisitionSource')], 'zachary_russell');
+  assert.equal(row[MANGLED_SUBMISSION_HEADERS.indexOf('Analyst Notes')], '', 'a human column is left alone');
+});
+
+test('the submission adapter offers no way to change a stored record', () => {
+  // The audit tab is insert-only, and the absence of the method is what makes that true.
+  const submissions = ctx.makeSubmissionRepository(buildBook());
+  assert.deepEqual(Object.keys(submissions).sort(), ['findBySubmissionId', 'insertSubmission']);
+});
+
+test('a delivery row is patched in place and stamps its update time', () => {
+  const book = buildBook();
+  const deliveries = ctx.makeDeliveryRepository(book);
+  deliveries.insertDelivery({
+    submissionId: 'S-1',
+    ackEmailStatus: 'pending',
+    partnerNotifyStatus: 'deferred_to_digest',
+    digestStatus: 'pending_digest',
+  });
+
+  deliveries.updateDelivery('S-1', { ackEmailStatus: 'sent' });
+
+  const stored = deliveries.findBySubmissionId('S-1');
+  assert.equal(stored.ackEmailStatus, 'sent');
+  assert.equal(stored.partnerNotifyStatus, 'deferred_to_digest', 'untouched');
+  assert.ok(stored.updatedAt, 'the update time is stamped');
+});
+
+test('only pending-digest deliveries are listed for the digest', () => {
+  const book = buildBook();
+  const deliveries = ctx.makeDeliveryRepository(book);
+  deliveries.insertDelivery({ submissionId: 'S-1', digestStatus: 'pending_digest' });
+  deliveries.insertDelivery({ submissionId: 'S-2', digestStatus: 'delivered' });
+  deliveries.insertDelivery({ submissionId: 'S-3', digestStatus: 'excluded_spam' });
+  deliveries.insertDelivery({ submissionId: 'S-4', digestStatus: 'not_applicable' });
+
+  const pending = deliveries.listPendingDigest();
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].submissionId, 'S-1');
+});
 
 /* ── Leads ────────────────────────────────────────────────────────────────── */
 
@@ -123,13 +203,15 @@ test('a lead round-trips by id', () => {
   assert.equal(found.leadStatus, 'new');
 });
 
-test('a lead is findable by submissionId, which is what replay protection needs', () => {
+test('replay protection reads the immutable Submission tab, not the Leads tab', () => {
+  // The Lead no longer carries a submissionId column at all. Replay protection moved to
+  // the Submission, which every accepted request produces whatever kind it is.
   const book = buildBook();
-  const leads = ctx.makeLeadRepository(book);
-  leads.insertLead({ leadId: 'L-1', submissionId: 'S-9' });
+  const submissions = ctx.makeSubmissionRepository(book);
+  submissions.insertSubmission({ submissionId: 'S-9', submissionKind: 'contact_exchange', contactId: 'C-1' });
 
-  assert.equal(leads.findLeadBySubmissionId('S-9').leadId, 'L-1');
-  assert.equal(leads.findLeadBySubmissionId('S-0'), null);
+  assert.equal(submissions.findBySubmissionId('S-9').contactId, 'C-1');
+  assert.equal(submissions.findBySubmissionId('S-0'), null);
 });
 
 test('a patch writes only the named cells', () => {
@@ -222,12 +304,12 @@ test('empty lookup keys match nothing rather than everything', () => {
 test('updating a contact rewrites its row in place', () => {
   const book = buildBook();
   const contacts = ctx.makeContactRepository(book);
-  contacts.insertContact({ contactId: 'C-1', email: 'a@x.test', fullName: 'A', leadCount: 1 });
-  contacts.updateContact({ contactId: 'C-1', email: 'a@x.test', fullName: 'A', leadCount: 2, company: 'Acme' });
+  contacts.insertContact({ contactId: 'C-1', email: 'a@x.test', fullName: 'A', submissionCount: 1 });
+  contacts.updateContact({ contactId: 'C-1', email: 'a@x.test', fullName: 'A', submissionCount: 2, company: 'Acme' });
 
   assert.equal(book.getSheetByName('Contacts').grid.length, 2);
   const stored = contacts.findContactById('C-1');
-  assert.equal(stored.leadCount, 2);
+  assert.equal(stored.submissionCount, 2);
   assert.equal(stored.company, 'Acme');
 });
 
@@ -362,7 +444,10 @@ test('a missing Log tab does not fail the write path', () => {
 
 test('the declared layout names every tab the adapters actually open', () => {
   const declared = ctx.expectedTabLayout().map((t) => t.name);
-  assert.deepEqual(Array.from(declared).sort(), ['Contacts', 'Leads', 'Log', 'Work']);
+  assert.deepEqual(
+    Array.from(declared).sort(),
+    ['Contacts', 'Deliveries', 'Leads', 'Log', 'Submissions', 'Work'],
+  );
 });
 
 test('the declared work layout includes the two columns the queue serializes', () => {

@@ -35,13 +35,15 @@ var BOOKING_MIN_LEAD_MINUTES = 60;
 /** And no further out than this, so the calendar cannot be filled a year ahead. */
 var BOOKING_MAX_AHEAD_DAYS = 60;
 
-/**
- * Booking is offered on the Management Proposal pathway only.
+/*
+ * There is deliberately no booking-pathway list in this file.
  *
- * The other two pathways are questions, not engagements. Offering a calendar slot for a
- * press enquiry would put a partner in a meeting the visitor never intended to request.
+ * It had one, `BOOKABLE_PATHWAYS`, alongside `isBookablePathway` in Domain.js, which is a
+ * second definition of the same policy. Two copies drift: one gets a new pathway and the
+ * other does not, and the visible symptom is a form offering a call the command then
+ * refuses, or worse, the reverse. `isBookablePathway` is the single rule, and both the
+ * intake response and this command call it.
  */
-var BOOKABLE_PATHWAYS = ['management_proposal'];
 
 /**
  * Executes a validated booking request.
@@ -57,7 +59,10 @@ function executeBookingCommand(request, deps) {
     return { ok: false, status: BOOKING_STATUS.REJECTED, code: 'LEAD_NOT_FOUND' };
   }
 
-  if (BOOKABLE_PATHWAYS.indexOf(String(lead.pathway)) === -1) {
+  // The SAME rule the intake response used, evaluated against the stored Lead rather than
+  // trusting the stored `bookingEligible` snapshot. The snapshot is what the frontend was
+  // told at intake; this is the authority at the moment somebody tries to book.
+  if (!isBookablePathway(lead.pathway, lead.serviceScope)) {
     return { ok: false, status: BOOKING_STATUS.REJECTED, code: 'PATHWAY_NOT_BOOKABLE' };
   }
 

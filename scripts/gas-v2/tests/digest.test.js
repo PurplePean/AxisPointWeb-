@@ -61,8 +61,10 @@ test('a suspected-spam contact is stored and excluded from the digest', () => {
   const deps = buildDeps();
   const result = seed(deps, 1, Z, { clientSignals: { honeypot: 'bot' } });
 
-  assert.equal(deps.leads.store.rows.length, 1, 'still stored');
-  assert.equal(deps.leads.findLeadById(result.leadId).digestStatus, 'excluded_spam');
+  assert.equal(deps.submissions.store.rows.length, 1, 'still stored');
+  assert.equal(deps.contacts.store.rows.length, 1, 'contact still stored');
+  assert.equal(deps.leads.store.rows.length, 0, 'a handshake is not a Lead');
+  assert.equal(deps.deliveries.findBySubmissionId(result.submissionId).digestStatus, 'excluded_spam');
   assert.equal(run(deps).skipped, 'no_eligible_contacts');
 });
 
@@ -150,7 +152,7 @@ test('current owner is NOT hardcoded: an assigned contact prints its owner', () 
   run(deps);
 
   assert.deepEqual(deps.templates.digests[0].owners, ['Ethaniel Vu']);
-  assert.equal(deps.leads.findLeadById(result.leadId).acquisitionSource, 'zachary_russell');
+  assert.equal(deps.submissions.findBySubmissionId(result.submissionId).acquisitionSource, 'zachary_russell');
 });
 
 /* ── Delivery-bound state ─────────────────────────────────────────────────── */
@@ -160,7 +162,7 @@ test('contacts advance to delivered only after a successful send', () => {
   const result = seed(deps, 1, Z);
   run(deps);
 
-  const row = deps.leads.findLeadById(result.leadId);
+  const row = deps.deliveries.findBySubmissionId(result.submissionId);
   assert.equal(row.digestStatus, 'delivered');
   assert.ok(row.digestDeliveredAt);
 });
@@ -171,7 +173,7 @@ test('a failed send leaves the contact pending for the next run', () => {
   const summary = run(deps);
 
   assert.equal(summary.sent, 0);
-  assert.equal(deps.leads.findLeadById(result.leadId).digestStatus, 'pending_digest');
+  assert.equal(deps.deliveries.findBySubmissionId(result.submissionId).digestStatus, 'pending_digest');
 });
 
 test('a retry contains exactly the same contacts, not a second copy of a read day', () => {
@@ -181,13 +183,13 @@ test('a retry contains exactly the same contacts, not a second copy of a read da
   const second = seed(deps, 2, Z);
 
   run(deps);
-  assert.equal(deps.leads.findLeadById(first.leadId).digestStatus, 'pending_digest');
+  assert.equal(deps.deliveries.findBySubmissionId(first.submissionId).digestStatus, 'pending_digest');
 
   const retry = run(deps);
   assert.equal(retry.sent, 1);
   assert.equal(deps.templates.digests[deps.templates.digests.length - 1].total, 2);
-  assert.equal(deps.leads.findLeadById(first.leadId).digestStatus, 'delivered');
-  assert.equal(deps.leads.findLeadById(second.leadId).digestStatus, 'delivered');
+  assert.equal(deps.deliveries.findBySubmissionId(first.submissionId).digestStatus, 'delivered');
+  assert.equal(deps.deliveries.findBySubmissionId(second.submissionId).digestStatus, 'delivered');
 });
 
 test('a shared contact advances only when BOTH partners received it', () => {
@@ -203,7 +205,7 @@ test('a shared contact advances only when BOTH partners received it', () => {
   };
 
   run(deps);
-  assert.equal(deps.leads.findLeadById(shared.leadId).digestStatus, 'pending_digest');
+  assert.equal(deps.deliveries.findBySubmissionId(shared.submissionId).digestStatus, 'pending_digest');
 });
 
 test('one partner failing does not hold back the other partner own contacts', () => {
@@ -215,8 +217,8 @@ test('one partner failing does not hold back the other partner own contacts', ()
   deps.mail.send = (m) => (m.to === 'ev@example.test' ? { ok: false, reason: 'transient' } : realSend(m));
 
   run(deps);
-  assert.equal(deps.leads.findLeadById(zc.leadId).digestStatus, 'delivered');
-  assert.equal(deps.leads.findLeadById(ec.leadId).digestStatus, 'pending_digest');
+  assert.equal(deps.deliveries.findBySubmissionId(zc.submissionId).digestStatus, 'delivered');
+  assert.equal(deps.deliveries.findBySubmissionId(ec.submissionId).digestStatus, 'pending_digest');
 });
 
 test('an unconfigured digest sends nothing and advances nothing', () => {
@@ -226,7 +228,7 @@ test('an unconfigured digest sends nothing and advances nothing', () => {
 
   assert.equal(summary.skipped, 'not_configured');
   assert.equal(deps.mail.sent.length, 0);
-  assert.equal(deps.leads.findLeadById(result.leadId).digestStatus, 'pending_digest');
+  assert.equal(deps.deliveries.findBySubmissionId(result.submissionId).digestStatus, 'pending_digest');
 });
 
 /* ── Deterministic identity ───────────────────────────────────────────────── */

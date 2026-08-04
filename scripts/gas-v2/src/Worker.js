@@ -28,22 +28,28 @@ var WORK_KINDS = [
   'send_booking_confirmation'
 ];
 
+/*
+ * `subjectId` is a submissionId for the acknowledgement and notification handlers and a
+ * leadId for the booking confirmation. It was `leadId` for every kind until Pass 9B, which
+ * stopped being true the moment a QR Contact Exchange stopped producing a Lead.
+ */
+
 /**
  * Creates a work item. `idempotencyKey` makes the same logical side effect for the
  * same lead collapse to one item no matter how many times enqueue is called.
  */
-function buildWorkItem(kind, leadId, payload, ctx) {
+function buildWorkItem(kind, subjectId, payload, ctx) {
   return {
     workId: ctx.workId,
     createdAt: toIso(ctx.now),
     kind: kind,
-    leadId: leadId,
+    subjectId: subjectId,
     state: 'pending',
     attempts: 0,
     nextAttemptAt: toIso(ctx.now),
     lastError: '',
     completedAt: '',
-    idempotencyKey: kind + ':' + leadId + ':' + (ctx.discriminator || ''),
+    idempotencyKey: kind + ':' + subjectId + ':' + (ctx.discriminator || ''),
     payload: payload || {}
   };
 }
@@ -139,7 +145,7 @@ function runWorkerCycle(deps, handlers) {
         tryLog(deps, {
           level: 'error',
           event: 'work_abandoned',
-          leadId: item.leadId,
+          leadId: item.subjectId,
           detail: item.kind + ':' + next.lastError
         });
       } else {
