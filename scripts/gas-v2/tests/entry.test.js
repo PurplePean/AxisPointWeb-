@@ -38,6 +38,7 @@ test('a good submission returns the ids the client needs and nothing else', () =
   assert.equal(body.ok, true);
   assert.equal(body.schemaVersion, 1);
   assert.deepEqual(Object.keys(body).sort(), [
+    'bookingEligible',
     'contactId',
     'leadId',
     'ok',
@@ -47,6 +48,125 @@ test('a good submission returns the ids the client needs and nothing else', () =
     'submissionId',
     'submissionKind',
   ]);
+});
+
+/* ── Booking eligibility crosses the HTTP boundary ────────────────────────── */
+
+/*
+ * `bookingEligible` is computed once at intake by `isBookablePathway` and stored on the
+ * Lead. Until this correction it was returned by the domain and then DROPPED by
+ * `successBody`, so a frontend had no way to learn it except by re-deriving the policy
+ * itself, which is the competing definition Pass 9B deleted `BOOKABLE_PATHWAYS` to
+ * prevent. These tests pin it at the boundary that actually reaches a browser.
+ */
+
+test('a Management Proposal is reported bookable', () => {
+  const body = post(fx.managementProposal(), buildDeps());
+  assert.equal(body.ok, true);
+  assert.equal(body.bookingEligible, true);
+});
+
+test('every Management Proposal scope is reported bookable', () => {
+  // PM, PM plus AM, and undecided. The last one matters: the visitor is asking about
+  // management and has simply not chosen a scope, so refusing the call would refuse the
+  // conversation that resolves it.
+  const scopes = [
+    ['pm', 'property_management'],
+    ['pm_plus_am', 'property_management_plus_asset_management'],
+    ['undecided', 'not_sure'],
+  ];
+
+  scopes.forEach(([serviceScope, involvement]) => {
+    const body = post(
+      fx.managementProposal({ payload: { serviceScope, situation: { involvement } } }),
+      buildDeps(),
+    );
+    assert.equal(body.ok, true, `${serviceScope} should be accepted`);
+    assert.equal(body.bookingEligible, true, `${serviceScope} should be bookable`);
+  });
+});
+
+test('Investor Services is reported not bookable', () => {
+  const body = post(fx.investorServices(), buildDeps());
+  assert.equal(body.ok, true);
+  assert.equal(body.bookingEligible, false);
+});
+
+test('General Inquiry is reported not bookable', () => {
+  const body = post(fx.generalInquiry(), buildDeps());
+  assert.equal(body.ok, true);
+  assert.equal(body.bookingEligible, false);
+});
+
+test('a QR Contact Exchange is reported not bookable', () => {
+  // It produces no Lead at all, so there is nothing to book against.
+  const body = post(fx.contactExchange(), buildDeps());
+  assert.equal(body.ok, true);
+  assert.equal(body.leadId, null);
+  assert.equal(body.bookingEligible, false);
+});
+
+test('a replay reports the same eligibility as the first response', () => {
+  // A retry must never tell the visitor something different from what they were told the
+  // first time, in either direction.
+  const bookable = buildDeps();
+  const first = post(fx.managementProposal(), bookable);
+  const second = post(fx.managementProposal(), bookable);
+
+  assert.equal(second.replay, true);
+  assert.equal(second.bookingEligible, first.bookingEligible);
+  assert.equal(second.bookingEligible, true);
+
+  const notBookable = buildDeps();
+  post(fx.investorServices(), notBookable);
+  const replayed = post(fx.investorServices(), notBookable);
+
+  assert.equal(replayed.replay, true);
+  assert.equal(replayed.bookingEligible, false);
+});
+
+test('the value is always a strict boolean, never a string and never absent', () => {
+  // A frontend branching on `=== true` must not also have to handle 'TRUE', undefined, or
+  // a missing key. The Sheet round-trips booleans as strings, so this is a real risk.
+  const cases = [fx.managementProposal(), fx.investorServices(), fx.generalInquiry(), fx.contactExchange()];
+
+  cases.forEach((envelope) => {
+    const deps = buildDeps();
+    const fresh = post(envelope, deps);
+    const replay = post(envelope, deps);
+
+    [fresh, replay].forEach((body) => {
+      assert.equal(typeof body.bookingEligible, 'boolean', 'must be a boolean');
+      assert.ok('bookingEligible' in body, 'must always be present');
+      assert.notEqual(body.bookingEligible, 'TRUE');
+      assert.notEqual(body.bookingEligible, 'FALSE');
+    });
+  });
+});
+
+test('a replay reads eligibility back from the stored Lead, not from a fresh guess', () => {
+  // The stored snapshot is what the visitor was told. If somebody edits that cell, the
+  // replay reports the stored value; the booking COMMAND is what re-evaluates the rule
+  // and refuses. See booking.test.js.
+  const deps = buildDeps();
+  const first = post(fx.managementProposal(), deps);
+  deps.leads.updateLeadFields(first.leadId, { bookingEligible: false });
+
+  assert.equal(post(fx.managementProposal(), deps).bookingEligible, false);
+});
+
+test('eligibility is not computed at the transport boundary', () => {
+  // Entry.js must forward, never derive. If it derived, blanking the stored value would
+  // not change the replay response.
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'src', 'Entry.js'),
+    'utf8',
+  );
+  // Matched as a CALL, not as a word: the comment above the forward legitimately names
+  // the policy to explain why it is not invoked here.
+  assert.equal(/isBookablePathway\s*\(/.test(source), false, 'Entry.js must not call the policy');
+  assert.equal(/['"]management_proposal['"]/.test(source), false, 'Entry.js must not name a pathway');
+  assert.match(source, /result\.bookingEligible/, 'it forwards the domain result');
 });
 
 test('a replayed submission reports itself as one', () => {

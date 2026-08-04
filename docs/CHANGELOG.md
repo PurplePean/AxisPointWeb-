@@ -3,6 +3,15 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-08-04 (Code Pass 9C: booking eligibility on the success response)
+
+- **fix(gas-v2): `bookingEligible` is forwarded on the HTTP success response.** It was computed once at intake by `isBookablePathway`, stored on the Lead, and returned by `processSubmission`, but `successBody` in `Entry.js` dropped it. A frontend therefore had no way to learn whether to offer booking except by re-deriving the policy itself, which is the competing definition Pass 9B deleted `BOOKABLE_PATHWAYS` to prevent. Found while starting Pass 10A and split out as its own bounded correction rather than worked around.
+- **Forwarded, never computed at the boundary.** `Entry.js` returns `result.bookingEligible` and nothing else; a test asserts the file neither calls `isBookablePathway` nor names a pathway literal, so a future edit cannot quietly reintroduce a second policy there.
+- **Always a strict boolean, always present.** `true` for Management Proposal at `pm`, `pm_plus_am`, or `undecided` scope; `false` for Investor Services, General Inquiry, and a QR Contact Exchange, which produces no Lead to book against. The Sheet round-trips booleans as strings, so the coercion is explicit: a client branching on `=== true` must not also have to handle `'TRUE'`, `undefined`, or a missing key. A replay returns the same value as the first response.
+- **This is an additive response-field correction exposing an existing backend decision, not a new policy.** No storage, tab, intake orchestration, booking execution, email behaviour, or frontend change. **No response schema-version bump was required**, because no V2 frontend and no deployed V2 consumer exists to break.
+- **Verification: 421 gas-v2 tests, 204 unchanged V1 tests.** Nine new HTTP-boundary assertions covering each pathway, the QR exchange, replay, boolean strictness, and the no-derivation guard. Lint, type-check, and build pass; V1 `Code.gs` hash and all seven design-archive ZIP hashes unchanged; no change to `apps/`, `packages/`, `scripts/gas`, or the workflows.
+- **Status unchanged otherwise: coded and locally tested only.** No frontend connected, no Apps Script project, Sheet, Script Property, trigger, endpoint, or `.clasp.json`, nothing deployed or sent, V1 untouched.
+
 ## 2026-08-03 (Code Pass 9B: corrected storage boundary and durable retry recovery)
 
 - **fix(gas-v2): a QR Contact Exchange no longer produces a Lead.** Pass 9A wrote a Lead row for every submission, which made a handshake at a conference into a Lead with an empty pathway, no SLA, and a qualification state nobody would ever set. The model is now six tabs: **Submissions** (one immutable record of every accepted request), **Deliveries** (mutable acknowledgement, notification, and digest state), **Leads** (website service inquiries only), **Contacts** (QR Contact Exchanges only), **Work** (the idempotent side-effect queue), and **Log** (operational history, retained 90 days).

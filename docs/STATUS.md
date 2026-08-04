@@ -3,15 +3,15 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-03 (Code Pass 9B)_
+_Last updated: 2026-08-04 (Code Pass 9C)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 9B, corrected storage boundary and durable retry recovery, complete (code only, nothing connected) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule |
+| **Current code pass** | Pass 9C, booking-eligibility response correction, complete (code only, nothing connected) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response |
 | **Next pass** | QR Contact Exchange frontend and the shared submission client, then staging. Frontend endpoint wiring has **not** started |
 
 ## Routes
@@ -171,6 +171,15 @@ authentication, not authorization, and not a security credential.
 used by both the intake response and the booking command. `bookingEligible` is stored on
 the Lead as the intake-time snapshot for the frontend and a future dashboard; it is not a
 competing policy, and the command re-evaluates the rule against the stored Lead.
+
+**Pass 9C forwards `bookingEligible` on the HTTP success response.** It was computed at
+intake and returned by the domain layer, but dropped by the transport layer, so a frontend
+had no way to learn it except by re-deriving the policy itself. It is now always present
+and always a strict boolean: `true` for Management Proposal at any scope, `false` for
+Investor Services, General Inquiry, and QR Contact Exchange. This is an additive field
+exposing an existing backend decision, not a new policy, and no schema-version bump was
+needed because no V2 consumer exists. **The frontend must trust this field and must not
+implement its own booking policy.**
 
 **What Pass 8 settled, in code:** the discriminated envelope and its versioning, the stable
 snake_case token vocabulary with display strings rejected outright, server-owned field
