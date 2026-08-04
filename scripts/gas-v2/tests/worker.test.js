@@ -18,6 +18,18 @@ const { buildDeps, fakeMailService, fakeTemplates } = require('./helpers/fakes.j
 
 const ctx = load();
 
+/**
+ * Delivery status now lives on its own record, keyed by submissionId.
+ *
+ * It moved off the Lead in Pass 9B, because a QR Contact Exchange has delivery state and
+ * no Lead at all.
+ */
+function delivery(deps, result) {
+  const row = deps.deliveries.findBySubmissionId(result.submissionId);
+  assert.ok(row, `no delivery row for ${result.submissionId}`);
+  return row;
+}
+
 function seedLead(deps, envelope) {
   const parsed = ctx.parseEnvelope(JSON.stringify(envelope || fx.managementProposal()));
   assert.equal(parsed.ok, true);
@@ -78,7 +90,7 @@ test('a cycle marks the lead statuses it actually achieved', () => {
   const result = seedLead(deps);
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'sent');
   assert.equal(lead.partnerNotifyStatus, 'sent');
 });
@@ -123,7 +135,7 @@ test('a permanently failing send stops after one attempt and is recorded', () =>
   const summary = runCycle(deps);
 
   assert.equal(summary.abandoned, 0, 'a send failure is transient unless the adapter says otherwise');
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'failed');
 });
 
@@ -237,7 +249,7 @@ test('a contact exchange with an email DOES get an acknowledgement', () => {
   const result = seedLead(deps, fx.contactExchange());
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'sent');
   assert.equal(deps.templates.qrAcknowledgements.length, 1);
   // It goes through the QR renderer, not the website one.
@@ -251,7 +263,7 @@ test('a phone-only contact exchange is valid and its acknowledgement is skipped'
   const result = seedLead(deps, fx.contactExchange({ payload: { email: undefined } }));
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'skipped');
   assert.equal(lead.digestStatus, 'pending_digest', 'it still reaches the digest');
   assert.equal(deps.mail.sent.length, 0);
@@ -263,11 +275,15 @@ test('a suspected-spam contact exchange is stored and never acknowledged', () =>
   const result = seedLead(deps, fx.contactExchange({ clientSignals: { honeypot: 'bot' } }));
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
-  assert.equal(lead.ackEmailStatus, 'skipped');
-  assert.equal(lead.digestStatus, 'excluded_spam');
+  const row = delivery(deps, result);
+  assert.equal(row.ackEmailStatus, 'skipped');
+  assert.equal(row.digestStatus, 'excluded_spam');
   assert.equal(deps.mail.sent.length, 0);
-  assert.equal(deps.leads.store.rows.length, 1, 'still stored');
+
+  // A QR exchange stores a Submission and a Contact, and no Lead.
+  assert.equal(deps.submissions.store.rows.length, 1, 'submission still stored');
+  assert.equal(deps.contacts.store.rows.length, 1, 'contact still stored');
+  assert.equal(deps.leads.store.rows.length, 0, 'a handshake is not a Lead');
 });
 
 test('a failed QR acknowledgement never removes the stored record', () => {
@@ -275,9 +291,10 @@ test('a failed QR acknowledgement never removes the stored record', () => {
   const result = seedLead(deps, fx.contactExchange());
   runCycle(deps);
 
-  assert.equal(deps.leads.store.rows.length, 1);
+  assert.equal(deps.submissions.store.rows.length, 1);
   assert.equal(deps.contacts.store.rows.length, 1);
-  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'failed');
+  assert.equal(deps.leads.store.rows.length, 0);
+  assert.equal(delivery(deps, result).ackEmailStatus, 'failed');
 });
 
 test('a QR acknowledgement retry uses the existing bounded machinery', () => {
@@ -285,11 +302,11 @@ test('a QR acknowledgement retry uses the existing bounded machinery', () => {
   const result = seedLead(deps, fx.contactExchange());
 
   runCycle(deps);
-  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'failed');
+  assert.equal(delivery(deps, result).ackEmailStatus, 'failed');
 
   deps.clock.advanceMinutes(10);
   runCycle(deps);
-  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'sent');
+  assert.equal(delivery(deps, result).ackEmailStatus, 'sent');
   assert.equal(deps.mail.sent.length, 1, 'delivered once, not twice');
 });
 
@@ -298,7 +315,7 @@ test('an unconfigured QR acknowledgement is recorded rather than silently droppe
   const result = seedLead(deps, fx.contactExchange());
   runCycle(deps);
 
-  assert.equal(deps.leads.findLeadById(result.leadId).ackEmailStatus, 'not_configured');
+  assert.equal(delivery(deps, result).ackEmailStatus, 'not_configured');
 });
 
 test('a flagged submission gets no automated acknowledgement but partners are told', () => {
@@ -306,7 +323,7 @@ test('a flagged submission gets no automated acknowledgement but partners are to
   const result = seedLead(deps, fx.managementProposal({ clientSignals: { honeypot: 'bot' } }));
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'skipped');
   assert.equal(lead.partnerNotifyStatus, 'sent');
 });
@@ -319,9 +336,12 @@ test('an unlaunched follow-up locale is recorded but never fakes a translation',
   const result = seedLead(deps, fx.investorServices());
   runCycle(deps);
 
+  // The locale is a business fact, so it lives on the Lead and on the immutable
+  // Submission, not on the delivery row.
   const lead = deps.leads.findLeadById(result.leadId);
   assert.equal(lead.preferredFollowUpLocale, 'es');
   assert.equal(lead.preferredFollowUpStated, true);
+  assert.equal(deps.submissions.findBySubmissionId(result.submissionId).preferredFollowUpLocale, 'es');
 
   const outbound = ctx.resolveOutboundLocale(
     { preferredFollowUpLocale: 'es', pageLocale: 'en' },
@@ -336,7 +356,7 @@ test('a missing service is recorded as not_configured, not as a silent success',
   const result = seedLead(deps);
   runCycle(deps);
 
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'not_configured');
   assert.equal(lead.partnerNotifyStatus, 'not_configured');
   assert.equal(deps.mail.sent.length, 0);
@@ -348,7 +368,7 @@ test('an unimplemented template fails permanently and is not retried', () => {
   const summary = runCycle(deps);
 
   assert.equal(summary.abandoned, 2);
-  const lead = deps.leads.findLeadById(result.leadId);
+  const lead = delivery(deps, result);
   assert.equal(lead.ackEmailStatus, 'failed');
   assert.equal(deps.mail.sent.length, 0);
 });

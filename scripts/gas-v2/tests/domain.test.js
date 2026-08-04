@@ -1,17 +1,18 @@
 'use strict';
 
 /*
- * Lead and Contact construction.
+ * The record builders.
  *
- * WHAT THESE TESTS ARE FOR. The Lead/Contact split is the whole reason for the
- * rebuild, so the assertions here are about the split holding: a request's fields
- * land on the Lead, a person's fields land on the Contact, and a second submission
- * from the same person never erases what the first one recorded.
+ * WHAT THESE TESTS ARE FOR. The Lead/Contact split is the reason for the rebuild, and
+ * Pass 9B narrowed it further: a builder now refuses the wrong submission kind outright
+ * instead of producing a half-empty row. The first group asserts that refusal, because a
+ * silent empty row is exactly how the defect would come back.
  *
- * The other silent failure guarded here is inference. A pathway does not tell you
- * what somebody IS, so contactCategory must stay empty on a service inquiry rather
- * than being guessed. A guess written into a person's record reads later as a fact
- * they stated.
+ * The rest guard inference. A pathway does not tell you what somebody IS, so a category
+ * must stay empty rather than being guessed; a guess written into a person's record reads
+ * later as a fact they stated.
+ *
+ * The immutable Submission and the Delivery row are covered by storage-model.test.js.
  */
 
 const { test } = require('node:test');
@@ -29,22 +30,38 @@ function parsed(envelope) {
   return result.value;
 }
 
-function leadCtx(overrides = {}) {
+function buildCtx(overrides = {}) {
   return {
     leadId: 'lead-1',
     contactId: 'contact-1',
     receivedAt: RECEIVED,
-    slaDueAt: new Date('2026-08-03T19:00:00.000Z'),
+    slaDueAt: new Date('2026-08-04T22:00:00.000Z'),
     screening: { spamSuspected: false, spamReason: '' },
     possibleMatches: [],
     ...overrides,
   };
 }
 
+/* ── A builder refuses the wrong kind ─────────────────────────────────────── */
+
+test('buildLead refuses a contact exchange rather than making an empty-pathway Lead', () => {
+  assert.throws(
+    () => ctx.buildLead(parsed(fx.contactExchange()), buildCtx()),
+    /LeadFromNonInquiry/,
+  );
+});
+
+test('buildContact refuses a service inquiry rather than filing a person', () => {
+  assert.throws(
+    () => ctx.buildContact(parsed(fx.managementProposal()), buildCtx()),
+    /ContactFromNonExchange/,
+  );
+});
+
 /* ── Lead ─────────────────────────────────────────────────────────────────── */
 
-test('a management proposal lead carries every block it was given', () => {
-  const lead = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
+test('a management proposal Lead carries every block it was given', () => {
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
 
   assert.equal(lead.pathway, 'management_proposal');
   assert.equal(lead.serviceScope, 'pm');
@@ -56,72 +73,63 @@ test('a management proposal lead carries every block it was given', () => {
 });
 
 test('blocks that do not apply to a pathway are empty, never absent', () => {
-  // An empty string keeps the column shape identical across pathways. A missing key
-  // would write a ragged row that a later reader has to special-case.
-  const lead = ctx.buildLead(parsed(fx.investorServices()), leadCtx());
+  // An empty string keeps the column shape identical across pathways. A missing key would
+  // write a ragged row that a later reader has to special-case.
+  const lead = ctx.buildLead(parsed(fx.investorServices()), buildCtx());
   assert.equal(lead.propertyType, '');
   assert.equal(lead.situationCurrent, '');
   assert.equal(lead.serviceScope, '');
   assert.equal(lead.topic, 'actively_searching');
 });
 
+test('the Lead points back at its Submission and carries no contactId', () => {
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
+  assert.equal(lead.sourceSubmissionId, fx.VALID_UUID);
+  assert.equal(lead.contactId, undefined, 'a website inquiry files no person');
+});
+
 test('operational fields are set by the server at their initial values', () => {
-  const lead = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
   assert.equal(lead.leadStatus, 'new');
   assert.equal(lead.qualificationOutcome, 'pending');
   assert.equal(lead.firstHumanContactAt, '');
-  assert.equal(lead.ackEmailStatus, 'pending');
-  assert.equal(lead.partnerNotifyStatus, 'pending');
+  assert.equal(lead.ownerPartner, '');
   assert.equal(lead.calendarStatus, 'none');
   assert.equal(lead.activeBookingRequestId, '');
 });
 
-test('the SLA due time is stored as an ISO instant', () => {
-  const lead = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
-  assert.equal(lead.slaDueAt, '2026-08-03T19:00:00.000Z');
+test('delivery status does not live on the Lead any more', () => {
+  // It moved to the Delivery row, because a QR exchange has delivery state and no Lead.
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
+  assert.equal(lead.ackEmailStatus, undefined);
+  assert.equal(lead.partnerNotifyStatus, undefined);
+  assert.equal(lead.digestStatus, undefined);
 });
 
-test('a submission with no commitment stores no due time', () => {
-  const lead = ctx.buildLead(parsed(fx.contactExchange()), leadCtx({ slaDueAt: null }));
-  assert.equal(lead.slaDueAt, '');
+test('the SLA due time is stored as an ISO instant', () => {
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
+  assert.equal(lead.slaDueAt, '2026-08-04T22:00:00.000Z');
 });
 
 test('page locale and follow-up locale are stored as two separate columns', () => {
-  const lead = ctx.buildLead(parsed(fx.investorServices()), leadCtx());
+  const lead = ctx.buildLead(parsed(fx.investorServices()), buildCtx());
   assert.equal(lead.pageLocale, 'en');
   assert.equal(lead.preferredFollowUpLocale, 'es');
   assert.equal(lead.preferredFollowUpStated, true);
 });
 
 test('an unstated follow-up locale is inferred but flagged as inferred', () => {
-  const lead = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
   assert.equal(lead.preferredFollowUpLocale, 'en');
   assert.equal(lead.preferredFollowUpStated, false);
-});
-
-test('a QR scan records which card was scanned', () => {
-  const lead = ctx.buildLead(parsed(fx.contactExchange()), leadCtx());
-  assert.equal(lead.sourceCategory, 'qr');
-  assert.equal(lead.sourceDetail, 'zachary-russell');
-  assert.equal(lead.scannedPartner, 'zachary_russell');
-  assert.equal(lead.scannedSlugUnresolved, false);
-});
-
-test('an unknown card slug is recorded as unresolved rather than guessed', () => {
-  const lead = ctx.buildLead(
-    parsed(fx.contactExchange({ attribution: { sourceDetail: 'former-partner' } })),
-    leadCtx(),
-  );
-  assert.equal(lead.scannedPartner, '');
-  assert.equal(lead.scannedSlugUnresolved, true);
 });
 
 test('refToken is stored verbatim and nothing else changes because of it', () => {
   const withRef = ctx.buildLead(
     parsed(fx.managementProposal({ attribution: { refToken: 'PARTNER-77' } })),
-    leadCtx(),
+    buildCtx(),
   );
-  const without = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
+  const without = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
 
   assert.equal(withRef.refToken, 'PARTNER-77');
   assert.equal(without.refToken, '');
@@ -130,101 +138,105 @@ test('refToken is stored verbatim and nothing else changes because of it', () =>
   assert.equal(withRef.leadStatus, without.leadStatus);
 });
 
+/* ── Booking eligibility ──────────────────────────────────────────────────── */
+
+test('Property Management and PM plus AM are bookable', () => {
+  assert.equal(ctx.isBookablePathway('management_proposal', 'pm'), true);
+  assert.equal(ctx.isBookablePathway('management_proposal', 'pm_plus_am'), true);
+});
+
+test('an undecided scope is still bookable, because that is the conversation', () => {
+  assert.equal(ctx.isBookablePathway('management_proposal', 'undecided'), true);
+});
+
+test('investor services and general inquiry are not bookable', () => {
+  assert.equal(ctx.isBookablePathway('investor_services', ''), false);
+  assert.equal(ctx.isBookablePathway('general_inquiry', ''), false);
+});
+
+test('eligibility is stored on the Lead so the frontend cannot disagree with it', () => {
+  const bookable = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
+  const notBookable = ctx.buildLead(parsed(fx.investorServices()), buildCtx());
+
+  assert.equal(bookable.bookingEligible, true);
+  assert.equal(notBookable.bookingEligible, false);
+});
+
 /* ── Contact ──────────────────────────────────────────────────────────────── */
 
 test('a contact exchange records the category the person actually chose', () => {
-  const contact = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
+  const contact = ctx.buildContact(parsed(fx.contactExchange()), buildCtx());
   assert.equal(contact.contactCategory, 'broker_real_estate_advisor');
   assert.equal(contact.roleOrTitle, 'Principal');
   assert.equal(contact.company, 'Raman Brokers');
 });
 
-test('a service inquiry leaves contactCategory empty rather than inferring one', () => {
-  const contact = ctx.buildContact(parsed(fx.managementProposal()), leadCtx());
-  assert.equal(contact.contactCategory, '');
-  // The organization still lands, because that one WAS stated.
-  assert.equal(contact.company, 'Whitfield Holdings');
+test('the Contact stores the phone as typed and the normalized digits alongside', () => {
+  const contact = ctx.buildContact(
+    parsed(fx.contactExchange({ payload: { phone: '+44 (0)20 7946-0958' } })),
+    buildCtx(),
+  );
+  assert.equal(contact.phone, '+44 (0)20 7946-0958');
+  assert.equal(contact.normalizedPhone, '4402079460958');
 });
 
-test('contact sync status truthfully reports that no sync exists yet', () => {
-  const contact = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
-  assert.equal(contact.contactSyncStatus, 'not_configured');
+test('the Contact points back at its Submission', () => {
+  const contact = ctx.buildContact(parsed(fx.contactExchange()), buildCtx());
+  assert.equal(contact.sourceSubmissionId, '99998888-7777-4666-8555-444433332222');
 });
 
-test('a new contact starts with one lead attributed to it', () => {
-  const contact = ctx.buildContact(parsed(fx.managementProposal()), leadCtx());
-  assert.equal(contact.leadCount, 1);
-  assert.equal(contact.lastLeadId, 'lead-1');
+test('attribution is recorded and ownership is left unassigned', () => {
+  const contact = ctx.buildContact(parsed(fx.contactExchange()), buildCtx());
+  assert.equal(contact.acquisitionSource, 'zachary_russell');
+  assert.equal(contact.scannedPartner, 'zachary_russell');
+  assert.equal(contact.ownerPartner, '');
+  assert.equal(contact.followUpState, 'not_contacted');
+});
+
+test('an unknown card slug is recorded as unresolved rather than guessed', () => {
+  const contact = ctx.buildContact(
+    parsed(fx.contactExchange({ attribution: { sourceDetail: 'former-partner' } })),
+    buildCtx(),
+  );
+  assert.equal(contact.acquisitionSource, 'unknown');
+  assert.equal(contact.scannedPartner, '');
+});
+
+test('the firm card is recorded as firm and never as a partner', () => {
+  const contact = ctx.buildContact(
+    parsed(fx.contactExchange({ attribution: { sourceDetail: 'axispoint-partners' } })),
+    buildCtx(),
+  );
+  assert.equal(contact.acquisitionSource, 'firm');
+  assert.equal(contact.scannedPartner, '', 'firm must not occupy a partner field');
+});
+
+test('a new Contact counts one submission and links to no Lead', () => {
+  const contact = ctx.buildContact(parsed(fx.contactExchange()), buildCtx());
+  assert.equal(contact.submissionCount, 1);
+  assert.equal(contact.lastSubmissionId, '99998888-7777-4666-8555-444433332222');
+  assert.equal(contact.linkedLeadIds, '', 'linking is a human decision');
   assert.equal(contact.createdAt, '2026-08-03T14:00:00.000Z');
 });
 
-/* ── Merge ────────────────────────────────────────────────────────────────── */
-
-test('a blank incoming value never erases a stored one', () => {
-  // Somebody filling in only a phone on their second submission must not lose the
-  // email from their first.
-  const existing = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
-  const merged = ctx.mergeContact(
-    existing,
-    { fullName: 'Priya Raman', email: '', phone: '972-555-0143', company: '' },
-    { leadId: 'lead-2', receivedAt: new Date('2026-09-01T14:00:00.000Z') },
-  );
-
-  assert.equal(merged.email, 'priya@ramanbrokers.test');
-  assert.equal(merged.company, 'Raman Brokers');
+test('Google Contacts readiness is present, empty, and not configured', () => {
+  const contact = ctx.buildContact(parsed(fx.contactExchange()), buildCtx());
+  assert.equal(contact.contactSyncStatus, 'not_configured');
+  assert.equal(contact.externalContactResourceName, '');
+  assert.equal(contact.externalContactEtag, '');
+  assert.equal(contact.externalContactSyncedAt, '');
 });
 
-test('a populated incoming value does replace a stored one', () => {
-  const existing = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
-  const merged = ctx.mergeContact(
-    existing,
-    { email: 'priya@newfirm.test', company: 'New Firm' },
-    { leadId: 'lead-2', receivedAt: new Date('2026-09-01T14:00:00.000Z') },
-  );
-
-  assert.equal(merged.email, 'priya@newfirm.test');
-  assert.equal(merged.company, 'New Firm');
-});
-
-test('merging counts the new lead and moves the pointer', () => {
-  const existing = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
-  const merged = ctx.mergeContact(existing, {}, {
-    leadId: 'lead-2',
-    receivedAt: new Date('2026-09-01T14:00:00.000Z'),
-  });
-
-  assert.equal(merged.leadCount, 2);
-  assert.equal(merged.lastLeadId, 'lead-2');
-  assert.equal(merged.lastLeadAt, '2026-09-01T14:00:00.000Z');
-  assert.equal(merged.createdAt, '2026-08-03T14:00:00.000Z');
-});
-
-test('an inferred follow-up locale does not overwrite a stated one', () => {
-  const existing = ctx.buildContact(parsed(fx.investorServices()), leadCtx());
-  assert.equal(existing.preferredFollowUpLocale, 'es');
-
-  const merged = ctx.mergeContact(
-    existing,
-    { preferredFollowUpLocale: 'en', preferredFollowUpStated: false },
-    { leadId: 'lead-2', receivedAt: new Date('2026-09-01T14:00:00.000Z') },
-  );
-  assert.equal(merged.preferredFollowUpLocale, 'es');
-});
-
-test('merging does not mutate the record it was given', () => {
-  const existing = ctx.buildContact(parsed(fx.contactExchange()), leadCtx());
-  const before = JSON.stringify(existing);
-  ctx.mergeContact(existing, { email: 'other@x.test' }, {
-    leadId: 'lead-2',
-    receivedAt: new Date('2026-09-01T14:00:00.000Z'),
-  });
-  assert.equal(JSON.stringify(existing), before);
+test('there is no merge helper to call', () => {
+  // It folded a new submission into an existing Contact, which is what the approved rule
+  // forbids. Dead code here would be an invitation to call it again.
+  assert.equal(typeof ctx.mergeContact, 'undefined');
 });
 
 /* ── Row projection ───────────────────────────────────────────────────────── */
 
 test('every lead header has a value in the projected row', () => {
-  const lead = ctx.buildLead(parsed(fx.managementProposal()), leadCtx());
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
   const row = ctx.toRow(ctx.LEAD_HEADERS, lead);
   assert.equal(row.length, ctx.LEAD_HEADERS.length);
   row.forEach((cell, i) => {
@@ -232,21 +244,33 @@ test('every lead header has a value in the projected row', () => {
   });
 });
 
+test('every submission header has a value in the projected row', () => {
+  const submission = ctx.buildSubmission(parsed(fx.contactExchange()), buildCtx());
+  const row = ctx.toRow(ctx.SUBMISSION_HEADERS, submission);
+  assert.equal(row.length, ctx.SUBMISSION_HEADERS.length);
+  row.forEach((cell, i) => {
+    assert.notEqual(cell, undefined, `header ${ctx.SUBMISSION_HEADERS[i]} produced undefined`);
+  });
+});
+
 test('booleans round-trip through the row projection', () => {
-  const lead = ctx.buildLead(
-    parsed(fx.contactExchange({ attribution: { sourceDetail: 'former-partner' } })),
-    leadCtx(),
-  );
-  const row = ctx.toRow(ctx.LEAD_HEADERS, lead);
-  const back = ctx.fromRow(ctx.LEAD_HEADERS, row);
-  assert.equal(back.scannedSlugUnresolved, true);
+  const lead = ctx.buildLead(parsed(fx.managementProposal()), buildCtx());
+  const back = ctx.fromRow(ctx.LEAD_HEADERS, ctx.toRow(ctx.LEAD_HEADERS, lead));
+  assert.equal(back.bookingEligible, true);
   assert.equal(back.propertyScaleUnknown, false);
 });
 
-test('lead headers are unique', () => {
-  const seen = new Set();
-  Array.from(ctx.LEAD_HEADERS).forEach((h) => {
-    assert.equal(seen.has(h), false, `duplicate header ${h}`);
-    seen.add(h);
+test('lead, contact, submission, and delivery headers are each unique', () => {
+  [
+    ['LEAD_HEADERS', ctx.LEAD_HEADERS],
+    ['CONTACT_HEADERS', ctx.CONTACT_HEADERS],
+    ['SUBMISSION_HEADERS', ctx.SUBMISSION_HEADERS],
+    ['DELIVERY_HEADERS', ctx.DELIVERY_HEADERS],
+  ].forEach(([name, headers]) => {
+    const seen = new Set();
+    Array.from(headers).forEach((h) => {
+      assert.equal(seen.has(h), false, `duplicate header ${h} in ${name}`);
+      seen.add(h);
+    });
   });
 });

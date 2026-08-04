@@ -165,11 +165,18 @@ test('booking is refused on the general inquiry pathway', () => {
   assert.equal(result.code, 'PATHWAY_NOT_BOOKABLE');
 });
 
-test('booking is refused on a contact exchange', () => {
+test('booking is refused for a contact exchange, which has no Lead to book against', () => {
+  // The strongest form of the rule. A QR exchange produces no Lead at all, so a booking
+  // request naming it cannot resolve to one.
   const deps = buildDeps();
-  const lead = seedLead(deps, fx.contactExchange());
-  const result = book(deps, lead.leadId);
-  assert.equal(result.code, 'PATHWAY_NOT_BOOKABLE');
+  const exchange = seedLead(deps, fx.contactExchange());
+
+  assert.equal(exchange.leadId, null);
+  assert.equal(deps.leads.store.rows.length, 0);
+
+  const result = book(deps, '00000000-0000-4000-8000-000000007777');
+  assert.equal(result.status, 'rejected');
+  assert.equal(result.code, 'LEAD_NOT_FOUND');
 });
 
 /* ── Duplicate protection ─────────────────────────────────────────────────── */

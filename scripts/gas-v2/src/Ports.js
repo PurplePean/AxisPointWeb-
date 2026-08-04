@@ -13,17 +13,40 @@
  * message instead of at 2am inside a trigger.
  */
 
+/**
+ * The immutable audit record.
+ *
+ * THERE IS DELIBERATELY NO UPDATE METHOD. "Immutable" is enforced by the absence of a way
+ * to write, not by a convention somebody has to remember. Mutable per-submission state
+ * lives behind the Delivery port instead.
+ */
+var SUBMISSION_REPOSITORY_PORT = [
+  'insertSubmission',
+  'findBySubmissionId'
+];
+
+/** Mutable per-submission delivery state. */
+var DELIVERY_REPOSITORY_PORT = [
+  'insertDelivery',
+  'findBySubmissionId',
+  'listPendingDigest',
+  'updateDelivery'
+];
+
 var LEAD_REPOSITORY_PORT = [
   'insertLead',
   'findLeadById',
-  'findLeadBySubmissionId',
-  'listPendingDigestSubmissions',
+  // Reconciliation asks "does the business record for this submission exist", which is a
+  // different question from "does this id exist" and is the one that can be answered
+  // when a partial write left the id dangling.
+  'findBySourceSubmissionId',
   'updateLeadFields'
 ];
 
 var CONTACT_REPOSITORY_PORT = [
   'insertContact',
   'findContactById',
+  'findBySourceSubmissionId',
   'listContactCandidates',
   'updateContact'
 ];
@@ -104,6 +127,8 @@ function assertPort(name, port, methods) {
  * nobody tested.
  */
 function assertDeps(deps) {
+  assertPort('submissions', deps.submissions, SUBMISSION_REPOSITORY_PORT);
+  assertPort('deliveries', deps.deliveries, DELIVERY_REPOSITORY_PORT);
   assertPort('leads', deps.leads, LEAD_REPOSITORY_PORT);
   assertPort('contacts', deps.contacts, CONTACT_REPOSITORY_PORT);
   assertPort('log', deps.log, LOG_REPOSITORY_PORT);

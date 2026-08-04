@@ -10,6 +10,14 @@ bumping the version, because nothing consumes or deploys schema version 1 yet: n
 frontend sends it and no endpoint exists. They are pre-deployment corrections, listed in
 [section 16](#16-pre-deployment-corrections-code-pass-9a).
 
+Pass 9B corrected the storage boundary the same way, listed in
+[section 18](#18-pre-deployment-corrections-code-pass-9b).
+
+**Status: coded and locally tested only.** No frontend is connected. There is no Apps
+Script project, Sheet, Script Property, trigger, endpoint, or `.clasp.json`. Nothing has
+been deployed and no email, digest, or Calendar action has been sent or performed. V1
+(`scripts/gas/Code.gs`) is untouched and remains the deployed backend.
+
 **Status: implemented and locally tested. Not deployed, not connected.** There is no
 Apps Script project, no Sheet, no trigger, no deployment, and neither frontend submits
 to it. See [`deployment.md`](deployment.md) for what bringing it up actually involves,
@@ -262,9 +270,31 @@ exists so the raw signal is not thrown away if referral tracking is built later.
 
 Booking is a **separate command issued after a submission**, never a block inside one.
 The two operations have genuinely different failure modes: an inquiry must be storable
-while the calendar is down, and a calendar conflict must never reject an inquiry. It is
-offered on the **Management Proposal pathway only**; the other pathways are questions,
-not engagements.
+while the calendar is down, and a calendar conflict must never reject an inquiry.
+
+### One rule, in one place
+
+`isBookablePathway(pathway, serviceScope)` is the single definition. Both the intake
+response and the booking command call it.
+
+| Pathway | Bookable |
+|---|---|
+| `management_proposal`, scope `pm` | Yes |
+| `management_proposal`, scope `pm_plus_am` | Yes |
+| `management_proposal`, scope `undecided` | Yes. The visitor is asking about management and simply has not chosen the scope; refusing the call would refuse the conversation that resolves it |
+| `investor_services` | No |
+| `general_inquiry` | No |
+| `contact_exchange` | No, and it produces no Lead to book against |
+
+`Booking.js` previously carried its own `BOOKABLE_PATHWAYS` list. Two definitions of one
+policy drift: one gains a pathway and the other does not, and the visible symptom is a
+form offering a call the command then refuses, or the reverse. The list is deleted.
+
+**`bookingEligible` is stored on the Lead as the intake-time snapshot**, so the frontend
+and a future dashboard can read what the visitor was told without re-deriving it. It is
+**not a competing policy definition**: the booking command re-evaluates
+`isBookablePathway` against the stored Lead, so editing that cell in the Sheet cannot
+authorise a booking that the rule refuses.
 
 ```jsonc
 {
@@ -425,43 +455,77 @@ categories and the headings grow with the number of groups.
 
 ---
 
-## 10. Identity: Lead vs Contact
+## 10. The storage model
 
-A **Lead** is a request: one submission, one moment, one thing somebody wanted. A
-**Contact** is a person: stable across every request they ever make. Collapsing the two
-is what forced V1's rework, because a second inquiry from the same owner had nowhere
-correct to go.
+### Six tabs
 
-Matching **suggests; it never merges.** An automatic merge of two people who happen to
-share a name is unrecoverable through normal use and nobody finds out.
+| Tab | Holds | Mutability |
+|---|---|---|
+| `Submissions` | One immutable record of every accepted request | **Insert-only** |
+| `Deliveries` | Acknowledgement, notification, and digest state, one row per submission | Mutable |
+| `Leads` | Website service inquiries **only** | Mutable |
+| `Contacts` | QR Contact Exchanges **only** | Mutable |
+| `Work` | The idempotent side-effect queue | Mutable |
+| `Log` | Operational history, retained 90 days (§13A) | Append, then expire |
 
-**Exact evidence only.**
+**The Submission is insert-only, and that is enforced rather than asserted.** The
+repository port declares exactly two methods, `insertSubmission` and
+`findBySubmissionId`. There is no update method on the port, the Sheet adapter, or the
+test fake, so no caller can write one by accident. Mutable per-submission state lives on
+the `Deliveries` row precisely so the audit record can stay untouched.
+
+### One Submission, exactly one business record
+
+| Submission kind | Creates | Never creates |
+|---|---|---|
+| `service_inquiry` | `Submissions` + `Leads` + `Deliveries` | **No Contact** |
+| `contact_exchange` | `Submissions` + `Contacts` + `Deliveries` | **No Lead** |
+
+A website inquiry does not file a person: it is a request with a pathway, an SLA, and a
+qualification state. A handshake at a conference is not a request with a clock on it.
+Until Pass 9B every submission wrote a Lead row, which left QR rows in the Leads tab with
+an empty pathway and a qualification state nobody would ever set.
+
+`buildLead` throws on any kind other than `service_inquiry`, and `buildContact` throws on
+any kind other than `contact_exchange`. A silent half-empty row is how this defect would
+return, so the builders refuse rather than degrade.
+
+A Contact may be linked or converted to a Lead **by a person**, recorded in
+`linkedLeadIds`. Nothing does it automatically.
+
+### Identity matching flags, and only flags
+
+Evidence is exact and nothing else qualifies:
 
 | Evidence | Effect |
 |---|---|
-| Exact normalized email | Links to the existing Contact |
-| Exact normalized **full** phone digit string | Links to the existing Contact |
-| Anything else | Not evidence. Not a link, and not even a suggestion |
+| Exact normalized email | Records a possible-match flag |
+| Exact normalized **full** phone digit string | Records a possible-match flag |
+| Anything else | Not evidence at all |
 
-Name, company, name plus company, and email domain are **not** matching evidence, and a
-shared email domain is never evidence. Those produced Pass 8's "probable" and "weak"
-suggestions, which are removed: a suggestion a partner learns to ignore hides the exact
-match that actually needed attention.
+**A match never links, merges, overwrites, or updates an existing Contact.** Every QR
+Contact Exchange creates a NEW Contact; the flag is written to `possibleMatches` and
+`matchNote` on the Submission and on the business record, for a human to act on. Two
+records that turn out to be the same person are trivially reconcilable by hand; a merge
+of two records that turn out to be different people destroys the losing record's history
+and nobody finds out.
 
-Phone comparison uses the **complete** digit string, not the last ten. The last-ten rule
-was a North American assumption that would collide two unrelated international numbers on
-their tails and merge two people.
+Name, company, name plus company, and email domain are not evidence, and a shared email
+domain is never evidence. Phone comparison uses the complete digit string, never the last
+ten, because a tail comparison collides unrelated international numbers.
 
-Two exact candidates that disagree (an email pointing at one Contact and a phone at
-another) produce a *new* Contact plus both suggestions, because the stored data already
-contradicts itself and picking one would hide that.
+There is no `mergeContact` function in the codebase, and a test asserts it stays absent.
+Another test replaces `updateContact` with a thrower and runs a matching submission
+through intake, so the rule is proven by the absence of the call rather than by the
+absence of an effect.
 
-Linking is not merging: a blank incoming value never overwrites a populated stored one,
-so somebody filling in only a phone on their second submission does not lose the email
-from their first.
+### Google Contacts readiness
 
-`contactSyncStatus` is `not_configured`. Google People synchronization is scoped to a
-later pass, and the manifest deliberately requests no contacts scope.
+The internal Contact is the source of truth. Google Contacts would be a downstream copy,
+never the database. `contactSyncStatus` is `not_configured`, and
+`externalContactResourceName`, `externalContactEtag`, and `externalContactSyncedAt` exist
+so a later adapter has somewhere to write without a migration. Nothing populates them, no
+People API call exists in `src`, and the manifest requests no contacts scope.
 
 ---
 
@@ -492,38 +556,106 @@ States: `pending`, `met`, `missed`, `breached`, `not_applicable`.
 
 ---
 
-## 12. Processing order and delivery guarantee
+## 12. Processing order, recovery, and the delivery guarantee
 
-Within one lock: **replay check → screen → resolve identity → write Lead → write or
-merge Contact → queue side effects → return.**
+### Order
 
-Storage comes first because the durable record is the only artifact that cannot be
-reconstructed. Email and calendar work is queued and executed by a time-driven trigger.
+Within one lock: **check for an existing Submission → screen → flag possible matches →
+write the Submission → write the business record → write the Delivery row → queue side
+effects → return.**
 
-**Replay protection.** A repeated `submissionId` returns the original result and queues
-nothing further, so a double-click or a flaky network cannot create two leads.
+The Submission is written first on purpose: it is the record that cannot be
+reconstructed. Everything after it is recoverable.
 
-**The guarantee is bounded at-least-once, stated honestly.** A handler can run more than
-once: the side effect happens, the process dies before the item is marked done, and the
-next cycle retries. There is **no exactly-once guarantee and none is claimed**. What is
-guaranteed is that attempts are bounded.
+### Partial-write recovery
+
+Writing the Submission first means a failure anywhere after it, a throw, a lost lock, an
+execution killed at the Apps Script time limit, leaves a Submission with no business
+record, no Delivery row, or no queued work. Before Pass 9B the retry found the Submission
+and reported success, so the request stayed permanently half-written: no acknowledgement,
+no digest entry, nothing in the tab a partner reads, and no error anywhere.
+
+**A retry now reconciles before it reports success.** Each boundary is checked
+independently, because the failure can land at any one of them:
+
+| Missing | Repaired by |
+|---|---|
+| Lead | Rebuilt under the id the Submission recorded, with SLA and `bookingEligible` restored |
+| Contact | Rebuilt under the recorded id, unassigned, `contactSyncStatus: not_configured` |
+| Delivery row | Rebuilt, including `pending_digest` so a QR Contact becomes visible to the digest |
+| Work items | Re-enqueued; the idempotency key makes a surviving item a no-op |
+
+**Recovery uses the fingerprint-verified retry envelope together with the immutable
+Submission's recorded identifiers, timestamp, screening result, and match flags.** It does
+not re-derive them. Re-running spam screening or identity matching at repair time would
+produce different answers, because the Contacts tab has grown since; the flags belong to
+the moment of submission, and a repaired record must be the record that was accepted.
+
+**This is retry-triggered reconciliation, not a background sweep.** Nothing scans for
+half-written requests on a schedule. Repair happens only when the same request arrives
+again, which means a request that is never retried stays half-written. A repair is logged
+at `error` level as `submission_reconciled`, so a silent half-write leaves evidence even
+though it was silently repaired.
+
+Repair never duplicates: repeated retries produce exactly one Submission, one business
+record, one Delivery row, and one work item per kind. A clean retry with nothing to repair
+changes nothing at all, and reconciliation never rewrites the Submission.
+
+### Idempotency and conflict
+
+A retry is recognised by `submissionId`. To be treated as a retry it must carry the same
+`submissionId` **and a materially identical payload, attribution, and locale**.
+
+`payloadFingerprint`, stored on the Submission, is a hash over the submission kind, the
+payload, `sourceCategory`, `sourceDetail`, and both locale fields. It deliberately
+excludes `submittedAt` and `clientSignals`: an honest retry carries a new client clock
+reading and a new fill-time measurement, and treating either as a change would turn every
+genuine retry into a conflict. It deliberately includes attribution and locale, because
+the same details submitted from a different partner's card, or with a different follow-up
+language, is a different request.
+
+A reused `submissionId` carrying materially different data returns
+**`SUBMISSION_ID_CONFLICT`**. Nothing is created and nothing is overwritten. Reporting it
+as a replay would tell the sender their new data was accepted when it was discarded.
+
+> **`payloadFingerprint` is an idempotency and conflict-detection guard. It is not
+> authentication, not authorization, and not a security credential of any kind.** It is a
+> non-cryptographic digest, it is not secret, and it proves nothing about who sent a
+> request. It answers one question: is this the same request as the one already stored.
+
+### Binding client requirement
+
+Any frontend that connects to this endpoint **must preserve the same `submissionId` and
+the same payload, attribution, and locale across transport retries.** A client that mints
+a fresh `submissionId` on retry creates duplicate business records; a client that reuses an
+id while changing the data gets `SUBMISSION_ID_CONFLICT` and its data is not stored. This
+is a requirement on the client, not a suggestion, and the shared submission client is
+where it has to be implemented.
+
+### The delivery guarantee, stated honestly
+
+**Bounded at-least-once.** A handler can run more than once: the side effect happens, the
+process dies before the item is marked done, and the next cycle retries. There is **no
+exactly-once guarantee and none is claimed**. What is guaranteed is that attempts are
+bounded, so a permanently failing item stops instead of emailing forever.
 
 | Bound | Value |
 |---|---|
 | Worker cycle | every 5 minutes |
 | Items claimed per cycle | 20 |
 | Attempts per item | 4 |
-| Work kinds | `send_acknowledgement`, `send_qr_acknowledgement`, `notify_partners`, `send_booking_confirmation` |
 | Backoff | 5, 15, 60 minutes |
+| Work kinds | `send_acknowledgement`, `send_qr_acknowledgement`, `notify_partners`, `send_booking_confirmation` |
 
-A permanent failure (missing configuration, rejected address, unimplemented template,
-unknown work kind) is abandoned on the first attempt and logged. Retrying it three more
-times changes nothing.
+A work item's `subjectId` is a `submissionId` for the acknowledgement and notification
+handlers and a `leadId` for the booking confirmation. It was `leadId` for every kind until
+Pass 9B, which stopped being true when a QR Contact Exchange stopped producing a Lead.
 
-Delivery states recorded per lead: `pending`, `sent`, `failed`, `skipped`,
-`not_configured`. A missing service records `not_configured` rather than a silent
-success, and the work is still queued so the state is visible rather than looking like
-a stuck queue.
+A permanent failure (missing configuration, rejected address, unknown work kind) is
+abandoned on the first attempt and logged. Delivery states recorded per submission:
+`pending`, `sent`, `failed`, `skipped`, `not_configured`, and `deferred_to_digest` for a
+QR Contact, which says explicitly that it is waiting for the 8:00 AM digest rather than
+sitting at `pending` and reading as a stuck queue.
 
 ---
 
@@ -570,15 +702,13 @@ somebody says so explicitly.
 
 ### Sheet layout
 
-Four tabs, resolved **by header name, never by position**, so reordering a column in
-the live Sheet breaks nothing.
+Six tabs, resolved **by header name, never by position**, so reordering a column in the
+live Sheet breaks nothing. See §10 for what each holds and which are mutable.
 
-| Tab | Contents |
-|---|---|
-| `Leads` | One row per submission, including all operational fields. |
-| `Contacts` | One row per person. |
-| `Log` | Diagnostics only. Personal data is redacted; a missing Log tab never fails a write. Expires at 90 days. |
-| `Work` | The deferred-work queue, including `idempotencyKey` and a serialized `payload`. |
+`Submissions`, `Deliveries`, `Leads`, `Contacts`, `Work`, `Log`.
+
+`expectedTabLayout()` in `src/SheetRepository.js` declares the header row for each. It is
+read by a provisioning operator; nothing in this repository creates a tab.
 
 ---
 
@@ -626,7 +756,10 @@ Stable strings a client can branch on.
 `SLOT_OUTSIDE_BUSINESS_HOURS`, `INVALID_TIMESTAMP`, `INVALID_DURATION`,
 `SERVICE_NOT_CONFIGURED`, `SERVICE_UNAVAILABLE`, `BUSY_TRY_AGAIN`, `INTERNAL_ERROR`,
 `PATHWAY_NOT_BOOKABLE`, `CALENDAR_NOT_CONFIGURED`, `CALENDAR_CREATE_FAILED`,
-`AVAILABILITY_UNAVAILABLE`
+`AVAILABILITY_UNAVAILABLE`, `SUBMISSION_ID_CONFLICT`
+
+`SUBMISSION_ID_CONFLICT` means a stored `submissionId` was reused with materially
+different data. Nothing was created and nothing was overwritten; see §12.
 
 A refused booking also carries `bookingStatus` alongside its code, so a client can say
 "that slot is taken" rather than a generic failure.
@@ -740,3 +873,27 @@ through the Word engine, and iOS Mail and Android apply their own dark transform
 dark column in the contact sheet is a CSS filter approximation, not a client dark mode.
 **No real client has been tested, and this pass claims none.** Testing in Gmail, Outlook,
 iOS Mail, and Android remains outstanding before any email is sent to a real person.
+
+---
+
+## 18. Pre-deployment corrections (Code Pass 9B)
+
+Reconciled within `schemaVersion` 1 for the same reason as §16: nothing consumes or
+deploys it yet.
+
+| # | Pass 9A position | Corrected to | Where |
+|---|---|---|---|
+| 1 | Every submission wrote a Lead row, QR included | Six-tab model. One Submission plus exactly one business record: inquiry to Lead, exchange to Contact | §10 |
+| 2 | Delivery status lived on the Lead | Its own `Deliveries` row, keyed by `submissionId`, so a QR exchange has somewhere correct to keep it | §10 |
+| 3 | No audit record of what was submitted | `Submissions`, insert-only, enforced by the absence of an update method on port, adapter, and fake | §10 |
+| 4 | An exact match reused and updated an existing Contact | A match records a flag and nothing else. Never links, merges, overwrites, or updates | §10 |
+| 5 | A retry found the Submission and reported success, leaving a half-written request | Retry-triggered reconciliation repairs the missing business record, Delivery row, or work items before reporting success | §12 |
+| 6 | A reused `submissionId` was always a replay | `payloadFingerprint` detects a materially different request and returns `SUBMISSION_ID_CONFLICT` | §12 |
+| 7 | `Booking.js` carried its own `BOOKABLE_PATHWAYS` list | One rule, `isBookablePathway`, used by both the intake response and the command | §7 |
+| 8 | Work items were keyed on `leadId` | Keyed on `subjectId`, a `submissionId` for acknowledgement and notification work | §12 |
+
+Two supporting changes were made for the same reason and are not separate decisions:
+`findBySourceSubmissionId` was added to the Lead and Contact repositories so reconciliation
+can ask whether the record for a submission exists, and the dead
+`findLeadBySubmissionId` and `listPendingDigestSubmissions` lookups were removed because
+they read columns the Lead no longer has.

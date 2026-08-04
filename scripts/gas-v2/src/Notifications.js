@@ -1,59 +1,56 @@
 /**
  * Notification handlers.
  *
- * These are work-queue handlers, so they run on the trigger, never on the request
- * path. A visitor's confirmation screen does not wait on a mail quota.
+ * These are work-queue handlers, so they run on the trigger, never on the request path. A
+ * visitor's confirmation screen does not wait on a mail quota.
  *
- * Message CONTENT is not built here. Rendering goes through the template port, which
- * has no production implementation yet: the approved email design is separate work,
- * and interim wording would put unapproved copy in front of real people. The delivery
- * machinery around it is complete, so when the templates land nothing else changes.
+ * They key on the SUBMISSION, not the Lead, because a QR Contact Exchange produces no
+ * Lead. Delivery status is written to the Delivery row, so the immutable audit record is
+ * never touched after insert.
  */
 
 var ACK_STATUS_FIELD = 'ackEmailStatus';
 var NOTIFY_STATUS_FIELD = 'partnerNotifyStatus';
 
+/* ── Website inquiry acknowledgement ──────────────────────────────────────── */
+
 /**
- * Visitor acknowledgement.
+ * Acknowledgement for a website service inquiry.
  *
- * A Contact Exchange never gets one. It is a handshake record, not a request, and an
- * unsolicited automated email to someone who just swapped a card is the wrong move.
+ * A flagged submission is stored and reviewed but never auto-replied to. Auto-replying to
+ * a forged address damages a mail domain's reputation for somebody else's abuse.
  */
 function handleSendAcknowledgement(item, deps) {
-  var lead = deps.leads.findLeadById(item.leadId);
-  if (!lead) return { ok: false, permanent: true, reason: 'lead_not_found' };
+  var submission = deps.submissions.findBySubmissionId(item.subjectId);
+  if (!submission) return { ok: false, permanent: true, reason: 'submission_not_found' };
 
-  if (lead.submissionKind === 'contact_exchange') {
-    // Routed to its own handler. Reaching here means the wrong item kind was queued.
+  if (submission.submissionKind !== 'service_inquiry') {
     return { ok: false, permanent: true, reason: 'wrong_handler_for_contact_exchange' };
   }
 
-  if (!lead.email) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'skipped'));
+  var lead = submission.leadId ? deps.leads.findLeadById(submission.leadId) : null;
+  if (!lead) return { ok: false, permanent: true, reason: 'lead_not_found' };
+
+  if (!normalizeWhitespace(lead.email)) {
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'skipped');
+    return { ok: true };
+  }
+
+  if (isFlagged(submission)) {
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'skipped');
     return { ok: true };
   }
 
   if (!isConfigured(deps.config, 'acknowledge')) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'not_configured'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'not_configured');
     return { ok: false, permanent: true, reason: 'acknowledge_not_configured' };
   }
 
-  // A suspected-spam submission is stored and reviewed, but it does not get an
-  // automated reply. Auto-replying to a forged address is how a mail domain gets
-  // reputation damage for someone else's abuse.
-  if (lead.spamSuspected === true || lead.spamSuspected === 'TRUE') {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'skipped'));
-    return { ok: true };
-  }
-
-  var outbound = resolveOutboundLocale({
-    preferredFollowUpLocale: lead.preferredFollowUpLocale,
-    pageLocale: lead.pageLocale
-  }, deps.launchReadyLocales || ['en']);
-
-  var rendered = deps.templates.renderAcknowledgement(lead, withOffsetResolver(deps.config, deps.offsetResolver));
+  var rendered = deps.templates.renderAcknowledgement(
+    lead, withOffsetResolver(deps.config, deps.offsetResolver)
+  );
   if (!rendered || !rendered.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');
     return {
       ok: false,
       permanent: !!(rendered && rendered.permanent),
@@ -71,40 +68,53 @@ function handleSendAcknowledgement(item, deps) {
   });
 
   if (!sent || !sent.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');
     return { ok: false, reason: (sent && sent.reason) || 'mail_send_failed' };
   }
 
-  deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'sent'));
+  setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'sent');
   return { ok: true };
 }
 
+/* ── Internal website inquiry notification ────────────────────────────────── */
+
 /**
- * Partner notification.
+ * Partner notification for a website inquiry.
  *
- * Every submission produces one, including a flagged one. A partner deciding what is
- * junk is fine; the system deciding it silently is not.
+ * BOTH partners receive every new website inquiry, including a flagged one. A partner
+ * deciding what is junk is fine; the system deciding it silently is not.
  */
 function handleNotifyPartners(item, deps) {
-  var lead = deps.leads.findLeadById(item.leadId);
+  var submission = deps.submissions.findBySubmissionId(item.subjectId);
+  if (!submission) return { ok: false, permanent: true, reason: 'submission_not_found' };
+
+  if (submission.submissionKind !== 'service_inquiry') {
+    // A QR Contact Exchange is never notified immediately. Reaching here means the wrong
+    // work kind was queued.
+    return { ok: false, permanent: true, reason: 'qr_contacts_are_digested_not_notified' };
+  }
+
+  var lead = submission.leadId ? deps.leads.findLeadById(submission.leadId) : null;
   if (!lead) return { ok: false, permanent: true, reason: 'lead_not_found' };
 
   if (!isConfigured(deps.config, 'notify')) {
-    deps.leads.updateLeadFields(lead.leadId, setField(NOTIFY_STATUS_FIELD, 'not_configured'));
+    setDelivery(deps, submission.submissionId, NOTIFY_STATUS_FIELD, 'not_configured');
     return { ok: false, permanent: true, reason: 'notify_not_configured' };
   }
 
-  var decision = routeNotification(lead, { spamSuspected: lead.spamSuspected === true || lead.spamSuspected === 'TRUE' });
+  var decision = routeNotification(lead, { spamSuspected: isFlagged(submission) });
   var recipients = resolveRecipients(decision, deps.config);
 
   if (recipients.length === 0) {
-    deps.leads.updateLeadFields(lead.leadId, setField(NOTIFY_STATUS_FIELD, 'not_configured'));
+    setDelivery(deps, submission.submissionId, NOTIFY_STATUS_FIELD, 'not_configured');
     return { ok: false, permanent: true, reason: 'no_recipients_configured' };
   }
 
-  var rendered = deps.templates.renderPartnerNotification(lead, withOffsetResolver(deps.config, deps.offsetResolver));
+  var rendered = deps.templates.renderPartnerNotification(
+    lead, withOffsetResolver(deps.config, deps.offsetResolver)
+  );
   if (!rendered || !rendered.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(NOTIFY_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, NOTIFY_STATUS_FIELD, 'failed');
     return {
       ok: false,
       permanent: !!(rendered && rendered.permanent),
@@ -122,11 +132,11 @@ function handleNotifyPartners(item, deps) {
   });
 
   if (!sent || !sent.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(NOTIFY_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, NOTIFY_STATUS_FIELD, 'failed');
     return { ok: false, reason: (sent && sent.reason) || 'mail_send_failed' };
   }
 
-  deps.leads.updateLeadFields(lead.leadId, setField(NOTIFY_STATUS_FIELD, 'sent'));
+  setDelivery(deps, submission.submissionId, NOTIFY_STATUS_FIELD, 'sent');
   return { ok: true };
 }
 
@@ -135,48 +145,47 @@ function handleNotifyPartners(item, deps) {
 /**
  * Acknowledgement for a Contact Exchange.
  *
- * THIS SUPERSEDES the Pass 8 rule that a Contact Exchange never gets one. A person who
- * hands over their details at a conference and hears nothing has no way to know the
- * exchange worked, and no way to correct a typo in their own email.
+ * Driven by the immutable Submission, which carries the submitted display name and the
+ * acquisition attribution. It reads no Lead, because there is none.
  *
  * Three refusals, each for its own reason:
  *   - no email address: the Contact is fully valid and appears in the digest; there is
  *     simply nowhere to write, and no SMS is designed. Status is `skipped`, not failed.
- *   - suspected spam: stored, but never acknowledged, so the form cannot be used to mail
- *     a third party from an address the submitter does not own.
+ *   - suspected spam: stored, but never acknowledged, so the form cannot be used to mail a
+ *     third party from an address the submitter does not own.
  *   - not configured: recorded as such, and the record is untouched.
  *
- * A failed acknowledgement NEVER removes or rolls back the stored record. The Contact
- * was safely stored before this handler ever ran.
+ * A failed acknowledgement NEVER removes or rolls back the stored Contact. It was safely
+ * stored before this handler ever ran.
  */
 function handleSendQrAcknowledgement(item, deps) {
-  var lead = deps.leads.findLeadById(item.leadId);
-  if (!lead) return { ok: false, permanent: true, reason: 'lead_not_found' };
+  var submission = deps.submissions.findBySubmissionId(item.subjectId);
+  if (!submission) return { ok: false, permanent: true, reason: 'submission_not_found' };
 
-  if (lead.submissionKind !== 'contact_exchange') {
+  if (submission.submissionKind !== 'contact_exchange') {
     return { ok: false, permanent: true, reason: 'wrong_handler_for_service_inquiry' };
   }
 
-  if (lead.spamSuspected === true || lead.spamSuspected === 'TRUE') {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'skipped'));
+  if (isFlagged(submission)) {
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'skipped');
     return { ok: true };
   }
 
-  if (!normalizeWhitespace(lead.email)) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'skipped'));
+  if (!normalizeWhitespace(submission.email)) {
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'skipped');
     return { ok: true };
   }
 
   if (!isConfigured(deps.config, 'qr_acknowledge')) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'not_configured'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'not_configured');
     return { ok: false, permanent: true, reason: 'qr_acknowledge_not_configured' };
   }
 
   var rendered = deps.templates.renderQrAcknowledgement(
-    lead, withOffsetResolver(deps.config, deps.offsetResolver)
+    submission, withOffsetResolver(deps.config, deps.offsetResolver)
   );
   if (!rendered || !rendered.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');
     return {
       ok: false,
       permanent: !!(rendered && rendered.permanent),
@@ -185,7 +194,7 @@ function handleSendQrAcknowledgement(item, deps) {
   }
 
   var sent = deps.mail.send({
-    to: lead.email,
+    to: submission.email,
     replyTo: deps.config.replyTo,
     fromName: deps.config.fromName,
     subject: rendered.subject,
@@ -194,18 +203,24 @@ function handleSendQrAcknowledgement(item, deps) {
   });
 
   if (!sent || !sent.ok) {
-    deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'failed'));
+    setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');
     return { ok: false, reason: (sent && sent.reason) || 'mail_send_failed' };
   }
 
-  deps.leads.updateLeadFields(lead.leadId, setField(ACK_STATUS_FIELD, 'sent'));
+  setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'sent');
   return { ok: true };
 }
 
-function setField(name, value) {
+/* ── Shared ───────────────────────────────────────────────────────────────── */
+
+function isFlagged(record) {
+  return record.spamSuspected === true || record.spamSuspected === 'TRUE';
+}
+
+function setDelivery(deps, submissionId, field, value) {
   var patch = {};
-  patch[name] = value;
-  return patch;
+  patch[field] = value;
+  return deps.deliveries.updateDelivery(submissionId, patch);
 }
 
 /** The kind-to-handler table the worker cycle runs against. */

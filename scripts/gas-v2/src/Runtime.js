@@ -18,6 +18,8 @@ function buildProductionDeps() {
     ids: ids,
     lock: makeLockService(),
     offsetResolver: makeOffsetResolver(BUSINESS_TIMEZONE),
+    submissions: makeSubmissionRepository(book),
+    deliveries: makeDeliveryRepository(book),
     leads: makeLeadRepository(book),
     contacts: makeContactRepository(book),
     log: makeLogRepository(book, ids, clock),

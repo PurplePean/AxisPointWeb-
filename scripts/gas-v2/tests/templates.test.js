@@ -33,12 +33,21 @@ function renderConfig(overrides) {
   return config;
 }
 
+/**
+ * Stores a submission and returns the record the template actually renders from.
+ *
+ * A website inquiry renders from its Lead. A QR Contact Exchange renders from its
+ * immutable Submission, because it produces no Lead at all.
+ */
 function storedLead(envelope, deps) {
   const d = deps || buildDeps();
   const parsed = ctx.parseEnvelope(JSON.stringify(envelope));
   assert.equal(parsed.ok, true, `fixture should be valid: ${parsed.code || ''}`);
   const result = ctx.processSubmission(parsed.value, d);
-  return d.leads.findLeadById(result.leadId);
+
+  return result.leadId
+    ? d.leads.findLeadById(result.leadId)
+    : d.submissions.findBySubmissionId(result.submissionId);
 }
 
 const HOSTILE = '<script>alert(1)</script>" onload="x';
@@ -100,8 +109,13 @@ test('the acknowledgement promises no response time and shows no reference numbe
   const body = out.htmlBody + out.textBody;
 
   assert.equal(/one business day|1 business day|within 24 hours/i.test(body), false);
-  assert.equal(body.indexOf(lead.leadId), -1, 'no visible technical reference');
-  assert.equal(body.indexOf(lead.submissionId), -1);
+  // Checked against the identifiers this record actually has. A QR acknowledgement now
+  // renders from the Submission, whose leadId is empty, and indexOf('') is 0.
+  [lead.submissionId, lead.contactId, lead.leadId]
+    .filter((id) => typeof id === 'string' && id !== '')
+    .forEach((id) => {
+      assert.equal(body.indexOf(id), -1, `identifier ${id} appeared in the email`);
+    });
 });
 
 test('the acknowledgement offers no Save Contact action', () => {

@@ -50,8 +50,51 @@ truth, and a comparison against one proves nothing about the folder that is.
 | Shared footer | `AxisPointFooter.dc.html` | See correction 3 |
 | QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Seven values remain unresolved, see below |
 | Communications and email (Pass 2A) | `AxisPoint Communications System.dc.html`, `AxisPointEmail.dc.html` | Approved. Implemented in Code Pass 9A for the website acknowledgement, the internal notification, and the booking confirmation |
+| QR Contact Exchange form | `AxisPoint QR Contact Exchange.dc.html` | Approved at `design@2026-08-01`. Backend contract resolved in Code Pass 9B; the frontend is a later pass |
 | QR Contact emails and the daily digest | `AxisPoint QR Contact Emails.dc.html` | Approved at `design@2026-08-02`. Implemented in Code Pass 9A |
 | Letterhead and Management Proposal document (Pass 2B) | `AxisPoint Proposal and Letterhead System.dc.html` | Approved for future use. **Implementation deferred, not required for launch** |
+
+### QR Contact Exchange, `design@2026-08-01`
+
+| | |
+|---|---|
+| **Package** | `AxisPoint-Design-QR-Contact-Exchange-Approved-2026-08-01/` |
+| **Authoritative** | `AxisPoint QR Contact Exchange.dc.html` |
+| **Depends on** | `AxisPoint QR Frontend.dc.html` for the card surface the action is added to |
+| **Cumulative** | Verified: all earlier ZIP hashes unchanged, one package added |
+
+The approved additive form: a "Share your details" action on the QR card, seven required
+and optional fields, seven contact categories, and the full state set (default, category
+open, email-only, phone-only including non-US formatting, required-field validation,
+invalid email, sending, success, possible match, recoverable failure, retry, close).
+
+**The frontend is not built yet.** What Code Pass 9B settled is the backend half of that
+board's handoff list, so the form has a contract to submit against:
+
+| Board dependency | Resolved by Pass 9B |
+|---|---|
+| Unified V2 endpoint discriminated by `submissionKind` and `schemaVersion` | Yes, since Pass 8 |
+| Server-side re-validation of every browser rule | Yes. Browser validation is a courtesy, never the boundary |
+| Final phone contract, replacing the provisional seven-digit frontend floor | Yes. 7 to 20 digits, approved punctuation, stored as typed, compared on the complete normalized digit string |
+| Idempotency: a retry after a timeout must not create a second contact | Yes. `submissionId` plus `payloadFingerprint`, with retry-triggered reconciliation |
+| Profile source validation, so a crafted URL cannot attribute a contact to a partner | Yes. `sourceDetail` resolves only against the known slugs; anything else is `unknown` |
+| Possible-match handling as an internal-only concern | Yes. Flag only, never a link or merge, and never shown to the person who submitted |
+| Google Contact sync as a separate later operation, never inline | Yes. `contactSyncStatus: not_configured`, no People API code, no scope |
+| Failure recovery for a submission accepted but never acknowledged to the browser | Partly. The retry path repairs a half-written request; a request never retried stays half-written, and no background sweep exists |
+| Safe local development that cannot reach a live endpoint | **Not yet.** The shared submission client is a later pass |
+| Deliberate opt-in E2E mode | **Not yet.** Same pass |
+| Spam protection mechanism | **Undecided.** Screening flags server-side; no visible captcha is designed |
+
+Two board requirements bind the frontend when it is built, and are recorded here so they
+are not rediscovered late:
+
+1. **The category control must be built on a proven accessible select or listbox
+   primitive, not bespoke keyboard logic.** A native select remains an acceptable fallback
+   if assistive-technology testing exposes a defect; it was not the first choice only
+   because it truncated the longest category label on iOS at 320px.
+2. **A retry must preserve the same `submissionId` and payload.** A client that mints a
+   fresh id on retry creates duplicate business records. See
+   [`backend-v2-contract.md`](backend-v2-contract.md) §12.
 
 ### QR Contact emails and daily digest, `design@2026-08-02`
 

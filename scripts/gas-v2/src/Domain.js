@@ -1,14 +1,22 @@
 /**
- * Lead and Contact domain records.
+ * The business records: Lead and Contact.
  *
- * A Lead is a REQUEST: one submission, one moment, one thing somebody wanted. A
- * Contact is a PERSON: stable across every request they ever make. Collapsing the two
- * is what forced V1's rework, because the second inquiry from the same owner had
- * nowhere correct to go.
+ * A LEAD is a website service inquiry: a request with a pathway, an SLA, a qualification
+ * state, and possibly a booking. A CONTACT is a person met through a scanned card.
  *
- * Every record is built from validated envelope data plus server-owned operational
- * fields. Nothing the browser sends can set an operational field; the contract layer
- * rejects the attempt outright rather than stripping it silently.
+ * ONE SUBMISSION KIND PRODUCES ONE OF THEM, NEVER BOTH:
+ *
+ *   service_inquiry   Submission + Lead
+ *   contact_exchange  Submission + Contact
+ *
+ * A website inquiry does not file a person. A handshake at a conference does not open a
+ * request with a clock on it. Pass 9A produced a Lead for both, which left QR rows sitting
+ * in the Leads tab with an empty pathway and a qualification state nobody would ever set.
+ *
+ * A Contact may later be linked or converted to a Lead BY A PERSON. Nothing here does it
+ * automatically, and `linkedLeadIds` is where that decision would be recorded.
+ *
+ * The immutable Submission and the mutable Delivery live in Records.js.
  */
 
 var LEAD_STATUSES = [
@@ -30,92 +38,122 @@ var DELIVERY_STATUSES = [
 var CALENDAR_STATUSES = ['none', 'pending', 'booked', 'failed', 'not_configured'];
 
 /**
- * Column order for the Leads tab. Order is part of the contract with the sheet, so it
- * is declared once here and read by header name everywhere else, never by index.
+ * Google Contacts sync states.
+ *
+ * `not_configured` is the only value anything in this repository can produce. The internal
+ * Contact is the source of truth; Google Contacts would be a downstream copy, never the
+ * database. The external-reference columns exist so a later adapter has somewhere to write
+ * without a migration. Nothing populates them, no People API call exists anywhere in
+ * `src`, and the manifest requests no contacts scope.
+ */
+var CONTACT_SYNC_STATUSES = ['not_configured', 'pending', 'synced', 'failed'];
+
+/**
+ * Lead columns. WEBSITE SERVICE INQUIRIES ONLY.
+ *
+ * The person's submitted details are carried on the Lead itself, because a website inquiry
+ * produces no Contact record to hold them.
+ *
+ * Delivery status is NOT here. It lives on the Delivery row, so a QR Contact Exchange,
+ * which has delivery state and no Lead, has somewhere correct to keep it.
  */
 var LEAD_HEADERS = [
-  'leadId', 'contactId', 'receivedAt', 'submissionId', 'submissionKind',
+  'leadId', 'sourceSubmissionId', 'receivedAt',
   'pathway', 'serviceScope', 'topic',
   'propertyType', 'propertyScope', 'propertyLocation', 'propertyScale',
   'propertyScaleUnknown', 'propertyCount',
   'situationCurrent', 'situationInvolvement', 'situationTiming', 'situationNotes',
   'fullName', 'email', 'phone', 'organization',
-  // Contact Exchange only. Present on every row so the tab keeps one shape.
-  'contactCategory', 'roleOrTitle',
   'pageLocale', 'preferredFollowUpLocale', 'preferredFollowUpStated',
-  'sourceCategory', 'sourceDetail', 'landingPage', 'intentToken',
-  'acquisitionSource', 'scannedPartner', 'scannedSlugUnresolved', 'refToken',
+  'sourceCategory', 'sourceDetail', 'landingPage', 'intentToken', 'refToken',
   'utmSource', 'utmMedium', 'utmCampaign', 'utmContent', 'utmTerm',
+
   'leadStatus', 'ownerPartner', 'firstHumanContactAt',
   'qualificationOutcome', 'proposalSentAt',
   'slaDueAt', 'possibleMatches', 'matchNote', 'spamSuspected', 'spamReason',
-  'ackEmailStatus', 'partnerNotifyStatus',
-  // Digest state lives on the SUBMISSION. Each handover of a card is its own event with
-  // its own place in a digest, even when two of them are the same person, which is why
-  // the approved specimen shows a repeat visitor twice with a possible-match callout
-  // rather than silently collapsing the second visit into the first.
-  'digestStatus', 'digestDeliveredAt',
+
+  // Decided once, at intake, and stored so the frontend never re-derives eligibility and
+  // cannot disagree with the backend about it.
+  'bookingEligible',
   'calendarStatus', 'calendarEventId', 'activeBookingRequestId'
 ];
 
 /**
- * Contact columns.
+ * Contact columns. A PERSON, met through a scanned card.
  *
- * A Contact is a PERSON. `acquisitionSource` and `ownerPartner` sit next to each other
- * on purpose: the first is which card first produced this person and never changes
- * again, the second is who is responsible right now and starts unassigned for everyone.
- * Storing them in one column would make an acquisition fact look like an assignment,
- * which is exactly the confusion the approved digest design spends a section preventing.
+ * `acquisitionSource` and `scannedPartner` are IMMUTABLE: which card produced this person,
+ * written once. `ownerPartner` is MUTABLE and starts unassigned for everyone, including a
+ * Contact gathered through a partner's own card. One column for both would make an
+ * acquisition fact look like an assignment.
  *
- * Delivery state lives on the SUBMISSION, not here. A person can hand over a card twice;
- * each handover is its own event with its own acknowledgement and its own place in a
- * digest, while the person stays one record.
+ * `submissionCount`, `lastSubmissionId`, and `lastSubmissionAt` describe THIS record only.
+ * They are not a running total across duplicates, because duplicates are never folded
+ * together; see Matching.js.
  */
 var CONTACT_HEADERS = [
-  'contactId', 'createdAt', 'updatedAt',
+  'contactId', 'createdAt', 'updatedAt', 'sourceSubmissionId',
   'fullName', 'email', 'phone', 'company', 'roleOrTitle', 'contactCategory',
-  'preferredFollowUpLocale', 'firstSourceCategory', 'firstSourceDetail',
+  'normalizedEmail', 'normalizedPhone',
+  'preferredFollowUpLocale',
+  'firstSourceCategory', 'firstSourceDetail',
   'acquisitionSource', 'scannedPartner',
   'ownerPartner', 'followUpState',
-  'leadCount', 'lastLeadId', 'lastLeadAt',
-  'possibleMatches', 'contactSyncStatus'
+  'submissionCount', 'lastSubmissionId', 'lastSubmissionAt',
+
+  // Populated only by a human linking this person to a Lead. Never written at intake.
+  'linkedLeadIds',
+  'possibleMatches',
+
+  // Google Contacts readiness. Nullable, unpopulated, reserved for a later adapter.
+  'contactSyncStatus', 'externalContactResourceName', 'externalContactEtag',
+  'externalContactSyncedAt'
 ];
 
 var LOG_HEADERS = [
   'logId', 'at', 'level', 'event', 'submissionId', 'leadId', 'detail'
 ];
 
+/**
+ * Work columns.
+ *
+ * `subjectId` is whatever the handler needs to find its record: a submissionId for the
+ * acknowledgement and notification handlers, a leadId for the booking confirmation. It was
+ * `leadId` until Pass 9B, which stopped being true the moment a QR Contact Exchange
+ * stopped producing a Lead.
+ */
 var WORK_HEADERS = [
-  'workId', 'createdAt', 'kind', 'leadId', 'state',
+  'workId', 'createdAt', 'kind', 'subjectId', 'state',
   'attempts', 'nextAttemptAt', 'lastError', 'completedAt'
 ];
 
+/* ── Lead ─────────────────────────────────────────────────────────────────── */
+
 /**
- * Builds a Lead from a validated envelope.
+ * Builds a Lead. WEBSITE SERVICE INQUIRIES ONLY.
  *
- * `ctx` supplies everything the domain must not invent: { leadId, contactId,
- * receivedAt, slaDueAt, screening, possibleMatches, ackStatus, notifyStatus }.
+ * Throws on any other kind rather than producing an empty-pathway row. A silent empty row
+ * is precisely how the defect this pass removes would come back.
  */
 function buildLead(envelope, ctx) {
+  if (envelope.submissionKind !== 'service_inquiry') {
+    throw new Error('LeadFromNonInquiry');
+  }
+
   var attribution = buildAttributionRecord(envelope.attribution);
   var locale = buildLocaleRecord(envelope.locale);
   var p = envelope.payload;
-  var isInquiry = envelope.submissionKind === 'service_inquiry';
+  var property = p.property || {};
+  var situation = p.situation || {};
+  var contact = p.contact || {};
 
-  var property = (isInquiry && p.property) || {};
-  var situation = (isInquiry && p.situation) || {};
-  var contact = isInquiry ? (p.contact || {}) : p;
-
-  var lead = {
+  return {
     leadId: ctx.leadId,
-    contactId: ctx.contactId,
+    sourceSubmissionId: envelope.submissionId,
     receivedAt: toIso(ctx.receivedAt),
-    submissionId: envelope.submissionId,
-    submissionKind: envelope.submissionKind,
 
-    pathway: isInquiry ? p.pathway : '',
-    serviceScope: isInquiry ? (p.serviceScope || '') : '',
-    topic: isInquiry ? (p.topic || '') : '',
+    pathway: p.pathway,
+    serviceScope: p.serviceScope || '',
+    topic: p.topic || '',
 
     propertyType: property.type || '',
     propertyScope: property.scope || '',
@@ -132,9 +170,7 @@ function buildLead(envelope, ctx) {
     fullName: contact.fullName || '',
     email: contact.email || '',
     phone: contact.phone || '',
-    organization: contact.organization || contact.company || '',
-    contactCategory: isInquiry ? '' : (p.contactCategory || ''),
-    roleOrTitle: isInquiry ? '' : (p.roleOrTitle || ''),
+    organization: contact.organization || '',
 
     pageLocale: locale.pageLocale,
     preferredFollowUpLocale: locale.preferredFollowUpLocale,
@@ -144,9 +180,6 @@ function buildLead(envelope, ctx) {
     sourceDetail: attribution.sourceDetail,
     landingPage: attribution.landingPage,
     intentToken: attribution.intentToken,
-    acquisitionSource: attribution.acquisitionSource,
-    scannedPartner: attribution.scannedPartner,
-    scannedSlugUnresolved: attribution.scannedSlugUnresolved,
     refToken: attribution.refToken,
     utmSource: attribution.utmSource,
     utmMedium: attribution.utmMedium,
@@ -154,90 +187,125 @@ function buildLead(envelope, ctx) {
     utmContent: attribution.utmContent,
     utmTerm: attribution.utmTerm,
 
-    // Operational fields. Server-owned, every one of them.
     leadStatus: 'new',
-    // ALWAYS UNASSIGNED AT INTAKE, including a resolved partner QR scan. A scan is an
-    // acquisition fact, not an assignment; see Attribution.js.
+    // Unassigned at intake. Ownership is a decision a person makes.
     ownerPartner: '',
     firstHumanContactAt: '',
     qualificationOutcome: 'pending',
     proposalSentAt: '',
     slaDueAt: ctx.slaDueAt ? toIso(ctx.slaDueAt) : '',
+
+    // A flag for a human. It links nothing and merges nothing.
     possibleMatches: formatPossibleMatches(ctx.possibleMatches || []),
     matchNote: matchNoteFor(ctx.possibleMatches || []),
+
     spamSuspected: ctx.screening ? ctx.screening.spamSuspected : false,
     spamReason: ctx.screening ? ctx.screening.spamReason : '',
-    ackEmailStatus: ctx.ackStatus || 'pending',
-    // A QR Contact is never notified immediately; it waits for the 8:00 AM digest. The
-    // status says so rather than sitting at 'pending' forever and looking stuck.
-    partnerNotifyStatus: envelope.submissionKind === 'contact_exchange'
-      ? 'deferred_to_digest'
-      : (ctx.notifyStatus || 'pending'),
-    digestStatus: digestStatusFor(envelope, ctx),
-    digestDeliveredAt: '',
 
+    bookingEligible: isBookablePathway(p.pathway, p.serviceScope),
     calendarStatus: 'none',
     calendarEventId: '',
     activeBookingRequestId: ''
   };
-
-  return lead;
 }
 
 /**
- * Builds a new Contact from a validated envelope.
+ * Booking eligibility, decided in ONE place so the frontend and the backend cannot
+ * disagree.
  *
- * Only Contact Exchange states a category directly. A service inquiry does not ask
- * "what are you", so the category is left empty rather than inferred from the
- * pathway: a guess written into a person's record reads later as a fact somebody
- * stated.
+ * Property Management and Property Management plus Asset Management only. Investor
+ * Services, General Inquiry, and a QR Contact Exchange get no booking at launch: they are
+ * questions and handshakes, not engagements, and offering a slot would put a partner in a
+ * meeting the visitor never asked for.
+ *
+ * `undecided` scope is still the Management Proposal pathway and is still bookable. The
+ * visitor is asking about management; they have simply not chosen between PM and PM plus
+ * AM yet, and refusing them a call for that would refuse the conversation that resolves it.
+ */
+function isBookablePathway(pathway, serviceScope) {
+  if (pathway !== 'management_proposal') return false;
+  return BOOKABLE_SERVICE_SCOPES.indexOf(String(serviceScope || 'undecided')) !== -1;
+}
+
+/* ── Contact ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Builds a Contact. QR CONTACT EXCHANGE ONLY.
+ *
+ * Always a NEW record. An exact email or phone match against an existing Contact raises a
+ * flag on the Submission and changes nothing else: no link, no merge, no overwrite, no
+ * update. Two records that turn out to be the same person are trivially reconcilable by a
+ * human; a merge of two records that turn out to be different people destroys the losing
+ * record's history and nobody finds out.
  */
 function buildContact(envelope, ctx) {
+  if (envelope.submissionKind !== 'contact_exchange') {
+    throw new Error('ContactFromNonExchange');
+  }
+
   var attribution = buildAttributionRecord(envelope.attribution);
   var locale = buildLocaleRecord(envelope.locale);
   var p = envelope.payload;
-  var isExchange = envelope.submissionKind === 'contact_exchange';
-  var contact = isExchange ? p : (p.contact || {});
 
   return {
     contactId: ctx.contactId,
     createdAt: toIso(ctx.receivedAt),
     updatedAt: toIso(ctx.receivedAt),
-    fullName: contact.fullName || '',
-    email: contact.email || '',
-    phone: contact.phone || '',
-    company: isExchange ? (p.company || '') : (contact.organization || ''),
-    roleOrTitle: isExchange ? (p.roleOrTitle || '') : '',
-    contactCategory: isExchange ? p.contactCategory : '',
+    sourceSubmissionId: envelope.submissionId,
+
+    // As typed. Never reformatted, never title-cased.
+    fullName: p.fullName || '',
+    email: p.email || '',
+    phone: p.phone || '',
+    company: p.company || '',
+    roleOrTitle: p.roleOrTitle || '',
+    contactCategory: p.contactCategory,
+
+    // Derived for matching, stored alongside the originals rather than instead of them.
+    normalizedEmail: emailKey(p.email),
+    normalizedPhone: phoneKey(p.phone),
+
     preferredFollowUpLocale: locale.preferredFollowUpLocale,
     firstSourceCategory: attribution.sourceCategory,
     firstSourceDetail: attribution.sourceDetail,
+
+    // Immutable acquisition attribution.
     acquisitionSource: attribution.acquisitionSource,
     scannedPartner: attribution.scannedPartner,
 
-    // Unassigned for everyone, including a Contact gathered through a partner's own
-    // card. A scan gave that partner a name, not a claim.
+    // Mutable, and unassigned for everyone at intake.
     ownerPartner: '',
     followUpState: 'not_contacted',
 
-    leadCount: 1,
-    lastLeadId: ctx.leadId,
-    lastLeadAt: toIso(ctx.receivedAt),
+    submissionCount: 1,
+    lastSubmissionId: envelope.submissionId,
+    lastSubmissionAt: toIso(ctx.receivedAt),
+
+    linkedLeadIds: '',
     possibleMatches: formatPossibleMatches(ctx.possibleMatches || []),
 
-    // Google People synchronization is deliberately not implemented in this pass.
-    // The field records that truthfully instead of claiming a sync that never ran.
-    contactSyncStatus: 'not_configured'
+    contactSyncStatus: 'not_configured',
+    externalContactResourceName: '',
+    externalContactEtag: '',
+    externalContactSyncedAt: ''
   };
 }
+
+/*
+ * There is deliberately no `mergeContact`.
+ *
+ * It existed to fold a new submission into an existing Contact, which is exactly what the
+ * approved rule forbids. Leaving it in place as dead code would be an invitation to call
+ * it again, and `storage-model.test.js` asserts it is gone.
+ */
 
 /**
  * Whether a submission enters the digest queue.
  *
- * Only a scanned card does. A flagged submission is stored and excluded, and the
- * excluded state is written down rather than inferred, so nobody later reads "not
- * pending" as "already sent". Everything else has no digest at all, which is a different
- * fact again from "waiting", so it gets its own value.
+ * Only a scanned card does. A flagged submission is stored and excluded, and the excluded
+ * state is written down rather than inferred, so nobody later reads "not pending" as
+ * "already sent". Everything else has no digest at all, which is a different fact again
+ * from "waiting", so it gets its own value.
  */
 function digestStatusFor(envelope, ctx) {
   if (envelope.submissionKind !== 'contact_exchange') return 'not_applicable';
@@ -245,33 +313,7 @@ function digestStatusFor(envelope, ctx) {
   return 'pending_digest';
 }
 
-/**
- * Non-destructive update of an existing Contact.
- *
- * A blank incoming value NEVER overwrites a populated stored one. Someone filling in
- * only a phone on their second submission must not erase the email from the first.
- * Populated incoming values do win, because the newer statement is the better one.
- */
-function mergeContact(existing, incoming, ctx) {
-  var merged = clone(existing);
-  var fields = ['fullName', 'email', 'phone', 'company', 'roleOrTitle', 'contactCategory'];
-
-  for (var i = 0; i < fields.length; i++) {
-    var f = fields[i];
-    var value = incoming[f];
-    if (typeof value === 'string' && value.trim() !== '') merged[f] = value;
-  }
-
-  if (incoming.preferredFollowUpStated) {
-    merged.preferredFollowUpLocale = incoming.preferredFollowUpLocale;
-  }
-
-  merged.updatedAt = toIso(ctx.receivedAt);
-  merged.leadCount = (Number(existing.leadCount) || 0) + 1;
-  merged.lastLeadId = ctx.leadId;
-  merged.lastLeadAt = toIso(ctx.receivedAt);
-  return merged;
-}
+/* ── Row projection ───────────────────────────────────────────────────────── */
 
 /** Row projection, by header name. Index-based access is never used anywhere. */
 function toRow(headers, record) {

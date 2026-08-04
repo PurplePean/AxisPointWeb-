@@ -114,6 +114,32 @@ test('no file reads another file value at load time, in any order', () => {
   });
 });
 
+test('no top-level name is declared in two files', () => {
+  // Apps Script concatenates every pushed file into ONE global scope, so a second
+  // declaration of the same function silently wins or loses depending on file order
+  // rather than being a harmless duplicate. This nearly shipped during Pass 9B when a
+  // helper was copied into a new file instead of being called across files.
+  const seen = new Map();
+  const duplicates = [];
+
+  SOURCES.forEach((file) => {
+    const code = readSrc(file);
+    const names = new Set();
+    const declaration = /^(?:function\s+([A-Za-z_$][\w$]*)|var\s+([A-Za-z_$][\w$]*)\s*=)/gm;
+    let match = declaration.exec(code);
+    while (match) {
+      names.add(match[1] || match[2]);
+      match = declaration.exec(code);
+    }
+    names.forEach((name) => {
+      if (seen.has(name)) duplicates.push(`${name}: ${seen.get(name)} and ${file}`);
+      else seen.set(name, file);
+    });
+  });
+
+  assert.deepEqual(duplicates, [], 'a top-level name is declared twice');
+});
+
 test('every entry point Apps Script calls by name exists after loading', () => {
   const ctx = load();
   ['doPost', 'doGet', 'runWorkerTrigger'].forEach((name) => {

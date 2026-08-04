@@ -98,90 +98,27 @@ test('two genuinely different submissions produce two leads', () => {
 
 /* ── Identity ─────────────────────────────────────────────────────────────── */
 
-test('a first-time person gets a new contact', () => {
+/*
+ * The auto-linking tests that lived here are gone, not relocated.
+ *
+ * They asserted that an exact email match REUSED and UPDATED an existing Contact. That is
+ * the behaviour Pass 9B removed: a match may raise a flag and nothing more. The full
+ * replacement contract, including the negative cases, is in storage-model.test.js.
+ */
+
+test('a match is flagged on the record without reusing an existing Contact', () => {
   const deps = buildDeps();
-  const result = submit(fx.managementProposal(), deps);
-  assert.equal(deps.contacts.store.rows.length, 1);
-  assert.equal(deps.contacts.store.rows[0].contactId, result.contactId);
+  const first = submit(fx.contactExchange(), deps);
+  const second = submit(fx.qrSubmission(9, 'zachary-russell'), deps);
+
+  assert.notEqual(second.contactId, first.contactId);
+  assert.equal(deps.contacts.store.rows.length, 2);
+  assert.match(
+    deps.submissions.findBySubmissionId(second.submissionId).possibleMatches,
+    /exact:email_exact/,
+  );
 });
 
-test('an exact email match links to the existing contact instead of duplicating', () => {
-  const contacts = fakeContactRepository([
-    {
-      contactId: 'existing-1',
-      fullName: 'Dana Whitfield',
-      email: 'dana@whitfieldholdings.test',
-      phone: '',
-      company: 'Whitfield Holdings',
-      leadCount: 1,
-    },
-  ]);
-  const deps = buildDeps({ contacts });
-  const result = submit(fx.managementProposal(), deps);
-
-  assert.equal(result.contactId, 'existing-1');
-  assert.equal(contacts.store.rows.length, 1);
-  assert.equal(contacts.store.rows[0].leadCount, 2);
-});
-
-test('linking to an existing contact never discards what was already stored', () => {
-  const contacts = fakeContactRepository([
-    {
-      contactId: 'existing-1',
-      fullName: 'Dana Whitfield',
-      email: 'dana@whitfieldholdings.test',
-      phone: '214-555-9999',
-      company: 'Whitfield Holdings',
-      roleOrTitle: 'Managing Partner',
-      leadCount: 1,
-    },
-  ]);
-  const deps = buildDeps({ contacts });
-  submit(fx.managementProposal({ payload: { contact: { organization: undefined } } }), deps);
-
-  const stored = contacts.store.rows[0];
-  assert.equal(stored.roleOrTitle, 'Managing Partner');
-  assert.equal(stored.company, 'Whitfield Holdings');
-});
-
-test('a shared name is not a link and is not even a suggestion', () => {
-  // Two different people who share a name must stay two people, and the name similarity
-  // is not worth reporting: a suggestion a partner learns to ignore hides the exact
-  // match that mattered.
-  const contacts = fakeContactRepository([
-    {
-      contactId: 'existing-1',
-      fullName: 'Dana Whitfield',
-      email: 'other.dana@gmail.com',
-      phone: '',
-      company: '',
-      leadCount: 1,
-    },
-  ]);
-  const deps = buildDeps({ contacts });
-  const result = submit(fx.managementProposal(), deps);
-
-  assert.notEqual(result.contactId, 'existing-1');
-  assert.equal(contacts.store.rows.length, 2);
-  assert.equal(deps.leads.store.rows[0].possibleMatches, '');
-  assert.equal(deps.leads.store.rows[0].matchNote, '');
-});
-
-test('two conflicting exact matches create a new contact and surface both', () => {
-  // An exact email points at one person and an exact phone at another. The stored data
-  // already disagrees with itself, and silently picking one hides that.
-  const contacts = fakeContactRepository([
-    { contactId: 'a-1', fullName: 'Dana Whitfield', email: 'dana@whitfieldholdings.test', phone: '', company: '', leadCount: 1 },
-    { contactId: 'b-2', fullName: 'Dana W', email: '', phone: '(214) 555-0117', company: '', leadCount: 1 },
-  ]);
-  const deps = buildDeps({ contacts });
-  const result = submit(fx.managementProposal(), deps);
-
-  assert.notEqual(result.contactId, 'a-1');
-  assert.notEqual(result.contactId, 'b-2');
-  assert.match(deps.leads.store.rows[0].possibleMatches, /a-1:exact/);
-  assert.match(deps.leads.store.rows[0].possibleMatches, /b-2:exact/);
-});
 
 /* ── Queued work ──────────────────────────────────────────────────────────── */
 
@@ -246,11 +183,15 @@ test('the log records why a submission was flagged', () => {
 
 /* ── Contact exchange ─────────────────────────────────────────────────────── */
 
-test('a contact exchange stores a lead and a contact with the scanned partner', () => {
+test('a contact exchange stores a Submission and a Contact, and no Lead', () => {
   const deps = buildDeps();
-  submit(fx.contactExchange(), deps);
+  const result = submit(fx.contactExchange(), deps);
 
-  assert.equal(deps.leads.store.rows[0].scannedPartner, 'zachary_russell');
+  assert.equal(deps.leads.store.rows.length, 0);
+  assert.equal(
+    deps.submissions.findBySubmissionId(result.submissionId).scannedPartner,
+    'zachary_russell',
+  );
   assert.equal(deps.contacts.store.rows[0].scannedPartner, 'zachary_russell');
   assert.equal(deps.contacts.store.rows[0].contactCategory, 'broker_real_estate_advisor');
 });
@@ -274,9 +215,11 @@ test('a QR contact queues an acknowledgement and NO immediate partner notificati
 test('a QR contact records that its notification is deferred, not pending', () => {
   // 'pending' forever would read as a stuck queue rather than an intentional wait.
   const deps = buildDeps();
-  submit(fx.contactExchange(), deps);
-  assert.equal(deps.leads.store.rows[0].partnerNotifyStatus, 'deferred_to_digest');
-  assert.equal(deps.leads.store.rows[0].digestStatus, 'pending_digest');
+  const result = submit(fx.contactExchange(), deps);
+
+  const row = deps.deliveries.findBySubmissionId(result.submissionId);
+  assert.equal(row.partnerNotifyStatus, 'deferred_to_digest');
+  assert.equal(row.digestStatus, 'pending_digest');
 });
 
 test('a website inquiry still queues an immediate internal notification', () => {
@@ -293,12 +236,12 @@ test('a website inquiry still queues an immediate internal notification', () => 
 test('a resolved partner scan records attribution and assigns nobody', () => {
   // A scan gave that partner a name, not a claim.
   const deps = buildDeps();
-  submit(fx.contactExchange(), deps);
+  const result = submit(fx.contactExchange(), deps);
 
-  const lead = deps.leads.store.rows[0];
-  assert.equal(lead.acquisitionSource, 'zachary_russell');
-  assert.equal(lead.scannedPartner, 'zachary_russell');
-  assert.equal(lead.ownerPartner, '');
+  const submission = deps.submissions.findBySubmissionId(result.submissionId);
+  assert.equal(submission.acquisitionSource, 'zachary_russell');
+  assert.equal(submission.scannedPartner, 'zachary_russell');
+  assert.equal(deps.contacts.store.rows[0].acquisitionSource, 'zachary_russell');
   assert.equal(deps.contacts.store.rows[0].ownerPartner, '');
   assert.equal(deps.contacts.store.rows[0].followUpState, 'not_contacted');
 });
@@ -308,18 +251,20 @@ test('the firm card and an unresolved card stay distinguishable', () => {
   submit(fx.qrSubmission(1, 'axispoint-partners'), deps);
   submit(fx.qrSubmission(2, 'retired-card'), deps);
 
-  assert.equal(deps.leads.store.rows[0].acquisitionSource, 'firm');
-  assert.equal(deps.leads.store.rows[1].acquisitionSource, 'unknown');
+  assert.equal(deps.contacts.store.rows[0].acquisitionSource, 'firm');
+  assert.equal(deps.contacts.store.rows[1].acquisitionSource, 'unknown');
 });
 
 test('firm is not a partner and never becomes one', () => {
   const deps = buildDeps();
   submit(fx.qrSubmission(3, 'axispoint-partners'), deps);
-  assert.equal(deps.leads.store.rows[0].scannedPartner, '', 'firm must not occupy a partner field');
+  assert.equal(deps.contacts.store.rows[0].scannedPartner, '', 'firm must not occupy a partner field');
 });
 
 test('a website submission has no acquisition source at all', () => {
+  // Acquisition attribution is a QR fact. It is recorded on the immutable Submission,
+  // which a website inquiry also produces, and it is empty there.
   const deps = buildDeps();
-  submit(fx.managementProposal(), deps);
-  assert.equal(deps.leads.store.rows[0].acquisitionSource, '');
+  const result = submit(fx.managementProposal(), deps);
+  assert.equal(deps.submissions.findBySubmissionId(result.submissionId).acquisitionSource, '');
 });

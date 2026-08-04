@@ -70,6 +70,33 @@ function formatPossibleMatches(matches) {
 }
 
 /**
+ * Reads `formatPossibleMatches` back into its array form.
+ *
+ * Needed by reconciliation: repairing a business record that failed to write must
+ * reproduce the flags the original attempt raised, and the immutable Submission is the
+ * only surviving record of them. Re-running the match against today's Contacts tab would
+ * produce a DIFFERENT answer, because later submissions may have added candidates.
+ *
+ * A malformed entry is skipped rather than throwing. A repair that fails because one
+ * suggestion string is unparseable would leave the request permanently broken, which is
+ * worse than a repaired record carrying one fewer flag.
+ */
+function parsePossibleMatches(text) {
+  var raw = String(text === undefined || text === null ? '' : text).trim();
+  if (raw === '') return [];
+
+  var out = [];
+  var parts = raw.split('|');
+  for (var i = 0; i < parts.length; i++) {
+    var fields = parts[i].trim().split(':');
+    if (fields.length !== 3) continue;
+    if (fields[0] === '' || fields[1] === '' || fields[2] === '') continue;
+    out.push({ contactId: fields[0], confidence: fields[1], reason: fields[2] });
+  }
+  return out;
+}
+
+/**
  * The sentence a digest prints inside a record.
  *
  * It names the evidence and states plainly that nothing was merged, because a partner
