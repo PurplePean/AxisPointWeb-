@@ -670,6 +670,8 @@ id while changing the data gets `SUBMISSION_ID_CONFLICT` and its data is not sto
 is a requirement on the client, not a suggestion, and the shared submission client is
 where it has to be implemented.
 
+As of Code Pass 10A that client exists: see [section 19](#19-the-frontend-transport-boundary).
+
 ### The delivery guarantee, stated honestly
 
 **Bounded at-least-once.** A handler can run more than once: the side effect happens, the
@@ -935,3 +937,155 @@ Two supporting changes were made for the same reason and are not separate decisi
 can ask whether the record for a submission exists, and the dead
 `findLeadBySubmissionId` and `listPendingDigestSubmissions` lookups were removed because
 they read columns the Lead no longer has.
+
+---
+
+## 19. The frontend transport boundary (Code Pass 10A)
+
+One package, [`packages/submission-client`](../packages/submission-client/), is the **only**
+place in the repository that may send a submission. **Only `apps/web` consumes it today.**
+The package supports `contact_exchange` and is shaped for the future QR connection, but
+`apps/qr` does not import it and was not modified. It is not in `packages/brand`: brand holds
+presentation, and a transport that decides retry semantics and holds PII in memory is not
+presentation.
+
+**Nothing in this section deploys anything.** No endpoint, Apps Script project, Sheet, or
+Google resource exists. Pass 10A connected the website intake to the client; it did not
+connect the client to a backend.
+
+### What the client owns
+
+| Concern | Where | Rule |
+|---|---|---|
+| Wire tokens | `src/wire.ts` | Mirrors `scripts/gas-v2/src/Tokens.js`. Tokens are read from the backend source, never inferred from a UI label |
+| Attempt identity | `src/attempt.ts` | One `submissionId` per attempt, preserved across retries |
+| Error classification | `src/errors.ts` | Backend code to `ok` / `retryable` / `permanent` / `not_configured` |
+| Transport selection | `src/transport.ts` | Simulator, network, or fail-closed |
+
+### The same-id retry requirement, implemented
+
+`retry()` resends **the same `submissionId` and the same envelope**, satisfying the binding
+client requirement in §12. It never re-mints an id and never re-reads the form.
+
+A new id is minted only when the attempt is genuinely new: no envelope yet, the material
+content changed, or the previous attempt succeeded. "Material content" is a fingerprint over
+`submissionKind`, `payload`, `attribution`, and `locale`, deliberately **not** `submittedAt`
+or `clientSignals`, which change on every attempt and would otherwise make every retry look
+like a different request and trip `SUBMISSION_ID_CONFLICT` against the backend's own
+`submissionFingerprint`.
+
+`SUBMISSION_ID_CONFLICT` is classified permanent and marks the attempt exhausted, so the UI
+cannot offer a retry that is guaranteed to fail again.
+
+### Retention: memory only
+
+The envelope lives in memory for the lifetime of the page. **Nothing is written to
+`localStorage`, `sessionStorage`, cookies, or the URL**, and a successful submission clears
+the envelope immediately so PII is not held after it stops being needed. A page reload ends
+the attempt; there is no resumable draft, and offering one is a product decision nobody has
+made.
+
+### Transport selection, and how it fails
+
+`createTransport` fails closed. It reaches the network only with an endpoint **and** the
+network enabled; it reaches the simulator only in a development build; otherwise every
+submission returns `not_configured`, which the UI renders as an honest "nothing was sent".
+
+| Build | Endpoint | Transport |
+|---|---|---|
+| `pnpm dev` | forced empty by `vite.config.ts` | simulator |
+| `pnpm dev:e2e` | `VITE_V2_SUBMISSION_ENDPOINT` from `.env.e2e.local`, hard failure if absent | network |
+| `pnpm build` with `VITE_V2_SUBMISSION_ENDPOINT` | from the build environment | network |
+| `pnpm build` without one | none | `not_configured` |
+
+### The endpoint variable is V2-specific, and that is a safety property
+
+`apps/web` reads **`VITE_V2_SUBMISSION_ENDPOINT`** and never `VITE_FORM_ENDPOINT`. The
+historical name still points at the **V1** deployment, which speaks an entirely different
+payload shape, so inheriting it would aim the V2 intake at the V1 backend and the resulting
+failure would read as a backend bug rather than a configuration mistake. In e2e mode a lone
+V1 value is a **hard error that names the problem**, not a silent default. `apps/qr` still
+uses the V1 name and was not modified.
+
+**A production build can never simulate success.** The simulator requires
+`import.meta.env.DEV`, and the fixture names are dead code the bundler drops.
+
+Simulated responses are chosen by **explicit fixture only** (`?submit=` in development).
+There is no magic value: an earlier design triggered a failure from an email address
+beginning `fail@`, which meant a real visitor with such an address would have been shown a
+failure that never happened. Removed deliberately.
+
+### A success is validated before anybody is told it worked
+
+`ok: true` is not on its own accepted. Success is the one outcome that cannot be withdrawn:
+it tells someone their inquiry was received and stops them trying again. Before the client
+reports success it requires all of:
+
+| Checked | Rule |
+|---|---|
+| `schemaVersion` | equals 1 |
+| `submissionId` | equals the id that was sent |
+| `submissionKind` | equals the kind that was sent |
+| `replay`, `bookingEligible` | strict booleans, never coerced |
+| `leadId`, `contactId`, `slaDueAt` | string or `null`, correctly typed |
+| Service inquiry | non-empty `leadId`, `contactId` **null** |
+| Contact exchange | non-empty `contactId`, `leadId` **null**, `slaDueAt` **null** |
+
+The identity checks are kind-specific because the backend creates exactly one business
+record per submission (§10). A success carrying both a Lead and a Contact, or neither,
+contradicts the storage model and is not a response this client understands. `slaDueAt` is
+allowed to be null on an inquiry because the replay path reads it back off the stored Lead.
+
+Anything failing these becomes **`MALFORMED_RESPONSE`**, classified **retryable**: the
+request may genuinely have been stored, and the attempt keeps its `submissionId`, so a retry
+is a replay rather than a duplicate. The realistic hazards this catches are an intermediary
+returning a cached or generic JSON 200, a future backend answering a different schema
+version, and a response arriving for a different attempt than the one in flight.
+
+An `ok: false` body is validated too. It must carry a real error object with a non-empty
+string `code`, and a `field` that is **present** and either a string or null. An absent
+`field` is rejected rather than read as null: the contract says every error carries the key,
+so a body without it did not come from a backend speaking this contract, and treating "the
+key is missing" as "no particular field is at fault" is a guess dressed up as a fact. `null`
+still has to be written down. **A malformed error body no longer defaults to
+`INTERNAL_ERROR`**, which invented a verdict no backend gave, and a retryable one at that; it
+is now `MALFORMED_RESPONSE`.
+
+### Two defects this pass found and fixed
+
+Both were found by driving a real browser, not by reading code, and both are recorded because
+the class of mistake matters more than the instances.
+
+1. **A production build with a real endpoint would have refused every submission.** The
+   website bound its `NETWORK_ENABLED` flag to `__E2E_MODE__`, which is false for every
+   `vite build`. The endpoint compiled in, the network transport was tree-shaken out, and the
+   live site would have fail-closed on every inquiry while looking correct in dev and in every
+   test. Nothing caught it because the only bundle check ran against a no-endpoint build,
+   where fail-closed is the *correct* outcome. `scripts/test/inspect-bundle.mjs` now takes
+   `--expect-endpoint` and asserts the endpoint **and** the network transport survive, so the
+   endpoint-enabled build is checked as its own case.
+2. **Focus never moved to the error alert on the fail-closed path.** Focus was moved from a
+   `requestAnimationFrame` scheduled in the same callback that set the state, which races
+   React's commit: the frame can run while the alert is still unmounted and the move is
+   silently skipped. Reproducible in a production build. Now a post-commit effect, keyed on a
+   counter so a second consecutive failure re-announces.
+
+### Verified against the real parser, not a copy of it
+
+Every mapper output is run through the **actual** `parseEnvelope` from `scripts/gas-v2`,
+loaded into a VM, so the frontend cannot drift from the backend's own validator. The sweep
+covers all property-type, scope, situation, and timing permutations, every topic, and all
+nine locales. Two tests tamper with a valid envelope to prove the guards matter, confirming
+the backend rejects a display string with `DISPLAY_STRING_NOT_ACCEPTED` and a client-supplied
+booking with `BOOKING_NOT_ALLOWED_IN_SUBMISSION`.
+
+### Still unconnected after this pass
+
+- **QR Contact Exchange has no frontend.** The client supports `contact_exchange` and its
+  response shape is validated and tested, but nothing sends one. `apps/qr` was not modified
+  and does not import the package.
+- **The booking command is not wired.** The intake reads `bookingEligible` from the response
+  and shows or hides the call offer; selecting a time still uses local fixture availability
+  and a simulated confirmation.
+- **No endpoint exists.** Every one of the checks above ran against the dev simulator or a
+  local stub on `127.0.0.1`. No request has ever been sent to Google.

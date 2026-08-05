@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-04 (Code Pass 9C)_
+_Last updated: 2026-08-05 (Code Pass 10A)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 9C, booking-eligibility response correction, complete (code only, nothing connected) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response |
-| **Next pass** | QR Contact Exchange frontend and the shared submission client, then staging. Frontend endpoint wiring has **not** started |
+| **Current code pass** | Pass 10A, shared submission client and website-intake connection, complete (no endpoint exists, nothing deployed) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection |
+| **Next pass** | QR Contact Exchange frontend on the shared client, then the booking command, then staging. **No endpoint exists and none has been contacted** |
 
 ## Routes
 
@@ -25,7 +25,7 @@ All six approved routes resolve. The Pass 2 missing-route warning is closed.
 | `/asset-management` | `AxisPoint System Studies.dc.html` | Live |
 | `/investor-services` | `AxisPoint System Studies.dc.html` | Live |
 | `/partners` | `AxisPoint System Studies.dc.html` | Live |
-| `/contact` | `AxisPoint System Studies.dc.html` | Shell live, intake still V1, see below |
+| `/contact` | `AxisPoint System Studies.dc.html` | Live, V2 intake, connected to the shared submission client, see below |
 | `/share/:code` | V1 | Retained untouched, outside the site chrome |
 
 `/services` and `/team` were removed. No redirect was added: nothing in this repository is
@@ -37,10 +37,24 @@ to the hosting configuration rather than to client-side routing.
 **The visible frontend is now entirely V2.** The V1 `ContactForm` is no longer mounted in
 `apps/web`. The approved intake lives in `apps/web/src/intake`.
 
-**Submission is simulated and local.** The intake makes no network request of any kind:
-no GAS, Sheets, Calendar, Contacts, or email. Booking uses clearly labelled local fixture
-availability and a simulated confirmation. The real submission contract arrives with the
-backend pass.
+**The website intake now submits through the shared client, and there is still nothing to
+submit to.** `packages/submission-client` is the intended shared transport boundary for both
+apps, but **only `apps/web` imports it today**; wiring `apps/qr` to it is a later pass.
+`apps/web/src/intake` builds a real `schemaVersion` 1 envelope and hands it over. Whether
+anything is sent depends only on the build: `pnpm dev` simulates, a production build with
+`VITE_V2_SUBMISSION_ENDPOINT` sends, and a production build without one fails closed with an honest
+"nothing was sent" rather than a simulated success. **No endpoint exists**, so every check
+so far ran against the dev simulator or a local stub on `127.0.0.1`. See
+[`backend-v2-contract.md` §19](backend-v2-contract.md#19-the-frontend-transport-boundary).
+
+**Booking is still simulated, and QR Contact Exchange is still unwired.** The intake now
+takes `bookingEligible` from the backend response instead of re-deriving the policy, but
+selecting a time remains local fixture availability and a simulated confirmation. The client
+supports `contact_exchange`; nothing sends one, and `apps/qr` was not modified in Pass 10A.
+
+**Form data is held in memory only.** Nothing is written to `localStorage`,
+`sessionStorage`, cookies, or the URL, and a success clears the envelope. A page reload ends
+the attempt; there is no resumable draft.
 
 **Two of the six inventoried pathways are deferred for launch scope.** Referral Partner and
 Submit a Referral are not exposed as gateway choices, their forms are not built, and none of
@@ -52,11 +66,15 @@ Management Proposal flow with the PM plus AM involvement answer preselected. The
 model records `pathway: 'management-proposal'` with `scope: 'pm-plus-am'`. No backend role
 was added.
 
-**`?ref=` is held in local draft state only** and is never transmitted. Referral attribution
-remains deferred.
+**`?ref=` is transmitted as an inert `refToken`, and nothing resolves it.** Since Pass 10A
+the value travels on the envelope's attribution as `refToken`. It is **not** resolved to a
+referrer, not linked to any record, not validated, and not acted upon anywhere; it is
+recorded so the data exists when referral attribution is designed. Referral attribution as a
+feature remains deferred.
 
-**The V1 form code stays in `packages/brand`** because `apps/qr` still imports `ContactForm`.
-Its retirement waits on the QR pass.
+**The V1 form code stays in `packages/brand` as unreferenced legacy code**, awaiting a
+dedicated cleanup. No application imports `ContactForm` any more, `apps/qr` included. See
+"Dead code recorded, not removed" below for the detail.
 
 **`/share/:code` is untouched and isolated.** Note for future verification: it hard-redirects
 to `https://axispoint.llc` via `window.location`, so it must not be navigated during local

@@ -142,6 +142,7 @@ export function SelectField({
   optional = false,
   help,
   helpTone = 'help',
+  error,
   maxWidth,
 }: {
   label: string;
@@ -151,10 +152,13 @@ export function SelectField({
   optional?: boolean;
   help?: string;
   helpTone?: 'help' | 'good';
+  /** Shown in place of the help text, and marks the control invalid, exactly like TextField. */
+  error?: string;
   maxWidth?: number;
 }) {
   const id = useId();
   const msgId = `${id}-msg`;
+  const message = error ?? help;
   return (
     <div>
       <FieldLabel htmlFor={id} optional={optional}>
@@ -164,8 +168,9 @@ export function SelectField({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        aria-describedby={help ? msgId : undefined}
-        style={{ ...inputStyle(false), maxWidth }}
+        aria-describedby={message ? msgId : undefined}
+        aria-invalid={error ? true : undefined}
+        style={{ ...inputStyle(!!error), maxWidth }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -173,9 +178,9 @@ export function SelectField({
           </option>
         ))}
       </select>
-      {help && (
-        <FieldMessage id={msgId} tone={helpTone}>
-          {help}
+      {message && (
+        <FieldMessage id={msgId} tone={error ? 'error' : helpTone}>
+          {message}
         </FieldMessage>
       )}
     </div>

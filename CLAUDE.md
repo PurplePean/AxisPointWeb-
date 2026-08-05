@@ -96,9 +96,16 @@ into a dev build.
 - `.env.e2e.local` is **machine-local and gitignored** — each dev computer (Mac or Windows)
   needs its own copy, created from the tracked `.env.e2e.example` placeholder. Its real value
   is never committed or printed.
-- Production builds (`pnpm build`, CI) take the endpoint from the build environment
-  (`VITE_FORM_ENDPOINT`), unchanged by the above; a build with no endpoint supplied compiles in
-  no endpoint (simulated-success), it does not inherit a cached one.
+- Production builds (`pnpm build`, CI) take the endpoint from the build environment, unchanged
+  by the above; a build with no endpoint supplied compiles in no endpoint, it does not inherit
+  a cached one. **A `apps/web` production build with no endpoint fails closed** (an honest
+  "nothing was sent"), it does not simulate success; only a dev build can simulate.
+- **The two apps read DIFFERENT variables, on purpose.** Since Pass 10A `apps/web` reads
+  **`VITE_V2_SUBMISSION_ENDPOINT`** and never `VITE_FORM_ENDPOINT`, because the latter names
+  the **V1** deployment and the two speak different payload shapes. In e2e mode a lone V1 value
+  is a hard error that names the problem rather than a silent default. `apps/qr` still uses
+  `VITE_FORM_ENDPOINT`. Do not "unify" these without reading
+  [`docs/backend-v2-contract.md` §19](docs/backend-v2-contract.md).
 
 ## Mobile verification
 

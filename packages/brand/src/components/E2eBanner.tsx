@@ -1,11 +1,16 @@
 /**
- * Dev-only warning banner shown when the app is running in e2e mode
- * (`pnpm dev:e2e`), i.e. wired to the REAL production GAS backend.
+ * Dev-only warning banner shown when the app is running in e2e mode (`pnpm dev:e2e`), i.e.
+ * wired to a REAL backend rather than the simulator.
  *
  * `__E2E_MODE__` is injected by each app's vite.config.ts define block. It is only ever
  * true in `--mode e2e`; in normal `pnpm dev` and production builds it is false and this
- * component renders nothing. The goal is to make it impossible to forget that a live
- * submission would create a real lead, email, and calendar event.
+ * component renders nothing.
+ *
+ * THE COPY DELIBERATELY DOES NOT MENTION A CALENDAR EVENT. It used to, and that is wrong
+ * for the V2 intake: submitting creates records and sends mail, but booking is a separate
+ * command that a submission does not invoke. Overstating the blast radius trains people to
+ * discount the warning, which is worse than not showing one. The wording is also kept
+ * general because this component is shared, and the two apps do not reach the same backend.
  */
 declare const __E2E_MODE__: boolean;
 
@@ -31,8 +36,8 @@ export function E2eBanner() {
         boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
       }}
     >
-      E2E MODE: real production backend enabled. Submitting this form creates a live lead,
-      email, and calendar event.
+      E2E MODE: a real backend is enabled. Submitting may create live records and send real
+      email. It does not create a calendar event; booking is a separate command.
     </div>
   );
 }

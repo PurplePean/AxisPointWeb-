@@ -35,8 +35,13 @@ import { useIntake, type Screen } from './useIntake';
  * The approved V2 intake (design@2026-07-30), built from
  * `AxisPoint Form Design.dc.html` and `AxisPointFormFlow.dc.html`.
  *
- * Frontend only. Submission is simulated in `useIntake`; this file makes no network
- * call of any kind.
+ * Frontend only. This file makes no network call of any kind: `useIntake` submits through
+ * `@axispoint/submission-client`, which is the one transport boundary in the repository.
+ * In `pnpm dev` that client simulates and nothing leaves the browser; in a production
+ * build with no endpoint it returns a truthful failure rather than a fake success.
+ *
+ * The post-submission booking offer is gated on the backend's `bookingEligible`, never on
+ * a pathway check here. One booking policy, and it lives on the backend.
  *
  * Active pathways: Management Proposal (three steps), Investor Services, and
  * General Inquiry. Asset Management is a PM plus AM scope inside the Management
@@ -403,21 +408,51 @@ function IntakeScreens() {
 
   const { draft, screen, step, errors, submitState } = m;
   const sending = submitState === 'sending';
+  /**
+   * `failed` is the RETRYABLE state, and it is the only one that offers "try again".
+   *
+   * `blocked` is a rejection retrying cannot fix: a payload the backend refused, or a
+   * `SUBMISSION_ID_CONFLICT` whose attempt is dead. `unavailable` is a build with no
+   * endpoint. Both say so plainly instead of inviting a retry that will fail identically.
+   */
   const failed = submitState === 'failed';
+  const blocked = submitState === 'blocked';
+  const unavailable = submitState === 'unavailable';
+  const cannotSend = blocked || unavailable;
   const scale = SCALE_BY_TYPE[draft.property.type] ?? SCALE_FALLBACK;
   const isPortfolio =
     draft.property.scope === 'Portfolio' || draft.property.type === 'Mixed portfolio';
   const firstName = (draft.contact.fullName || 'there').trim().split(' ')[0];
   const emailShown = draft.contact.email || 'your email';
 
+  {
+    /*
+     * Development preview banner. Absent from a production bundle: `isDev` compiles to
+     * false and the whole block is dropped.
+     *
+     * `overflow-wrap` and `min-width: 0` matter here. The fixture list is a long unbroken
+     * token, and without them it forced a 505px scroll width at a 390px viewport, which
+     * would mask a genuine overflow in the next verification run.
+     */
+  }
   const devBanner = m.isDev ? (
     <p
       className="text-[rgba(28,22,40,0.55)]"
-      style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.5, maxWidth: '60ch' }}
+      style={{
+        margin: '0 0 20px',
+        fontSize: 13,
+        lineHeight: 1.5,
+        maxWidth: '60ch',
+        minWidth: 0,
+        overflowWrap: 'anywhere',
+      }}
     >
-      Development preview. Nothing is submitted and no request leaves the browser. Append{' '}
-      <code>?state=loading|invalid|failed|success|booking|scheduled|skipped</code> to inspect a
-      state, or use an email beginning <code>fail@</code> to see the recoverable failure.
+      Development preview. Submissions are simulated and no request leaves the browser.
+      Append <code style={{ overflowWrap: 'anywhere' }}>?state=</code> to start on a given
+      screen, or <code style={{ overflowWrap: 'anywhere' }}>?submit=</code> with a fixture
+      name to choose the simulated response. The fixture names are the{' '}
+      <code style={{ overflowWrap: 'anywhere' }}>SimulatorFixture</code> union in the shared
+      submission client. There is no magic email address.
     </p>
   ) : null;
 
@@ -501,7 +536,14 @@ function IntakeScreens() {
           </dl>
         </div>
 
-        {draft.pathway === 'management-proposal' ? (
+        {/*
+          BOOKING IS OFFERED ONLY WHEN THE BACKEND SAYS SO.
+          This used to key off `draft.pathway === 'management-proposal'`, which was a
+          second copy of a policy the backend already owns. Two copies drift, and the
+          visible symptom is a form offering a call the booking command then refuses.
+          `bookingEligible` arrives on the success response; see backend-v2-contract §7.
+        */}
+        {m.receipt?.bookingEligible === true ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5">
             <button type="button" onClick={m.goSchedule} style={primaryButton()}>
               Schedule a 30-Minute Call{' '}
@@ -935,12 +977,39 @@ function IntakeScreens() {
               </span>
             </Alert>
           )}
+          {cannotSend && (
+            <Alert innerRef={m.alertRef} assertive>
+              <span className="block">
+                <strong style={{ fontWeight: 700 }}>
+                  {unavailable
+                    ? 'Sending is unavailable right now.'
+                    : 'We couldn\u2019t send your inquiry.'}
+                </strong>{' '}
+                {unavailable
+                  ? 'Nothing was sent. Your answers are still here, and you can reach AxisPoint directly in the meantime.'
+                  : 'Nothing was sent, and trying again would not help. Your answers are still here. Please contact AxisPoint directly.'}
+              </span>
+              <span
+                className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
+                style={{ marginTop: 12 }}
+              >
+                <a
+                  href="mailto:info@axispoint.llc"
+                  className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
+                  style={{ fontSize: 14.5, paddingBottom: 2, minHeight: 44 }}
+                >
+                  Email AxisPoint
+                </a>
+              </span>
+            </Alert>
+          )}
 
           <div className="grid gap-[26px] lg:gap-8">
             <SelectField
               label={copy.topicLabel}
               value={draft.topic}
               onChange={m.setTopic}
+              error={errors.topic}
               options={[
                 { value: '', text: 'Select one' },
                 ...copy.topics.map((t) => ({ value: t, text: t })),
@@ -1283,6 +1352,32 @@ function IntakeScreens() {
                   </span>
                 </Alert>
               )}
+          {cannotSend && (
+            <Alert innerRef={m.alertRef} assertive>
+              <span className="block">
+                <strong style={{ fontWeight: 700 }}>
+                  {unavailable
+                    ? 'Sending is unavailable right now.'
+                    : 'We couldn\u2019t send your inquiry.'}
+                </strong>{' '}
+                {unavailable
+                  ? 'Nothing was sent. Your answers are still here, and you can reach AxisPoint directly in the meantime.'
+                  : 'Nothing was sent, and trying again would not help. Your answers are still here. Please contact AxisPoint directly.'}
+              </span>
+              <span
+                className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
+                style={{ marginTop: 12 }}
+              >
+                <a
+                  href="mailto:info@axispoint.llc"
+                  className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
+                  style={{ fontSize: 14.5, paddingBottom: 2, minHeight: 44 }}
+                >
+                  Email AxisPoint
+                </a>
+              </span>
+            </Alert>
+          )}
               {Object.keys(errors).length > 0 && (
                 <Alert innerRef={failed ? undefined : m.alertRef} assertive>
                   <strong style={{ fontWeight: 700 }}>

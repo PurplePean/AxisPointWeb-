@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isSuccess, type ClientResult } from '@axispoint/submission-client';
+import { getSubmissionClient } from './submissionClient';
+import { toEnvelopeDraft } from './toWire';
 import {
   emptyDraft,
   involvementFromScope,
   scopeFromInvolvement,
-  validateContact,
+  validateDraft,
   type FieldErrors,
   type IntakeDraft,
   type IntentToken,
@@ -14,9 +17,18 @@ import {
 /**
  * Intake state machine for the approved V2 flow (design@2026-07-30).
  *
- * SUBMISSION IS SIMULATED AND LOCAL. This module contains no fetch, no XHR, no
- * form action, and no endpoint of any kind. Nothing leaves the browser, including
- * the booking step. The V2 submission contract arrives with the backend pass.
+ * SUBMISSION GOES THROUGH THE SHARED CLIENT. This module contains no fetch, no XHR, no
+ * form action, and no endpoint: it calls `@axispoint/submission-client`, which is the one
+ * transport boundary in the repository and which decides between simulating and calling a
+ * real endpoint based on the build. See `submissionClient.ts`.
+ *
+ * In `pnpm dev` nothing leaves the browser. In a production build with no endpoint the
+ * client returns a truthful `not_configured` failure and the UI says so, because a
+ * confirmation screen for something that was never sent is the worst outcome available
+ * here.
+ *
+ * BOOKING REMAINS LOCAL AND UNSENT. The booking command is a separate request that this
+ * pass does not make, and the backend rejects a booking block inside a submission outright.
  */
 
 export type Screen =
@@ -28,10 +40,12 @@ export type Screen =
   | 'scheduled'
   | 'skipped';
 
-export type SubmitState = 'idle' | 'sending' | 'failed';
-
-/** How long the simulated send takes, matching the approved 700ms demo timing. */
-const SIMULATED_SEND_MS = 700;
+/**
+ * `failed` covers a retryable failure. `blocked` is a failure the visitor cannot retry
+ * their way out of: a rejected payload, or a `SUBMISSION_ID_CONFLICT` that has exhausted
+ * the attempt. `unavailable` is the honest production-without-an-endpoint state.
+ */
+export type SubmitState = 'idle' | 'sending' | 'failed' | 'blocked' | 'unavailable';
 
 export interface IntakeInit {
   intent: IntentToken | null;
@@ -87,9 +101,37 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
   );
 
   const alertRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<number | null>(null);
 
-  const errors: FieldErrors = showErrors ? validateContact(draft.contact) : {};
+  /**
+   * Focus is moved to the summary alert AFTER the render that creates it.
+   *
+   * This was previously a `requestAnimationFrame` fired from the same callback that set the
+   * state. That races React's commit: the frame can run while the alert is still unmounted,
+   * `alertRef.current` is null, and the focus move is silently skipped. It was reproducible
+   * in a production build on the fail-closed path, where the alert appeared ~50ms after the
+   * click and never received focus. An effect keyed on a counter runs after commit, so the
+   * ref is always populated by the time it reads it.
+   *
+   * The counter (rather than a boolean) is what makes a second failure re-announce: two
+   * consecutive failures produce the same submit state, and only a changing value re-runs
+   * the effect.
+   */
+  const [announce, setAnnounce] = useState(0);
+  const requestAnnounce = useCallback(() => setAnnounce((n) => n + 1), []);
+
+  useEffect(() => {
+    if (announce === 0) return;
+    alertRef.current?.focus();
+  }, [announce]);
+  /**
+   * When this intake was opened, used only for the advisory `fillSeconds` signal.
+   *
+   * The backend treats client signals as evidence that can ADD to a spam determination and
+   * never as evidence that clears one, because a bot controls what it sends.
+   */
+  const startedAt = useRef<number>(Date.now());
+
+  const errors: FieldErrors = showErrors ? validateDraft(draft) : {};
 
   /* ── Draft updates ─────────────────────────────────────────────────────── */
 
@@ -165,45 +207,108 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     setScreen('gateway');
   }, []);
 
-  /* ── Simulated submission ──────────────────────────────────────────────── */
+  /* ── Submission, through the shared client ─────────────────────────────── */
 
   /**
-   * Validates, then simulates a send with a timer. There is deliberately no
-   * network call here. In development a `?state=failed` start, or a draft whose
-   * email local part is `fail`, produces the recoverable failure state so it can be
-   * inspected without a backend.
+   * What the backend said about the accepted submission.
+   *
+   * `bookingEligible` comes FROM THE RESPONSE and is never derived here. The backend owns
+   * one booking policy, and a second copy in the frontend would drift from it: the visible
+   * symptom is a form offering a call the booking command then refuses.
    */
-  const submit = useCallback(() => {
-    const found = validateContact(draft.contact);
+  const [receipt, setReceipt] = useState<{
+    leadId: string | null;
+    slaDueAt: string | null;
+    bookingEligible: boolean;
+  } | null>(null);
+
+  const [failure, setFailure] = useState<{ code: string; field: string | null } | null>(null);
+
+  /** Turns a client result into screen state. Success requires `ok`, never a mere reply. */
+  const applyResult = useCallback((result: ClientResult | null) => {
+    // `null` means the client refused the call: already in flight, or a dead attempt.
+    // Leaving the state alone is correct; the visitor is already looking at it.
+    if (!result) return;
+
+    if (isSuccess(result)) {
+      setFailure(null);
+      setReceipt({
+        leadId: result.response.leadId,
+        slaDueAt: result.response.slaDueAt,
+        bookingEligible: result.response.bookingEligible === true,
+      });
+      setSubmitState('idle');
+      setScreen('confirmation');
+      return;
+    }
+
+    setFailure({ code: result.code, field: result.field });
+    setSubmitState(
+      result.outcome === 'retryable'
+        ? 'failed'
+        : result.outcome === 'not_configured'
+          ? 'unavailable'
+          : 'blocked',
+    );
+    // The approved behaviour: move focus to the summary alert so the state is announced.
+    requestAnnounce();
+  }, [requestAnnounce]);
+
+  /**
+   * Validates, then submits.
+   *
+   * The double-click guard lives in the client rather than in a disabled button, because a
+   * disabled button is a rendering detail that a fast double-click or a keyboard repeat
+   * can still race.
+   */
+  const submit = useCallback(async () => {
+    const found = validateDraft(draft);
     if (Object.keys(found).length > 0) {
       setShowErrors(true);
-      // Move focus to the summary alert, per the approved behaviour.
-      window.requestAnimationFrame(() => alertRef.current?.focus());
+      requestAnnounce();
       return;
     }
     setShowErrors(false);
     setSubmitState('sending');
 
-    const shouldFail = isDev && /^fail@/i.test(draft.contact.email.trim());
+    /*
+     * Mapping can throw on a value with no wire token. Validation above should make that
+     * unreachable, but an unhandled throw here would leave the form stuck on "sending"
+     * forever with only a console error to show for it, so it is caught and reported as a
+     * state the visitor can act on.
+     */
+    let envelopeDraft;
+    try {
+      envelopeDraft = toEnvelopeDraft(draft, {
+        pageLocale: 'en',
+        intent,
+        sourceDetail: typeof window === 'undefined' ? '/contact' : window.location.pathname,
+        landingPage: typeof window === 'undefined' ? undefined : window.location.href,
+        clientSignals: { fillSeconds: Math.round((Date.now() - startedAt.current) / 1000) },
+      });
+    } catch (error) {
+      setFailure({
+        code: error instanceof Error ? error.name : 'MAPPING_FAILED',
+        field: null,
+      });
+      setSubmitState('blocked');
+      requestAnnounce();
+      return;
+    }
 
-    timer.current = window.setTimeout(() => {
-      if (shouldFail) {
-        setSubmitState('failed');
-        window.requestAnimationFrame(() => alertRef.current?.focus());
-        return;
-      }
-      setSubmitState('idle');
-      setScreen('confirmation');
-    }, SIMULATED_SEND_MS);
-  }, [draft.contact, isDev]);
+    applyResult(await getSubmissionClient().submit(envelopeDraft));
+  }, [applyResult, draft, intent, requestAnnounce]);
 
-  const retry = useCallback(() => {
+  /**
+   * Retries the SAME attempt: same submissionId, same envelope.
+   *
+   * A fresh id here would create a second Lead for one person, and both requests would
+   * have succeeded, so nothing would ever surface it.
+   */
+  const retry = useCallback(async () => {
     setSubmitState('sending');
-    timer.current = window.setTimeout(() => {
-      setSubmitState('idle');
-      setScreen('confirmation');
-    }, SIMULATED_SEND_MS);
-  }, []);
+    applyResult(await getSubmissionClient().retry());
+  }, [applyResult]);
 
   /* ── Booking, all local ────────────────────────────────────────────────── */
 
@@ -220,6 +325,10 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     errors,
     showErrors,
     submitState,
+    /** Backend receipt for the accepted submission. Null until one is accepted. */
+    receipt,
+    /** The last failure, for the accessible status message. */
+    failure,
     alertRef,
     bookingReady,
     setProperty,

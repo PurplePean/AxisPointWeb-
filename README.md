@@ -89,9 +89,13 @@ pnpm install
 
 ## Development
 
-The frontend talks to the real backend only when you deliberately opt in. This is enforced in
+The frontend talks to a real backend only when you deliberately opt in. This is enforced in
 each app's `vite.config.ts` and consumed through an injected `__FORM_ENDPOINT__` define, so a
-stray `VITE_FORM_ENDPOINT` in your shell or a generic `.env` file cannot leak into a dev build.
+stray endpoint in your shell or a generic `.env` file cannot leak into a dev build.
+
+The two apps read different variables on purpose: `apps/web` reads
+`VITE_V2_SUBMISSION_ENDPOINT` (V2), `apps/qr` reads `VITE_FORM_ENDPOINT` (V1). They speak
+different payload shapes, so the V2 intake never falls back to the V1 name.
 
 | Command | Apps | Guarantee |
 |---|---|---|

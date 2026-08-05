@@ -305,6 +305,8 @@ export const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 export interface FieldErrors {
   fullName?: string;
   email?: string;
+  /** Short-pathway topic. Required by the backend, so it is required here too. */
+  topic?: string;
 }
 
 export const NAME_HELP = 'As you would like us to address you.';
@@ -313,10 +315,30 @@ export const EMAIL_HELP = 'Where we’ll send our reply and any follow-up detail
 export const EMAIL_ERROR =
   'This address is missing the part after the @ sign. Add the full address, for example name@company.com.';
 
+export const TOPIC_ERROR = 'Choose the option that best describes your inquiry.';
+
 export function validateContact(contact: ContactDraft): FieldErrors {
   const errors: FieldErrors = {};
   if (!contact.fullName.trim()) errors.fullName = NAME_ERROR;
   if (!EMAIL_RE.test(contact.email)) errors.email = EMAIL_ERROR;
+  return errors;
+}
+
+/**
+ * Validates everything the submission needs, not just the contact block.
+ *
+ * The short pathways carry a required `topic`, and until Pass 10A nothing checked it: the
+ * select defaults to an empty "Select one" and the send button accepted it. That was
+ * invisible while submission was simulated, because the simulation succeeded regardless.
+ * The backend requires the token, so an empty topic is a rejection the visitor cannot see
+ * or act on, which is exactly the failure this catches at the point they can fix it.
+ */
+export function validateDraft(draft: IntakeDraft): FieldErrors {
+  const errors = validateContact(draft.contact);
+  const needsTopic =
+    draft.pathway === 'investor-services' || draft.pathway === 'general-inquiry';
+
+  if (needsTopic && !draft.topic.trim()) errors.topic = TOPIC_ERROR;
   return errors;
 }
 

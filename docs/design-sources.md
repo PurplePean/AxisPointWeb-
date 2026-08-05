@@ -45,7 +45,7 @@ truth, and a comparison against one proves nothing about the folder that is.
 | Homepage | `AxisPointPage.dc.html` | Homepage **only**. Props are `viewport` (desktop/mobile). See correction 1. |
 | Property Management page | `AxisPoint Property Management.dc.html` | Authoritative for `/property-management`. See correction 2. |
 | Asset Management, Investor Services, Partners, Contact shell | `AxisPoint System Studies.dc.html` | `page` prop: `asset-management`, `investor-services`, `partners`, `contact` |
-| Intake: pathways, components, full state set | `AxisPoint Form Design.dc.html` | §6a–6e gateway/steps/states, §7a–7h pathway map, short intake, booking, language system, localization proofs, state checklist, handoff |
+| Intake: pathways, components, full state set | `AxisPoint Form Design.dc.html` | §6a–6e gateway/steps/states, §7a–7h pathway map, short intake, booking, language system, localization proofs, state checklist, handoff. Code Pass 10A connected the already-approved submitting, failed, and success states to a real transport; the fail-closed "unavailable" state is **not** from this source, see below |
 | Localization behaviour and layout | `AxisPointLangSystem.dc.html`, `AxisPointLocaleProof.dc.html` | Authoritative for behaviour, layout, and direction. Translated copy is a **proof, not approved translation** |
 | Shared footer | `AxisPointFooter.dc.html` | See correction 3 |
 | QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Seven values remain unresolved, see below |
@@ -228,6 +228,22 @@ here instead. Where this table and the exported Index disagree, **this table win
 | 2 | `AxisPoint Property Management.dc.html` | "Historical, superseded by the public site files" | **Authoritative for `/property-management`.** It is the only Property Management page design, a full seven-section page, and the target of the PM navigation link in every other file |
 | 3 | `AxisPointFooter.dc.html` | "Historical, superseded by the public site files where they overlap" | **Authoritative for the shared footer.** It is a hard dependency of all three page files; the public site files contain no footer of their own |
 | 4 | `AxisPoint System Studies.dc.html` | Authoritative (correct) | Confirmed authoritative for Asset Management, Investor Services, Partners, and the **Contact shell** specifically |
+
+## Built without an approved design source (Code Pass 10A)
+
+Two intake states have **no approved design**, because the approved package was drawn before
+the submission contract existed and it does not cover what a connected form does when the
+backend is unreachable or unconfigured.
+
+| State | Why it exists | What was done |
+|---|---|---|
+| `unavailable` | A production build with no endpoint must not simulate success. It has to say plainly that nothing was sent | Reuses the **approved** error-summary alert component and its magenta error tone verbatim. Only the sentence is new |
+| `blocked` | A permanent backend rejection, and the unreachable case where an answer has no wire token, must not offer a retry that cannot work | Same approved alert component, different sentence, retry deliberately withheld |
+
+**No new component, colour, spacing, or type style was invented for either.** They are the
+approved alert with new copy. If the owner later approves dedicated designs for these two
+states, that export supersedes this note. Recorded here so a reviewer is not left looking for
+an approval that does not exist.
 
 ## Historical, not build inputs
 
