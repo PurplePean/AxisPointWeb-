@@ -1,6 +1,10 @@
+import { useState } from 'react';
+
 import { Mark } from '@axispoint/brand';
 import { FIRM, WEB_LINKS, type PartnerProfile } from './profiles';
 import { useSaveContact } from './useSaveContact';
+import { ContactExchange } from './exchange/ContactExchange';
+import type { ExchangeSubject } from './exchange/model';
 
 /**
  * The QR business-card surface, built from the approved board
@@ -40,6 +44,25 @@ export default function Profile({ profile }: { profile: PartnerProfile | null })
   const isFirm = profile === null;
   const save = useSaveContact(profile);
 
+  /*
+   * The Contact Exchange is a full screen, not a sheet over the card (approved §x2): six
+   * controls plus a category list is 470px of content at 320px wide, and a partial sheet
+   * puts the submit control under the on-screen keyboard.
+   *
+   * The card stays mounted underneath, so Close returns to the exact card the visitor left
+   * with its scroll position intact.
+   */
+  const [exchangeOpen, setExchangeOpen] = useState(false);
+
+  const subject: ExchangeSubject = isFirm
+    ? { first: 'AxisPoint', full: FIRM.name, saveLabel: 'Save AxisPoint contact', isFirm: true }
+    : {
+        first: profile.displayName.split(' ')[0],
+        full: profile.displayName,
+        saveLabel: `Save ${profile.displayName.split(' ')[0]}'s contact`,
+        isFirm: false,
+      };
+
   /* Approved missing-data rules.
      Phone absent: omit Call entirely and give Email the full width.
      Partner email absent: keep Email, point it at the one approved firm address, and
@@ -53,6 +76,22 @@ export default function Profile({ profile }: { profile: PartnerProfile | null })
   const failed = save.state === 'failed';
   const preparing = save.state === 'preparing';
   const handedOff = save.state === 'handoffMobile' || save.state === 'handoffWide';
+
+  /*
+   * The exchange replaces the card rather than layering over it. Rendering it in place of
+   * the card, instead of hiding the card with CSS, keeps a single focusable surface: a
+   * visually hidden card underneath would still be reachable by Tab and by a screen reader.
+   */
+  if (exchangeOpen) {
+    return (
+      <ContactExchange
+        subject={subject}
+        profileKey={profile?.key ?? null}
+        onClose={() => setExchangeOpen(false)}
+        onSaveContact={save.save}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-v2-surface text-v2-ink">
@@ -134,6 +173,29 @@ export default function Profile({ profile }: { profile: PartnerProfile | null })
                 <path d="M16 8.5v5M13.5 11h5" />
               </svg>
               {save.label}
+            </button>
+
+            {/*
+              The approved additive action (§x1): directly under Save contact and above the
+              Call and Email pair, because the exchange is the reciprocal half of the same
+              gesture. Outlined rather than filled at 52px, so Save contact remains the only
+              teal fill and the only 54px control on the card. It is not a route row: those
+              all leave for the website, and this one stays inside the card.
+            */}
+            <button
+              type="button"
+              onClick={() => setExchangeOpen(true)}
+              className={SECONDARY}
+              style={{
+                minHeight: 52,
+                fontSize: 15.5,
+                border: '1px solid #24A5BC',
+                background: '#FFFFFF',
+                color: '#1C1628',
+                boxShadow: '0 0 0 3px rgba(36,165,188,0.12)',
+              }}
+            >
+              Share your details
             </button>
 
             {/* One live region carries every handoff and failure message. Polite for a

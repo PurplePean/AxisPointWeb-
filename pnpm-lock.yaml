@@ -38,6 +38,9 @@ importers:
       '@axispoint/brand':
         specifier: workspace:*
         version: link:../../packages/brand
+      '@axispoint/submission-client':
+        specifier: workspace:*
+        version: link:../../packages/submission-client
       react:
         specifier: ^18.2.0
         version: 18.3.1

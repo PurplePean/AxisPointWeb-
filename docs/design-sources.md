@@ -68,8 +68,9 @@ and optional fields, seven contact categories, and the full state set (default, 
 open, email-only, phone-only including non-US formatting, required-field validation,
 invalid email, sending, success, possible match, recoverable failure, retry, close).
 
-**The frontend is not built yet.** What Code Pass 9B settled is the backend half of that
-board's handoff list, so the form has a contract to submit against:
+**Built in Code Pass 10B**, in `apps/qr/src/exchange`, submitting `contact_exchange` through
+`packages/submission-client`. The backend half of the board's handoff list was settled by
+Pass 9B, and the frontend half by Passes 10A and 10B:
 
 | Board dependency | Resolved by Pass 9B |
 |---|---|
@@ -81,20 +82,29 @@ board's handoff list, so the form has a contract to submit against:
 | Possible-match handling as an internal-only concern | Yes. Flag only, never a link or merge, and never shown to the person who submitted |
 | Google Contact sync as a separate later operation, never inline | Yes. `contactSyncStatus: not_configured`, no People API code, no scope |
 | Failure recovery for a submission accepted but never acknowledged to the browser | Partly. The retry path repairs a half-written request; a request never retried stays half-written, and no background sweep exists |
-| Safe local development that cannot reach a live endpoint | **Not yet.** The shared submission client is a later pass |
-| Deliberate opt-in E2E mode | **Not yet.** Same pass |
+| Safe local development that cannot reach a live endpoint | Yes, Pass 10B. `pnpm dev` forces the endpoint empty and runs the shared client's simulator, so no request leaves the browser |
+| Deliberate opt-in E2E mode | Yes, Pass 10B. `VITE_V2_SUBMISSION_ENDPOINT` only, loaded from the machine-local `.env.e2e.local`; a missing value is a hard failure and a lone V1 value is a named error |
 | Spam protection mechanism | **Undecided.** Screening flags server-side; no visible captcha is designed |
 
-Two board requirements bind the frontend when it is built, and are recorded here so they
-are not rediscovered late:
+Two board requirements bound the frontend, and both were met in Code Pass 10B:
 
 1. **The category control must be built on a proven accessible select or listbox
    primitive, not bespoke keyboard logic.** A native select remains an acceptable fallback
    if assistive-technology testing exposes a defect; it was not the first choice only
    because it truncated the longest category label on iOS at 320px.
+   **Built as the native select.** This repository introduces no component library, so the
+   native control is the proven primitive available: arrow keys, type-ahead, Escape, the
+   mobile picker, and assistive-technology behaviour come from the platform rather than from
+   code written for one page. The truncation objection is answered directly by echoing the
+   full selected label as wrapping text beneath the control, so the longest label is legible
+   at 320px. Recorded as a deliberate deviation from the drawn treatment, taken under the
+   board's own fallback clause, not an omission.
 2. **A retry must preserve the same `submissionId` and payload.** A client that mints a
    fresh id on retry creates duplicate business records. See
    [`backend-v2-contract.md`](backend-v2-contract.md) §12.
+   **Implemented in the shared client**, not in this surface, and verified on the wire: a
+   forced failure followed by a retry produced two POSTs to a local stub carrying the same
+   `submissionId` and a byte-identical payload and attribution.
 
 ### QR Contact emails and daily digest, `design@2026-08-02`
 
@@ -229,19 +239,20 @@ here instead. Where this table and the exported Index disagree, **this table win
 | 3 | `AxisPointFooter.dc.html` | "Historical, superseded by the public site files where they overlap" | **Authoritative for the shared footer.** It is a hard dependency of all three page files; the public site files contain no footer of their own |
 | 4 | `AxisPoint System Studies.dc.html` | Authoritative (correct) | Confirmed authoritative for Asset Management, Investor Services, Partners, and the **Contact shell** specifically |
 
-## Built without an approved design source (Code Pass 10A)
+## Built without an approved design source (Code Passes 10A and 10B)
 
-Two intake states have **no approved design**, because the approved package was drawn before
-the submission contract existed and it does not cover what a connected form does when the
-backend is unreachable or unconfigured.
+Some states have **no approved design**, because the approved packages were drawn before the
+submission contract existed and they do not cover what a connected form does when the backend
+is unreachable or unconfigured.
 
-| State | Why it exists | What was done |
-|---|---|---|
-| `unavailable` | A production build with no endpoint must not simulate success. It has to say plainly that nothing was sent | Reuses the **approved** error-summary alert component and its magenta error tone verbatim. Only the sentence is new |
-| `blocked` | A permanent backend rejection, and the unreachable case where an answer has no wire token, must not offer a retry that cannot work | Same approved alert component, different sentence, retry deliberately withheld |
+| Surface | State | Why it exists | What was done |
+|---|---|---|---|
+| Website intake | `unavailable` | A production build with no endpoint must not simulate success. It has to say plainly that nothing was sent | Reuses the **approved** error-summary alert component and its magenta error tone verbatim. Only the sentence is new |
+| Website intake | `blocked` | A permanent backend rejection, and the unreachable case where an answer has no wire token, must not offer a retry that cannot work | Same approved alert component, different sentence, retry deliberately withheld |
+| QR Contact Exchange | not-configured / permanent failure | Same reason. The board drew a recoverable failure with a Try again, but not the case where retrying cannot help | Reuses the **approved** failure banner and its darker magenta verbatim, changing only the second sentence and withholding Try again |
 
-**No new component, colour, spacing, or type style was invented for either.** They are the
-approved alert with new copy. If the owner later approves dedicated designs for these two
+**No new component, colour, spacing, or type style was invented for any of them.** They are
+approved elements with new copy. If the owner later approves dedicated designs for these
 states, that export supersedes this note. Recorded here so a reviewer is not left looking for
 an approval that does not exist.
 

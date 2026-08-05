@@ -20,7 +20,8 @@
     "test:gas-v2": "node --test \"scripts/gas-v2/tests/**/*.test.js\"",
     "test:client": "node --import ./scripts/test/register.mjs --test --experimental-strip-types \"packages/submission-client/tests/**/*.test.ts\"",
     "test:web": "node --import ./scripts/test/register.mjs --test --experimental-strip-types \"apps/web/tests/**/*.test.ts\"",
-    "test:frontend": "pnpm test:client && pnpm test:web",
+    "test:qr": "node --import ./scripts/test/register.mjs --test --experimental-strip-types \"apps/qr/tests/**/*.test.ts\"",
+    "test:frontend": "pnpm test:client && pnpm test:web && pnpm test:qr",
     "verify:bundle": "node scripts/test/inspect-bundle.mjs apps/web/dist",
     "gas:push": "cd scripts/gas && clasp push"
   },

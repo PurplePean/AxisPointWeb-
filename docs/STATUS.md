@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-05 (Code Pass 10A)_
+_Last updated: 2026-08-05 (Code Pass 10B)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 10A, shared submission client and website-intake connection, complete (no endpoint exists, nothing deployed) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection |
-| **Next pass** | QR Contact Exchange frontend on the shared client, then the booking command, then staging. **No endpoint exists and none has been contacted** |
+| **Current code pass** | Pass 10B, QR Contact Exchange frontend on the shared client, complete (no endpoint exists, nothing deployed) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend |
+| **Next pass** | The booking command, then staging. **No endpoint exists and none has been contacted** |
 
 ## Routes
 
@@ -38,8 +38,9 @@ to the hosting configuration rather than to client-side routing.
 `apps/web`. The approved intake lives in `apps/web/src/intake`.
 
 **The website intake now submits through the shared client, and there is still nothing to
-submit to.** `packages/submission-client` is the intended shared transport boundary for both
-apps, but **only `apps/web` imports it today**; wiring `apps/qr` to it is a later pass.
+submit to.** `packages/submission-client` is the shared transport boundary, and since Pass
+10B **both apps import it**: `apps/web` for `service_inquiry`, `apps/qr` for
+`contact_exchange`.
 `apps/web/src/intake` builds a real `schemaVersion` 1 envelope and hands it over. Whether
 anything is sent depends only on the build: `pnpm dev` simulates, a production build with
 `VITE_V2_SUBMISSION_ENDPOINT` sends, and a production build without one fails closed with an honest
@@ -47,10 +48,36 @@ anything is sent depends only on the build: `pnpm dev` simulates, a production b
 so far ran against the dev simulator or a local stub on `127.0.0.1`. See
 [`backend-v2-contract.md` §19](backend-v2-contract.md#19-the-frontend-transport-boundary).
 
-**Booking is still simulated, and QR Contact Exchange is still unwired.** The intake now
-takes `bookingEligible` from the backend response instead of re-deriving the policy, but
-selecting a time remains local fixture availability and a simulated confirmation. The client
-supports `contact_exchange`; nothing sends one, and `apps/qr` was not modified in Pass 10A.
+**Booking is still simulated.** The intake takes `bookingEligible` from the backend response
+instead of re-deriving the policy, but selecting a time remains local fixture availability
+and a simulated confirmation. The booking command is not connected.
+
+**The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
+`apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through
+`packages/submission-client`, so both apps now go through the one transport boundary and
+there is no second transport or wire-token list anywhere. Whether anything is sent depends
+only on the build, exactly as for the website: `pnpm dev` simulates with zero network, and a
+production build without `VITE_V2_SUBMISSION_ENDPOINT` fails closed with an honest "nothing
+was sent" rather than a simulated success. **No endpoint exists**, so every check ran against
+the dev simulator or a local stub on `127.0.0.1`.
+
+**A QR submission creates a Submission and a Contact, never a Lead.** The category is a
+filing label, not a router: it never creates a service lead, changes the copy, or changes
+what happens next. A Lead is created only when someone deliberately enters the website
+intake, or when a partner converts the contact by hand.
+
+**Gathered-through attribution and ownership stay separate.** The browser sends only the
+scan, `sourceCategory: 'qr'` plus the card slug. The backend derives the immutable
+`acquisitionSource` and `scannedPartner` from it and leaves `ownerPartner` empty for every
+record, including one gathered through a partner's own card: a scan gives a partner a name,
+not a claim. An unrecognised slug resolves to `unknown` and is deliberately not rewritten to
+the firm, because it is evidence a printed card is wrong.
+
+**The category control is the approved native-select fallback.** The board draws a custom
+button and listbox but binds the implementation to a proven accessible primitive rather than
+bespoke keyboard logic, naming a native select as acceptable. Its one stated objection to the
+native control was iOS truncating the longest label at 320px, which is answered by echoing
+the full selected label as wrapping text beneath the control.
 
 **Form data is held in memory only.** Nothing is written to `localStorage`,
 `sessionStorage`, cookies, or the URL, and a success clears the envelope. A page reload ends
@@ -80,10 +107,18 @@ dedicated cleanup. No application imports `ContactForm` any more, `apps/qr` incl
 to `https://axispoint.llc` via `window.location`, so it must not be navigated during local
 browser testing. Verify it by diff instead. Its retirement decision remains separate.
 
-**The QR app is now the approved V2 card.** `apps/qr` was rebuilt from
-`AxisPoint QR Frontend.dc.html`. It no longer imports the V1 `ContactForm`, embeds no intake,
-generates no QR code, and consumes no form endpoint. Save Contact is simulated and local, and
-the Management Proposal action links into the shared website intake.
+**The QR app is the approved V2 card, plus the approved Contact Exchange.** `apps/qr` was
+rebuilt from `AxisPoint QR Frontend.dc.html`. It does not import the V1 `ContactForm`, embeds
+no service intake, and generates no QR code. Save Contact is simulated and local, and the
+Management Proposal action links into the shared website intake. Pass 10B added the one
+approved additive action, "Share your details", directly under Save contact, opening the
+full-screen exchange described above.
+
+**`apps/qr` reads `VITE_V2_SUBMISSION_ENDPOINT`, not `VITE_FORM_ENDPOINT` (changed in Pass
+10B).** The old name is the **V1** deployment and speaks a different payload shape, so
+pointing a V2 `contact_exchange` envelope at it would fail in a way that reads as a backend
+bug. In e2e mode a lone V1 value is a hard error that names the problem. Both apps now use
+the V2 name.
 
 **The QR profile URL is still an open decision, so no routing contract was shipped.** Profile
 selection uses a local, development-only preview key (`?profile=`), explicitly not presented as
