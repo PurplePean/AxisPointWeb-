@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /*
+     * This package is consumed AS SOURCE. `package.json` points `main` and `types` at
+     * `./src/index.ts`, Vite compiles it as part of each app's build, and nothing ever
+     * emits a `dist`. So `noEmit` is the truth, and `composite`/`declaration` are dropped
+     * because they are incompatible with it.
+     *
+     * Relative imports are extensionless, matching `packages/brand` and both apps. Node's
+     * ESM resolver cannot follow those on its own, so the test scripts load a test-only
+     * resolver hook (`scripts/test/ts-resolver.mjs`) rather than this package adopting an
+     * import style no other package uses.
+     */
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

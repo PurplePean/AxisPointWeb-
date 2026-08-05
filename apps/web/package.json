@@ -18,7 +18,8 @@
     "gray-matter": "^4.0.3",
     "remark": "^15.0.1",
     "remark-html": "^16.0.1",
-    "@axispoint/brand": "workspace:*"
+    "@axispoint/brand": "workspace:*",
+    "@axispoint/submission-client": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.2.48",

@@ -1,61 +1,22 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+import { E2E_WARNING, resolveEndpoint } from './vite.endpoint';
+
 /**
- * Form endpoint resolution is mode-driven and deliberately fail-safe.
+ * Endpoint resolution lives in `./vite.endpoint`, which documents the full mode matrix and
+ * the reason the variable is V2-specific. It is a separate module so it can be unit-tested
+ * against fixture env directories rather than by running e2e mode against the real
+ * machine-local secret.
  *
- *   dev   (`vite`, mode=development)  -> endpoint is FORCED empty. Any VITE_FORM_ENDPOINT
- *                                        coming from .env.local, the shell, or any other
- *                                        generic env source is IGNORED. The shared
- *                                        <ContactForm> runs its simulated-success fallback,
- *                                        so no request ever reaches the real backend.
- *   e2e   (`vite --mode e2e`)         -> endpoint is loaded ONLY from .env.e2e.local
- *                                        (gitignored, machine-local). A missing value is a
- *                                        HARD failure — never a silent fall back to
- *                                        simulated success. The real GAS backend is live,
- *                                        so a loud terminal warning is printed.
- *   build (`vite build`, production)  -> endpoint passes through from the build environment
- *                                        (CI `VITE_FORM_ENDPOINT` secret, or an explicit
- *                                        sentinel supplied on the command line).
- *
- * The app consumes the injected `__FORM_ENDPOINT__` define instead of reading
- * import.meta.env.VITE_FORM_ENDPOINT directly, so a stray endpoint sitting in the shell or
- * a generic .env file can never leak into a dev build. This file is the single place that
- * decides which endpoint (if any) is compiled in.
+ * The app consumes the injected `__FORM_ENDPOINT__` define rather than reading
+ * `import.meta.env` directly, so a stray endpoint sitting in the shell or a generic .env
+ * file can never leak into a dev build.
  */
-function resolveEndpoint(mode: string): { endpoint: string; e2e: boolean } {
-  if (mode === 'development') {
-    // Ignore every source. Always simulated success in plain `pnpm dev`.
-    return { endpoint: '', e2e: false };
-  }
-
-  if (mode === 'e2e') {
-    // '' prefix => read the raw file values (.env.e2e.local / .env.e2e) regardless of the
-    // VITE_ prefix filter, so we can validate presence ourselves.
-    const env = loadEnv(mode, process.cwd(), '');
-    const endpoint = env.VITE_FORM_ENDPOINT ?? '';
-    if (!endpoint) {
-      throw new Error(
-        '\n[e2e] VITE_FORM_ENDPOINT is missing.\n' +
-          'e2e mode talks to the REAL production backend and must never silently fall back to\n' +
-          'simulated success. Create apps/web/.env.e2e.local from apps/web/.env.e2e.example and\n' +
-          'set the real endpoint value.\n',
-      );
-    }
-    console.warn(
-      '\n\x1b[41m\x1b[97m  E2E MODE: the REAL production backend is ENABLED. Form submissions hit live GAS (Sheet + email + Calendar).  \x1b[0m\n',
-    );
-    return { endpoint, e2e: true };
-  }
-
-  // build / production / preview: pass the endpoint through from the environment.
-  const env = loadEnv(mode, process.cwd(), '');
-  return { endpoint: env.VITE_FORM_ENDPOINT ?? '', e2e: false };
-}
-
 export default defineConfig(({ mode }) => {
   const { endpoint, e2e } = resolveEndpoint(mode);
+  if (e2e) console.warn(E2E_WARNING);
 
   return {
     plugins: [react()],
