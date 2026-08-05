@@ -943,11 +943,11 @@ they read columns the Lead no longer has.
 ## 19. The frontend transport boundary (Code Pass 10A)
 
 One package, [`packages/submission-client`](../packages/submission-client/), is the **only**
-place in the repository that may send a submission. **Only `apps/web` consumes it today.**
-The package supports `contact_exchange` and is shaped for the future QR connection, but
-`apps/qr` does not import it and was not modified. It is not in `packages/brand`: brand holds
-presentation, and a transport that decides retry semantics and holds PII in memory is not
-presentation.
+place in the repository that may send a submission. **Both apps consume it as of Code Pass
+10B**: `apps/web` sends `service_inquiry`, `apps/qr` sends `contact_exchange`. Neither app
+contains a second transport, a second wire-token list, or a `fetch` of its own. It is not in
+`packages/brand`: brand holds presentation, and a transport that decides retry semantics and
+holds PII in memory is not presentation.
 
 **Nothing in this section deploys anything.** No endpoint, Apps Script project, Sheet, or
 Google resource exists. Pass 10A connected the website intake to the client; it did not
@@ -991,21 +991,28 @@ made.
 network enabled; it reaches the simulator only in a development build; otherwise every
 submission returns `not_configured`, which the UI renders as an honest "nothing was sent".
 
+Both apps behave identically here, and each resolves its endpoint in its own
+`vite.endpoint.ts`:
+
 | Build | Endpoint | Transport |
 |---|---|---|
-| `pnpm dev` | forced empty by `vite.config.ts` | simulator |
+| `pnpm dev` | forced empty by the config | simulator |
 | `pnpm dev:e2e` | `VITE_V2_SUBMISSION_ENDPOINT` from `.env.e2e.local`, hard failure if absent | network |
 | `pnpm build` with `VITE_V2_SUBMISSION_ENDPOINT` | from the build environment | network |
 | `pnpm build` without one | none | `not_configured` |
 
 ### The endpoint variable is V2-specific, and that is a safety property
 
-`apps/web` reads **`VITE_V2_SUBMISSION_ENDPOINT`** and never `VITE_FORM_ENDPOINT`. The
+Both apps read **`VITE_V2_SUBMISSION_ENDPOINT`** and never `VITE_FORM_ENDPOINT`. The
 historical name still points at the **V1** deployment, which speaks an entirely different
-payload shape, so inheriting it would aim the V2 intake at the V1 backend and the resulting
+payload shape, so inheriting it would aim a V2 envelope at the V1 backend and the resulting
 failure would read as a backend bug rather than a configuration mistake. In e2e mode a lone
-V1 value is a **hard error that names the problem**, not a silent default. `apps/qr` still
-uses the V1 name and was not modified.
+V1 value is a **hard error that names the problem**, not a silent default.
+
+`apps/web` moved in Pass 10A and `apps/qr` in Pass 10B, when it gained a submission surface
+of its own. Endpoint resolution lives in a separate module in each app specifically so it can
+be unit-tested against fixture env directories, rather than by running e2e mode against a
+machine-local secret holding a live endpoint.
 
 **A production build can never simulate success.** The simulator requires
 `import.meta.env.DEV`, and the fixture names are dead code the bundler drops.
@@ -1079,13 +1086,60 @@ nine locales. Two tests tamper with a valid envelope to prove the guards matter,
 the backend rejects a display string with `DISPLAY_STRING_NOT_ACCEPTED` and a client-supplied
 booking with `BOOKING_NOT_ALLOWED_IN_SUBMISSION`.
 
+### The QR Contact Exchange (Code Pass 10B)
+
+`apps/qr/src/exchange` implements the approved
+`AxisPoint QR Contact Exchange.dc.html` (design@2026-08-01) surface and submits through this
+same client. **The backend needed no change to accept it**: the seven category tokens, the
+payload shape, the card slugs, and the phone and email rules already matched, which a
+preflight against `scripts/gas-v2` confirmed before any code was written.
+
+**A QR submission creates a Submission and a Contact, never a Lead** (§10, and the board's
+own contact-versus-lead rule). The category is a filing label a partner would write on the
+back of a card, not a router: it never creates a service lead, never changes the copy, the
+routes offered, or what happens next, and selecting "Investor or capital partner" does not
+produce an Investor Services lead. A test proves the rule where it is enforced rather than
+where it is avoided, by running a parsed exchange through the real `buildContact` and
+asserting the real `buildLead` **throws**.
+
+**Gathered-through attribution stays separate from ownership.** The browser sends only the
+scan: `sourceCategory: 'qr'` and `sourceDetail`, the card slug. Everything else is derived
+server-side (§ Attribution):
+
+| Fact | Field | Lifetime |
+|---|---|---|
+| Which card produced this person | `acquisitionSource`, `scannedPartner` | Immutable |
+| Who is responsible right now | `ownerPartner` | Mutable, **empty at intake for everyone** |
+
+A scan gives a partner a name, not a claim, so ownership starts unassigned even for a
+contact gathered through that partner's own card. An unrecognised slug resolves to `unknown`
+and is deliberately **not** rewritten to the firm: a card that did not resolve is evidence a
+printed card is wrong, and hiding it inside `firm` would destroy exactly that signal. The
+browser never sends an owner, and the backend rejects `ownerPartner` as a server-owned field
+if one were ever supplied, which a test confirms by tampering with a valid envelope.
+
+**The category control is the approved native-select fallback.** The board draws a custom
+button and listbox, and **binds** the implementation to a proven accessible select or listbox
+primitive rather than bespoke keyboard and screen-reader logic, naming a native select as an
+acceptable fallback. This repository introduces no component library, so the native control
+is the proven primitive: arrow keys, type-ahead, Escape, the mobile picker, and assistive
+technology behaviour all come from the platform. The board's only objection to it was iOS
+truncating the longest label at 320px, which is answered directly by echoing the full
+selected label as wrapping text beneath the control, so nothing is ever hidden.
+
+**The duplicate case renders nothing.** Per the approved board, a possible match shows the
+ordinary success screen word for word. Duplicate review is internal work done later by a
+partner; the client is never told a match occurred, so there is nothing in the frontend
+conditional on one.
+
 ### Still unconnected after this pass
 
-- **QR Contact Exchange has no frontend.** The client supports `contact_exchange` and its
-  response shape is validated and tested, but nothing sends one. `apps/qr` was not modified
-  and does not import the package.
 - **The booking command is not wired.** The intake reads `bookingEligible` from the response
   and shows or hides the call offer; selecting a time still uses local fixture availability
   and a simulated confirmation.
 - **No endpoint exists.** Every one of the checks above ran against the dev simulator or a
   local stub on `127.0.0.1`. No request has ever been sent to Google.
+- **Nothing else was added by Pass 10B**: no automatic matching, no merging, no Google
+  Contact sync, no booking, no storage persistence, and no referral resolution. Matching
+  remains a server-side flag only, and `contactSyncStatus` remains `not_configured` with no
+  People API code and no scope.
