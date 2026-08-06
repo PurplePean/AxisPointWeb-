@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isSuccess, type ClientResult } from '@axispoint/submission-client';
+import {
+  isSubmissionResponse,
+  isSuccess,
+  type BookingMode,
+  type ClientResult,
+} from '@axispoint/submission-client';
 import { getSubmissionClient } from './submissionClient';
+import { getBookingClient } from './booking/bookingClient';
+import { BOOKING_RULES, candidateDays, candidateSlots } from './booking/availability';
 import { toEnvelopeDraft } from './toWire';
 import {
   emptyDraft,
@@ -27,9 +34,18 @@ import {
  * confirmation screen for something that was never sent is the worst outcome available
  * here.
  *
- * BOOKING REMAINS LOCAL AND UNSENT. The booking command is a separate request that this
- * pass does not make, and the backend rejects a booking block inside a submission outright.
+ * BOOKING IS A REAL COMMAND, SENT SEPARATELY (Pass 10C). It is never a block inside a
+ * submission, which the backend rejects outright; it is its own request carrying the
+ * `leadId` the submission returned. Whether it is offered comes from the backend's
+ * `bookingEligible`, and no pathway policy is re-derived here.
  */
+
+/**
+ * `failed` is a retryable booking failure. `refused` is a final answer the visitor cannot
+ * retry their way out of, which includes a slot that is genuinely taken: the fix is another
+ * time, not another attempt. `unavailable` is the honest no-calendar-configured state.
+ */
+export type BookingState = 'idle' | 'sending' | 'failed' | 'refused' | 'unavailable';
 
 export type Screen =
   | 'gateway'
@@ -231,6 +247,11 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     if (!result) return;
 
     if (isSuccess(result)) {
+      // The shared client carries booking responses too, which have none of these fields.
+      // This handler only ever sees a submission; a booking reply would mean the transport
+      // answered a different question than the one asked, so it is not silently accepted.
+      if (!isSubmissionResponse(result.response)) return;
+
       setFailure(null);
       setReceipt({
         leadId: result.response.leadId,
@@ -310,12 +331,119 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     applyResult(await getSubmissionClient().retry());
   }, [applyResult]);
 
-  /* ── Booking, all local ────────────────────────────────────────────────── */
+  /* ── Booking, a real command against the backend ───────────────────────── */
 
-  const bookingReady = draft.booking.day !== null && !!draft.booking.time && !!draft.booking.mode;
-  const confirmBooking = useCallback(() => {
-    if (bookingReady) setScreen('scheduled');
-  }, [bookingReady]);
+  /*
+   * Booking is a SEPARATE command issued after the submission, never a block inside one,
+   * and it needs the `leadId` the backend returned. Whether it is offered at all comes from
+   * `receipt.bookingEligible`, decided by the backend and never re-derived here.
+   */
+  const [bookingState, setBookingState] = useState<BookingState>('idle');
+  const [bookingFailure, setBookingFailure] = useState<{ code: string; status?: string } | null>(null);
+
+  const bookingReady = !!draft.booking.slotStart && !!draft.booking.mode;
+
+  /**
+   * Candidate days and slots, recomputed when the chosen day changes.
+   *
+   * `now` is captured once per render rather than per call so the day list and the slot
+   * list agree with each other. A slot computed a second later than its day could fall out
+   * of the lead-time window mid-render and disappear from under the visitor's cursor.
+   */
+  const bookingCandidates = useMemo(() => {
+    const now = new Date();
+    const days = candidateDays(now);
+    const chosen = days.find((d) => d.key === draft.booking.dayKey);
+    return { days, slots: chosen ? candidateSlots(chosen, now) : [] };
+  }, [draft.booking.dayKey]);
+
+  /*
+   * Choosing a day, a slot, or a mode CLEARS the last booking failure.
+   *
+   * A stale "that time is no longer available" sitting above a newly chosen time reads as
+   * a verdict on the new choice. Clearing it is also honest about the client's own rule:
+   * changing the slot or the mode is a material edit that mints a new bookingRequestId, so
+   * the previous request's outcome no longer describes what would be sent.
+   */
+  const chooseDay = useCallback((dayKey: string) => {
+    setBookingFailure(null);
+    setBookingState('idle');
+    patch((d) => {
+      d.booking.dayKey = dayKey;
+      // The old slot belonged to the old day, so it cannot survive the change.
+      d.booking.slotStart = '';
+      d.booking.timeLabel = '';
+      return d;
+    });
+  }, [patch]);
+
+  const chooseSlot = useCallback((slotStart: string, timeLabel: string) => {
+    setBookingFailure(null);
+    setBookingState('idle');
+    patch((d) => {
+      d.booking.slotStart = slotStart;
+      d.booking.timeLabel = timeLabel;
+      return d;
+    });
+  }, [patch]);
+
+  const chooseMode = useCallback((mode: string) => {
+    setBookingFailure(null);
+    setBookingState('idle');
+    patch((d) => {
+      d.booking.mode = mode;
+      return d;
+    });
+  }, [patch]);
+
+  const applyBooking = useCallback(
+    (result: ClientResult | null) => {
+      if (result === null) return;
+
+      if (isSuccess(result)) {
+        setBookingFailure(null);
+        setBookingState('idle');
+        setScreen('scheduled');
+        return;
+      }
+
+      setBookingFailure({ code: result.code });
+      setBookingState(
+        result.outcome === 'retryable'
+          ? 'failed'
+          : result.outcome === 'not_configured'
+            ? 'unavailable'
+            : 'refused',
+      );
+    },
+    [],
+  );
+
+  const confirmBooking = useCallback(async () => {
+    if (!bookingReady || !receipt?.leadId) return;
+
+    setBookingState('sending');
+    applyBooking(
+      await getBookingClient().request({
+        leadId: receipt.leadId,
+        slotStart: draft.booking.slotStart,
+        durationMinutes: BOOKING_RULES.durationMinutes,
+        mode: draft.booking.mode as BookingMode,
+      }),
+    );
+  }, [applyBooking, bookingReady, draft.booking.mode, draft.booking.slotStart, receipt]);
+
+  /**
+   * Retries the SAME booking request: same bookingRequestId, same slot.
+   *
+   * Only offered for a retryable failure. A taken slot is not retryable, because the same
+   * request would be refused again; the visitor has to choose another time, and choosing
+   * one mints a new request in the client.
+   */
+  const retryBooking = useCallback(async () => {
+    setBookingState('sending');
+    applyBooking(await getBookingClient().retry());
+  }, [applyBooking]);
 
   return {
     isDev,
@@ -331,6 +459,13 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     failure,
     alertRef,
     bookingReady,
+    bookingState,
+    bookingFailure,
+    bookingCandidates,
+    chooseDay,
+    chooseSlot,
+    chooseMode,
+    retryBooking,
     setProperty,
     setSituation,
     setContact,

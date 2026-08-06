@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   APPROVED_LANGUAGES,
-  BOOKING_FIXTURE,
+  BOOKING_COPY,
   INVOLVEMENT_OPTIONS,
   PROPERTY_SCOPES,
   PROPERTY_TYPES,
@@ -13,11 +13,11 @@ import {
   TIMING_OPTIONS,
   EMAIL_HELP,
   NAME_HELP,
-  isDayUnavailable,
   isIntentToken,
   type Pathway,
   type ServiceScope,
 } from './model';
+import { BOOKING_MODES } from './booking/availability';
 import {
   Alert,
   ChoiceGroup,
@@ -425,6 +425,33 @@ function IntakeScreens() {
   const firstName = (draft.contact.fullName || 'there').trim().split(' ')[0];
   const emailShown = draft.contact.email || 'your email';
 
+  /*
+   * Booking candidates, and the state of the booking command.
+   *
+   * `days` and `slots` are CANDIDATES derived from the backend's rules, never availability:
+   * V2 exposes no availability query, so the browser cannot know what is free. The backend
+   * is the authority and may still refuse a candidate.
+   */
+  const { days, slots } = m.bookingCandidates;
+  const selectedDayLabel = days.find((d) => d.key === draft.booking.dayKey)?.label ?? '';
+  const selectedModeLabel =
+    BOOKING_MODES.find((mode) => mode.value === draft.booking.mode)?.label ?? '';
+
+  const bookingSending = m.bookingState === 'sending';
+  const bookingRetryable = m.bookingState === 'failed';
+  const bookingProblem =
+    m.bookingState === 'failed'
+      ? BOOKING_COPY.failed
+      : m.bookingState === 'unavailable'
+        ? BOOKING_COPY.unavailable
+        : m.bookingState === 'refused'
+          ? // A taken slot gets the approved neutral wording; any other refusal says plainly
+            // that retrying will not help.
+            m.bookingFailure?.code === 'SLOT_UNAVAILABLE'
+            ? BOOKING_COPY.slotTaken
+            : BOOKING_COPY.refused
+          : null;
+
   {
     /*
      * Development preview banner. Absent from a production bundle: `isDev` compiles to
@@ -608,67 +635,46 @@ function IntakeScreens() {
             <div className="font-semibold" style={{ fontSize: 14, marginBottom: 12 }}>
               Select a date
             </div>
+            {/*
+              Business days inside the backend's own horizon, computed from its rules. Not
+              a month grid: a calendar implies the days it does not offer are unavailable,
+              and the browser has no way to know that. A list of the days that CAN be
+              requested claims exactly as much as is true.
+            */}
             <div
-              style={{ background: '#FFFCF6', border: '1px solid rgba(28,22,40,0.2)', padding: 18 }}
+              className="grid gap-1.5"
+              role="group"
+              aria-label="Select a date"
+              style={{ background: '#FFFCF6', border: '1px solid rgba(28,22,40,0.2)', padding: 14, maxHeight: 320, overflowY: 'auto' }}
             >
-              <div className="flex items-center justify-between gap-3" style={{ marginBottom: 16 }}>
-                <span className="font-semibold" style={{ fontSize: 15 }}>
-                  {BOOKING_FIXTURE.monthLabel}
-                </span>
-              </div>
-              <div
-                className="grid grid-cols-7 gap-1"
-                style={{ marginBottom: 6 }}
-                aria-hidden="true"
-              >
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <span
-                    key={`${d}${i}`}
-                    className="text-center font-bold uppercase text-[rgba(28,22,40,0.45)]"
-                    style={{ fontSize: 11, letterSpacing: '0.06em' }}
+              {days.map((d) => {
+                const on = draft.booking.dayKey === d.key;
+                return (
+                  <button
+                    key={d.key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => m.chooseDay(d.key)}
+                    style={{
+                      minHeight: 44,
+                      padding: '0 12px',
+                      fontSize: 14.5,
+                      fontWeight: on ? 700 : 500,
+                      borderRadius: 2,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      background: on ? '#24A5BC' : 'transparent',
+                      color: on ? '#0F1F27' : '#1C1628',
+                      border: `1px solid ${on ? '#24A5BC' : 'rgba(28,22,40,0.18)'}`,
+                    }}
                   >
-                    {d}
-                  </span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1" role="group" aria-label="Select a date">
-                {Array.from({ length: BOOKING_FIXTURE.leadingBlanks }).map((_, i) => (
-                  <span key={`blank${i}`} aria-hidden="true" style={{ minHeight: 40 }} />
-                ))}
-                {Array.from({ length: BOOKING_FIXTURE.daysInMonth }, (_, i) => i + 1).map((d) => {
-                  const off = isDayUnavailable(d);
-                  const on = draft.booking.day === d;
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={off}
-                      aria-pressed={on}
-                      aria-label={`${BOOKING_FIXTURE.monthLabel.split(' ')[0]} ${d}`}
-                      onClick={() => m.setBooking('day', d)}
-                      style={{
-                        minHeight: 44,
-                        padding: 0,
-                        fontSize: 14,
-                        fontWeight: on ? 700 : 500,
-                        borderRadius: 2,
-                        cursor: off ? 'default' : 'pointer',
-                        background: on ? '#24A5BC' : 'transparent',
-                        color: on ? '#0F1F27' : off ? 'rgba(28,22,40,0.3)' : '#1C1628',
-                        border: `1px solid ${on ? '#24A5BC' : off ? 'transparent' : 'rgba(28,22,40,0.18)'}`,
-                      }}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
+                    {d.label}
+                  </button>
+                );
+              })}
             </div>
             <p className="text-[rgba(28,22,40,0.55)]" style={{ margin: '12px 0 0', fontSize: 13 }}>
-              Times shown in {BOOKING_FIXTURE.timezone}. Weekends and past dates are unavailable.
-            </p>
-            <p className="text-[rgba(28,22,40,0.55)]" style={{ margin: '8px 0 0', fontSize: 13 }}>
-              Availability shown is local sample data for this preview. No calendar is contacted.
+              {BOOKING_COPY.candidateNote}
             </p>
           </div>
 
@@ -676,44 +682,55 @@ function IntakeScreens() {
             <div className="font-semibold" style={{ fontSize: 14, marginBottom: 12 }}>
               Select a time
             </div>
+            {/*
+              No slot is ever struck through. The browser cannot know which times are taken,
+              and drawing one as unavailable would be a guess presented as a fact. If a slot
+              has gone by the time it is requested, the backend says so and the visitor picks
+              again.
+            */}
             <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select a time">
-              {BOOKING_FIXTURE.slots.map((t) => {
-                const off = BOOKING_FIXTURE.takenSlots.includes(t);
-                const on = draft.booking.time === t;
+              {slots.map((s) => {
+                const on = draft.booking.slotStart === s.slotStart;
                 return (
                   <button
-                    key={t}
+                    key={s.slotStart}
                     type="button"
-                    disabled={off}
                     aria-pressed={on}
-                    aria-label={off ? `${t}, unavailable` : t}
-                    onClick={() => m.setBooking('time', t)}
+                    onClick={() => m.chooseSlot(s.slotStart, s.label)}
                     style={{
                       minHeight: 48,
                       padding: '0 10px',
                       fontSize: 14.5,
                       fontWeight: on ? 700 : 500,
                       borderRadius: 2,
-                      cursor: off ? 'default' : 'pointer',
-                      background: on ? '#24A5BC' : off ? 'rgba(28,22,40,0.04)' : '#FFFCF6',
-                      color: on ? '#0F1F27' : off ? 'rgba(28,22,40,0.32)' : '#1C1628',
+                      cursor: 'pointer',
+                      background: on ? '#24A5BC' : '#FFFCF6',
+                      color: on ? '#0F1F27' : '#1C1628',
                       border: on ? '2px solid #24A5BC' : '1px solid rgba(28,22,40,0.22)',
-                      textDecoration: off ? 'line-through' : 'none',
                     }}
                   >
-                    {t}
+                    {s.label}
                   </button>
                 );
               })}
+              {days.length > 0 && slots.length === 0 && (
+                <p className="text-[rgba(28,22,40,0.6)]" style={{ margin: 0, fontSize: 14, gridColumn: '1 / -1' }}>
+                  Choose a date to see times.
+                </p>
+              )}
             </div>
 
             <div style={{ marginTop: 28 }}>
+              {/* Labels are display strings; the value stored is the backend token. */}
               <ChoiceGroup
                 legend="How should we meet?"
                 columns={1}
-                options={BOOKING_FIXTURE.modes.map((label) => ({ label }))}
-                value={draft.booking.mode}
-                onChange={(v) => m.setBooking('mode', v)}
+                options={BOOKING_MODES.map((mode) => ({ label: mode.label }))}
+                value={BOOKING_MODES.find((mode) => mode.value === draft.booking.mode)?.label ?? ''}
+                onChange={(label) => {
+                  const chosen = BOOKING_MODES.find((mode) => mode.label === label);
+                  if (chosen) m.chooseMode(chosen.value);
+                }}
               />
             </div>
 
@@ -729,13 +746,29 @@ function IntakeScreens() {
               </div>
               <div className="font-semibold" style={{ fontSize: 16 }}>
                 {m.bookingReady
-                  ? `August ${draft.booking.day} at ${draft.booking.time}, ${draft.booking.mode}`
+                  ? `${selectedDayLabel} at ${draft.booking.timeLabel}, ${selectedModeLabel}`
                   : 'Pick a date, a time, and how to meet'}
               </div>
+
+              {/*
+                A booking refusal is reported where the decision was made, not on a separate
+                screen: the visitor is already looking at the picker they need to change.
+                A taken slot is not a failure, so it never offers "try again": the fix is
+                another time, and choosing one mints a new request in the client.
+              */}
+              {bookingProblem && (
+                <div role="alert" style={{ marginTop: 16 }}>
+                  <Alert innerRef={m.alertRef} assertive>
+                    {bookingProblem}
+                  </Alert>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={m.confirmBooking}
-                disabled={!m.bookingReady}
+                onClick={bookingRetryable ? m.retryBooking : m.confirmBooking}
+                disabled={!m.bookingReady || bookingSending}
+                aria-busy={bookingSending || undefined}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -748,15 +781,17 @@ function IntakeScreens() {
                   borderRadius: 2,
                   fontSize: 15,
                   fontWeight: 700,
-                  background: m.bookingReady ? '#24A5BC' : 'rgba(28,22,40,0.12)',
-                  color: m.bookingReady ? '#0F1F27' : 'rgba(28,22,40,0.42)',
-                  cursor: m.bookingReady ? 'pointer' : 'not-allowed',
+                  background: m.bookingReady ? (bookingSending ? '#1B8DA2' : '#24A5BC') : 'rgba(28,22,40,0.12)',
+                  color: m.bookingReady ? (bookingSending ? '#FFFFFF' : '#0F1F27') : 'rgba(28,22,40,0.42)',
+                  cursor: !m.bookingReady ? 'not-allowed' : bookingSending ? 'progress' : 'pointer',
                 }}
               >
-                Confirm this time{' '}
-                <span aria-hidden="true" style={{ fontSize: 16 }}>
-                  &#8594;
-                </span>
+                {bookingSending ? 'Booking' : bookingRetryable ? 'Try again' : 'Confirm this time'}
+                {!bookingSending && (
+                  <span aria-hidden="true" style={{ fontSize: 16 }}>
+                    &#8594;
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -783,13 +818,12 @@ function IntakeScreens() {
           style={{ margin: '30px 0 44px', padding: '22px 0', maxWidth: 560 }}
         >
           {[
-            [
-              'When',
-              `${new Date(BOOKING_FIXTURE.year, BOOKING_FIXTURE.monthIndex, draft.booking.day ?? 12).toLocaleDateString('en-US', { weekday: 'long' })}, August ${draft.booking.day ?? 12}, ${draft.booking.time || '10:30 AM'} Central`,
-            ],
-            ['Format', draft.booking.mode || 'Phone call'],
-            ['Length', BOOKING_FIXTURE.durationLabel],
-            ['With', BOOKING_FIXTURE.withLabel],
+            // The time the visitor actually booked, not a fixture default. Confirmed only
+            // reaches this screen after the backend created the calendar event.
+            ['When', `${selectedDayLabel}, ${draft.booking.timeLabel} Central`],
+            ['Format', selectedModeLabel],
+            ['Length', BOOKING_COPY.durationLabel],
+            ['With', BOOKING_COPY.withLabel],
           ].map(([k, v]) => (
             <div key={k} className="grid lg:grid-cols-[120px_1fr] gap-y-2 gap-x-6">
               <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5 }}>
@@ -812,7 +846,8 @@ function IntakeScreens() {
             className="text-[rgba(28,22,40,0.55)]"
             style={{ margin: '0 0 30px', fontSize: 13, maxWidth: '50ch' }}
           >
-            Simulated confirmation. No calendar event was created and no invitation was sent.
+            Development preview. The booking command ran against the simulator, so no
+            calendar event was created and no invitation was sent.
           </p>
         )}
         <Link

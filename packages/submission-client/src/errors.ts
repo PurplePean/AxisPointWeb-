@@ -10,14 +10,21 @@
  * it is tried.
  */
 
-import type { SubmissionSuccessResponse } from './wire';
+import type { BookingSuccessResponse, SubmissionSuccessResponse } from './wire';
 import { BACKEND_ERROR } from './wire';
 
 export type ClientOutcome = 'ok' | 'retryable' | 'permanent' | 'not_configured';
 
 export interface ClientSuccess {
   outcome: 'ok';
-  response: SubmissionSuccessResponse;
+  /**
+   * A submission receipt, or a confirmed booking.
+   *
+   * Discriminate on `submissionKind` before reading anything else: a booking response has
+   * no `leadId`, `slaDueAt`, or `bookingEligible`, and a submission response has no
+   * `bookingStatus`.
+   */
+  response: SubmissionSuccessResponse | BookingSuccessResponse;
 }
 
 export interface ClientFailure {
@@ -34,6 +41,27 @@ export interface ClientFailure {
 }
 
 export type ClientResult = ClientSuccess | ClientFailure;
+
+/**
+ * Narrows a success to a submission receipt.
+ *
+ * Exists because `ClientSuccess.response` covers both a submission and a booking, and the
+ * two have disjoint fields: reading `leadId` off a booking response, or `bookingStatus` off
+ * a submission response, is a mistake worth catching at compile time rather than finding as
+ * `undefined` on a confirmation screen.
+ */
+export function isSubmissionResponse(
+  response: SubmissionSuccessResponse | BookingSuccessResponse,
+): response is SubmissionSuccessResponse {
+  return response.submissionKind !== 'booking_request';
+}
+
+/** The mirror of `isSubmissionResponse`, for a confirmed booking. */
+export function isBookingResponse(
+  response: SubmissionSuccessResponse | BookingSuccessResponse,
+): response is BookingSuccessResponse {
+  return response.submissionKind === 'booking_request';
+}
 
 /** Codes this client raises itself, distinct from anything the backend sends. */
 export const CLIENT_ERROR = {

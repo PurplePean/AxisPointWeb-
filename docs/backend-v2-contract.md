@@ -670,7 +670,9 @@ id while changing the data gets `SUBMISSION_ID_CONFLICT` and its data is not sto
 is a requirement on the client, not a suggestion, and the shared submission client is
 where it has to be implemented.
 
-As of Code Pass 10A that client exists: see [section 19](#19-the-frontend-transport-boundary).
+As of Code Pass 10A that client exists, and Code Pass 10C extends the same rule to the
+booking command's `bookingRequestId`: see
+[section 19](#19-the-frontend-transport-boundary).
 
 ### The delivery guarantee, stated honestly
 
@@ -1132,14 +1134,96 @@ ordinary success screen word for word. Duplicate review is internal work done la
 partner; the client is never told a match occurred, so there is nothing in the frontend
 conditional on one.
 
+### The booking command (Code Pass 10C)
+
+Choosing a time issues a real `booking_request` through the same client. **The backend needed
+no change**: a read-only audit confirmed the request shape, the response shape, the refusal
+codes, and the idempotency rule were all already complete.
+
+**Eligibility is the backend's, in both directions.** The intake offers a call only when
+`bookingEligible` came back true on the submission response, and `executeBookingCommand`
+re-evaluates `isBookablePathway` against the stored Lead at the moment somebody books rather
+than trusting that snapshot. There is no pathway list in the frontend, for the same reason
+there is none in `Booking.js`.
+
+**Candidate times are policy-valid requests, not availability.** This is the one place the
+frontend could easily lie, so it is worth stating plainly: V2 exposes no availability query
+(`listBusy` is internal to the command, `doGet` is a health check), so the browser cannot
+know which times are free. The picker therefore derives candidates from the backend's own
+rules and claims nothing more:
+
+| Mirrored rule | Value |
+|---|---|
+| Minimum lead time | 60 minutes |
+| Horizon | 60 days |
+| Business hours | 09:00 to 17:00, both ends inside one business day |
+| Business days | Monday to Friday |
+| Slot cadence and duration | 30 minutes |
+| Zone | `America/Chicago`, with real daylight-saving offsets |
+
+These are mirrored, not owned, so `apps/web/tests/booking.contract.test.ts` reads each value
+out of the real backend source and fails if either side moves. A drifted mirror is worse than
+none: the form would quietly offer times the command refuses, and the visitor finds out.
+Every generated `slotStart` is additionally run through the backend's own
+`isWithinBusinessHours`.
+
+**Nothing is ever drawn as taken**, and the copy never describes these times as live
+availability. The backend remains the authority and may still refuse a candidate.
+
+**A refusal is classified by `bookingStatus`, not guessed:**
+
+| Status | Client outcome | What the visitor sees |
+|---|---|---|
+| `unavailable` | permanent, attempt exhausted | "That time is no longer available. Please choose another." No retry: the same request would be refused again. |
+| `rejected` | permanent, attempt exhausted | Trying again would not help. |
+| `failed` | **retryable** | The same request is worth resending, with the same id. |
+| `not_configured` | not configured | Nothing was booked, said plainly. |
+
+**`bookingRequestId` follows the same two rules as `submissionId`, pulling opposite ways.**
+An unchanged retry reuses the id, so a timeout cannot create a second calendar hold; the
+backend replays the recorded outcome. Changing the slot or the mode is a **material edit**
+and mints a new id, because replaying the old booking would confirm a time the visitor just
+moved away from. The fingerprint covers `leadId`, `slotStart`, `durationMinutes`, and `mode`,
+and excludes `submittedAt` so an honest retry is not mistaken for a different request.
+
+**A booking reply is validated against the booking shape**, not the submission shape: it
+carries no `submissionId`, `leadId`, `slaDueAt`, or `bookingEligible`. A success is accepted
+only with the matching `bookingRequestId`, a boolean `replay`, and `bookingStatus` exactly
+`confirmed`. An `ok: true` body claiming any other status is rejected outright, because
+treating "ok but unavailable" as a confirmation is how somebody ends up waiting for a call
+that was never booked.
+
+**One shared AxisPoint calendar** is unchanged: a single `AXP_CALENDAR_ID` Script Property.
+
+### A production simulator leak, and a bundle assertion that was not a guarantee
+
+Pass 10C found and fixed a real defect, and retired a check that had been measuring the wrong
+thing. Both are recorded because the pattern matters more than the instances.
+
+**The simulator shipped in a production bundle.** `createTransport` used to return
+`simulatorTransport(...)` when `isDevelopment` was true. In a production build that branch was
+removed only because the bundler inlined `createTransport` and folded the flag away, which
+held while exactly one call site existed. Adding the booking client ended the inlining, and
+the simulator's fake lead ids and every fixture name appeared in the production bundle.
+`verify:bundle` caught it. **The fix is structural, not a patch**: `createTransport` can no
+longer return the simulator at all, and each app reaches the simulator directly behind its own
+`import.meta.env.DEV` literal, so production code never references it and it is dropped
+because it is genuinely unreferenced rather than by luck.
+
+**The "no endpoint, therefore no network transport in the bundle" assertion was removed.** It
+was added in Pass 10A and it over-claimed. `createTransport` references `networkTransport` on
+one branch, so whether that code survives tree-shaking measures whether the bundler inlined
+the function, not whether the build is safe; it began failing the moment a second client
+existed even though nothing unsafe had changed. What actually prevents a no-endpoint build
+from posting anywhere is that there is no endpoint to post to, and the checks that prove that
+all remain: no endpoint literal in the bundle, the fail-closed `NOT_CONFIGURED` path present,
+no dev fixtures, and the `--expect-endpoint` direction confirming an endpoint-enabled build
+does keep its transport.
+
 ### Still unconnected after this pass
 
-- **The booking command is not wired.** The intake reads `bookingEligible` from the response
-  and shows or hides the call offer; selecting a time still uses local fixture availability
-  and a simulated confirmation.
-- **No endpoint exists.** Every one of the checks above ran against the dev simulator or a
-  local stub on `127.0.0.1`. No request has ever been sent to Google.
-- **Nothing else was added by Pass 10B**: no automatic matching, no merging, no Google
-  Contact sync, no booking, no storage persistence, and no referral resolution. Matching
-  remains a server-side flag only, and `contactSyncStatus` remains `not_configured` with no
-  People API code and no scope.
+- **No endpoint exists.** Every check above ran against the dev simulator or a local stub on
+  `127.0.0.1`. No request has ever been sent to Google, and no calendar was contacted.
+- **Nothing else was added**: no automatic matching, no merging, no Google Contact sync, no
+  storage persistence, and no referral resolution. Matching remains a server-side flag only,
+  and `contactSyncStatus` remains `not_configured` with no People API code and no scope.

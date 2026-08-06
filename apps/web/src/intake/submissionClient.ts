@@ -28,6 +28,7 @@
 import {
   createSubmissionClient,
   createTransport,
+  simulatorTransport,
   type SimulatorFixture,
   type SubmissionClient,
 } from '@axispoint/submission-client';
@@ -93,17 +94,26 @@ let client: SubmissionClient | null = null;
  * Shared rather than per-component so a retry reaches the same live attempt, which is the
  * whole point of the same-id contract.
  */
-export function getSubmissionClient(): SubmissionClient {
-  if (!client) {
-    client = createSubmissionClient({
-      transport: createTransport({
-        networkEnabled: NETWORK_ENABLED,
-        endpoint: ENDPOINT,
-        isDevelopment: import.meta.env.DEV,
-        simulator: { fixture: devFixture() },
-      }),
-    });
+/**
+ * Builds the transport with the simulator branch STATICALLY removed from production.
+ *
+ * See `booking/bookingClient.ts` for the full reasoning: relying on the bundler to inline
+ * `createTransport` and prove the simulator dead stopped working once a second call site
+ * existed, and the fixture names reappeared in the production bundle.
+ */
+function buildTransport() {
+  if (import.meta.env.DEV && !NETWORK_ENABLED) {
+    return simulatorTransport({ fixture: devFixture() });
   }
+  return createTransport({
+    networkEnabled: NETWORK_ENABLED,
+    endpoint: ENDPOINT,
+    isDevelopment: false,
+  });
+}
+
+export function getSubmissionClient(): SubmissionClient {
+  if (!client) client = createSubmissionClient({ transport: buildTransport() });
   return client;
 }
 

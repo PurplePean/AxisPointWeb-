@@ -6,9 +6,9 @@ import {
   networkTransport,
   simulatorTransport,
 } from '../src/transport';
-import { CLIENT_ERROR } from '../src/errors';
+import { CLIENT_ERROR, isSubmissionResponse } from '../src/errors';
 import type { ClientFailure, ClientResult, ClientSuccess } from '../src/errors';
-import type { SubmissionEnvelope } from '../src/wire';
+import type { SubmissionEnvelope, SubmissionSuccessResponse } from '../src/wire';
 import type { SimulatorFixture } from '../src/transport';
 
 /*
@@ -42,11 +42,19 @@ function asFailure(result: ClientResult): ClientFailure {
   return result as ClientFailure;
 }
 
-/** Narrows to a success the same way. */
-function asSuccess(result: ClientResult): ClientSuccess {
+/**
+ * Narrows to a SUBMISSION success.
+ *
+ * `ClientSuccess.response` also covers a confirmed booking, which has none of a
+ * submission's fields, so the narrowing is asserted rather than assumed.
+ */
+function asSuccess(result: ClientResult): ClientSuccess & { response: SubmissionSuccessResponse } {
   assert.equal(result.outcome, 'ok', 'expected a success');
-  return result as ClientSuccess;
+  const success = result as ClientSuccess;
+  assert.equal(isSubmissionResponse(success.response), true, 'expected a submission response');
+  return success as ClientSuccess & { response: SubmissionSuccessResponse };
 }
+
 
 /** Fails the test if anything calls it. Installed where no request may happen. */
 function forbiddenFetch(): typeof fetch {
@@ -163,12 +171,31 @@ test('network mode opted in with no endpoint stays closed', async () => {
   }
 });
 
-test('development defaults to the simulator', async () => {
-  const transport = createTransport({ networkEnabled: false, endpoint: '', isDevelopment: true });
-  assert.equal(transport.kind, 'simulator');
+test('createTransport can NEVER return the simulator, whatever it is told', async () => {
+  /*
+   * This is the guarantee that replaced the old "development defaults to the simulator"
+   * behaviour, and it exists because of a real defect. While `createTransport` could return
+   * the simulator, a production bundle only dropped that code if the bundler happened to
+   * inline this function and fold the flag. A second call site ended the inlining and the
+   * simulator's fake ids shipped. Callers now reach the simulator directly, behind their own
+   * `import.meta.env.DEV` check, so production never references it.
+   */
+  const original = globalThis.fetch;
+  globalThis.fetch = forbiddenFetch();
+
+  try {
+    for (const isDevelopment of [true, false]) {
+      const transport = createTransport({ networkEnabled: false, endpoint: '', isDevelopment });
+      assert.notEqual(transport.kind, 'simulator');
+      assert.equal(transport.kind, 'not_configured');
+      assert.equal((await transport.send(envelope)).outcome, 'not_configured');
+    }
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 
-test('development with an endpoint still simulates unless network mode is opted into', async () => {
+test('an endpoint without the explicit opt-in stays closed even in development', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = forbiddenFetch();
 
@@ -177,10 +204,9 @@ test('development with an endpoint still simulates unless network mode is opted 
       networkEnabled: false,
       endpoint: 'https://example.test/exec',
       isDevelopment: true,
-      simulator: { delayMs: 0 },
     });
-    assert.equal(transport.kind, 'simulator');
-    assert.equal((await transport.send(envelope)).outcome, 'ok');
+    assert.equal(transport.kind, 'not_configured');
+    assert.equal((await transport.send(envelope)).outcome, 'not_configured');
   } finally {
     globalThis.fetch = original;
   }

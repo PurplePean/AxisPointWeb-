@@ -91,11 +91,19 @@ export interface ContactDraft {
 }
 
 export interface BookingDraft {
-  /** Day of month within the fixture month, or null when nothing is chosen. */
-  day: number | null;
-  /** Slot label, e.g. "10:30 AM". */
-  time: string;
-  /** "Phone call" | "Video meeting" */
+  /** ISO date key of the chosen day, or '' when nothing is chosen. */
+  dayKey: string;
+  /**
+   * The chosen slot as an ISO timestamp WITH an offset, ready for the wire.
+   *
+   * Stored resolved rather than as a "10:30 AM" label, because the label alone is
+   * ambiguous: the backend needs a real instant, and deriving one at submit time would
+   * mean re-running the time-zone arithmetic somewhere it is easy to get wrong.
+   */
+  slotStart: string;
+  /** Display label for the chosen slot, e.g. "10:30 AM". */
+  timeLabel: string;
+  /** A backend token: `phone_call` or `video_meeting`. Never a display string. */
   mode: string;
 }
 
@@ -122,7 +130,7 @@ export const emptyDraft = (pathway: Pathway, scope: ServiceScope): IntakeDraft =
   property: { type: '', scope: '', location: '', scale: '', propertyCount: '', scaleUnknown: false },
   situation: { current: '', involvement: '', timing: '', notes: '' },
   contact: { fullName: '', email: '', phone: '', organization: '', followUpLanguage: '' },
-  booking: { day: null, time: '', mode: '' },
+  booking: { dayKey: '', slotStart: '', timeLabel: '', mode: '' },
   referralCode: '',
 });
 
@@ -264,38 +272,33 @@ export const SHORT_PATHS: Record<'investor-services' | 'general-inquiry', ShortP
   },
 };
 
-/* ── Booking fixtures ──────────────────────────────────────────────────────── */
+/* ── Booking presentation ──────────────────────────────────────────────────── */
 
 /**
- * Local fixture availability. Clearly labelled as such in the UI. No calendar
- * request leaves the browser in this pass, and real availability rules are an open
- * backend decision.
+ * Copy for the booking surface.
+ *
+ * The fixture calendar that used to live here is gone. It hard-coded "August 2026",
+ * invented two taken slots, and greyed out every date before the 10th, none of which the
+ * browser can actually know: V2 exposes no availability query. Candidate times are now
+ * derived from the backend's own booking rules in `booking/availability.ts`, and the copy
+ * below is careful never to describe them as live availability.
  */
-export const BOOKING_FIXTURE = {
-  monthLabel: 'August 2026',
-  year: 2026,
-  /** 0-indexed month, matching Date. */
-  monthIndex: 7,
-  daysInMonth: 31,
-  /** Leading blank cells before the first of the month. */
-  leadingBlanks: 6,
-  slots: ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:30 PM'],
-  takenSlots: ['11:00 AM', '2:00 PM'],
-  modes: ['Phone call', 'Video meeting'],
-  timezone: 'Central Time, Houston',
+export const BOOKING_COPY = {
   durationLabel: '30 minutes',
   /**
-   * Neutral until a backend actually assigns someone. Naming a specific partner in a
-   * simulated confirmation would be an invented assignment, and no assignment logic
-   * exists. A future backend that returns a real assignee can replace this.
+   * Neutral until a backend actually assigns someone. Naming a specific partner would be
+   * an invented assignment, and no assignment logic exists.
    */
   withLabel: 'AxisPoint Partners',
-};
-
-export function isDayUnavailable(day: number): boolean {
-  const dow = (day + 5) % 7;
-  return dow === 0 || dow === 6 || day < 10;
-}
+  /** Says what these times are, and what they are not. */
+  candidateNote:
+    'Times are shown in Central Time, Houston. Availability is confirmed when you book.',
+  /** The approved neutral refusal for a slot that was taken between choosing and booking. */
+  slotTaken: 'That time is no longer available. Please choose another.',
+  failed: 'We could not confirm that time. Nothing was booked. Try again.',
+  refused: 'We could not book that time, and trying again would not help.',
+  unavailable: 'Scheduling is unavailable right now. Nothing was booked.',
+} as const;
 
 /* ── Validation ────────────────────────────────────────────────────────────── */
 

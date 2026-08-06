@@ -250,11 +250,23 @@ is unreachable or unconfigured.
 | Website intake | `unavailable` | A production build with no endpoint must not simulate success. It has to say plainly that nothing was sent | Reuses the **approved** error-summary alert component and its magenta error tone verbatim. Only the sentence is new |
 | Website intake | `blocked` | A permanent backend rejection, and the unreachable case where an answer has no wire token, must not offer a retry that cannot work | Same approved alert component, different sentence, retry deliberately withheld |
 | QR Contact Exchange | not-configured / permanent failure | Same reason. The board drew a recoverable failure with a Try again, but not the case where retrying cannot help | Reuses the **approved** failure banner and its darker magenta verbatim, changing only the second sentence and withholding Try again |
+| Intake booking | taken slot, booking failure, no calendar | The approved booking screen was drawn against a fixture calendar, before a real command existed. It has no state for "that time was taken between choosing and asking" | Reuses the **approved** alert component. The taken-slot wording is the owner-approved neutral line, "That time is no longer available. Please choose another." Retry is offered only for a retryable failure |
 
 **No new component, colour, spacing, or type style was invented for any of them.** They are
 approved elements with new copy. If the owner later approves dedicated designs for these
 states, that export supersedes this note. Recorded here so a reviewer is not left looking for
 an approval that does not exist.
+
+**The booking picker replaced its fixture calendar with a derived candidate list (Pass
+10C).** The approved intake board draws a month grid against local sample availability. That
+could not survive contact with a real command: V2 exposes no availability query, so the
+month grid's greyed-out dates and struck-through slots were claims the browser has no way to
+make, and its fixed "August 2026" would eventually fall outside the backend's 60-day horizon
+and be refused outright. The picker now lists the business days and 30-minute slots the
+backend's own rules accept, and states only that availability is confirmed when you book. A
+month grid also implies the days it omits are unavailable, which is why a list replaced it
+rather than a filtered calendar. Recorded as a deliberate deviation from the drawn treatment,
+taken because the drawn treatment asserts facts that are not knowable, not for convenience.
 
 ## Historical, not build inputs
 

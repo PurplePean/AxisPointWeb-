@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isSuccess, type ClientResult } from '@axispoint/submission-client';
+import { isSubmissionResponse, isSuccess, type ClientResult } from '@axispoint/submission-client';
 
 import { getSubmissionClient } from './submissionClient';
 import { toEnvelopeDraft } from './toWire';
@@ -123,7 +123,12 @@ export function useExchange(context: { profileKey: string | null }) {
       if (result === null) return;
 
       if (isSuccess(result)) {
-        setReceipt({ contactId: result.response.contactId });
+        // The shared client now carries booking responses too, which have no `contactId`.
+        // This surface only ever sends a contact exchange, so a booking reply here would
+        // mean the transport answered a different question than the one asked.
+        setReceipt({
+          contactId: isSubmissionResponse(result.response) ? result.response.contactId : null,
+        });
         setSendState('idle');
         setScreen('success');
         requestAnnounce('success');
