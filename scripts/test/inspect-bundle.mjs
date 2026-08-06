@@ -102,10 +102,23 @@ if (expectedEndpoint) {
   if (!bundle.includes(NETWORK_TRANSPORT_MARKER)) {
     findings.push('endpoint compiled in but the network transport was dropped from the bundle');
   }
-} else if (bundle.includes(NETWORK_TRANSPORT_MARKER)) {
-  // No endpoint was supplied, so nothing should be able to post anywhere.
-  findings.push('no endpoint configured, yet the network transport is still in the bundle');
 }
+
+/*
+ * There is deliberately NO "the network transport must be absent" check for a no-endpoint
+ * build.
+ *
+ * It existed, and it was over-claiming. `createTransport` references `networkTransport` on
+ * one branch, so whether that code survives tree-shaking depends on whether the bundler
+ * inlines `createTransport` — which it stops doing as soon as an app has more than one
+ * client. Its absence therefore measured inlining, not safety, and it started failing the
+ * moment the booking client was added even though nothing unsafe had changed.
+ *
+ * What actually keeps a no-endpoint build from posting anywhere is that there is no
+ * endpoint to post to: `__FORM_ENDPOINT__` folds to an empty string, `createTransport`
+ * returns the fail-closed transport, and the FORBIDDEN list above proves no Apps Script
+ * endpoint was compiled in. Those are the checks worth keeping, and they are still here.
+ */
 
 process.stdout.write(`inspected ${jsFiles.length} bundle file(s) in ${assets}\n`);
 

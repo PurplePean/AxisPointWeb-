@@ -16,14 +16,28 @@
  */
 
 import { SCHEMA_VERSION } from './wire';
-import type { SubmissionEnvelope, SubmissionResponse, SubmissionSuccessResponse } from './wire';
+import type {
+  BookingResponse,
+  SubmissionEnvelope,
+  SubmissionResponse,
+  SubmissionSuccessResponse,
+  WireEnvelope,
+} from './wire';
+import { BOOKING_ERROR } from './wire';
 import type { ClientResult, ClientFailure } from './errors';
 import { CLIENT_ERROR, classifyBackendError, networkFailure, notConfigured } from './errors';
 
 export interface Transport {
   /** Names which implementation is in use. Surfaced in dev tooling and tests. */
   readonly kind: 'simulator' | 'network' | 'not_configured';
-  send(envelope: SubmissionEnvelope, signal?: AbortSignal): Promise<ClientResult>;
+  /**
+   * Sends a submission or a booking command.
+   *
+   * One transport carries both because there is one endpoint, discriminated by
+   * `submissionKind`. The two have different response shapes, so the reply is validated
+   * against the shape the request asked for rather than a shape that happens to parse.
+   */
+  send(envelope: WireEnvelope, signal?: AbortSignal): Promise<ClientResult>;
 }
 
 /* ── Simulator ────────────────────────────────────────────────────────────── */
@@ -43,14 +57,19 @@ export type SimulatorFixture =
   | 'recoverable_failure'
   | 'permanent_failure'
   | 'submission_id_conflict'
-  | 'not_configured';
+  | 'not_configured'
+  /** Booking-only fixtures. A booking envelope resolves against these instead. */
+  | 'booking_confirmed'
+  | 'booking_slot_unavailable'
+  | 'booking_rejected'
+  | 'booking_failed';
 
 export interface SimulatorOptions {
   fixture?: SimulatorFixture;
   /** Milliseconds before resolving, so the sending state is observable. */
   delayMs?: number;
   /** Records every envelope handed to it, for assertions. */
-  onSend?: (envelope: SubmissionEnvelope) => void;
+  onSend?: (envelope: WireEnvelope) => void;
 }
 
 const DEFAULT_SIMULATED_DELAY_MS = 700;
@@ -86,9 +105,38 @@ export function simulatorTransport(options: SimulatorOptions = {}): Transport {
 
   return {
     kind: 'simulator',
-    async send(envelope: SubmissionEnvelope): Promise<ClientResult> {
+    async send(envelope: WireEnvelope): Promise<ClientResult> {
       options.onSend?.(envelope);
       if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+      if (envelope.submissionKind === 'booking_request') {
+        // A booking envelope gets a booking-shaped reply. Returning a submission response
+        // here would let the intake pass a test it should fail.
+        switch (options.fixture) {
+          case 'booking_slot_unavailable':
+            return classifyBookingError('SLOT_UNAVAILABLE', 'unavailable');
+          case 'booking_rejected':
+            return classifyBookingError('BOOKING_ALREADY_ACTIVE', 'rejected');
+          case 'booking_failed':
+            return classifyBookingError('CALENDAR_CREATE_FAILED', 'failed');
+          case 'not_configured':
+            return notConfigured();
+          case 'recoverable_failure':
+            return networkFailure();
+          default:
+            return {
+              outcome: 'ok',
+              response: {
+                schemaVersion: 1,
+                ok: true,
+                submissionKind: 'booking_request',
+                bookingRequestId: envelope.bookingRequestId,
+                bookingStatus: 'confirmed',
+                replay: false,
+              },
+            };
+        }
+      }
 
       switch (options.fixture ?? 'success') {
         case 'success':
@@ -135,7 +183,7 @@ export function networkTransport(options: NetworkOptions): Transport {
 
   return {
     kind: 'network',
-    async send(envelope: SubmissionEnvelope, signal?: AbortSignal): Promise<ClientResult> {
+    async send(envelope: WireEnvelope, signal?: AbortSignal): Promise<ClientResult> {
       if (typeof doFetch !== 'function') return notConfigured();
 
       const controller = new AbortController();
@@ -164,9 +212,9 @@ export function networkTransport(options: NetworkOptions): Transport {
         return { outcome: 'retryable', code: CLIENT_ERROR.UNEXPECTED_STATUS, field: null, attemptExhausted: false };
       }
 
-      let body: SubmissionResponse;
+      let body: SubmissionResponse | BookingResponse;
       try {
-        body = (await raw.json()) as SubmissionResponse;
+        body = (await raw.json()) as SubmissionResponse | BookingResponse;
       } catch {
         return malformed();
       }
@@ -175,12 +223,19 @@ export function networkTransport(options: NetworkOptions): Transport {
         return malformed();
       }
 
-      if (body.ok === true) {
-        if (!isValidSuccess(body, envelope)) return malformed();
-        return { outcome: 'ok', response: body };
+      // The reply is checked against the shape the REQUEST asked for. A submission
+      // response arriving for a booking command is not "close enough": it would mean the
+      // endpoint answered a different question than the one asked.
+      if (envelope.submissionKind === 'booking_request') {
+        return readBookingResult(body as BookingResponse, envelope.bookingRequestId);
       }
 
-      const error = readError(body);
+      if (body.ok === true) {
+        if (!isValidSuccess(body as SubmissionResponse, envelope)) return malformed();
+        return { outcome: 'ok', response: body as SubmissionSuccessResponse };
+      }
+
+      const error = readError(body as SubmissionResponse);
       if (!error) return malformed();
       return classifyBackendError(error.code, error.field);
     },
@@ -243,6 +298,74 @@ function isValidSuccess(body: SubmissionResponse, envelope: SubmissionEnvelope):
   return isNonEmptyString(body.contactId) && body.leadId === null && body.slaDueAt === null;
 }
 
+/* ── Booking responses ────────────────────────────────────────────────────── */
+
+/**
+ * Reads a booking reply, which is a different shape from a submission reply.
+ *
+ * A confirmed booking carries no `submissionId`, `leadId`, `slaDueAt`, or
+ * `bookingEligible`, so running it through the submission validator would reject a
+ * perfectly correct response. It has its own required fields instead: the schema version,
+ * the kind, the `bookingRequestId` that was sent, a boolean `replay`, and a `bookingStatus`
+ * of exactly `confirmed`.
+ *
+ * A success body claiming any other status is rejected outright. `confirmed` is the only
+ * value the backend ever pairs with `ok: true`, and treating "ok but unavailable" as a
+ * confirmation is how somebody ends up waiting for a call that was never booked.
+ */
+function readBookingResult(body: BookingResponse, sentRequestId: string): ClientResult {
+  if (body.schemaVersion !== SCHEMA_VERSION) return malformed();
+
+  if (body.ok === true) {
+    if (body.submissionKind !== 'booking_request') return malformed();
+    if (body.bookingRequestId !== sentRequestId) return malformed();
+    if (typeof body.replay !== 'boolean') return malformed();
+    if (body.bookingStatus !== 'confirmed') return malformed();
+    return { outcome: 'ok', response: body };
+  }
+
+  const error = readError(body as unknown as SubmissionResponse);
+  if (!error) return malformed();
+  return classifyBookingError(error.code, body.bookingStatus);
+}
+
+/**
+ * Classifies a booking refusal.
+ *
+ * The distinction that matters to a person looking at the screen is whether picking a
+ * different time helps. A taken slot is not a failure of anything; it is an ordinary answer
+ * that asks for one more choice. A transport-level wobble is worth retrying unchanged. A
+ * rejected request cannot be fixed by trying again at all.
+ */
+function classifyBookingError(code: string, status?: string): ClientFailure {
+  const base = { code, field: null as string | null };
+
+  // The slot is gone. Retrying THIS request would only be refused again; the visitor has
+  // to choose another time, which mints a new request.
+  if (status === 'unavailable') {
+    return { outcome: 'permanent', ...base, attemptExhausted: true };
+  }
+
+  // The request itself is not allowed: wrong pathway, unknown lead, already booked.
+  if (status === 'rejected') {
+    return { outcome: 'permanent', ...base, attemptExhausted: true };
+  }
+
+  // No calendar to book against. Honest, and not the visitor's problem to retry.
+  if (status === 'not_configured' || code === BOOKING_ERROR.CALENDAR_NOT_CONFIGURED) {
+    return { outcome: 'not_configured', ...base, attemptExhausted: true };
+  }
+
+  // `failed` means the calendar service was reachable and did not succeed, and an
+  // unreadable calendar is explicitly NOT an available one. The same request is worth
+  // sending again, with the same id so a hold that did get created is not duplicated.
+  if (status === 'failed') {
+    return { outcome: 'retryable', ...base, attemptExhausted: false };
+  }
+
+  return { outcome: 'permanent', ...base, attemptExhausted: true };
+}
+
 /**
  * Reads the error out of an `ok: false` body, or returns null if it is not a real one.
  *
@@ -279,28 +402,37 @@ export interface TransportConfig {
   networkEnabled: boolean;
   /** The configured endpoint, or an empty string when none was supplied. */
   endpoint: string;
-  /** True in a development build. Gates the simulator, never production. */
-  isDevelopment: boolean;
-  simulator?: SimulatorOptions;
+  /**
+   * Accepted and ignored. Kept so existing callers do not silently change meaning; the
+   * simulator is no longer reachable from here at all. See the note below.
+   */
+  isDevelopment?: boolean;
   network?: Omit<NetworkOptions, 'endpoint'>;
 }
 
 /**
- * Chooses a transport, failing closed.
+ * Chooses between the network and failing closed. It can NEVER return the simulator.
  *
- * The order is deliberate. Network mode requires BOTH the explicit flag AND an endpoint;
- * either one alone is a misconfiguration, not an invitation to guess. Simulation is
- * available only in a development build, so a production bundle with no endpoint cannot
- * fall through to it. What is left is an honest `not_configured` transport that returns a
- * truthful failure without contacting anything.
+ * THE SIMULATOR BRANCH WAS REMOVED FROM THIS FUNCTION DELIBERATELY, and the reason is a
+ * real defect this caught. It used to return `simulatorTransport(...)` when
+ * `isDevelopment` was true, which meant that in a production build the elimination of the
+ * simulator depended on the bundler inlining this function and folding the flag away.
+ * That held while there was one call site. The moment a second appeared (the booking
+ * client), inlining stopped, the reference survived, and the simulator's fake lead ids and
+ * every fixture name reappeared in the production bundle. `verify:bundle` caught it.
+ *
+ * Now the guarantee is structural rather than incidental: nothing production reaches can
+ * mention `simulatorTransport`, so it is dropped because it is genuinely unreferenced. A
+ * caller that wants the simulator imports it directly, behind its own
+ * `import.meta.env.DEV` check, where the bundler can see a literal.
+ *
+ * Network mode still requires BOTH the explicit flag AND an endpoint; either alone is a
+ * misconfiguration, not an invitation to guess. What is left is an honest `not_configured`
+ * transport that returns a truthful failure without contacting anything.
  */
 export function createTransport(config: TransportConfig): Transport {
   if (config.networkEnabled && config.endpoint) {
     return networkTransport({ endpoint: config.endpoint, ...config.network });
-  }
-
-  if (config.isDevelopment && !config.networkEnabled) {
-    return simulatorTransport(config.simulator);
   }
 
   return {

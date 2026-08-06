@@ -54,12 +54,26 @@ export type {
   ContactExchangeEnvelope,
   SubmissionEnvelope,
   BookingRequestEnvelope,
+  WireEnvelope,
   SubmissionSuccessResponse,
   SubmissionErrorResponse,
   SubmissionResponse,
+  BookingStatus,
+  BookingSuccessResponse,
+  BookingErrorResponse,
+  BookingResponse,
 } from './wire';
 
-export { CLIENT_ERROR, classifyBackendError, canRetry, isSuccess } from './errors';
+export { BOOKING_STATUS, BOOKING_ERROR } from './wire';
+
+export {
+  CLIENT_ERROR,
+  classifyBackendError,
+  canRetry,
+  isSuccess,
+  isSubmissionResponse,
+  isBookingResponse,
+} from './errors';
 export type { ClientResult, ClientSuccess, ClientFailure, ClientOutcome } from './errors';
 
 export { newSubmissionId, isSubmissionId } from './id';
@@ -81,3 +95,12 @@ export type {
   AttemptStatus,
   EnvelopeDraft,
 } from './attempt';
+
+export { createBookingClient } from './booking';
+export type {
+  BookingClient,
+  BookingClientOptions,
+  BookingDraft,
+  BookingSnapshot,
+  BookingAttemptStatus,
+} from './booking';

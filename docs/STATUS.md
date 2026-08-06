@@ -3,16 +3,16 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-05 (Code Pass 10B)_
+_Last updated: 2026-08-05 (Code Pass 10C)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 10B, QR Contact Exchange frontend on the shared client, complete (no endpoint exists, nothing deployed) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend |
-| **Next pass** | The booking command, then staging. **No endpoint exists and none has been contacted** |
+| **Current code pass** | Pass 10C, booking command connected through the shared client, complete (no endpoint exists, nothing deployed) |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
+| **Next pass** | Staging. Every V2 surface is now connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
 
 ## Routes
 
@@ -48,9 +48,36 @@ anything is sent depends only on the build: `pnpm dev` simulates, a production b
 so far ran against the dev simulator or a local stub on `127.0.0.1`. See
 [`backend-v2-contract.md` §19](backend-v2-contract.md#19-the-frontend-transport-boundary).
 
-**Booking is still simulated.** The intake takes `bookingEligible` from the backend response
-instead of re-deriving the policy, but selecting a time remains local fixture availability
-and a simulated confirmation. The booking command is not connected.
+**The booking command is connected through the shared client (Pass 10C).** Choosing a time
+now issues a real `booking_request` carrying the `leadId` the submission returned. It is a
+separate command after the submission, never a block inside one, and the backend needed no
+change to accept it.
+
+**Backend eligibility remains authoritative.** Whether a call is offered comes from
+`bookingEligible` on the submission response, and the command re-evaluates the rule against
+the stored Lead when somebody actually books. No pathway policy is derived in the frontend.
+
+**Candidate times are policy-valid requests, not availability.** V2 exposes no availability
+query, so the browser cannot know what is free and does not pretend to. The picker derives
+candidates from the backend's own rules (business days, 09:00 to 17:00, at least an hour
+ahead, within 60 days, 30-minute slots, America/Chicago with real daylight-saving offsets),
+so every offered time is one the command's window validation accepts. Nothing is ever drawn
+as taken. The hard-coded "August 2026" fixture, its invented taken-slots, and its
+grey-out-before-the-10th rule are gone: all three were fabrications, and the fixed month
+would eventually have fallen outside the horizon and been refused outright.
+
+**A taken slot is an ordinary answer, not a failure.** `SLOT_UNAVAILABLE` renders the
+approved neutral line, "That time is no longer available. Please choose another." It offers
+no retry, because retrying the same request would be refused again; picking another time is
+the fix.
+
+**Retry preserves the `bookingRequestId`; a material edit replaces it.** An unchanged retry
+resends the same id, so a timeout cannot create a second calendar hold. Changing the slot or
+the mode mints a new id, so the backend cannot replay the old booking and confirm a time the
+visitor moved away from.
+
+**One shared AxisPoint calendar**, unchanged: a single `AXP_CALENDAR_ID` Script Property. No
+real calendar was contacted and no Google resource exists.
 
 **The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
 `apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through

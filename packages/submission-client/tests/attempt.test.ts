@@ -242,7 +242,10 @@ test('a second submit while one is in flight is ignored', async () => {
   const transport: Transport = {
     kind: 'simulator',
     async send(envelope) {
-      seen.push(envelope);
+      // The transport now carries booking envelopes too; this test only ever sends
+      // submissions, so the narrowing is asserted rather than assumed.
+      assert.notEqual(envelope.submissionKind, 'booking_request');
+      seen.push(envelope as SubmissionEnvelope);
       await gate;
       return ok();
     },

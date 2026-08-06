@@ -219,18 +219,24 @@ export type SubmissionEnvelope = ServiceInquiryEnvelope | ContactExchangeEnvelop
 
 /**
  * The booking command. A SEPARATE request issued after a submission, never a block inside
- * one. It is declared here for completeness of the contract; Pass 10A does not send it.
+ * one. The Lead must already exist, which is why this carries `leadId`: it REFERENCES a
+ * stored Lead rather than claiming to create one, and it is the single server-owned name a
+ * request from a browser is allowed to name.
  */
 export interface BookingRequestEnvelope {
   schemaVersion: typeof SCHEMA_VERSION;
   submissionKind: 'booking_request';
   bookingRequestId: string;
   leadId: string;
+  /** ISO 8601 WITH an offset or `Z`. A bare local timestamp is rejected. */
   slotStart: string;
   durationMinutes: number;
   mode: BookingMode;
   submittedAt?: string;
 }
+
+/** Anything this client can put on the wire. */
+export type WireEnvelope = SubmissionEnvelope | BookingRequestEnvelope;
 
 /* ── Responses ────────────────────────────────────────────────────────────── */
 
@@ -261,6 +267,72 @@ export interface SubmissionErrorResponse {
 }
 
 export type SubmissionResponse = SubmissionSuccessResponse | SubmissionErrorResponse;
+
+/**
+ * The booking command's final status.
+ *
+ * `confirmed` is reachable from exactly one place in the backend: a successful calendar
+ * `createEvent`. Every other value is a truthful refusal, and the difference between them
+ * is what lets the UI say something specific instead of "something went wrong".
+ */
+export type BookingStatus = 'confirmed' | 'unavailable' | 'rejected' | 'failed' | 'not_configured';
+
+export const BOOKING_STATUS: Record<string, BookingStatus> = {
+  CONFIRMED: 'confirmed',
+  UNAVAILABLE: 'unavailable',
+  REJECTED: 'rejected',
+  FAILED: 'failed',
+  NOT_CONFIGURED: 'not_configured',
+};
+
+/**
+ * A confirmed booking.
+ *
+ * Note what is NOT here: no `submissionId`, no `leadId`, no `slaDueAt`, no
+ * `bookingEligible`. A booking response is a different shape from a submission response,
+ * which is why it is validated separately rather than squeezed through the submission
+ * validator.
+ */
+export interface BookingSuccessResponse {
+  schemaVersion: number;
+  ok: true;
+  submissionKind: 'booking_request';
+  bookingRequestId: string;
+  bookingStatus: 'confirmed';
+  replay: boolean;
+}
+
+/** A refusal. `bookingStatus` says which kind, `error.code` says exactly why. */
+export interface BookingErrorResponse {
+  schemaVersion: number;
+  ok: false;
+  error: { code: string; field: string | null };
+  bookingStatus?: BookingStatus;
+}
+
+export type BookingResponse = BookingSuccessResponse | BookingErrorResponse;
+
+/**
+ * Backend refusal codes for the booking command.
+ *
+ * Listed so the UI can distinguish "pick another time" from "this cannot work", not so the
+ * frontend can re-decide anything. Eligibility remains the backend's call.
+ */
+export const BOOKING_ERROR = {
+  /** The slot is genuinely taken. The visitor picks another time. */
+  SLOT_UNAVAILABLE: 'SLOT_UNAVAILABLE',
+  SLOT_TOO_SOON: 'SLOT_TOO_SOON',
+  SLOT_TOO_FAR_AHEAD: 'SLOT_TOO_FAR_AHEAD',
+  SLOT_OUTSIDE_BUSINESS_HOURS: 'SLOT_OUTSIDE_BUSINESS_HOURS',
+  INVALID_TIMESTAMP: 'INVALID_TIMESTAMP',
+  /** The calendar could not be read. Not the same as "free". */
+  AVAILABILITY_UNAVAILABLE: 'AVAILABILITY_UNAVAILABLE',
+  CALENDAR_CREATE_FAILED: 'CALENDAR_CREATE_FAILED',
+  CALENDAR_NOT_CONFIGURED: 'CALENDAR_NOT_CONFIGURED',
+  LEAD_NOT_FOUND: 'LEAD_NOT_FOUND',
+  PATHWAY_NOT_BOOKABLE: 'PATHWAY_NOT_BOOKABLE',
+  BOOKING_ALREADY_ACTIVE: 'BOOKING_ALREADY_ACTIVE',
+} as const;
 
 /**
  * Backend error codes this client reasons about by name.
