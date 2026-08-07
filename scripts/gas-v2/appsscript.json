@@ -1,23 +1,12 @@
 {
   "timeZone": "America/Chicago",
-  "dependencies": {
-    "enabledAdvancedServices": [
-      {
-        "userSymbol": "Calendar",
-        "serviceId": "calendar",
-        "version": "v3"
-      }
-    ]
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/script.scriptapp",
-    "https://www.googleapis.com/auth/script.external_request",
-    "https://mail.google.com/",
     "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/calendar.events"
+    "https://www.googleapis.com/auth/script.send_mail"
   ],
   "webapp": {
     "executeAs": "USER_DEPLOYING",

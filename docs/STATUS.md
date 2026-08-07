@@ -12,7 +12,7 @@ _Last updated: 2026-08-05 (Code Pass 10C)_
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
 | **Current code pass** | Pass 10C, booking command connected through the shared client, complete (no endpoint exists, nothing deployed) |
 | **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
-| **Next pass** | Staging. Every V2 surface is now connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
+| **Next pass** | Staging, planned in [`staging-provisioning.md`](staging-provisioning.md) and not yet provisioned. Every V2 surface is connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
 
 ## Routes
 
@@ -78,6 +78,19 @@ visitor moved away from.
 
 **One shared AxisPoint calendar**, unchanged: a single `AXP_CALENDAR_ID` Script Property. No
 real calendar was contacted and no Google resource exists.
+
+**The V2 manifest requests exactly three OAuth scopes**, each backed by an API the code
+calls: `spreadsheets` (`SpreadsheetApp`), `calendar` (`CalendarApp`), and `script.send_mail`
+(`MailApp.sendEmail`). Four requests were removed as unused before any consent screen was
+ever shown, most importantly `https://mail.google.com/`, which grants full read, send, and
+delete access to the deploying account's mailbox where only send is needed. The unused
+advanced Calendar service was removed with them. `deployability.test.js` pins the exact set.
+
+**The correction and removal procedure exists**, with Zach accountable: see
+[`correction-and-removal-procedure.md`](correction-and-removal-procedure.md). That is what
+`AXP_REMOVAL_PROCEDURE_CONFIGURED` refers to. `AXP_REPLY_TO_MONITORED` remains an open owner
+confirmation, because whether a human reads `info@axispoint.llc` is a fact about the world
+rather than something a document can establish.
 
 **The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
 `apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through
