@@ -129,19 +129,19 @@ and emails render the wordmark as text.
 | `AXP_FIRM_PHONE` | **unset** | not supplied |
 | `AXP_LOGO_URL` | **unset** | optional |
 
-**Both flags are provisioned as `false`, and stay false until Zach approves.**
+**Both flags are provisioned as `false` and stay false in this pass.**
 
-They gate a promise, not a feature: while either is false the QR acknowledgement omits its
-correction and removal lines, which is the correct behaviour when no approved procedure
-stands behind them.
+While either is false the QR acknowledgement omits its correction and removal lines, so
+nothing is displayed or sent promising that information will be corrected or removed. That
+is the intended behaviour here, not a gap to close.
 
-- `AXP_REMOVAL_PROCEDURE_CONFIGURED`: the procedure exists but is a **DRAFT that Zach has
-  not approved** ([`correction-and-removal-procedure.md`](correction-and-removal-procedure.md)).
-  A document does not flip the flag; an approval does.
-- `AXP_REPLY_TO_MONITORED`: a claim that a human actually reads `info@axispoint.llc`. That
-  is a fact about the world, and no document can establish it.
+### Operational note
 
-Both are one-property changes after approval, requiring no redeployment.
+AxisPoint retains voluntarily submitted business information for normal operations. Any rare
+information request is handled manually by Zach on a case-by-case basis. **This is not an
+approved legal-compliance policy.**
+
+No automated removal system exists and none is planned in this pass.
 
 ---
 
@@ -303,15 +303,5 @@ Its identifiers are in [`deployment.md`](deployment.md) and are not repeated her
 
 ## Open before provisioning
 
-Both are owner decisions, and staging can be provisioned without either: the flags are
-`false`, the acknowledgement omits the two promise lines, and everything else works.
-
-1. **Does Zach approve the correction and removal procedure?** It is currently a
-   [DRAFT](correction-and-removal-procedure.md), including whether he accepts the
-   accountable-owner role and the proposed 2 / 10 business-day targets. Approval sets
-   `AXP_REMOVAL_PROCEDURE_CONFIGURED`.
-2. **Is `info@axispoint.llc` monitored by a human?** Sets `AXP_REPLY_TO_MONITORED`.
-
-A further open decision, raised by the draft and **not** resolved here: Google Sheets
-version history and provider-side backups retain cleared values, which no operator step in
-that procedure can reach.
+Nothing blocks provisioning. Both flags are `false`, the acknowledgement omits the two
+promise lines, and every other capability works.

@@ -86,15 +86,12 @@ ever shown, most importantly `https://mail.google.com/`, which grants full read,
 delete access to the deploying account's mailbox where only send is needed. The unused
 advanced Calendar service was removed with them. `deployability.test.js` pins the exact set.
 
-**A correction and removal procedure is drafted but NOT approved**, and both gating flags
-stay `false` until Zach approves it: see
-[`correction-and-removal-procedure.md`](correction-and-removal-procedure.md). While
-`AXP_REMOVAL_PROCEDURE_CONFIGURED` or `AXP_REPLY_TO_MONITORED` is false the QR
-acknowledgement omits its correction and removal lines, which is correct when no approved
-procedure stands behind them. The draft carries a full field-by-field audit of all six tabs,
-requester identity verification, and two explicit limits: Google revision history and
-provider backups are outside operator control, and the document is not a legal-compliance
-determination.
+**`AXP_REMOVAL_PROCEDURE_CONFIGURED` and `AXP_REPLY_TO_MONITORED` are both `false`**, so the
+QR acknowledgement omits its correction and removal lines and nothing is displayed or sent
+promising that information will be corrected or removed. AxisPoint retains voluntarily
+submitted business information for normal operations, and any rare information request is
+handled manually by Zach on a case-by-case basis. **This is not an approved legal-compliance
+policy**, and no automated removal system exists or is planned.
 
 **The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
 `apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through
