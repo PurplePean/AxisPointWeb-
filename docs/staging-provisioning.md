@@ -18,7 +18,7 @@ wrong id gets pasted into the wrong field.
 
 | Item | Value |
 |---|---|
-| Project | `AxisPoint V2 — STAGING`, standalone |
+| Project | `AxisPoint V2 STAGING`, standalone |
 | Owner | Zach@axispoint.llc |
 | Runtime | V8 |
 | Time zone | `America/Chicago` |
@@ -33,7 +33,7 @@ remains byte-identical.
 
 ## 2. Spreadsheet: six tabs and exact headers
 
-One new spreadsheet, `AxisPoint V2 CRM — STAGING`.
+One new spreadsheet, `AxisPoint V2 CRM STAGING`.
 
 Tab names are case-sensitive (`TAB_NAMES`, `src/SheetRepository.js`). Header text is matched
 case- and whitespace-insensitively but **must occupy row 1**.
@@ -124,22 +124,30 @@ and emails render the wordmark as text.
 | `AXP_PARTNER_DIRECT_PHONE_MAP` | `{"zachary_russell":"832-580-2815","ethaniel_vu":"832-499-8389"}` | settled |
 | `AXP_FIRM_EMAIL` | `info@axispoint.llc` | settled |
 | `AXP_WEBSITE_URL` | `https://axispoint.llc` | live site |
-| `AXP_REPLY_TO_MONITORED` | `true` once confirmed | see below |
-| `AXP_REMOVAL_PROCEDURE_CONFIGURED` | `true` | [`correction-and-removal-procedure.md`](correction-and-removal-procedure.md) |
+| `AXP_REPLY_TO_MONITORED` | **`false`** | pending owner approval |
+| `AXP_REMOVAL_PROCEDURE_CONFIGURED` | **`false`** | pending owner approval |
 | `AXP_FIRM_PHONE` | **unset** | not supplied |
 | `AXP_LOGO_URL` | **unset** | optional |
 
-**The two flags gate a promise, not a feature.** While either is false, the QR
-acknowledgement omits its correction and removal lines. `AXP_REMOVAL_PROCEDURE_CONFIGURED`
-is now backed by a written procedure with Zach accountable, so it can be set true.
-`AXP_REPLY_TO_MONITORED` still needs an explicit confirmation that a human reads
-`info@axispoint.llc`; it is a statement about the world, and no document can make it true.
+**Both flags are provisioned as `false`, and stay false until Zach approves.**
+
+They gate a promise, not a feature: while either is false the QR acknowledgement omits its
+correction and removal lines, which is the correct behaviour when no approved procedure
+stands behind them.
+
+- `AXP_REMOVAL_PROCEDURE_CONFIGURED`: the procedure exists but is a **DRAFT that Zach has
+  not approved** ([`correction-and-removal-procedure.md`](correction-and-removal-procedure.md)).
+  A document does not flip the flag; an approval does.
+- `AXP_REPLY_TO_MONITORED`: a claim that a human actually reads `info@axispoint.llc`. That
+  is a fact about the world, and no document can establish it.
+
+Both are one-property changes after approval, requiring no redeployment.
 
 ---
 
 ## 4. Dedicated staging booking calendar
 
-New calendar `AxisPoint Booking — STAGING`, owned by Zach, **not a personal calendar**.
+New calendar `AxisPoint Booking STAGING`, owned by Zach, **not a personal calendar**.
 Test events are isolated and bulk-deletable, and no test booking can land on a real day.
 
 One shared calendar remains the model: `AXP_CALENDAR_ID` is a single property, unchanged.
@@ -224,7 +232,7 @@ Reply-To is `info@axispoint.llc` on every outbound message.
 
 ## 8. Controlled E2E matrix and cleanup
 
-### Phase 1 — `dry_run`, no external effect
+### Phase 1: `dry_run`, no external effect
 
 | # | Case | Asserts |
 |---|---|---|
@@ -238,7 +246,7 @@ Reply-To is `info@axispoint.llc` on every outbound message.
 | 8 | Booking | Lead calendar fields, queued confirmation |
 | 9 | Booking retry, same id | replay, no second hold |
 
-### Phase 2 — `live`, one narrow window, separately authorized
+### Phase 2: `live`, one narrow window, separately authorized
 
 | # | Case | Real effect |
 |---|---|---|
@@ -285,9 +293,9 @@ Its identifiers are in [`deployment.md`](deployment.md) and are not repeated her
 
 ## What provisioning will create
 
-1. Apps Script project `AxisPoint V2 — STAGING`
-2. Spreadsheet `AxisPoint V2 CRM — STAGING` with the six tabs above
-3. Calendar `AxisPoint Booking — STAGING`
+1. Apps Script project `AxisPoint V2 STAGING`
+2. Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above
+3. Calendar `AxisPoint Booking STAGING`
 4. 15 Script Properties per §3
 5. 3 time-driven triggers per §5
 6. 1 Web app deployment
@@ -295,7 +303,15 @@ Its identifiers are in [`deployment.md`](deployment.md) and are not repeated her
 
 ## Open before provisioning
 
-**Is `info@axispoint.llc` monitored by a human?** That answer sets
-`AXP_REPLY_TO_MONITORED` and decides whether the QR acknowledgement prints its correction
-and removal promises. The procedure behind the other flag now exists; this one is a fact
-about the world that only the owner can assert.
+Both are owner decisions, and staging can be provisioned without either: the flags are
+`false`, the acknowledgement omits the two promise lines, and everything else works.
+
+1. **Does Zach approve the correction and removal procedure?** It is currently a
+   [DRAFT](correction-and-removal-procedure.md), including whether he accepts the
+   accountable-owner role and the proposed 2 / 10 business-day targets. Approval sets
+   `AXP_REMOVAL_PROCEDURE_CONFIGURED`.
+2. **Is `info@axispoint.llc` monitored by a human?** Sets `AXP_REPLY_TO_MONITORED`.
+
+A further open decision, raised by the draft and **not** resolved here: Google Sheets
+version history and provider-side backups retain cleared values, which no operator step in
+that procedure can reach.

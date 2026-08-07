@@ -86,11 +86,15 @@ ever shown, most importantly `https://mail.google.com/`, which grants full read,
 delete access to the deploying account's mailbox where only send is needed. The unused
 advanced Calendar service was removed with them. `deployability.test.js` pins the exact set.
 
-**The correction and removal procedure exists**, with Zach accountable: see
-[`correction-and-removal-procedure.md`](correction-and-removal-procedure.md). That is what
-`AXP_REMOVAL_PROCEDURE_CONFIGURED` refers to. `AXP_REPLY_TO_MONITORED` remains an open owner
-confirmation, because whether a human reads `info@axispoint.llc` is a fact about the world
-rather than something a document can establish.
+**A correction and removal procedure is drafted but NOT approved**, and both gating flags
+stay `false` until Zach approves it: see
+[`correction-and-removal-procedure.md`](correction-and-removal-procedure.md). While
+`AXP_REMOVAL_PROCEDURE_CONFIGURED` or `AXP_REPLY_TO_MONITORED` is false the QR
+acknowledgement omits its correction and removal lines, which is correct when no approved
+procedure stands behind them. The draft carries a full field-by-field audit of all six tabs,
+requester identity verification, and two explicit limits: Google revision history and
+provider backups are outside operator control, and the document is not a legal-compliance
+determination.
 
 **The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
 `apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through
