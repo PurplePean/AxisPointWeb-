@@ -269,6 +269,122 @@ test('the manifest does not request a contacts scope', () => {
   });
 });
 
+/* ── The scope set is pinned, not merely plausible ────────────────────────── */
+
+/**
+ * The exact scopes this backend may request.
+ *
+ * Kept as an explicit list rather than derived, because the point is to make widening it
+ * a deliberate edit that a reviewer sees. Each entry names the only API that justifies it.
+ */
+const ALLOWED_SCOPES = [
+  // SpreadsheetApp: the six storage tabs.
+  'https://www.googleapis.com/auth/spreadsheets',
+  // CalendarApp: availability reads and booking events.
+  'https://www.googleapis.com/auth/calendar',
+  // MailApp.sendEmail, and nothing more.
+  'https://www.googleapis.com/auth/script.send_mail',
+];
+
+test('the manifest requests EXACTLY the minimal scope set', () => {
+  /*
+   * WHY THIS IS AN EXACT-SET TEST. The prior check only validated scopes it already knew
+   * about, so an extra scope simply fell through its loop unexamined. The manifest carried
+   * `https://mail.google.com/` — full read, send, and delete access to the deploying
+   * account's entire mailbox — and every suite passed. A test that cannot fail on an
+   * unexpected entry is not guarding the thing it appears to guard.
+   */
+  const manifest = JSON.parse(readRoot('appsscript.json'));
+  const scopes = (manifest.oauthScopes || []).slice().sort();
+
+  assert.deepEqual(scopes, ALLOWED_SCOPES.slice().sort());
+});
+
+test('no broad mail scope is ever requested', () => {
+  // Named separately so the failure says what is wrong rather than printing two lists.
+  // MailApp.sendEmail needs script.send_mail; it never needs mailbox access.
+  const manifest = JSON.parse(readRoot('appsscript.json'));
+  (manifest.oauthScopes || []).forEach((scope) => {
+    assert.equal(
+      scope === 'https://mail.google.com/',
+      false,
+      'https://mail.google.com/ grants full mailbox access; MailApp only needs script.send_mail',
+    );
+    assert.equal(scope.indexOf('gmail') === -1, true, `unexpected Gmail scope: ${scope}`);
+  });
+});
+
+test('every requested scope is backed by an API the code actually calls', () => {
+  const manifest = JSON.parse(readRoot('appsscript.json'));
+  const allSource = SOURCES.map(readSrc).join('\n');
+
+  const backedBy = {
+    'https://www.googleapis.com/auth/spreadsheets': /\bSpreadsheetApp\b/,
+    'https://www.googleapis.com/auth/calendar': /\bCalendarApp\b/,
+    'https://www.googleapis.com/auth/script.send_mail': /\bMailApp\b/,
+  };
+
+  (manifest.oauthScopes || []).forEach((scope) => {
+    const pattern = backedBy[scope];
+    assert.ok(pattern, `scope ${scope} has no documented justification`);
+    assert.equal(pattern.test(allSource), true, `scope ${scope} is requested but unused`);
+  });
+});
+
+test('scopes for APIs the code does not call are absent', () => {
+  /*
+   * The removed three, each verified unused before removal:
+   *   script.scriptapp        ScriptApp: 0 occurrences. Triggers are created by hand in
+   *                           the UI, which does not require the script to hold it.
+   *   script.external_request UrlFetchApp: 0 occurrences. Nothing calls out.
+   *   calendar.events         redundant: a strict subset of the calendar scope above.
+   */
+  const manifest = JSON.parse(readRoot('appsscript.json'));
+  const scopes = manifest.oauthScopes || [];
+  const allSource = SOURCES.map(readSrc).join('\n');
+
+  const removed = {
+    'https://www.googleapis.com/auth/script.scriptapp': /\bScriptApp\b/,
+    'https://www.googleapis.com/auth/script.external_request': /\bUrlFetchApp\b/,
+  };
+
+  Object.keys(removed).forEach((scope) => {
+    assert.equal(scopes.indexOf(scope), -1, `${scope} was removed and must stay removed`);
+    // And it must stay unused: reintroducing the API without the scope is also a defect.
+    assert.equal(
+      removed[scope].test(allSource),
+      false,
+      `${scope} is absent from the manifest but its API is now used`,
+    );
+  });
+
+  assert.equal(
+    scopes.indexOf('https://www.googleapis.com/auth/calendar.events'),
+    -1,
+    'calendar.events is redundant alongside the calendar scope',
+  );
+});
+
+test('no advanced service is enabled, because none is used', () => {
+  /*
+   * The manifest enabled the advanced Calendar service (`Calendar` v3) while the code
+   * used only `CalendarApp`. An enabled advanced service is a real cost even when unused:
+   * it must be turned on in the Cloud project, it widens the consent screen, and it
+   * invites future code to depend on it without anyone deciding to.
+   */
+  const manifest = JSON.parse(readRoot('appsscript.json'));
+  const advanced = (manifest.dependencies || {}).enabledAdvancedServices || [];
+  assert.deepEqual(advanced, [], `no advanced service should be enabled, found: ${JSON.stringify(advanced)}`);
+
+  // `Calendar.` is the advanced-service symbol; `CalendarApp` is the built-in service.
+  const allSource = SOURCES.map(readSrc).join('\n');
+  assert.equal(
+    /\bCalendar\s*\.\s*[A-Z]/.test(allSource),
+    false,
+    'the advanced Calendar service symbol is used but no advanced service is enabled',
+  );
+});
+
 /* ── V1 is untouched ──────────────────────────────────────────────────────── */
 
 test('the V1 backend is a separate directory that this pass does not import', () => {
