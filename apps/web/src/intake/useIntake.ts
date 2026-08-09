@@ -5,6 +5,7 @@ import {
   type BookingMode,
   type ClientResult,
 } from '@axispoint/submission-client';
+import { useLocale } from '../i18n/LocaleProvider';
 import { getSubmissionClient } from './submissionClient';
 import { getBookingClient } from './booking/bookingClient';
 import { BOOKING_RULES, candidateDays, candidateSlots } from './booking/availability';
@@ -147,7 +148,17 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
    */
   const startedAt = useRef<number>(Date.now());
 
-  const errors: FieldErrors = showErrors ? validateDraft(draft) : {};
+  /*
+   * The page locale the visitor is actually reading, not a hardcoded 'en'.
+   *
+   * The backend keeps page locale and preferred follow-up as two separate facts, so this
+   * records where they were, while the contact field records how they asked to be answered.
+   * Somebody can read the English page and ask to be called back in Spanish, and both halves
+   * matter operationally.
+   */
+  const { code: pageLocale, t } = useLocale();
+
+  const errors: FieldErrors = showErrors ? validateDraft(draft, t) : {};
 
   /* ── Draft updates ─────────────────────────────────────────────────────── */
 
@@ -283,7 +294,7 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
    * can still race.
    */
   const submit = useCallback(async () => {
-    const found = validateDraft(draft);
+    const found = validateDraft(draft, t);
     if (Object.keys(found).length > 0) {
       setShowErrors(true);
       requestAnnounce();
@@ -301,7 +312,7 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     let envelopeDraft;
     try {
       envelopeDraft = toEnvelopeDraft(draft, {
-        pageLocale: 'en',
+        pageLocale,
         intent,
         sourceDetail: typeof window === 'undefined' ? '/contact' : window.location.pathname,
         landingPage: typeof window === 'undefined' ? undefined : window.location.href,
@@ -318,7 +329,7 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
     }
 
     applyResult(await getSubmissionClient().submit(envelopeDraft));
-  }, [applyResult, draft, intent, requestAnnounce]);
+  }, [applyResult, draft, intent, pageLocale, requestAnnounce, t]);
 
   /**
    * Retries the SAME attempt: same submissionId, same envelope.
@@ -352,10 +363,11 @@ export function useIntake({ intent, referralCode, devState }: IntakeInit) {
    */
   const bookingCandidates = useMemo(() => {
     const now = new Date();
-    const days = candidateDays(now);
+    // The display language follows the page; the instants do not. See availability.ts.
+    const days = candidateDays(now, pageLocale);
     const chosen = days.find((d) => d.key === draft.booking.dayKey);
-    return { days, slots: chosen ? candidateSlots(chosen, now) : [] };
-  }, [draft.booking.dayKey]);
+    return { days, slots: chosen ? candidateSlots(chosen, now, pageLocale) : [] };
+  }, [draft.booking.dayKey, pageLocale]);
 
   /*
    * Choosing a day, a slot, or a mode CLEARS the last booking failure.

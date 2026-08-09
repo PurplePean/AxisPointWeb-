@@ -242,7 +242,14 @@ export function ChoiceGroup({
   columns = 2,
 }: {
   legend: string;
-  options: { label: string; hint?: string }[];
+  /**
+   * `value` is the STABLE token stored in the draft; `label` is the translated display text.
+   *
+   * These were one field until the localization pass, so selecting a radio stored its
+   * English label and the wire mapping keyed on that. Splitting them is what lets a
+   * translation change every label without changing a single submitted value.
+   */
+  options: { value: string; label: string; hint?: string }[];
   value: string;
   onChange: (v: string) => void;
   columns?: 1 | 2;
@@ -255,10 +262,10 @@ export function ChoiceGroup({
       </legend>
       <div className={`grid gap-2.5 ${columns === 2 ? 'sm:grid-cols-2' : ''}`}>
         {options.map((o) => {
-          const on = value === o.label;
+          const on = value === o.value;
           return (
             <label
-              key={o.label}
+              key={o.value}
               className="cursor-pointer"
               style={{
                 display: 'flex',
@@ -277,9 +284,9 @@ export function ChoiceGroup({
               <input
                 type="radio"
                 name={name}
-                value={o.label}
+                value={o.value}
                 checked={on}
-                onChange={() => onChange(o.label)}
+                onChange={() => onChange(o.value)}
                 /* Visually replaced by the ring below, but kept in the accessibility
                    tree and focusable so the group behaves like a real radio group. */
                 style={{ position: 'absolute', opacity: 0, width: 1, height: 1, margin: 0 }}

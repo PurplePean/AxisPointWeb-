@@ -223,12 +223,18 @@ function handleSendBookingConfirmation(item, deps) {
     return { ok: false, permanent: true, reason: 'acknowledge_not_configured' };
   }
 
+  // Same rule as the acknowledgement: launch-ready only, English otherwise.
+  var outbound = resolveOutboundLocale(
+    { preferredFollowUpLocale: lead.preferredFollowUpLocale },
+    deps.launchReadyLocales || ['en']
+  );
+
   var rendered = deps.templates.renderBookingConfirmation(lead, {
     status: 'confirmed',
     slotStart: item.payload.slotStart,
     durationMinutes: item.payload.durationMinutes,
     mode: item.payload.mode
-  }, withOffsetResolver(deps.config, deps.offsetResolver));
+  }, withOffsetResolver(deps.config, deps.offsetResolver), outbound.locale);
 
   if (!rendered || !rendered.ok) {
     return {

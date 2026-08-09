@@ -1088,6 +1088,20 @@ nine locales. Two tests tamper with a valid envelope to prove the guards matter,
 the backend rejects a display string with `DISPLAY_STRING_NOT_ACCEPTED` and a client-supplied
 booking with `BOOKING_NOT_ALLOWED_IN_SUBMISSION`.
 
+### Why translation can no longer reach these tokens
+
+**This contract did not change for localization, and that is the point.** The frontend used to
+reach it by a route that could not survive a second language: six intake controls held their
+**English label** in draft state, and the mapper looked the token up *by that label*. A
+translated UI would have sent an unrecognized label for every Management Proposal.
+
+Those controls now hold the snake_case token itself and render their label from the message
+catalog, so the value in this contract is the value the control stored, in any language. The
+mapper's six label-keyed tables are deleted; it validates against the token list directly.
+Regression coverage swaps in a synthetic catalog that changes every visible label and asserts
+the envelope is unchanged. Nothing here is locale-dependent, and no display string is ever a
+key. See the localization entry in [`STATUS.md`](STATUS.md).
+
 ### The QR Contact Exchange (Code Pass 10B)
 
 `apps/qr/src/exchange` implements the approved
@@ -1219,6 +1233,37 @@ from posting anywhere is that there is no endpoint to post to, and the checks th
 all remain: no endpoint literal in the bundle, the fail-closed `NOT_CONFIGURED` path present,
 no dev fixtures, and the `--expect-endpoint` direction confirming an endpoint-enabled build
 does keep its transport.
+
+### Locale-aware visitor templates (Localization Readiness)
+
+**The contract is unchanged.** Same `schemaVersion`, same storage headers, same request
+tokens, all nine locales still accepted and stored, and page locale still kept separate from
+preferred follow-up.
+
+What changed is that the resolution machinery is now actually called. `resolveOutboundLocale`
+and `LAUNCH_READY_LOCALES` existed since Pass 9A, but no handler used them: a Spanish
+preference was validated, stored, and shown to a partner, and then had no effect on which
+template rendered. The acknowledgement and booking-confirmation handlers now resolve the
+outbound locale and pass it to template selection.
+
+`LAUNCH_READY_LOCALES` remains `['en']`, so an unlaunched preference resolves to English with
+`satisfied: false`. **Nothing pretends to be translated.**
+
+**The one fallback rule:** a renderer is taken from the requested locale's set when that set
+exists and defines it; otherwise English. That covers both failure shapes at once. An unknown
+locale has no set, so English. A registered but incomplete set is missing that one renderer,
+so English for that message while its other messages still come from its own set. Falling
+back per renderer is safe because each is a separate, self-contained email: an English
+booking confirmation beside a translated acknowledgement is two correct messages, not one
+half-translated one.
+
+**Internal mail stays English by construction.** `renderPartnerNotification` and
+`renderQrDigest` take no locale parameter at all, so no caller can ask for one. They are read
+by the two partners and already display the visitor's preferred language as a field.
+
+**Storage is untouched by any of this.** A test asserts that resolving an outbound locale
+never rewrites the stored record, and that a Spanish preference is still stored as Spanish
+after an English message is sent.
 
 ### Still unconnected after this pass
 

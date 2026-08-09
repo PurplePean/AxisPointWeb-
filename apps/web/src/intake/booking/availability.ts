@@ -65,6 +65,9 @@ export type BookingModeValue = (typeof BOOKING_MODES)[number]['value'];
  * would accept as a valid timestamp and a partner would discover by missing a call.
  */
 function zoneOffsetMinutes(instant: Date, timeZone: string): number {
+  // 'en-US' here is NOT a display choice and must not be localized. This call reads numeric
+  // date parts back out in a known, stable shape to compute an offset; a locale with
+  // different numerals or ordering would break the arithmetic, not translate it.
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour12: false,
@@ -134,6 +137,7 @@ export function todayInZone(now: Date, timeZone: string = BOOKING_TIME_ZONE): {
   day: number;
 } {
   const parts: Record<string, string> = {};
+  // Same as above: stable numeric parts for arithmetic, never shown to anybody.
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -167,12 +171,35 @@ export interface CandidateSlot {
   slotStart: string;
 }
 
-const dayFormatter = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'UTC',
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-});
+/**
+ * Day and time DISPLAY formatting, which is the only part of booking that is language
+ * dependent.
+ *
+ * THE INSTANT IS NOT LOCALIZED, and that separation is the whole point. `slotStart` is
+ * still computed from the firm's own zone with a real offset, so changing the display
+ * language cannot move the meeting. What changes is the words around it: a Spanish reader
+ * sees "lunes" where an English reader sees "Monday", and both are the same moment in
+ * Central Time.
+ *
+ * Formatters are cached per locale because constructing `Intl.DateTimeFormat` is expensive
+ * and the day list builds dozens of labels per render.
+ */
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dayFormatterFor(displayLocale: string): Intl.DateTimeFormat {
+  const cached = dayFormatters.get(displayLocale);
+  if (cached) return cached;
+  const made = new Intl.DateTimeFormat(displayLocale, {
+    // UTC here is deliberate: the date parts were already resolved in the firm's zone, so
+    // this call only turns known parts into words and must not shift them again.
+    timeZone: 'UTC',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  dayFormatters.set(displayLocale, made);
+  return made;
+}
 
 /**
  * Every bookable day inside the backend's horizon.
@@ -182,7 +209,10 @@ const dayFormatter = new Intl.DateTimeFormat('en-US', {
  * clears the minimum lead time, so today drops off the list late in the afternoon rather
  * than sitting there offering nothing.
  */
-export function candidateDays(now: Date = new Date()): CandidateDay[] {
+export function candidateDays(
+  now: Date = new Date(),
+  displayLocale: string = 'en-US',
+): CandidateDay[] {
   const today = todayInZone(now);
   const days: CandidateDay[] = [];
 
@@ -203,18 +233,33 @@ export function candidateDays(now: Date = new Date()): CandidateDay[] {
       day,
       weekday,
       key: `${year}-${pad(month)}-${pad(day)}`,
-      label: dayFormatter.format(cursor),
+      label: dayFormatterFor(displayLocale).format(cursor),
     });
   }
 
   return days;
 }
 
-const timeLabel = (hour: number, minute: number) => {
-  const suffix = hour >= 12 ? 'PM' : 'AM';
-  const h = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h}:${pad(minute)} ${suffix}`;
-};
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * A slot's visible time.
+ *
+ * Rendered from the wall-clock hour and minute already resolved in the firm's zone, so the
+ * label follows the reader's language while naming the same Central Time slot.
+ */
+function timeLabel(hour: number, minute: number, displayLocale: string): string {
+  let formatter = timeFormatters.get(displayLocale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(displayLocale, {
+      timeZone: 'UTC',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    timeFormatters.set(displayLocale, formatter);
+  }
+  return formatter.format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+}
 
 /**
  * Every candidate slot on a given day.
@@ -226,6 +271,7 @@ const timeLabel = (hour: number, minute: number) => {
 export function candidateSlots(
   date: { year: number; month: number; day: number },
   now: Date = new Date(),
+  displayLocale: string = 'en-US',
 ): CandidateSlot[] {
   const earliest = now.getTime() + BOOKING_RULES.minLeadMinutes * 60000;
   const latest = now.getTime() + BOOKING_RULES.maxAheadDays * 24 * 60 * 60000;
@@ -245,7 +291,7 @@ export function candidateSlots(
 
     if (startsAt < earliest || startsAt > latest) continue;
 
-    slots.push({ hour, minute, label: timeLabel(hour, minute), slotStart });
+    slots.push({ hour, minute, label: timeLabel(hour, minute, displayLocale), slotStart });
   }
 
   return slots;

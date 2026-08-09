@@ -6,9 +6,14 @@
  * are never hard-coded into the animation", so there is deliberately no second list
  * anywhere in the codebase.
  *
- * Nothing here translates the site. This pass ships the selector component and its
- * registry only: no page copy changes, no locale routing, no persistence, no
- * hreflang, and no locale stored with a submission.
+ * Nothing here translates the site. Still true: no page copy is translated, there is no
+ * locale routing, no persistence, and no hreflang.
+ *
+ * CHANGED IN THE LOCALIZATION READINESS PASS. This registry is now genuinely the only
+ * locale list: the intake's duplicate `APPROVED_LANGUAGES` and the mapper's third
+ * English-name table are gone, and the follow-up select stores CODES from here. The page
+ * locale and the follow-up preference ARE now stored with a submission, as two separate
+ * facts, which the earlier version of this comment said they were not.
  */
 
 export type LocaleCode = 'en' | 'es' | 'zh-Hans' | 'zh-Hant' | 'vi' | 'hi' | 'ur' | 'gu' | 'pa';

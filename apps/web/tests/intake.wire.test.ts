@@ -40,17 +40,17 @@ function managementDraft(overrides: Record<string, unknown> = {}) {
     scope: 'pm',
     topic: '',
     property: {
-      type: 'Multifamily',
-      scope: 'One property',
+      type: 'multifamily',
+      scope: 'one_property',
       location: 'Houston, Texas',
       scale: '184 units',
       propertyCount: '',
       scaleUnknown: false,
     },
     situation: {
-      current: 'Replace current management',
-      involvement: 'Property Management',
-      timing: 'Within 30 days',
+      current: 'replace_current_management',
+      involvement: 'property_management',
+      timing: 'within_30_days',
       notes: 'Current manager missed two reporting deadlines.',
     },
     contact: {
@@ -97,9 +97,9 @@ test('the PM plus AM variant maps to Management Proposal with the pm_plus_am sco
   // Proposal flow with PM plus AM preselected, and that is what reaches the wire.
   const draft = toEnvelopeDraft(
     managementDraft({ scope: 'pm-plus-am', situation: {
-      current: 'Replace current management',
-      involvement: 'Property Management + Asset Management',
-      timing: 'Within 30 days',
+      current: 'replace_current_management',
+      involvement: 'property_management_plus_asset_management',
+      timing: 'within_30_days',
       notes: '',
     } }),
     { ...CONTEXT, intent: 'asset-management' },
@@ -116,9 +116,9 @@ test('the PM plus AM variant maps to Management Proposal with the pm_plus_am sco
 test('an undecided scope is accepted', () => {
   const draft = toEnvelopeDraft(
     managementDraft({ scope: 'undecided', situation: {
-      current: 'Exploring management options',
-      involvement: 'Not Sure',
-      timing: 'Still exploring',
+      current: 'exploring_management_options',
+      involvement: 'not_sure',
+      timing: 'still_exploring',
       notes: '',
     } }),
     CONTEXT,
@@ -128,14 +128,14 @@ test('an undecided scope is accepted', () => {
 });
 
 test('Investor Services maps to an accepted envelope', () => {
-  const draft = toEnvelopeDraft(shortDraft('investor-services', 'Actively searching'), CONTEXT);
+  const draft = toEnvelopeDraft(shortDraft('investor-services', 'actively_searching'), CONTEXT);
   const result = parse(contract, envelopeFrom(draft));
   assert.equal(result.ok, true, `rejected: ${result.code} ${result.field ?? ''}`);
   assert.equal(draft.payload.pathway, 'investor_services');
 });
 
 test('General Inquiry maps to an accepted envelope', () => {
-  const draft = toEnvelopeDraft(shortDraft('general-inquiry', 'Press or media'), CONTEXT);
+  const draft = toEnvelopeDraft(shortDraft('general-inquiry', 'press_or_media'), CONTEXT);
   const result = parse(contract, envelopeFrom(draft));
   assert.equal(result.ok, true, `rejected: ${result.code} ${result.field ?? ''}`);
   assert.equal(draft.payload.pathway, 'general_inquiry');
@@ -144,14 +144,14 @@ test('General Inquiry maps to an accepted envelope', () => {
 test('every approved option in every list is accepted', () => {
   // The exhaustive sweep. One unmapped label would otherwise reach production as a
   // rejection the visitor cannot act on.
-  const propertyTypes = ['Multifamily', 'Retail', 'Mixed portfolio', 'Another property type'];
-  const propertyScopes = ['One property', 'Portfolio'];
+  const propertyTypes = ['multifamily', 'retail', 'mixed_portfolio', 'another_property_type'];
+  const propertyScopes = ['one_property', 'portfolio'];
   const situations = [
-    'Replace current management', 'Move away from self-management',
-    'Recently acquired or under contract', 'Lease-up or turnaround',
-    'Operations or reporting problems', 'Exploring management options', 'Something else',
+    'replace_current_management', 'move_away_from_self_management',
+    'recently_acquired_or_under_contract', 'lease_up_or_turnaround',
+    'operations_or_reporting_problems', 'exploring_management_options', 'something_else',
   ];
-  const timings = ['Immediately', 'Within 30 days', '30 to 60 days', '60 to 90 days', 'Still exploring'];
+  const timings = ['immediately', 'within_30_days', 'days_30_to_60', 'days_60_to_90', 'still_exploring'];
 
   for (const type of propertyTypes) {
     for (const scope of propertyScopes) {
@@ -160,7 +160,7 @@ test('every approved option in every list is accepted', () => {
           const draft = toEnvelopeDraft(
             managementDraft({
               property: { type, scope, location: 'Houston, Texas', scale: '', propertyCount: '', scaleUnknown: false },
-              situation: { current, involvement: 'Property Management', timing, notes: '' },
+              situation: { current, involvement: 'property_management', timing, notes: '' },
             }),
             CONTEXT,
           );
@@ -172,8 +172,8 @@ test('every approved option in every list is accepted', () => {
   }
 
   const investorTopics = [
-    'Exploring my first acquisition', 'Under contract now', 'Actively searching',
-    'Own property, need an operating team', 'Something else',
+    'exploring_first_acquisition', 'under_contract_now', 'actively_searching',
+    'own_property_need_operating_team', 'something_else',
   ];
   for (const topic of investorTopics) {
     const result = parse(contract, envelopeFrom(toEnvelopeDraft(shortDraft('investor-services', topic), CONTEXT)));
@@ -181,8 +181,8 @@ test('every approved option in every list is accepted', () => {
   }
 
   const generalTopics = [
-    'A question about AxisPoint', 'Vendor or service provider', 'Employment',
-    'Press or media', 'Something else',
+    'question_about_axispoint', 'vendor_or_service_provider', 'employment',
+    'press_or_media', 'something_else',
   ];
   for (const topic of generalTopics) {
     const result = parse(contract, envelopeFrom(toEnvelopeDraft(shortDraft('general-inquiry', topic), CONTEXT)));
@@ -213,6 +213,9 @@ test('the backend actively rejects a display string, proving the mapping matters
   // Confirms the guard above is testing a real rule, not an absent one.
   const draft = toEnvelopeDraft(managementDraft(), CONTEXT) as { payload: { property: { type: string } } };
   const tampered = envelopeFrom(draft as never) as { payload: { property: { type: string } } };
+  // A DISPLAY string on purpose. The tokenizer that converted this file's fixtures also
+  // rewrote this line to a valid token, which the backend then accepted and the test's
+  // whole point evaporated. It must stay the human-readable label.
   tampered.payload.property.type = 'Multifamily';
 
   const result = parse(contract, tampered);
@@ -223,7 +226,7 @@ test('the backend actively rejects a display string, proving the mapping matters
 test('an unmapped label throws rather than being sent through', () => {
   assert.throws(
     () => toServiceInquiryPayload(managementDraft({
-      property: { type: 'Industrial', scope: 'One property', location: 'X', scale: '', propertyCount: '', scaleUnknown: false },
+      property: { type: 'Industrial', scope: 'one_property', location: 'X', scale: '', propertyCount: '', scaleUnknown: false },
     })),
     UnmappedIntakeValue,
   );
@@ -256,9 +259,9 @@ test('a contradictory involvement can never be produced by the mapper', () => {
   const payload = toServiceInquiryPayload(managementDraft({
     scope: 'pm',
     situation: {
-      current: 'Replace current management',
-      involvement: 'Property Management + Asset Management',
-      timing: 'Immediately',
+      current: 'replace_current_management',
+      involvement: 'property_management_plus_asset_management',
+      timing: 'immediately',
       notes: '',
     },
   })) as { situation: { involvement: string } };
@@ -301,7 +304,7 @@ test('page locale and preferred follow-up are two separate facts', () => {
     managementDraft({
       contact: {
         fullName: 'Dana Whitfield', email: 'dana@example.test', phone: '',
-        organization: '', followUpLanguage: 'Spanish',
+        organization: '', followUpLanguage: 'es',
       },
     }),
     CONTEXT,
@@ -318,10 +321,16 @@ test('no stated follow-up language sends null, not a guess', () => {
 });
 
 test('every approved follow-up language is accepted', () => {
-  const languages = [
-    'English', 'Spanish', 'Simplified Chinese', 'Traditional Chinese',
-    'Vietnamese', 'Hindi', 'Urdu', 'Gujarati', 'Punjabi',
-  ];
+  /*
+   * These are locale CODES now, not English display names.
+   *
+   * This test used to list names, and it passed while production was broken: it fed the
+   * mapper the mapper's own vocabulary ("Simplified Chinese") rather than the vocabulary
+   * the select actually emitted ("Chinese (Simplified)"). Agreeing with itself is not the
+   * same as agreeing with the UI. `locale.test.ts` now drives the real option values;
+   * this one covers the codes reaching the wire.
+   */
+  const languages = ['en', 'es', 'zh-Hans', 'zh-Hant', 'vi', 'hi', 'ur', 'gu', 'pa'];
 
   for (const language of languages) {
     const draft = toEnvelopeDraft(
@@ -379,8 +388,8 @@ test('an absent referral code is omitted rather than sent empty', () => {
 test('empty optional values are omitted, not sent as empty strings', () => {
   const draft = toEnvelopeDraft(
     managementDraft({
-      property: { type: 'Retail', scope: 'Portfolio', location: 'Houston, Texas', scale: '', propertyCount: '', scaleUnknown: false },
-      situation: { current: 'Something else', involvement: 'Property Management', timing: 'Immediately', notes: '' },
+      property: { type: 'retail', scope: 'portfolio', location: 'Houston, Texas', scale: '', propertyCount: '', scaleUnknown: false },
+      situation: { current: 'something_else', involvement: 'property_management', timing: 'immediately', notes: '' },
       contact: { fullName: 'Dana Whitfield', email: 'dana@example.test', phone: '', organization: '', followUpLanguage: '' },
     }),
     CONTEXT,
@@ -397,7 +406,7 @@ test('empty optional values are omitted, not sent as empty strings', () => {
 test('an unknown scale sends the flag and omits the value', () => {
   const draft = toEnvelopeDraft(
     managementDraft({
-      property: { type: 'Multifamily', scope: 'One property', location: 'Houston', scale: 'ignored', propertyCount: '', scaleUnknown: true },
+      property: { type: 'multifamily', scope: 'one_property', location: 'Houston', scale: 'ignored', propertyCount: '', scaleUnknown: true },
     }),
     CONTEXT,
   );

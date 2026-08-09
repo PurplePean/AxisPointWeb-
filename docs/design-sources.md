@@ -268,6 +268,42 @@ month grid also implies the days it omits are unavailable, which is why a list r
 rather than a filtered calendar. Recorded as a deliberate deviation from the drawn treatment,
 taken because the drawn treatment asserts facts that are not knowable, not for convenience.
 
+## Localization: what the approved sources settle, and what they do not
+
+`AxisPointLangSystem.dc.html` and `AxisPointLocaleProof.dc.html` are authoritative for
+selector behaviour, layout, and direction, and the Localization Readiness pass followed them.
+Their translated copy remains a **proof, not approved translation**.
+
+**Settled by the approved sources, and implemented:** the nine locales and their order, the
+native names and words, Simplified and Traditional Chinese as separate entries with distinct
+font stacks, Urdu as RTL, the launch gate that unavailable translations are never advertised,
+and the rule that the registry is never duplicated. That last one had been violated by two
+further copies in the intake; they are now deleted.
+
+**NOT settled by any approved source, and therefore not invented:**
+
+- **A public locale routing contract.** Nothing approves `/es/...` versus `?lang=es` versus a
+  cookie, so no URL shape was shipped. `setLocale` is the seam a decision plugs into. This
+  remains an open owner decision.
+- **Locale persistence** across visits.
+- **`hreflang`**, which cannot be correct before translated pages exist.
+- **A QR language selector.** The QR Contact Exchange is English-only under its approved
+  design, and stayed that way.
+
+**Native-reader review is still required** for every non-English entry, including the native
+names and words already in the registry, before any of them could launch.
+
+**Where the English intake copy comes from, and what that means for the catalog.** The
+approved intake sources are authoritative for the copy itself; the message catalog is only a
+place to hold it. Because the catalog is partial by design (see the localization entry in
+[`STATUS.md`](STATUS.md)), the safe procedure when migrating a further string is to take the
+**rendered** text as the transcription source and diff the rendered result afterwards, rather
+than retyping from an approved file or from memory. That is not a change of authority: it is
+how you prove the migration was lossless. Several catalog values in this pass were first
+written from memory and were wrong, and a bulk substitution attempt was reverted after it
+would have altered a visible short-pathway label as a side effect. The Multilingual Content
+Rollout pass owns extending the catalog to the remaining intake and marketing copy.
+
 ## Historical, not build inputs
 
 Read for reasoning if useful. Do not implement from these, and do not let them become
