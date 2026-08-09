@@ -1,23 +1,25 @@
 import { createContext, useContext } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  APPROVED_LANGUAGES,
-  BOOKING_COPY,
-  INVOLVEMENT_OPTIONS,
-  PROPERTY_SCOPES,
-  PROPERTY_TYPES,
-  SCALE_BY_TYPE,
-  SCALE_FALLBACK,
-  SHORT_PATHS,
-  SITUATION_OPTIONS,
-  TIMING_OPTIONS,
-  EMAIL_HELP,
-  NAME_HELP,
+  INVOLVEMENT_CHOICES,
+  PROPERTY_SCOPE_CHOICES,
+  PROPERTY_TYPE_CHOICES,
+  scaleCopyFor,
+  shortPathCopy,
+  SITUATION_CHOICES,
+  TIMING_CHOICES,
+  INVESTOR_TOPIC_CHOICES,
+  GENERAL_TOPIC_CHOICES,
+  choiceOptions,
+  choiceLabel,
+  followUpOptions,
   isIntentToken,
   type Pathway,
   type ServiceScope,
 } from './model';
 import { BOOKING_MODES } from './booking/availability';
+import { LOCALES } from '../i18n/locales';
+import { useMessages } from '../i18n/LocaleProvider';
 import {
   Alert,
   ChoiceGroup,
@@ -49,10 +51,22 @@ import { useIntake, type Screen } from './useIntake';
  * Referral are deferred and are deliberately absent from the gateway.
  */
 
-const langOptions = [
-  { value: '', text: 'Same as this page, English' },
-  ...APPROVED_LANGUAGES.map((l) => ({ value: l.english, text: `${l.native} · ${l.english}` })),
-];
+/*
+ * Follow-up language options, built from the ONE canonical registry.
+ *
+ * The stored value is the locale CODE. It used to be the English display name, matched
+ * later against a separate table that spelled two of them differently, which silently
+ * discarded every Simplified and Traditional Chinese preference. A code cannot disagree
+ * with itself.
+ *
+ * All nine are offered because this is a stated preference, not a promise to answer in
+ * that language. Availability is a separate gate and English is still the only locale
+ * anything is sent in.
+ */
+/** Display name for a stored code. Empty string means "same as this page". */
+function languageLabel(code: string): string {
+  return LOCALES.find((l) => l.code === code)?.englishName ?? '';
+}
 
 function StepFooterNote({ children }: { children: React.ReactNode }) {
   return (
@@ -120,22 +134,24 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
    * other paths as quiet ruled rows, so the management pathway stays dominant.
    * Referral Partner and Submit a Referral are omitted this pass.
    */
+  const t = useMessages();
+
   const alternates: { title: string; desc: string; pathway: Pathway; scope: ServiceScope }[] = [
     {
-      title: 'Asset Management',
-      desc: 'I own property and want help directing strategy, performance, and reporting.',
+      title: t.gatewayAssetTitle,
+      desc: t.gatewayAssetBody,
       pathway: 'management-proposal',
       scope: 'pm-plus-am',
     },
     {
-      title: 'Investor Services',
-      desc: 'I am preparing to acquire commercial real estate and need an operating team.',
+      title: t.gatewayInvestorTitle,
+      desc: t.gatewayInvestorBody,
       pathway: 'investor-services',
       scope: 'investor-services',
     },
     {
-      title: 'General inquiry',
-      desc: 'Something else. Vendors, press, employment, or a question.',
+      title: t.gatewayGeneralTitle,
+      desc: t.gatewayGeneralBody,
       pathway: 'general-inquiry',
       scope: 'general-inquiry',
     },
@@ -153,7 +169,7 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
           maxWidth: '20ch',
         }}
       >
-        What would you like to discuss?
+        {t.gatewayTitle}
       </ScreenTitle>
       <p
         className="text-[rgba(28,22,40,0.68)]"
@@ -164,7 +180,7 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
           maxWidth: '46ch',
         }}
       >
-        Choose the path that best matches your situation. You can change it later.
+        {t.gatewayLead}
       </p>
 
       <button
@@ -184,7 +200,7 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
               className="block font-bold uppercase text-v2-teal-support"
               style={{ fontSize: 11.5, letterSpacing: '0.14em', marginBottom: 12 }}
             >
-              Most owners start here
+              {t.gatewayOwnerKicker}
             </span>
             <span
               className="block font-semibold"
@@ -194,20 +210,20 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
                 lineHeight: 1.06,
               }}
             >
-              Property Owner
+              {t.gatewayOwnerTitle}
             </span>
             <span
               className="block text-[rgba(28,22,40,0.68)]"
               style={{ marginTop: 12, fontSize: 16, lineHeight: 1.55, maxWidth: '42ch' }}
             >
-              I own or oversee a property and need management.
+              {t.gatewayOwnerBody}
             </span>
           </span>
           <span
             className="inline-flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label whitespace-nowrap"
             style={{ minHeight: 54, padding: '0 24px', fontSize: 15 }}
           >
-            Start property details{' '}
+            {t.gatewayOwnerAction}{' '}
             <span aria-hidden="true" style={{ fontSize: 16 }}>
               &#8594;
             </span>
@@ -406,6 +422,8 @@ function IntakeScreens() {
     devState: params.get('state'),
   });
 
+  const t = useMessages();
+  const langOptions = followUpOptions(t);
   const { draft, screen, step, errors, submitState } = m;
   const sending = submitState === 'sending';
   /**
@@ -419,9 +437,9 @@ function IntakeScreens() {
   const blocked = submitState === 'blocked';
   const unavailable = submitState === 'unavailable';
   const cannotSend = blocked || unavailable;
-  const scale = SCALE_BY_TYPE[draft.property.type] ?? SCALE_FALLBACK;
+  const scale = scaleCopyFor(draft.property.type, t);
   const isPortfolio =
-    draft.property.scope === 'Portfolio' || draft.property.type === 'Mixed portfolio';
+    draft.property.scope === 'portfolio' || draft.property.type === 'mixed_portfolio';
   const firstName = (draft.contact.fullName || 'there').trim().split(' ')[0];
   const emailShown = draft.contact.email || 'your email';
 
@@ -441,15 +459,15 @@ function IntakeScreens() {
   const bookingRetryable = m.bookingState === 'failed';
   const bookingProblem =
     m.bookingState === 'failed'
-      ? BOOKING_COPY.failed
+      ? t.bookingFailed
       : m.bookingState === 'unavailable'
-        ? BOOKING_COPY.unavailable
+        ? t.bookingUnavailable
         : m.bookingState === 'refused'
           ? // A taken slot gets the approved neutral wording; any other refusal says plainly
             // that retrying will not help.
             m.bookingFailure?.code === 'SLOT_UNAVAILABLE'
-            ? BOOKING_COPY.slotTaken
-            : BOOKING_COPY.refused
+            ? t.bookingSlotTaken
+            : t.bookingRefused
           : null;
 
   {
@@ -533,19 +551,28 @@ function IntakeScreens() {
               ? [
                   [
                     'Property',
-                    (draft.property.type || 'Not specified') +
+                    (choiceLabel(PROPERTY_TYPE_CHOICES, draft.property.type, t) || t.notSpecified) +
                       (draft.property.location ? `, ${draft.property.location}` : ''),
                   ],
-                  ['Situation', draft.situation.current || 'Not specified'],
-                  ['Involvement', draft.situation.involvement || 'Not specified'],
+                  ['Situation', choiceLabel(SITUATION_CHOICES, draft.situation.current, t) || t.notSpecified],
+                  ['Involvement', choiceLabel(INVOLVEMENT_CHOICES, draft.situation.involvement, t) || t.notSpecified],
                 ]
               : [
                   [
                     'Pathway',
-                    draft.pathway === 'investor-services' ? 'Investor Services' : 'General inquiry',
+                    draft.pathway === 'investor-services' ? t.investorKicker : t.generalKicker,
                   ],
-                  ['Topic', draft.topic || 'Not specified'],
-                  ['Follow-up language', draft.contact.followUpLanguage || 'English'],
+                  [
+                    'Topic',
+                    choiceLabel(
+                      draft.pathway === 'investor-services'
+                        ? INVESTOR_TOPIC_CHOICES
+                        : GENERAL_TOPIC_CHOICES,
+                      draft.topic,
+                      t,
+                    ) || t.notSpecified,
+                  ],
+                  ['Follow-up language', languageLabel(draft.contact.followUpLanguage) || 'English'],
                 ]
             ).map(([k, v]) => (
               <div key={k}>
@@ -674,7 +701,7 @@ function IntakeScreens() {
               })}
             </div>
             <p className="text-[rgba(28,22,40,0.55)]" style={{ margin: '12px 0 0', fontSize: 13 }}>
-              {BOOKING_COPY.candidateNote}
+              {t.bookingCandidateNote}
             </p>
           </div>
 
@@ -725,12 +752,12 @@ function IntakeScreens() {
               <ChoiceGroup
                 legend="How should we meet?"
                 columns={1}
-                options={BOOKING_MODES.map((mode) => ({ label: mode.label }))}
-                value={BOOKING_MODES.find((mode) => mode.value === draft.booking.mode)?.label ?? ''}
-                onChange={(label) => {
-                  const chosen = BOOKING_MODES.find((mode) => mode.label === label);
-                  if (chosen) m.chooseMode(chosen.value);
-                }}
+                options={[
+                  { value: 'phone_call', label: t.bookingModePhone },
+                  { value: 'video_meeting', label: t.bookingModeVideo },
+                ]}
+                value={draft.booking.mode}
+                onChange={(value) => m.chooseMode(value)}
               />
             </div>
 
@@ -822,8 +849,8 @@ function IntakeScreens() {
             // reaches this screen after the backend created the calendar event.
             ['When', `${selectedDayLabel}, ${draft.booking.timeLabel} Central`],
             ['Format', selectedModeLabel],
-            ['Length', BOOKING_COPY.durationLabel],
-            ['With', BOOKING_COPY.withLabel],
+            ['Length', t.bookingDurationLabel],
+            ['With', t.bookingWithLabel],
           ].map(([k, v]) => (
             <div key={k} className="grid lg:grid-cols-[120px_1fr] gap-y-2 gap-x-6">
               <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5 }}>
@@ -925,7 +952,7 @@ function IntakeScreens() {
 
   /* ── Short pathways: Investor Services and General Inquiry ── */
   if (screen === 'short') {
-    const copy = SHORT_PATHS[draft.pathway as 'investor-services' | 'general-inquiry'];
+    const copy = shortPathCopy(draft.pathway as 'investor-services' | 'general-inquiry', t);
     const count = Object.keys(errors).length;
     return (
       <>
@@ -1046,8 +1073,8 @@ function IntakeScreens() {
               onChange={m.setTopic}
               error={errors.topic}
               options={[
-                { value: '', text: 'Select one' },
-                ...copy.topics.map((t) => ({ value: t, text: t })),
+                { value: '', text: t.selectOne },
+                ...copy.topics.map((c) => ({ value: c.value, text: t[c.labelKey] })),
               ]}
             />
             <div className="grid sm:grid-cols-2 gap-[26px] lg:gap-x-5 lg:gap-y-8">
@@ -1057,7 +1084,7 @@ function IntakeScreens() {
                 onChange={(v) => m.setContact('fullName', v)}
                 autoComplete="name"
                 error={errors.fullName}
-                help={NAME_HELP}
+                help={t.nameHelp}
               />
               <TextField
                 label="Email"
@@ -1066,7 +1093,7 @@ function IntakeScreens() {
                 onChange={(v) => m.setContact('email', v)}
                 autoComplete="email"
                 error={errors.email}
-                help={EMAIL_HELP}
+                help={t.emailHelp}
               />
               <TextField
                 label="Phone"
@@ -1101,7 +1128,7 @@ function IntakeScreens() {
               helpTone={draft.contact.followUpLanguage ? 'good' : 'help'}
               help={
                 draft.contact.followUpLanguage
-                  ? `We will reply in ${draft.contact.followUpLanguage} where a partner is available, and in English otherwise.`
+                  ? `We will reply in ${languageLabel(draft.contact.followUpLanguage)} where a partner is available, and in English otherwise.`
                   : 'Leave this alone and we reply in the language of this page.'
               }
             />
@@ -1175,13 +1202,13 @@ function IntakeScreens() {
               <div className="grid gap-[26px] lg:gap-8">
                 <ChoiceGroup
                   legend="Property type"
-                  options={PROPERTY_TYPES.map((label) => ({ label }))}
+                  options={PROPERTY_TYPE_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.property.type}
                   onChange={(v) => m.setProperty('type', v)}
                 />
                 <ChoiceGroup
                   legend="Property scope"
-                  options={PROPERTY_SCOPES.map((label) => ({ label }))}
+                  options={PROPERTY_SCOPE_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.property.scope}
                   onChange={(v) => m.setProperty('scope', v)}
                 />
@@ -1284,14 +1311,14 @@ function IntakeScreens() {
               <div className="grid gap-[26px] lg:gap-8">
                 <ChoiceGroup
                   legend="Current situation"
-                  options={SITUATION_OPTIONS.map((label) => ({ label }))}
+                  options={SITUATION_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.situation.current}
                   onChange={(v) => m.setSituation('current', v)}
                 />
                 <ChoiceGroup
                   legend="Where would you like AxisPoint involved?"
                   columns={1}
-                  options={INVOLVEMENT_OPTIONS}
+                  options={INVOLVEMENT_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey], hint: c.hintKey ? t[c.hintKey] : undefined }))}
                   value={draft.situation.involvement}
                   onChange={(v) => m.setSituation('involvement', v)}
                 />
@@ -1302,7 +1329,7 @@ function IntakeScreens() {
                     onChange={(v) => m.setSituation('timing', v)}
                     options={[
                       { value: '', text: 'Select a timeframe' },
-                      ...TIMING_OPTIONS.map((t) => ({ value: t, text: t })),
+                      ...choiceOptions(TIMING_CHOICES, t),
                     ]}
                   />
                 </div>
@@ -1435,7 +1462,7 @@ function IntakeScreens() {
                   onChange={(v) => m.setContact('fullName', v)}
                   autoComplete="name"
                   error={errors.fullName}
-                  help={NAME_HELP}
+                  help={t.nameHelp}
                 />
                 <TextField
                   label="Email"
@@ -1444,7 +1471,7 @@ function IntakeScreens() {
                   onChange={(v) => m.setContact('email', v)}
                   autoComplete="email"
                   error={errors.email}
-                  help={EMAIL_HELP}
+                  help={t.emailHelp}
                 />
                 <TextField
                   label="Phone"
@@ -1472,7 +1499,7 @@ function IntakeScreens() {
                   helpTone={draft.contact.followUpLanguage ? 'good' : 'help'}
                   help={
                     draft.contact.followUpLanguage
-                      ? `We will reply in ${draft.contact.followUpLanguage} where a partner is available, and in English otherwise.`
+                      ? `We will reply in ${languageLabel(draft.contact.followUpLanguage)} where a partner is available, and in English otherwise.`
                       : 'Leave this alone and we reply in the language of this page.'
                   }
                 />

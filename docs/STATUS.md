@@ -3,14 +3,14 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-05 (Code Pass 10C)_
+_Last updated: 2026-08-08 (Localization Readiness)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | Pass 10C, booking command connected through the shared client, complete (no endpoint exists, nothing deployed) |
+| **Current code pass** | Localization Readiness, complete. The localization architecture and the stable form values are staging-ready; the full intake and marketing copy migration and all real translation are deferred to Multilingual Content Rollout. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
 | **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
 | **Next pass** | Staging, planned in [`staging-provisioning.md`](staging-provisioning.md) and not yet provisioned. Every V2 surface is connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
 
@@ -78,6 +78,73 @@ visitor moved away from.
 
 **One shared AxisPoint calendar**, unchanged: a single `AXP_CALENDAR_ID` Script Property. No
 real calendar was contacted and no Google resource exists.
+
+## Localization readiness
+
+**English is the only enabled and reviewed locale, and nothing else is advertised.** All nine
+codes remain accepted and stored; the other eight stay `enabled: false` and `review:
+'unreviewed'`. No translation was written, machine-generated, or fabricated in this pass.
+
+**What is staging-ready: the localization architecture and the stable form values**
+
+Two things are finished to a standard that a later translation pass can build on without
+revisiting them. Everything else in this section is explicitly deferred.
+
+- **One canonical registry.** `apps/web/src/i18n/locales.ts` is now the only locale list. The
+  intake's duplicate `APPROVED_LANGUAGES` and the mapper's third English-name table are
+  deleted.
+- **Every intake control separates display text from its stored value.** This is the part that
+  had to happen before any translation, not after. Six controls (property type, property scope,
+  situation, involvement, timing, and the two topic pickers) previously stored their **English
+  label** as draft state and used that label as the key into the wire-mapping tables.
+  Translating the UI would therefore have broken every Management Proposal submission and
+  silently mis-stored involvement and scope. Each control is now a `Choice` of a stable
+  snake_case `value` plus a `labelKey` into the catalog; draft state, conditional logic,
+  summaries, and the envelope all use the token, and only the rendered label comes from the
+  catalog. A synthetic-catalog regression test changes every visible label and asserts the
+  submitted envelope is byte-identical.
+- **A real bug is fixed.** The select offered "Chinese (Simplified)" while the mapper matched
+  "Simplified Chinese", so both Chinese follow-up preferences fell through to `null` and were
+  silently discarded. The select now stores locale **codes**, and a regression test drives the
+  actual option values.
+- **App-level locale state.** The selector's choice was previously local to the navigation, so
+  nothing else could observe it and the intake hardcoded `pageLocale: 'en'`. The active page
+  locale now reaches the envelope.
+- **Booking display is locale-aware, the instant is not.** Day and time labels follow the
+  reader's language; `slotStart` is still computed in the firm's zone with a real offset, so
+  changing display language cannot move a meeting.
+- **Backend dispatch is connected.** `resolveOutboundLocale` and `LAUNCH_READY_LOCALES`
+  existed since Pass 9A but nothing called them. Visitor acknowledgement and booking
+  confirmation now select templates through them, with English the only real set and one
+  documented fallback rule.
+
+**What is deferred to the Multilingual Content Rollout pass**
+
+The copy migration itself, and all real translation, are deliberately not part of this pass.
+
+- **The catalog is partial by design, and its boundary is exact.** `messages.ts` holds **92
+  keys**, every one of them consumed: the six stable-token control label sets, the gateway
+  cards, the two short pathways, validation messages, the review summaries, and the booking
+  chrome. Step headings, field labels, placeholders, help text, and the submission-state
+  screens are **still hardcoded English in the JSX**. An attempt to migrate them was made in
+  this pass and was **reverted on review**, because a bulk JSX substitution can leave a partial
+  rewrite wherever a replacement is missing, and one of its corrections would have changed a
+  visible short-pathway string (`organizationLabel`) as a side effect. The 49 catalog keys that
+  migration had added were removed with it. Extending the catalog is the rollout pass's job,
+  done screen by screen against rendered output.
+- **No marketing page copy is in the catalog.** Roughly **1,500 lines** of hardcoded visitor
+  copy across the seven pages, the footer, and the navigation still need migrating. The site is
+  **not** translation-ready end to end, and this pass does not claim it is.
+- **No translated content exists** for any locale, and **native-reader review is still
+  required** for every non-English entry in the registry, including the native words already
+  in it.
+- **The locale routing decision is explicitly left open** by the owner, and neither routing
+  nor persistence is implemented. Because locale state lives above the router, a chosen
+  locale **survives normal in-app navigation while the application remains loaded**, and
+  **resets on a full reload, a direct load, or a new tab**. `setLocale` is the seam a routing
+  decision plugs into when one is made.
+- **QR Contact Exchange stays honestly English-only**, per its approved design. No language
+  selector was added to it.
 
 **The V2 manifest requests exactly three OAuth scopes**, each backed by an API the code
 calls: `spreadsheets` (`SpreadsheetApp`), `calendar` (`CalendarApp`), and `script.send_mail`
@@ -183,6 +250,11 @@ yet replaced. Retire it in a dedicated cleanup once the backend work is settled.
 two-slot selector replaced the static English label in the header. Selecting a language changes
 the control alone: nothing is translated, no route changes, no choice is persisted, and no
 locale is stored with a submission.
+
+**Corrected by the Localization Readiness pass.** The sentence above described the language
+selector pass and is no longer true of the system: the active page locale and the visitor's
+follow-up preference are both carried on the envelope and stored, as two separate facts. See
+the localization entry below.
 
 **Production shows English only, and the trigger is static.** English is the one locale that is
 both enabled and translation-reviewed, and the approved rule is that the trigger does not cycle

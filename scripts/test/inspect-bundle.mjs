@@ -68,6 +68,21 @@ const FORBIDDEN = [
   // A compiled-in Apps Script endpoint
   'script.google.com',
   '/macros/s/',
+
+  /*
+   * Development-only localization machinery.
+   *
+   * The synthetic catalog exists so the locale seam can be proven with a second language
+   * without inventing a translation. Shipping any of it would be worse than shipping
+   * nothing: a visitor could be shown placeholder text where real copy belongs, in a
+   * language nobody has reviewed. These are verified absent, not assumed.
+   */
+  'registerTestCatalog',
+  'clearTestCatalogs',
+  '[qa]',
+  // The preview-only webfont bundle for unreviewed scripts. Production ships English only,
+  // so loading six Noto families would be pure cost for a language nobody can read yet.
+  'PREVIEW_FONT_HREF',
 ];
 
 /** Must be present: the honest failure path a production build depends on. */

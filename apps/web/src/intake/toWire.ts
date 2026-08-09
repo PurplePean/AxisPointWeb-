@@ -1,119 +1,95 @@
 /**
  * Website intake to V2 wire contract.
  *
- * THE INTAKE DRAFT STORES DISPLAY STRINGS. `property.type` really is the literal
- * `'Multifamily'`, `situation.current` really is `'Replace current management'`, because
- * the approved UI binds radio inputs directly to the visible label. The backend REJECTS
- * approved display strings as wire values with their own error code, precisely so a copy
- * edit or a translation can never silently change a stored value.
+ * THE INTAKE DRAFT STORES WIRE TOKENS, not display strings. `property.type` really is
+ * `'multifamily'`, `situation.current` really is `'replace_current_management'`, because
+ * every choice control binds to a stable value and renders its label from the message
+ * catalog. The backend rejects display strings as wire values with their own error code, and
+ * this arrangement means a translation cannot produce one.
  *
- * This file is the only place the two vocabularies meet. Every table below maps a label
- * this repository controls onto a token `scripts/gas-v2/src/Tokens.js` controls, and
- * `intake.wire.test.ts` feeds the output through the real `parseEnvelope` so the two
- * cannot drift apart unnoticed.
+ * It was the other way round until the localization pass: the draft held English labels and
+ * six tables here converted them. `intake.wire.test.ts` still feeds the output through the
+ * real `parseEnvelope`, so the two vocabularies cannot drift apart unnoticed.
  *
- * An unmapped label is a BUG, not a value to pass through. `requireToken` throws rather
- * than sending the label, because sending it would earn a rejection at the boundary and
- * the visitor would see a failure they cannot act on.
+ * A value that was never offered is a BUG, not something to pass through. `requireChoice`
+ * throws rather than sending it, because sending it would earn a rejection at the boundary
+ * and the visitor would see a failure they cannot act on.
  */
 
 import type {
   ContactExchangePayload,
   EnvelopeDraft,
-  GeneralTopic,
   Involvement,
-  InvestorTopic,
   LocaleCode,
-  PropertyScope,
-  PropertyType,
   ServiceInquiryPayload,
   ServiceScope,
-  Situation,
-  Timing,
   WireAttribution,
   WireClientSignals,
 } from '@axispoint/submission-client';
 import { SCOPE_TO_INVOLVEMENT } from '@axispoint/submission-client';
+import { LOCALES } from '../i18n/locales';
+import {
+  GENERAL_TOPIC_CHOICES,
+  INVESTOR_TOPIC_CHOICES,
+  PROPERTY_SCOPE_CHOICES,
+  PROPERTY_TYPE_CHOICES,
+  SITUATION_CHOICES,
+  TIMING_CHOICES,
+  type Choice,
+} from './model';
 import type { IntakeDraft, Pathway as UiPathway, ServiceScope as UiScope } from './model';
 
-/* ── Label to token tables ────────────────────────────────────────────────── */
+/* ── Token validation ─────────────────────────────────────────────────────── */
 
-const PROPERTY_TYPE_BY_LABEL: Record<string, PropertyType> = {
-  Multifamily: 'multifamily',
-  Retail: 'retail',
-  'Mixed portfolio': 'mixed_portfolio',
-  'Another property type': 'another_property_type',
-};
+/*
+ * THE SIX LABEL TABLES ARE GONE, and their absence is the substance of this pass.
+ *
+ * They mapped English display text onto wire tokens: `'Multifamily' -> 'multifamily'`,
+ * `'Immediately' -> 'immediately'`, and four more. That worked only while the UI was
+ * English. Translate a single radio label and the lookup misses, so a Management Proposal
+ * either throws on an unmapped value or, for involvement, silently resolves to the wrong
+ * service scope and stores an answer the visitor never gave.
+ *
+ * The draft now holds the token itself. What remains is a membership check against the same
+ * choice definitions the UI renders from, so a value that was never offered still cannot
+ * reach the wire.
+ */
 
-const PROPERTY_SCOPE_BY_LABEL: Record<string, PropertyScope> = {
-  'One property': 'one_property',
-  Portfolio: 'portfolio',
-};
-
-const SITUATION_BY_LABEL: Record<string, Situation> = {
-  'Replace current management': 'replace_current_management',
-  'Move away from self-management': 'move_away_from_self_management',
-  'Recently acquired or under contract': 'recently_acquired_or_under_contract',
-  'Lease-up or turnaround': 'lease_up_or_turnaround',
-  'Operations or reporting problems': 'operations_or_reporting_problems',
-  'Exploring management options': 'exploring_management_options',
-  'Something else': 'something_else',
-};
-
-const TIMING_BY_LABEL: Record<string, Timing> = {
-  Immediately: 'immediately',
-  'Within 30 days': 'within_30_days',
-  '30 to 60 days': 'days_30_to_60',
-  '60 to 90 days': 'days_60_to_90',
-  'Still exploring': 'still_exploring',
-};
-
-const INVESTOR_TOPIC_BY_LABEL: Record<string, InvestorTopic> = {
-  'Exploring my first acquisition': 'exploring_first_acquisition',
-  'Under contract now': 'under_contract_now',
-  'Actively searching': 'actively_searching',
-  'Own property, need an operating team': 'own_property_need_operating_team',
-  'Something else': 'something_else',
-};
-
-const GENERAL_TOPIC_BY_LABEL: Record<string, GeneralTopic> = {
-  'A question about AxisPoint': 'question_about_axispoint',
-  'Vendor or service provider': 'vendor_or_service_provider',
-  Employment: 'employment',
-  'Press or media': 'press_or_media',
-  'Something else': 'something_else',
-};
+function requireChoice<T extends string>(choices: Choice<T>[], field: string, value: string): T {
+  const found = choices.find((c) => c.value === value);
+  if (!found) throw new UnmappedIntakeValue(field, value);
+  return found.value;
+}
 
 /**
- * Follow-up language, by the English name the approved selector shows.
+ * Follow-up language, validated against the canonical registry by CODE.
+ *
+ * There is no name-to-code table any more, and that is the point. The previous one matched
+ * on English display names, the select offered different names than the table held, and
+ * both Chinese preferences silently became `null`. Codes cannot drift from themselves.
  *
  * All nine are accepted as a stated PREFERENCE even though English is the only locale
  * anything is sent in. Knowing somebody wants to be answered in Punjabi is useful to a
  * partner long before a translation exists.
  */
-const LOCALE_BY_LANGUAGE_NAME: Record<string, LocaleCode> = {
-  English: 'en',
-  Spanish: 'es',
-  'Simplified Chinese': 'zh-Hans',
-  'Traditional Chinese': 'zh-Hant',
-  Vietnamese: 'vi',
-  Hindi: 'hi',
-  Urdu: 'ur',
-  Gujarati: 'gu',
-  Punjabi: 'pa',
-};
+function toPreferredFollowUp(value: string): LocaleCode | null {
+  const code = value.trim();
+  if (code === '') return null;
+  const known = LOCALES.find((l) => l.code === code);
+  if (!known) {
+    // An unknown code is a wiring bug, not a visitor input: the select is built from the
+    // same registry. Throwing surfaces it in development rather than dropping the
+    // preference the way the old lookup did.
+    throw new UnmappedIntakeValue('followUpLanguage', value);
+  }
+  return known.code;
+}
 
 export class UnmappedIntakeValue extends Error {
   constructor(field: string, value: string) {
     super(`unmapped intake value for ${field}: ${JSON.stringify(value)}`);
     this.name = 'UnmappedIntakeValue';
   }
-}
-
-function requireToken<T extends string>(table: Record<string, T>, field: string, label: string): T {
-  const token = table[label];
-  if (!token) throw new UnmappedIntakeValue(field, label);
-  return token;
 }
 
 /** Optional free text. Omitted from the payload when empty rather than sent as `''`. */
@@ -192,17 +168,17 @@ export function toServiceInquiryPayload(draft: IntakeDraft): ServiceInquiryPaylo
       pathway,
       serviceScope,
       property: {
-        type: requireToken(PROPERTY_TYPE_BY_LABEL, 'property.type', draft.property.type),
-        scope: requireToken(PROPERTY_SCOPE_BY_LABEL, 'property.scope', draft.property.scope),
+        type: requireChoice(PROPERTY_TYPE_CHOICES, 'property.type', draft.property.type),
+        scope: requireChoice(PROPERTY_SCOPE_CHOICES, 'property.scope', draft.property.scope),
         location: draft.property.location.trim(),
         scale: draft.property.scaleUnknown ? undefined : optional(draft.property.scale),
         scaleUnknown: draft.property.scaleUnknown === true,
         propertyCount: optional(draft.property.propertyCount),
       },
       situation: {
-        current: requireToken(SITUATION_BY_LABEL, 'situation.current', draft.situation.current),
+        current: requireChoice(SITUATION_CHOICES, 'situation.current', draft.situation.current),
         involvement,
-        timing: requireToken(TIMING_BY_LABEL, 'situation.timing', draft.situation.timing),
+        timing: requireChoice(TIMING_CHOICES, 'situation.timing', draft.situation.timing),
         notes: optional(draft.situation.notes),
       },
       contact: inquiryContact(draft),
@@ -212,14 +188,14 @@ export function toServiceInquiryPayload(draft: IntakeDraft): ServiceInquiryPaylo
   if (pathway === 'investor_services') {
     return {
       pathway,
-      topic: requireToken(INVESTOR_TOPIC_BY_LABEL, 'topic', draft.topic),
+      topic: requireChoice(INVESTOR_TOPIC_CHOICES, 'topic', draft.topic),
       contact: inquiryContact(draft),
     };
   }
 
   return {
     pathway,
-    topic: requireToken(GENERAL_TOPIC_BY_LABEL, 'topic', draft.topic),
+    topic: requireChoice(GENERAL_TOPIC_CHOICES, 'topic', draft.topic),
     contact: inquiryContact(draft),
   };
 }
@@ -248,7 +224,7 @@ export interface WireContext {
  * command that this pass does not send.
  */
 export function toEnvelopeDraft(draft: IntakeDraft, context: WireContext): EnvelopeDraft {
-  const preferredFollowUp = LOCALE_BY_LANGUAGE_NAME[draft.contact.followUpLanguage.trim()] ?? null;
+  const preferredFollowUp = toPreferredFollowUp(draft.contact.followUpLanguage);
 
   return {
     submissionKind: 'service_inquiry',

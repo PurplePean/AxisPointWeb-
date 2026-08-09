@@ -46,8 +46,22 @@ function handleSendAcknowledgement(item, deps) {
     return { ok: false, permanent: true, reason: 'acknowledge_not_configured' };
   }
 
+  /*
+   * The locale this reply is actually written in.
+   *
+   * `resolveOutboundLocale` existed since Pass 9A but nothing called it, so a Spanish
+   * preference was stored, shown to the partner, and then had no effect on what was sent.
+   * It now selects the template set. Only launch-ready locales qualify, so an unlaunched
+   * preference falls back to English honestly rather than being answered by an
+   * untranslated template pretending to be Spanish.
+   */
+  var outbound = resolveOutboundLocale(
+    { preferredFollowUpLocale: lead.preferredFollowUpLocale },
+    deps.launchReadyLocales || ['en']
+  );
+
   var rendered = deps.templates.renderAcknowledgement(
-    lead, withOffsetResolver(deps.config, deps.offsetResolver)
+    lead, withOffsetResolver(deps.config, deps.offsetResolver), outbound.locale
   );
   if (!rendered || !rendered.ok) {
     setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');
@@ -181,8 +195,14 @@ function handleSendQrAcknowledgement(item, deps) {
     return { ok: false, permanent: true, reason: 'qr_acknowledge_not_configured' };
   }
 
+  // The stored Submission carries the preference; there is no `contact` in this scope.
+  var qrOutbound = resolveOutboundLocale(
+    { preferredFollowUpLocale: submission.preferredFollowUpLocale },
+    deps.launchReadyLocales || ['en']
+  );
+
   var rendered = deps.templates.renderQrAcknowledgement(
-    submission, withOffsetResolver(deps.config, deps.offsetResolver)
+    submission, withOffsetResolver(deps.config, deps.offsetResolver), qrOutbound.locale
   );
   if (!rendered || !rendered.ok) {
     setDelivery(deps, submission.submissionId, ACK_STATUS_FIELD, 'failed');

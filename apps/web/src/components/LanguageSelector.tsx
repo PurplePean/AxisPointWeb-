@@ -38,7 +38,14 @@ const MENU_MAX_HEIGHT = 340;
 export interface LanguageSelectorProps {
   /** Controlled active locale. */
   value?: LocaleCode;
-  /** Explicit change callback. The later localization pass owns what this does. */
+  /**
+   * Explicit change callback.
+   *
+   * Wired to the app-level `LocaleProvider`, so a change updates `<html lang>` and `dir`,
+   * swaps the message catalog, and reaches the page locale carried on a submission. It does
+   * NOT change the URL or persist: no approved source settles a locale routing contract, so
+   * none was invented.
+   */
   onChange?: (code: LocaleCode) => void;
   /** Compact trigger for the mobile header: locale code instead of the native name. */
   compact?: boolean;

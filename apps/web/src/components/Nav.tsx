@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Mark } from '@axispoint/brand';
 import LanguageSelector from './LanguageSelector';
-import { DEFAULT_LOCALE, type LocaleCode } from '../i18n/locales';
+import { useLocale } from '../i18n/LocaleProvider';
 
 /**
  * Shared site header, built from the approved V2 sources (design@2026-07-30):
@@ -31,19 +31,31 @@ const CTA = { to: '/contact?intent=property-management', label: 'Request a Manag
 
 /**
  * The static English label that stood here through Passes 2 to 5 is replaced by the
- * approved two-slot selector (design@2026-07-31). The control is real now; the site
- * is still English-only, and selecting a language changes the control alone.
+ * approved two-slot selector (design@2026-07-31).
  *
- * Locale state is held here so the selector stays controlled, with an explicit change
- * callback the later localization pass can take over. Nothing is persisted, no URL is
- * rewritten, and no page copy changes.
+ * Locale state is no longer held here. It lives at app level in `LocaleProvider`, above
+ * the router, so a selection is observable by the rest of the application: it reaches
+ * submissions as the envelope's page locale, and it drives every catalogued intake
+ * surface. It also survives normal in-app navigation for as long as the application
+ * stays loaded.
+ *
+ * What still does not happen: there is no routing and no persistence. The choice resets
+ * on a full reload, on a direct load of any URL, and in a new tab, and no URL is ever
+ * rewritten. Intake and marketing copy outside the catalog is still hardcoded English,
+ * and English remains the only enabled and reviewed locale, so in practice nothing
+ * visible changes today. `setLocale` is the seam a routing decision plugs into.
  */
 
 function Nav() {
   const [open, setOpen] = useState(false);
-  /* Controlled locale, held here and not persisted. The localization pass takes over
-     this state and decides what a change actually does. */
-  const [locale, setLocale] = useState<LocaleCode>(DEFAULT_LOCALE);
+  /*
+   * The locale now lives at app level, not here.
+   *
+   * While this state was local, the selector changed a value nothing else could observe:
+   * the intake hardcoded `pageLocale: 'en'` because it had no way to ask what the visitor
+   * had chosen, so a selection could never reach a submission.
+   */
+  const { code: locale, setLocale } = useLocale();
   const { pathname, search } = useLocation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);

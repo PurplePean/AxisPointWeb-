@@ -1,3 +1,15 @@
+import { LOCALES } from '../i18n/locales';
+import { EN, type Messages } from '../i18n/messages';
+import type {
+  GeneralTopic,
+  Involvement,
+  InvestorTopic,
+  PropertyScope,
+  PropertyType,
+  Situation,
+  Timing,
+} from '@axispoint/submission-client';
+
 /**
  * Typed frontend model for the approved V2 intake (design@2026-07-30).
  *
@@ -86,7 +98,12 @@ export interface ContactDraft {
   email: string;
   phone: string;
   organization: string;
-  /** English name of an approved language, or '' meaning "same as this page". */
+  /**
+   * A locale CODE from the canonical registry, or '' meaning "same as this page".
+   *
+   * Deliberately not a display label. Storing "Chinese (Simplified)" and matching it later
+   * by name is what silently discarded both Chinese preferences.
+   */
   followUpLanguage: string;
 }
 
@@ -135,73 +152,144 @@ export const emptyDraft = (pathway: Pathway, scope: ServiceScope): IntakeDraft =
 });
 
 /** Maps the approved involvement answer onto the model's service scope. */
+/*
+ * Scope and involvement convert through TOKENS, never through English labels.
+ *
+ * These two matched on the literal strings "Property Management" and
+ * "Property Management + Asset Management". A translated radio label would have silently
+ * produced scope `undecided` for every visitor, which the backend accepts, so the wrong
+ * answer would have been stored with nothing failing anywhere.
+ */
 export function scopeFromInvolvement(involvement: string): ServiceScope {
-  if (involvement === 'Property Management + Asset Management') return 'pm-plus-am';
-  if (involvement === 'Property Management') return 'pm';
+  if (involvement === 'property_management_plus_asset_management') return 'pm-plus-am';
+  if (involvement === 'property_management') return 'pm';
   return 'undecided';
 }
 
 export function involvementFromScope(scope: ServiceScope): string {
-  if (scope === 'pm-plus-am') return 'Property Management + Asset Management';
-  if (scope === 'pm') return 'Property Management';
+  if (scope === 'pm-plus-am') return 'property_management_plus_asset_management';
+  if (scope === 'pm') return 'property_management';
   return '';
 }
 
 /* ── Approved content ──────────────────────────────────────────────────────── */
 
-export const PROPERTY_TYPES = ['Multifamily', 'Retail', 'Mixed portfolio', 'Another property type'];
-export const PROPERTY_SCOPES = ['One property', 'Portfolio'];
+/**
+ * A selectable choice: a STABLE value plus the catalog key that displays it.
+ *
+ * THIS SHAPE IS THE POINT OF THE PASS. Every one of these controls previously stored its
+ * English label as the draft value, and `toWire` looked that label up in a table to find the
+ * wire token. Translating the UI would therefore have broken every Management Proposal
+ * submission outright, because the translated label would match no key. That is the same
+ * defect class as the Chinese follow-up bug, one layer deeper and far more damaging.
+ *
+ * Now the value IS the wire token and the label is looked up in the catalog. A translation
+ * changes `labelKey`'s content and cannot touch `value`, so the envelope is identical in
+ * every language.
+ */
+export interface Choice<T extends string = string> {
+  /** The wire token. Never translated, never derived from display text. */
+  value: T;
+  labelKey: keyof Messages;
+  hintKey?: keyof Messages;
+}
 
-export const SITUATION_OPTIONS = [
-  'Replace current management',
-  'Move away from self-management',
-  'Recently acquired or under contract',
-  'Lease-up or turnaround',
-  'Operations or reporting problems',
-  'Exploring management options',
-  'Something else',
+export const PROPERTY_TYPE_CHOICES: Choice<PropertyType>[] = [
+  { value: 'multifamily', labelKey: 'propertyTypeMultifamily' },
+  { value: 'retail', labelKey: 'propertyTypeRetail' },
+  { value: 'mixed_portfolio', labelKey: 'propertyTypeMixedPortfolio' },
+  { value: 'another_property_type', labelKey: 'propertyTypeAnother' },
 ];
 
-export const INVOLVEMENT_OPTIONS: { label: string; hint: string }[] = [
-  { label: 'Property Management', hint: 'Run the property day to day.' },
+export const PROPERTY_SCOPE_CHOICES: Choice<PropertyScope>[] = [
+  { value: 'one_property', labelKey: 'propertyScopeOne' },
+  { value: 'portfolio', labelKey: 'propertyScopePortfolio' },
+];
+
+export const SITUATION_CHOICES: Choice<Situation>[] = [
+  { value: 'replace_current_management', labelKey: 'situationReplace' },
+  { value: 'move_away_from_self_management', labelKey: 'situationMoveAway' },
+  { value: 'recently_acquired_or_under_contract', labelKey: 'situationRecentlyAcquired' },
+  { value: 'lease_up_or_turnaround', labelKey: 'situationLeaseUp' },
+  { value: 'operations_or_reporting_problems', labelKey: 'situationOperations' },
+  { value: 'exploring_management_options', labelKey: 'situationExploring' },
+  { value: 'something_else', labelKey: 'situationSomethingElse' },
+];
+
+export const INVOLVEMENT_CHOICES: Choice<Involvement>[] = [
+  { value: 'property_management', labelKey: 'involvementPm', hintKey: 'involvementPmHint' },
   {
-    label: 'Property Management + Asset Management',
-    hint: 'Run the property and help direct the investment strategy.',
+    value: 'property_management_plus_asset_management',
+    labelKey: 'involvementPmAm',
+    hintKey: 'involvementPmAmHint',
   },
-  { label: 'Not Sure', hint: 'Help me determine the appropriate level of involvement.' },
+  { value: 'not_sure', labelKey: 'involvementNotSure', hintKey: 'involvementNotSureHint' },
 ];
 
-export const TIMING_OPTIONS = [
-  'Immediately',
-  'Within 30 days',
-  '30 to 60 days',
-  '60 to 90 days',
-  'Still exploring',
+export const TIMING_CHOICES: Choice<Timing>[] = [
+  { value: 'immediately', labelKey: 'timingImmediately' },
+  { value: 'within_30_days', labelKey: 'timingWithin30' },
+  { value: 'days_30_to_60', labelKey: 'timing30to60' },
+  { value: 'days_60_to_90', labelKey: 'timing60to90' },
+  { value: 'still_exploring', labelKey: 'timingStillExploring' },
 ];
 
-/** Scale field adapts to the property type, per the approved source. */
-export const SCALE_BY_TYPE: Record<string, { label: string; placeholder: string; help: string }> = {
-  Multifamily: {
-    label: 'Approximate units',
-    placeholder: 'For example 184',
-    help: 'A round number is fine. We are sizing the operating team, not auditing the rent roll.',
-  },
-  Retail: {
-    label: 'Approximate square footage',
-    placeholder: 'For example 42,000',
-    help: 'Gross leasable area is the most useful figure here.',
-  },
-  'Mixed portfolio': {
-    label: 'Approximate combined scale',
-    placeholder: 'For example 300 units and 40,000 sq ft',
-    help: 'Units, square footage, or both. Tell us in whatever terms you track it.',
-  },
-  'Another property type': {
-    label: 'Approximate scale',
-    placeholder: 'Units, square feet, or another measure',
-    help: 'Describe the size in the terms that make sense for this property type.',
-  },
-};
+export const INVESTOR_TOPIC_CHOICES: Choice<InvestorTopic>[] = [
+  { value: 'exploring_first_acquisition', labelKey: 'investorTopicFirstAcquisition' },
+  { value: 'under_contract_now', labelKey: 'investorTopicUnderContract' },
+  { value: 'actively_searching', labelKey: 'investorTopicActivelySearching' },
+  { value: 'own_property_need_operating_team', labelKey: 'investorTopicOwnProperty' },
+  { value: 'something_else', labelKey: 'investorTopicSomethingElse' },
+];
+
+export const GENERAL_TOPIC_CHOICES: Choice<GeneralTopic>[] = [
+  { value: 'question_about_axispoint', labelKey: 'generalTopicQuestion' },
+  { value: 'vendor_or_service_provider', labelKey: 'generalTopicVendor' },
+  { value: 'employment', labelKey: 'generalTopicEmployment' },
+  { value: 'press_or_media', labelKey: 'generalTopicPress' },
+  { value: 'something_else', labelKey: 'generalTopicSomethingElse' },
+];
+
+/** Renders a choice list for a select or radio group, in the active language. */
+export function choiceOptions<T extends string>(
+  choices: Choice<T>[],
+  t: Messages,
+): { value: T; text: string }[] {
+  return choices.map((c) => ({ value: c.value, text: t[c.labelKey] }));
+}
+
+/** The display label for a stored token, for summaries and confirmations. */
+export function choiceLabel<T extends string>(choices: Choice<T>[], value: string, t: Messages): string {
+  const found = choices.find((c) => c.value === value);
+  return found ? t[found.labelKey] : '';
+}
+
+/**
+ * The scale field adapts to the property type, per the approved source.
+ *
+ * Keyed by the property-type TOKEN, not by its English label. Keying this by display text
+ * was the quietest instance of the same defect: a translated "Multifamily" would have fallen
+ * through to the generic fallback copy, so the form would still submit but would silently
+ * ask the wrong question.
+ */
+export function scaleCopyFor(
+  type: string,
+  t: Messages,
+): { label: string; placeholder: string; help: string } {
+  if (type === 'multifamily') {
+    return { label: t.scaleUnitsLabel, placeholder: t.scaleUnitsPlaceholder, help: t.scaleUnitsHelp };
+  }
+  if (type === 'retail') {
+    return { label: t.scaleSqftLabel, placeholder: t.scaleSqftPlaceholder, help: t.scaleSqftHelp };
+  }
+  if (type === 'mixed_portfolio') {
+    return { label: t.scaleMixedLabel, placeholder: t.scaleMixedPlaceholder, help: t.scaleMixedHelp };
+  }
+  if (type === 'another_property_type') {
+    return { label: t.scaleOtherLabel, placeholder: t.scaleOtherPlaceholder, help: t.scaleOtherHelp };
+  }
+  return { label: t.scaleFallbackLabel, placeholder: t.scaleFallbackPlaceholder, help: t.scaleFallbackHelp };
+}
 
 export const SCALE_FALLBACK = {
   label: 'Approximate scale',
@@ -209,18 +297,19 @@ export const SCALE_FALLBACK = {
   help: 'Choose a property type above and this adapts to the right measure.',
 };
 
-/** The nine approved languages. The site itself remains English-only in this pass. */
-export const APPROVED_LANGUAGES: { code: string; native: string; english: string }[] = [
-  { code: 'en', native: 'English', english: 'English' },
-  { code: 'es', native: 'Español', english: 'Spanish' },
-  { code: 'zh-Hans', native: '简体中文', english: 'Chinese (Simplified)' },
-  { code: 'zh-Hant', native: '繁體中文', english: 'Chinese (Traditional)' },
-  { code: 'vi', native: 'Tiếng Việt', english: 'Vietnamese' },
-  { code: 'hi', native: 'हिन्दी', english: 'Hindi' },
-  { code: 'ur', native: 'اردو', english: 'Urdu' },
-  { code: 'gu', native: 'ગુજરાતી', english: 'Gujarati' },
-  { code: 'pa', native: 'ਪੰਜਾਬੀ', english: 'Punjabi' },
-];
+/*
+ * The nine approved languages are NOT redeclared here.
+ *
+ * There used to be a second list in this file, and a third English-name-to-code mapping in
+ * `toWire.ts`, alongside the canonical registry in `i18n/locales.ts`. Three copies of one
+ * list drifted exactly as you would expect: this file wrote "Chinese (Simplified)" while
+ * the mapper matched on "Simplified Chinese", so both Chinese follow-up preferences hit an
+ * unmatched lookup, became `null`, and were silently dropped on the way to the wire. A
+ * visitor asked to be answered in Chinese and nothing recorded it.
+ *
+ * The registry in `i18n/locales.ts` is now the only source, and the select stores locale
+ * CODES rather than display labels, so no name matching happens anywhere.
+ */
 
 /** Copy for the two short pathways, from the approved `paths` map. */
 export interface ShortPathCopy {
@@ -228,49 +317,50 @@ export interface ShortPathCopy {
   title: string;
   lead: string;
   topicLabel: string;
-  topics: string[];
+  /** Token-valued choices. The label is resolved from the catalog, the value never is. */
+  topics: Choice<InvestorTopic | GeneralTopic>[];
   organizationLabel: string;
   noteLabel: string;
   notePlaceholder: string;
   action: string;
 }
 
-export const SHORT_PATHS: Record<'investor-services' | 'general-inquiry', ShortPathCopy> = {
-  'investor-services': {
-    kicker: 'Investor Services',
-    title: 'Tell us where you are in the process.',
-    lead: 'A short note is enough to start. We will follow up to arrange a conversation.',
-    topicLabel: 'Where are you in the process?',
-    topics: [
-      'Exploring my first acquisition',
-      'Under contract now',
-      'Actively searching',
-      'Own property, need an operating team',
-      'Something else',
-    ],
-    organizationLabel: 'Company',
-    noteLabel: 'What are you looking at?',
-    notePlaceholder: 'Asset type, market, or timeline',
-    action: 'Send Inquiry',
-  },
-  'general-inquiry': {
-    kicker: 'General inquiry',
-    title: 'What can we help with?',
-    lead: 'Tell us who you are and what you need. We will route it to the right partner.',
-    topicLabel: 'What is this about?',
-    topics: [
-      'A question about AxisPoint',
-      'Vendor or service provider',
-      'Employment',
-      'Press or media',
-      'Something else',
-    ],
-    organizationLabel: 'Company',
-    noteLabel: 'Your message',
-    notePlaceholder: 'A few sentences is plenty',
-    action: 'Send Inquiry',
-  },
-};
+/**
+ * Copy for the two short pathways, resolved against the active catalog.
+ *
+ * A function rather than a constant because the strings are now language dependent while the
+ * topic VALUES are not. The topic list is the shared choice definition, so the select and
+ * the wire mapping cannot disagree about what a topic is.
+ */
+export function shortPathCopy(
+  pathway: 'investor-services' | 'general-inquiry',
+  t: Messages,
+): ShortPathCopy {
+  if (pathway === 'investor-services') {
+    return {
+      kicker: t.investorKicker,
+      title: t.investorTitle,
+      lead: t.investorLead,
+      topicLabel: t.investorTopicLabel,
+      topics: INVESTOR_TOPIC_CHOICES,
+      organizationLabel: t.organizationLabel,
+      noteLabel: t.investorNoteLabel,
+      notePlaceholder: t.investorNotePlaceholder,
+      action: t.submitLabel,
+    };
+  }
+  return {
+    kicker: t.generalKicker,
+    title: t.generalTitle,
+    lead: t.generalLead,
+    topicLabel: t.generalTopicLabel,
+    topics: GENERAL_TOPIC_CHOICES,
+    organizationLabel: t.organizationLabel,
+    noteLabel: t.generalNoteLabel,
+    notePlaceholder: t.generalNotePlaceholder,
+    action: t.submitLabel,
+  };
+}
 
 /* ── Booking presentation ──────────────────────────────────────────────────── */
 
@@ -283,22 +373,13 @@ export const SHORT_PATHS: Record<'investor-services' | 'general-inquiry', ShortP
  * derived from the backend's own booking rules in `booking/availability.ts`, and the copy
  * below is careful never to describe them as live availability.
  */
-export const BOOKING_COPY = {
-  durationLabel: '30 minutes',
-  /**
-   * Neutral until a backend actually assigns someone. Naming a specific partner would be
-   * an invented assignment, and no assignment logic exists.
-   */
-  withLabel: 'AxisPoint Partners',
-  /** Says what these times are, and what they are not. */
-  candidateNote:
-    'Times are shown in Central Time, Houston. Availability is confirmed when you book.',
-  /** The approved neutral refusal for a slot that was taken between choosing and booking. */
-  slotTaken: 'That time is no longer available. Please choose another.',
-  failed: 'We could not confirm that time. Nothing was booked. Try again.',
-  refused: 'We could not book that time, and trying again would not help.',
-  unavailable: 'Scheduling is unavailable right now. Nothing was booked.',
-} as const;
+/*
+ * Booking copy now lives in the message catalog (`i18n/messages.ts`), not here.
+ *
+ * It briefly existed in both, which is the same duplication this pass deleted elsewhere.
+ * The strings are unchanged; only their home moved, so a future locale supplies them the
+ * same way it supplies every other visitor-facing string.
+ */
 
 /* ── Validation ────────────────────────────────────────────────────────────── */
 
@@ -312,19 +393,33 @@ export interface FieldErrors {
   topic?: string;
 }
 
-export const NAME_HELP = 'As you would like us to address you.';
-export const NAME_ERROR = 'Enter the name we should ask for when we call.';
-export const EMAIL_HELP = 'Where we’ll send our reply and any follow-up details.';
-export const EMAIL_ERROR =
-  'This address is missing the part after the @ sign. Add the full address, for example name@company.com.';
-
-export const TOPIC_ERROR = 'Choose the option that best describes your inquiry.';
-
-export function validateContact(contact: ContactDraft): FieldErrors {
+/**
+ * Validation messages come from the active catalog.
+ *
+ * `t` defaults to English so every existing caller and test keeps working unchanged, and so
+ * a validator called outside a React tree still produces real sentences rather than keys.
+ * The constants that used to live here are gone: they were duplicated into the catalog, and
+ * two homes for one string is how the follow-up language labels drifted in the first place.
+ */
+export function validateContact(contact: ContactDraft, t: Messages = EN): FieldErrors {
   const errors: FieldErrors = {};
-  if (!contact.fullName.trim()) errors.fullName = NAME_ERROR;
-  if (!EMAIL_RE.test(contact.email)) errors.email = EMAIL_ERROR;
+  if (!contact.fullName.trim()) errors.fullName = t.nameError;
+  if (!EMAIL_RE.test(contact.email)) errors.email = t.emailError;
   return errors;
+}
+
+/**
+ * The follow-up language options, in ONE place.
+ *
+ * Exported so `Intake.tsx` and the regression test consume the same value. A test that
+ * rebuilt this list itself could pass while the real control reverted to display-name
+ * values, which is exactly how the Chinese defect survived its own test suite.
+ */
+export function followUpOptions(t: Messages = EN): { value: string; text: string }[] {
+  return [
+    { value: '', text: t.followUpSameAsPage },
+    ...LOCALES.map((l) => ({ value: l.code, text: `${l.nativeName} · ${l.englishName}` })),
+  ];
 }
 
 /**
@@ -336,12 +431,12 @@ export function validateContact(contact: ContactDraft): FieldErrors {
  * The backend requires the token, so an empty topic is a rejection the visitor cannot see
  * or act on, which is exactly the failure this catches at the point they can fix it.
  */
-export function validateDraft(draft: IntakeDraft): FieldErrors {
-  const errors = validateContact(draft.contact);
+export function validateDraft(draft: IntakeDraft, t: Messages = EN): FieldErrors {
+  const errors = validateContact(draft.contact, t);
   const needsTopic =
     draft.pathway === 'investor-services' || draft.pathway === 'general-inquiry';
 
-  if (needsTopic && !draft.topic.trim()) errors.topic = TOPIC_ERROR;
+  if (needsTopic && !draft.topic.trim()) errors.topic = t.topicError;
   return errors;
 }
 
