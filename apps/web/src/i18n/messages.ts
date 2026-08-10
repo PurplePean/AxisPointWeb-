@@ -1,4 +1,9 @@
 import { DEFAULT_LOCALE, type LocaleCode } from './locales';
+// Explicit `/index`, not the bare directory: the test resolver hook rescues extensionless
+// specifiers but Node rejects a directory import before it ever gets the chance.
+import { REVIEWED_CATALOGS } from './catalogs/reviewed/index';
+// Aliased away in every build. See `./catalogs/none.ts` and `apps/web/vite.config.ts`.
+import { loadAuditCandidate } from './catalogs/audit/active';
 
 /**
  * The message catalog for the intake surfaces that are already catalog-driven.
@@ -261,12 +266,30 @@ export const EN: Messages = {
 };
 
 /**
- * Every catalog that exists. There is exactly one, and that is the honest state.
+ * THE FALLBACK RULE, now stated per key rather than per catalog.
  *
- * A locale absent from here falls back to English rather than rendering blanks, which is the
- * single documented fallback rule.
+ * It used to be all-or-nothing: a locale either had a complete `Messages` or it got English
+ * wholesale. That worked while English was the only catalog, and it stops working the moment
+ * a real translation arrives partially reviewed, because the honest intermediate state is
+ * "these forty strings are checked and the rest are not."
+ *
+ * So a catalog is a `Partial<Messages>` and every key resolves independently: a present,
+ * non-empty string wins, and anything else falls back to English. A half-reviewed locale
+ * therefore renders reviewed copy where it exists and correct English everywhere else, which
+ * is a page a visitor can use. It never renders a blank, and it never renders `undefined`.
+ *
+ * Empty string is treated as missing on purpose. It is what a spreadsheet export produces for
+ * a row a translator skipped, and rendering it would leave a silently blank label.
  */
-const CATALOGS: Partial<Record<LocaleCode, Messages>> = { en: EN };
+export function mergeCatalog(partial: Partial<Messages> | null | undefined): Messages {
+  if (!partial) return EN;
+  const out: Messages = { ...EN };
+  (Object.keys(EN) as (keyof Messages)[]).forEach((key) => {
+    const value = partial[key];
+    if (typeof value === 'string' && value !== '') out[key] = value;
+  });
+  return out;
+}
 
 /**
  * Synthetic catalogs, for tests and the development seam ONLY.
@@ -301,13 +324,49 @@ export function syntheticCatalog(mark = 'qa'): Messages {
   return out as Messages;
 }
 
-/** THE ONE FALLBACK RULE: unknown locale, or no catalog, gets English. No partial merge. */
+/**
+ * The catalog available WITHOUT waiting for anything. Reviewed content only.
+ *
+ * English and any promoted locale are statically imported, so this is the answer the first
+ * paint uses and there is no loading state for a locale that ships. An audit candidate is not
+ * reachable here by construction: it lives behind `resolveCatalog` and a dev-only module.
+ */
 export function messagesFor(code: LocaleCode): Messages {
-  return testCatalogs.get(code) ?? CATALOGS[code] ?? EN;
+  const test = testCatalogs.get(code);
+  if (test) return test;
+  if (code === DEFAULT_LOCALE) return EN;
+  return mergeCatalog(REVIEWED_CATALOGS[code]);
 }
 
+/**
+ * The full resolution, including audit candidates. Asynchronous because they load on demand.
+ *
+ * ORDER MATTERS AND IS NOT NEGOTIABLE: a reviewed catalog always beats an audit candidate for
+ * the same locale. If a locale has been promoted, the model-generated file is dead weight, and
+ * silently preferring it would replace checked copy with unchecked copy.
+ *
+ * In any build this resolves exactly like `messagesFor`, because `loadAuditCandidate` is the
+ * stub that returns null. Only a running dev server can reach the real one.
+ */
+export async function resolveCatalog(code: LocaleCode): Promise<Messages> {
+  const test = testCatalogs.get(code);
+  if (test) return test;
+  if (code === DEFAULT_LOCALE) return EN;
+
+  const reviewed = REVIEWED_CATALOGS[code];
+  if (reviewed) return mergeCatalog(reviewed);
+
+  return mergeCatalog(await loadAuditCandidate(code));
+}
+
+/**
+ * Locales with REVIEWED content, plus any test catalog. Audit candidates are deliberately
+ * excluded: this answers "what could ship", and an unreviewed file is not an answer to that.
+ */
 export function cataloguedLocales(): LocaleCode[] {
-  return [...new Set([...Object.keys(CATALOGS), ...testCatalogs.keys()])] as LocaleCode[];
+  return [
+    ...new Set([DEFAULT_LOCALE, ...Object.keys(REVIEWED_CATALOGS), ...testCatalogs.keys()]),
+  ] as LocaleCode[];
 }
 
 /** Keys a candidate catalog is missing relative to English. Returned, not thrown. */

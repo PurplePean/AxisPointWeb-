@@ -1,7 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { DEFAULT_LOCALE, getLocale, type Locale, type LocaleCode } from './locales';
-import { messagesFor, registerTestCatalog, syntheticCatalog, type Messages } from './messages';
+import {
+  messagesFor,
+  registerTestCatalog,
+  resolveCatalog,
+  syntheticCatalog,
+  type Messages,
+} from './messages';
 
 /**
  * App-level locale state.
@@ -82,6 +88,20 @@ export function LocaleProvider({
   useSyntheticCatalog(locale.code);
 
   /*
+   * The active catalog is state because an audit candidate arrives asynchronously.
+   *
+   * IT IS SEEDED SYNCHRONOUSLY, which is the part that matters. `messagesFor` answers from
+   * reviewed content alone, so English, and any locale that has been promoted, is correct on
+   * the very first render. There is no loading state, no flash of the wrong language, and no
+   * Suspense boundary on a path that ships.
+   *
+   * The async step only ever adds an audit candidate on the development server. In every
+   * build `resolveCatalog` resolves to the same object `messagesFor` already returned, so the
+   * effect below settles to a no-op rather than re-rendering.
+   */
+  const [catalog, setCatalog] = useState<Messages>(() => messagesFor(locale.code));
+
+  /*
    * The document element carries the language and direction, not a wrapper div.
    *
    * Assistive technology, the browser's own hyphenation and quote selection, and CSS
@@ -94,6 +114,36 @@ export function LocaleProvider({
     document.documentElement.dir = locale.direction;
   }, [locale.code, locale.direction]);
 
+  /*
+   * Reviewed copy first, then the audit candidate if one exists.
+   *
+   * `cancelled` matters because a visitor can change language faster than a chunk loads.
+   * Without it, a slow load for the locale they left could land after the fast load for the
+   * one they chose, and the page would settle into the wrong language with no way back
+   * except changing it again.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    setCatalog(messagesFor(locale.code));
+
+    resolveCatalog(locale.code)
+      .then((resolved) => {
+        if (!cancelled) setCatalog(resolved);
+      })
+      .catch(() => {
+        /*
+         * A failed chunk load leaves the reviewed catalog in place, which is English today.
+         * Deliberately silent for the visitor and deliberately not a retry: the only way to
+         * get here is a dev-server module failure, and the correct page is already rendered.
+         */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale.code]);
+
   const setLocale = useCallback((next: LocaleCode) => {
     setCode(next);
   }, []);
@@ -102,10 +152,10 @@ export function LocaleProvider({
     () => ({
       locale,
       code: locale.code,
-      t: messagesFor(locale.code),
+      t: catalog,
       setLocale,
     }),
-    [locale, setLocale],
+    [locale, catalog, setLocale],
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

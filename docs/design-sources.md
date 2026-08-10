@@ -182,6 +182,12 @@ Approved timing and geometry, implemented in `apps/web/src/components/LanguageSe
 - Unavailable translations are never advertised.
 - No routing, persistence, `hreflang`, or backend behaviour is defined by this component.
 
+**Corrected 2026-08-10 (Multilingual Content Rollout, PR 1): six Noto families, not seven.**
+The dependency table above previously said seven. The registry in `apps/web/src/i18n/locales.ts`
+names exactly six: Noto Sans SC, TC, Devanagari, Gujarati, Gurmukhi, and Arabic. Spanish and
+Vietnamese render in Figtree and need no script family, which is where the miscount came from.
+`PREVIEW_FONT_HREF` has always requested six.
+
 **Fonts.** Figtree remains the brand utility typeface. The Noto script families are
 language-support fonts, not a third brand face, and Simplified and Traditional Chinese use
 distinct families that are never substituted for each other. Devanagari, Gujarati, Gurmukhi,
@@ -221,7 +227,7 @@ Files an authoritative source cannot render without. Verified by parsing every `
 | `AxisPoint QR Frontend` | `AxisPointMark` |
 | `AxisPoint Communications System` | `AxisPointEmail`, `AxisPointMark` |
 | `AxisPoint Proposal and Letterhead System` | `AxisPointMark` |
-| All files | `support.js`, Google Fonts (Figtree, Cormorant Garamond, and seven Noto families for the nine locales) |
+| All files | `support.js`, Google Fonts (Figtree, Cormorant Garamond, and **six** Noto families for the nine locales) |
 
 `AxisPointFormFlow` and `AxisPointFormSystem` are reviewed through the intake board rather than
 on their own, but implementers will need them for per-screen detail. They are build inputs.

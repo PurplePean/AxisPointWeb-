@@ -44,14 +44,49 @@ if (expectIndex !== -1 && !expectedEndpoint) {
   process.exit(1);
 }
 
-const assets = path.join(dist, 'assets');
-const jsFiles = readdirSync(assets).filter((f) => f.endsWith('.js'));
+/**
+ * Every emitted file, recursively.
+ *
+ * THIS USED TO READ `dist/assets/*.js` ONLY, and that was checking less than it appeared to.
+ * `apps/web/vite.config.ts` sets `sourcemap: true`, so a module that stays in the graph has
+ * its FULL ORIGINAL SOURCE embedded in the adjacent `.map` file even when tree-shaking
+ * removes it from the JavaScript. A JS-only scan can therefore pass while the content it is
+ * looking for is sitting in the same directory, one file over.
+ */
+function walk(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(abs));
+    else out.push({ abs, rel: path.relative(dist, abs) });
+  }
+  return out;
+}
+
+const emitted = walk(dist);
+const jsFiles = emitted.filter((f) => f.rel.endsWith('.js'));
 if (jsFiles.length === 0) {
   process.stderr.write('no JavaScript found in the bundle\n');
   process.exit(1);
 }
 
-const bundle = jsFiles.map((f) => readFileSync(path.join(assets, f), 'utf8')).join('\n');
+/*
+ * Two different scopes, on purpose.
+ *
+ * `bundle` is executable output: the JavaScript, plus CSS and HTML that a browser also
+ * consumes. That is the right scope for "did development machinery ship", because an
+ * identifier appearing in a sourcemap is a debugging artifact rather than code that runs.
+ *
+ * `emitted` is EVERYTHING, including `.map`. That is the right scope for audit-candidate
+ * translations, because the requirement there is not "it cannot execute", it is "it must not
+ * exist in a deployable artifact at all". A reviewer reading an unreviewed Urdu sentence out
+ * of a sourcemap is the outcome being prevented.
+ */
+const DELIVERABLE = ['.js', '.css', '.html'];
+const bundle = emitted
+  .filter((f) => DELIVERABLE.some((ext) => f.rel.endsWith(ext)))
+  .map((f) => readFileSync(f.abs, 'utf8'))
+  .join('\n');
 
 /** Development-only strings. Any occurrence means dead code shipped. */
 const FORBIDDEN = [
@@ -135,7 +170,103 @@ if (expectedEndpoint) {
  * endpoint was compiled in. Those are the checks worth keeping, and they are still here.
  */
 
-process.stdout.write(`inspected ${jsFiles.length} bundle file(s) in ${assets}\n`);
+/* ── Audit-candidate locale catalogs must not exist in any artifact ───────── */
+
+/**
+ * Model-generated translations that no native reader has checked.
+ *
+ * `apps/web/vite.config.ts` removes `src/i18n/catalogs/audit/` from the module graph for
+ * every build by aliasing its loader to a stub. That is the mechanism; this is the proof, and
+ * it is deliberately independent of it. If the alias is deleted, reordered, defeated by a
+ * future Vite change, or bypassed by a second importer, the build still produces files and
+ * this still reads them.
+ *
+ * Checked against EVERY emitted file, `.map` included. See the note above `DELIVERABLE`.
+ */
+const AUDIT_SENTINEL = 'AXP_AUDIT_CANDIDATE_UNREVIEWED';
+
+/** One distinctive string per locale, lifted from each catalog's first key. */
+const AUDIT_SAMPLES = [
+  ['es', '¿Qué le gustaría tratar?'],
+  ['zh-Hans', '您想咨询哪方面的事务？'],
+  ['zh-Hant', '您想諮詢哪方面的事務？'],
+  ['vi', 'Quý vị muốn trao đổi về điều gì?'],
+  ['hi', 'आप किस विषय पर बात करना चाहेंगे?'],
+  ['ur', 'آپ کس بارے میں بات کرنا چاہیں گے؟'],
+  ['gu', 'તમે શેના વિશે વાત કરવા માંગો છો?'],
+  ['pa', 'ਤੁਸੀਂ ਕਿਸ ਬਾਰੇ ਗੱਲ ਕਰਨੀ ਚਾਹੋਗੇ?'],
+];
+
+/**
+ * Bundlers may emit non-ASCII as `\uXXXX` escapes rather than literal characters, and esbuild
+ * does exactly that under its default ASCII charset. A raw substring search would then miss
+ * the very content it is looking for and report a false PASS, which is the worst possible
+ * failure mode for this particular check. So each needle is searched in both forms.
+ */
+function escapeNonAscii(s) {
+  return [...s]
+    .map((ch) => {
+      const cp = ch.codePointAt(0);
+      if (cp < 0x80) return ch;
+      return [...ch]
+        .map((u) => '\\u' + u.charCodeAt(0).toString(16).padStart(4, '0'))
+        .join('');
+    })
+    .join('');
+}
+
+function occursIn(text, needle) {
+  if (text.includes(needle)) return true;
+  const escaped = escapeNonAscii(needle);
+  if (escaped === needle) return false;
+  return text.includes(escaped) || text.includes(escaped.toUpperCase());
+}
+
+for (const file of emitted) {
+  // A catalog chunk would name itself. Cheap, and it catches a leak before any text search.
+  if (/catalog/i.test(file.rel)) {
+    findings.push(`emitted file name suggests a locale catalog chunk: ${file.rel}`);
+  }
+
+  let text;
+  try {
+    text = readFileSync(file.abs, 'utf8');
+  } catch {
+    continue; // Binary asset (a font, an image). Cannot carry a catalog.
+  }
+
+  if (occursIn(text, AUDIT_SENTINEL)) {
+    findings.push(`audit-candidate sentinel present in ${file.rel}`);
+  }
+
+  for (const [code, sample] of AUDIT_SAMPLES) {
+    if (occursIn(text, sample)) {
+      findings.push(`audit-candidate ${code} content present in ${file.rel}`);
+    }
+  }
+
+  /*
+   * Sourcemaps name their inputs in `sources`, so a module that reached the graph is listed
+   * there even when its content was minified away. This catches the case where the catalog
+   * was compiled but produced no recognisable string in the output.
+   */
+  if (file.rel.endsWith('.map')) {
+    let sources = [];
+    try {
+      sources = JSON.parse(text).sources ?? [];
+    } catch {
+      findings.push(`sourcemap could not be parsed, so it could not be cleared: ${file.rel}`);
+    }
+    for (const source of sources) {
+      if (String(source).includes('catalogs/audit')) {
+        findings.push(`sourcemap ${file.rel} names an audit catalog: ${source}`);
+      }
+    }
+  }
+}
+
+process.stdout.write(`inspected ${emitted.length} emitted file(s) in ${dist}\n`);
+emitted.forEach((f) => process.stdout.write(`  ${f.rel}\n`));
 
 if (findings.length === 0) {
   if (expectedEndpoint) {
@@ -145,6 +276,9 @@ if (findings.length === 0) {
     process.stdout.write('PASS: no development controls, fixtures, or endpoints in the bundle\n');
     process.stdout.write('      the fail-closed NOT_CONFIGURED path is compiled in\n');
   }
+  process.stdout.write(
+    '      no audit-candidate catalog content in any emitted file, sourcemaps included\n',
+  );
 } else {
   process.stdout.write(`FAIL: ${findings.length} finding(s)\n`);
   findings.forEach((f) => process.stdout.write(`  - ${f}\n`));
