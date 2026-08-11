@@ -169,4 +169,202 @@ export const VI: Partial<Messages> = {
   notFoundAction: 'Về trang chủ',
   languageChooseAria: 'Chọn ngôn ngữ. Ngôn ngữ hiện tại: {language}.',
   languageListAria: 'Chọn ngôn ngữ',
+
+  /* ══ Marketing pages (PR 3) ══
+   * REVIEWER QUESTION: `Đối tác` is used for the firm's partners, matching `navPartners`.
+   * It is the ordinary word for a business partner and may not carry the professional-firm
+   * sense of "Partner" as a title. `thành viên hợp danh` is the legal term and reads
+   * formally. One choice should be made and applied to both keys.
+   * Proper nouns preserved: AxisPoint, Houston, Texas, Dallas, Fort Worth, San Antonio,
+   * Austin, and both partner names. */
+
+  partnersSignature: 'Zachary Russell và Ethaniel Vu, Đối tác.',
+  pmRunsAmDirectsTitle:
+    'Quản lý bất động sản vận hành tài sản. Quản lý tài sản định hướng khoản đầu tư.',
+
+  homeMetaTitle: 'AxisPoint Partners | Quản lý bất động sản thương mại tại Texas',
+  homeMetaDescription:
+    'AxisPoint quản lý bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ cho chủ sở hữu trên khắp Texas, từ vận hành tại chỗ và kiểm soát tài chính đến hiệu quả nhà cung cấp và báo cáo cho chủ sở hữu.',
+  homeHeroAlt: 'Bãi cỏ và mặt đứng của một khu nhà ở nhiều căn hộ lúc hoàng hôn',
+  homeHeroTitle: 'Một đội ngũ chịu trách nhiệm về cách bất động sản của quý vị vận hành.',
+  homeHeroLead:
+    'AxisPoint quản lý bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ cho chủ sở hữu trên khắp Texas, từ vận hành tại chỗ và kiểm soát tài chính đến hiệu quả nhà cung cấp và những báo cáo mà chủ sở hữu thực sự đọc.',
+  homeHeroQuietLink: 'Xem chúng tôi chịu trách nhiệm những gì',
+  homeHeroSignature: 'Do các đối tác Zachary Russell và Ethaniel Vu điều hành từ Houston.',
+  homeStripEyebrow: 'Quản lý bất động sản trước tiên',
+  homeStripBody:
+    'Trọng tâm chính: bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ trên khắp Texas. Trụ sở tại Houston.',
+  homeWhyTitle: 'Vì sao chủ sở hữu tìm đến AxisPoint',
+  homeWhyLead: 'Thường là một trong bốn tình huống.',
+  homeWhySituationManager: 'Đơn vị quản lý hiện tại đã đánh mất niềm tin của chủ sở hữu.',
+  homeWhySituationSelf: 'Tự quản lý đã trở thành một công việc thứ hai.',
+  homeWhySituationAcquired:
+    'Một bất động sản vừa mua lại cần đội ngũ vận hành trước khi tháng đầu tiên khép lại.',
+  homeWhyOr: 'Hoặc',
+  homeWhySituationReports:
+    'báo cáo đến đúng hạn nhưng vẫn không giải thích được tình hình bất động sản.',
+  homeWhyBody:
+    'Câu hỏi nằm dưới cả bốn tình huống đều giống nhau: hôm nay ai chịu trách nhiệm về bất động sản này. AxisPoint trả lời bằng một đội ngũ chịu trách nhiệm và hai đối tác đủ sát công việc để gọi tên từng bất động sản.',
+  homeWhyLink: 'AxisPoint chịu trách nhiệm những gì',
+  homeStrategicEyebrow: 'Lớp chiến lược',
+  homeStrategicBody:
+    'Với những chủ sở hữu muốn có góc nhìn ở cấp sở hữu bên trên công việc vận hành, AxisPoint kết nối những gì bất động sản đang làm với ngân sách, thứ tự ưu tiên vốn và các quyết định nắm giữ. Được sử dụng khi bất động sản thực sự cần, không bán kèm theo mặc định.',
+  homeInvestorEyebrow: 'Một hướng đi riêng',
+  homeInvestorBody:
+    'Bước vào bất động sản thương mại mà chưa có đội ngũ vận hành phía sau? Dịch vụ cho nhà đầu tư là lối vào.',
+  homeClosingTitle: 'Hãy cho chúng tôi biết bất động sản cần gì tiếp theo.',
+  homeClosingBody:
+    'Gửi thông tin bất động sản, tình hình quản lý hiện tại và thay đổi quý vị đang cân nhắc. Một đối tác sẽ đọc và phản hồi.',
+
+  pmMetaTitle: 'Quản lý bất động sản tại Houston và khắp Texas | AxisPoint Partners',
+  pmMetaDescription:
+    'AxisPoint nhận trách nhiệm vận hành cho bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ tại Texas: vận hành tại chỗ, kiểm soát tài chính, hiệu quả nhà cung cấp và báo cáo cho chủ sở hữu.',
+  pmHeroTitle: 'Quản lý bất động sản thương mại tại Houston và khắp Texas',
+  pmHeroLead:
+    'AxisPoint nhận trách nhiệm vận hành cho bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ: đội ngũ tại chỗ, dòng tiền, nhà cung cấp và những báo cáo chủ sở hữu dùng để ra quyết định.',
+  pmSeeFunctions: 'Xem bốn chức năng vận hành',
+  pmPhotoAlt:
+    'Ảnh chụp từ trên cao một khu nhà ở nhiều căn hộ tại Texas và trung tâm bán lẻ liền kề',
+  pmResponsibilityTitle: 'AxisPoint chịu trách nhiệm những gì',
+  pmResponsibilityBody:
+    'Mọi thứ quyết định cách bất động sản vận hành hằng ngày, và một hồ sơ duy nhất dành cho chủ sở hữu. Khi có sự cố tại bất động sản, chủ sở hữu không phải đi tìm xem nên gọi cho ai.',
+  pmFunctionsTitle: 'Bốn chức năng vận hành, một đội ngũ chịu trách nhiệm',
+  pmFnOnsiteTitle: 'Vận hành tại chỗ',
+  pmFnOnsiteLede:
+    'Những con người tại bất động sản và các quy trình họ tuân thủ. Quyết định nhân sự, giám sát cho thuê, tiêu chuẩn phản hồi và lịch bàn giao giữ cho bất động sản đi đúng kế hoạch từng tuần.',
+  pmFnOnsiteItem1: 'Nhân sự và giám sát tại chỗ',
+  pmFnOnsiteItem2: 'Giám sát cho thuê',
+  pmFnOnsiteItem3: 'Phản hồi cư dân và khách thuê',
+  pmFnOnsiteItem4: 'Bàn giao và chuẩn bị căn hộ',
+  pmFnOnsiteItem5: 'Bảo trì phòng ngừa',
+  pmFnFinancialTitle: 'Kiểm soát tài chính',
+  pmFnFinancialLede:
+    'Ngân sách lập cùng chủ sở hữu, ngưỡng phê duyệt thống nhất từ trước, và một kỳ khóa sổ hằng tháng trong đó mọi con số đều truy được về quyết định phía sau nó.',
+  pmFnFinancialItem1: 'Ngân sách năm và dự báo điều chỉnh',
+  pmFnFinancialItem2: 'Ngưỡng phê duyệt',
+  pmFnFinancialItem3: 'Thu tiền và công nợ quá hạn',
+  pmFnFinancialItem4: 'Công nợ phải trả và khóa sổ cuối tháng',
+  pmFnFinancialItem5: 'Giải trình chênh lệch',
+  pmFnVendorTitle: 'Hiệu quả nhà cung cấp',
+  pmFnVendorLede:
+    'Công việc có phạm vi rõ ràng, kỷ luật đấu thầu thực chất, và việc theo sát được đo bằng chất lượng kết quả thay vì bằng việc đóng một phiếu yêu cầu.',
+  pmFnVendorItem1: 'Phạm vi và quy trình đấu thầu',
+  pmFnVendorItem2: 'Tuân thủ hợp đồng và bảo hiểm',
+  pmFnVendorItem3: 'Kiểm chứng chất lượng',
+  pmFnVendorItem4: 'Điều phối dự án vốn',
+  pmFnReportingTitle: 'Báo cáo và trao đổi với chủ sở hữu',
+  pmFnReportingLede:
+    'Một hồ sơ duy nhất về những gì đã diễn ra tại bất động sản, chi phí bao nhiêu và điều gì tiếp theo, cùng một đối tác trả lời giữa các kỳ báo cáo.',
+  pmFnReportingItem1: 'Bộ báo cáo hằng tháng',
+  pmFnReportingItem2: 'Thuyết minh vận hành',
+  pmFnReportingItem3: 'Theo dõi vốn và dự án',
+  pmFnReportingItem4: 'Liên hệ trực tiếp với đối tác',
+  pmStrengthsTitle: 'AxisPoint mạnh nhất ở đâu',
+  pmStrengthsBody:
+    'Đây là những tình huống đội ngũ được xây dựng để xử lý. Chúng là thế mạnh chứ không phải điều kiện bắt buộc, và một bất động sản nằm ngoài đó vẫn đáng để trao đổi.',
+  pmStrengthTypesTitle: 'Loại bất động sản',
+  pmStrengthTypesItem1: 'Nhà ở nhiều căn hộ là trọng tâm chính',
+  pmStrengthTypesItem2: 'Mặt bằng bán lẻ là trọng tâm chính',
+  pmStrengthTypesItem3: 'Bất động sản có thể duy trì nhân sự tại chỗ',
+  pmStrengthTypesItem4: 'Danh mục được điều phối chung dưới một chủ sở hữu',
+  pmStrengthTypesItem5: 'Danh mục phân tán được vận hành như một chương trình duy nhất',
+  pmStrengthGeographyTitle: 'Địa bàn',
+  pmStrengthGeographyItem1: 'Houston và vùng đô thị lân cận',
+  pmStrengthGeographyItem2: 'Dallas và Fort Worth',
+  pmStrengthGeographyItem3: 'San Antonio',
+  pmStrengthGeographyItem4: 'Austin',
+  pmStrengthGeographyItem5: 'Chủ sở hữu trên toàn bang Texas',
+  pmStrengthAssignmentsTitle: 'Loại công việc',
+  pmStrengthAssignmentsItem1: 'Chuyển giao quản lý',
+  pmStrengthAssignmentsItem2: 'Giai đoạn cho thuê ban đầu',
+  pmStrengthAssignmentsItem3: 'Chương trình vốn lớn',
+  pmStrengthAssignmentsItem4: 'Vấn đề vận hành bị trì hoãn',
+  pmStrengthAssignmentsItem5: 'Công việc cải thiện hoạt động',
+  pmQuestionsTitle: 'Những câu hỏi chủ sở hữu đặt ra trước khi đổi đơn vị quản lý',
+  pmQ1: 'Một lần chuyển giao quản lý mất bao lâu?',
+  pmA1: 'Điều đó tùy thuộc vào bất động sản và đơn vị quản lý cũ, nhưng kế hoạch được viết ra trước ngày bắt đầu: nhân sự, hệ thống, ngân hàng, hồ sơ nhà cung cấp và việc thông báo cho cư dân hoặc khách thuê đều có người phụ trách và mốc thời gian riêng.',
+  pmQ2: 'Ai thực sự chịu trách nhiệm về bất động sản của tôi?',
+  pmA2: 'Một đối tác. Zachary Russell và Ethaniel Vu đủ sát công việc để gọi tên từng bất động sản, và chủ sở hữu không phải đi qua một lớp quản lý khách hàng mới liên hệ được với họ.',
+  pmQ3: 'Báo cáo hằng tháng trông như thế nào?',
+  pmA3: 'Một bộ báo cáo nhất quán theo lịch nhất quán, kèm thuyết minh bằng văn bản giải thích các chênh lệch thay vì để chủ sở hữu tự diễn giải các con số.',
+  pmQ4: 'Quý vị có nhận bất động sản đang tồn đọng vấn đề không?',
+  pmA4: 'Có. Bảo trì bị trì hoãn, công việc vốn chưa xử lý và thiếu hụt nhân sự là những lý do phổ biến khiến chủ sở hữu liên hệ. Đề xuất sẽ nêu rõ việc gì được xử lý trước và theo thứ tự nào.',
+  pmRelatedEyebrow: 'Liên quan',
+  pmRelatedAsset:
+    'Quản lý tài sản nằm bên trên công việc vận hành, dành cho chủ sở hữu muốn có góc nhìn đầu tư',
+  pmRelatedInvestor:
+    'Dịch vụ cho nhà đầu tư là lối vào dành cho khách hàng đã sẵn vốn nhưng chưa có đội ngũ vận hành',
+  pmClosingTitle: 'Hãy gửi cho chúng tôi bất động sản và tình huống.',
+  pmClosingBody:
+    'Một đề xuất quản lý bao gồm nhân sự, bộ báo cáo, kế hoạch chuyển giao và ai tại AxisPoint chịu trách nhiệm về bất động sản.',
+
+  amMetaTitle: 'Quản lý tài sản cho chủ sở hữu tại Texas | AxisPoint Partners',
+  amMetaDescription:
+    'Góc nhìn ở cấp sở hữu bên trên công việc vận hành: thứ tự ưu tiên vốn, định hướng ngân sách và quyết định nắm giữ, dựa trên thông tin từ chính đội ngũ đang vận hành bất động sản.',
+  amHeroTitle: 'Quản lý tài sản cho chủ sở hữu tại Texas',
+  amHeroAnswer:
+    'Góc nhìn ở cấp sở hữu bên trên công việc vận hành: thứ tự ưu tiên vốn, định hướng ngân sách và quyết định nắm giữ, dựa trên thông tin từ một đội ngũ đang vận hành bất động sản.',
+  amPhotoAlt: 'Tòa tháp trung tâm Houston và lối đi trên cao nhìn từ mặt đường',
+  amRelationshipEyebrow: 'Mối quan hệ',
+  amRelationshipBody:
+    'Quản lý tài sản là một lớp bên trên công việc vận hành, không thay thế nó. Nó kết nối những gì bất động sản làm hằng tuần với ngân sách, thứ tự ưu tiên vốn và câu chuyện giữ hay bán. Chủ sở hữu sử dụng khi bất động sản thực sự cần.',
+  amLayersTitle: 'Hai lớp, nói cho rõ',
+  amDecidesEyebrow: 'Quản lý tài sản quyết định',
+  amDecidesItem1: 'Thứ tự ưu tiên vốn và trình tự triển khai',
+  amDecidesItem2: 'Định hướng ngân sách và quan điểm dự báo điều chỉnh',
+  amDecidesItem3: 'Các câu hỏi về nắm giữ, tái tài trợ và chuyển nhượng',
+  amDecidesItem4: 'Đánh giá hiệu quả so với ý định của chủ sở hữu',
+  amExecutesEyebrow: 'Quản lý bất động sản thực thi',
+  amExecutesItem1: 'Vận hành tại chỗ và nhân sự',
+  amExecutesItem2: 'Kiểm soát tài chính và khóa sổ hằng tháng',
+  amExecutesItem3: 'Phạm vi và hiệu quả nhà cung cấp',
+  amExecutesItem4: 'Báo cáo và trao đổi với chủ sở hữu',
+  amClosingTitle: 'Bắt đầu từ bất động sản, rồi thêm lớp bên trên.',
+  amClosingBody:
+    'Phần lớn chủ sở hữu bắt đầu bằng quản lý bất động sản. Quản lý tài sản được thêm vào khi các câu hỏi đầu tư cần chính đội ngũ đó trả lời.',
+
+  isMetaTitle:
+    'Dịch vụ cho nhà đầu tư bất động sản thương mại tại Texas | AxisPoint Partners',
+  isMetaDescription:
+    'Dành cho khách hàng đã sẵn vốn đang mua bất động sản nhà ở nhiều căn hộ hoặc mặt bằng bán lẻ tại Texas, muốn phần vận hành được tính đến trước khi mua chứ không phải sau đó.',
+  isHeroTitle:
+    'Một lối vào bất động sản thương mại Texas với đội ngũ vận hành phía sau',
+  isHeroAnswer:
+    'Dành cho khách hàng đã sẵn vốn đang mua bất động sản nhà ở nhiều căn hộ hoặc mặt bằng bán lẻ tại Texas, muốn phần vận hành được tính đến trước khi mua chứ không phải sau đó.',
+  isPhotoAlt: 'Ảnh chụp từ trên cao một nút giao cao tốc ở Houston',
+  isWhoEyebrow: 'Dành cho ai',
+  isWhoLead: 'Khách hàng đã sẵn vốn nhưng cần một đội ngũ vận hành mới có thể hành động.',
+  isWhoBody:
+    'Dịch vụ cho nhà đầu tư là hướng nhỏ nhất trong ba hướng và cố ý giữ như vậy. Nó dành cho chủ sở hữu bước vào bất động sản thương mại, hoặc bước vào Texas, muốn phần vận hành được lo từ bất động sản đầu tiên thay vì ghép lại sau khi hoàn tất giao dịch.',
+  isTimelineBeforeLabel: 'Trước khi mua',
+  isTimelineBeforeBody:
+    'Một đánh giá vận hành về chi phí thực tế để vận hành bất động sản, để các giả định phía sau mức chào giá đúng với giả định mà một đơn vị quản lý sẽ dùng.',
+  isTimelineClosingLabel: 'Khi hoàn tất giao dịch',
+  isTimelineClosingBody:
+    'Đội ngũ quản lý có mặt ngay từ ngày đầu, với nhân sự, hệ thống và quan hệ nhà cung cấp đã sẵn sàng thay vì còn dang dở.',
+  isTimelineAfterLabel: 'Sau bất động sản đầu tiên',
+  isTimelineAfterBody:
+    'Mối quan hệ chuyển sang Quản lý bất động sản, kèm Quản lý tài sản nếu góc nhìn của chủ sở hữu cần đến.',
+  isClosingTitle: 'Hãy cho chúng tôi biết quý vị định mua gì.',
+  isClosingBody:
+    'Gửi loại bất động sản, thị trường và thời gian dự kiến. Một đối tác sẽ phản hồi kèm đánh giá vận hành và hình dung về công tác quản lý.',
+  isClosingCta: 'Trao đổi về một thương vụ',
+
+  partnersMetaTitle: 'Đối tác | AxisPoint Partners',
+  partnersMetaDescription:
+    'AxisPoint do các đối tác điều hành từ Houston. Zachary Russell và Ethaniel Vu gắn bó với những bất động sản họ nhận, nên chủ sở hữu trao đổi trực tiếp với người ra quyết định.',
+  partnersHeroTitle: 'Hai đối tác, trực tiếp chịu trách nhiệm về công việc',
+  partnersHeroAnswer:
+    'AxisPoint do các đối tác điều hành từ Houston. Người nhận công việc cũng chính là người gắn bó với nó.',
+  partnersRoleLabel: 'Đối tác',
+  partnerRussellBody:
+    'Trực tiếp phụ trách hiệu quả vận hành: quyết định nhân sự, các đợt chuyển giao, chương trình vốn và những bất động sản trong danh mục cần chú ý trong tháng này.',
+  partnerVuBody:
+    'Trực tiếp phụ trách kiểm soát tài chính và hồ sơ dành cho chủ sở hữu: ngân sách, kỷ luật phê duyệt, khóa sổ hằng tháng và những báo cáo chủ sở hữu dùng để ra quyết định.',
+  partnersHowEyebrow: 'Cách chúng tôi làm việc',
+  partnersHowBody:
+    'Cả hai đối tác đều gắn bó với những bất động sản họ nhận. Chủ sở hữu trao đổi với người ra quyết định, không phải với một lớp trung gian được xếp phía trước.',
+  partnersClosingTitle: 'Trao đổi với một đối tác về bất động sản của quý vị.',
+  partnersClosingBody:
+    'Gửi bất động sản và tình huống. Đối tác đọc nó chính là người sẽ chịu trách nhiệm về nó.',
 };

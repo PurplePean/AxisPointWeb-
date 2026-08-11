@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useDocumentMeta } from '../lib/meta';
 import { Eyebrow, GUTTER, MEASURE, SECTION, ClosingCta, QuietLink } from '../components/PageParts';
+import { useMessages } from '../i18n/LocaleProvider';
 
 /**
  * Homepage, built from the approved source `AxisPointPage.dc.html` (design@2026-07-30).
@@ -19,13 +20,12 @@ const HERO_WIDTHS = [640, 1280, 1920, 2560];
 const heroSrcSet = (ext: string) =>
   HERO_WIDTHS.map((w) => `/images/photos/home-hero-multifamily-lawn-${w}.${ext} ${w}w`).join(', ');
 
-const HERO_ALT = 'Lawn and building elevation of a multifamily community at sunset';
-
 function HomePage() {
+  const t = useMessages();
+
   useDocumentMeta({
-    title: 'AxisPoint Partners | Commercial Property Management in Texas',
-    description:
-      'AxisPoint manages multifamily and retail properties for owners across Texas, from onsite operations and financial controls to vendor performance and owner reporting.',
+    title: t.homeMetaTitle,
+    description: t.homeMetaDescription,
     path: '/',
   });
 
@@ -73,7 +73,7 @@ function HomePage() {
               src="/images/photos/home-hero-multifamily-lawn-1920.jpg"
               srcSet={heroSrcSet('jpg')}
               sizes="(min-width: 1024px) 62vw, 100vw"
-              alt={HERO_ALT}
+              alt={t.homeHeroAlt}
               width={2560}
               height={1013}
               className="hero-img block w-full h-full object-cover"
@@ -113,15 +113,13 @@ function HomePage() {
             className="m-0 font-semibold"
             style={{ fontSize: 'clamp(34px, 5.2vw, 76px)', letterSpacing: '-0.045em', lineHeight: 0.98, textWrap: 'pretty', maxWidth: '14ch' }}
           >
-            One team accountable for how your property runs.
+            {t.homeHeroTitle}
           </h1>
           <p
             className="mt-5 lg:mt-[30px] mb-6 lg:mb-10 text-[rgba(28,22,40,0.7)]"
             style={{ fontSize: 'clamp(16.5px,1.4vw,19px)', lineHeight: 1.5, maxWidth: '40ch', textWrap: 'pretty' }}
           >
-            AxisPoint manages multifamily and retail properties for owners across Texas, from
-            onsite operations and financial controls to vendor performance and the reporting
-            ownership reads.
+            {t.homeHeroLead}
           </p>
         </div>
 
@@ -133,15 +131,15 @@ function HomePage() {
             className="hero-cta mx-5 md:mx-10 lg:mx-0 inline-flex items-center justify-center lg:justify-start gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
             style={{ minHeight: 54, padding: '0 26px', fontSize: 15 }}
           >
-            Request a Management Proposal <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
+            {t.navCta} <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
           </Link>
           <div className="hero-quiet px-5 md:px-10 lg:px-0 pt-[22px] lg:pt-0">
-            <QuietLink to="/property-management">See what we take responsibility for</QuietLink>
+            <QuietLink to="/property-management">{t.homeHeroQuietLink}</QuietLink>
           </div>
         </div>
 
         <p className="hero-sig relative z-[2] px-5 md:px-10 lg:px-[72px] mt-2 lg:mt-9 mb-11 lg:mb-0 lg:pb-[104px] font-semibold text-[rgba(28,22,40,0.52)]" style={{ fontSize: 13 }}>
-          Partner-led from Houston by Zachary Russell and Ethaniel Vu.
+          {t.homeHeroSignature}
         </p>
       </section>
 
@@ -149,9 +147,9 @@ function HomePage() {
       <div
         className={`${GUTTER} flex flex-wrap items-baseline gap-x-10 gap-y-2 py-[22px] border-y border-[rgba(28,22,40,0.12)]`}
       >
-        <Eyebrow className="text-v2-teal">Property management first</Eyebrow>
+        <Eyebrow className="text-v2-teal">{t.homeStripEyebrow}</Eyebrow>
         <span className="text-[rgba(28,22,40,0.72)]" style={{ fontSize: 'clamp(15.5px,1.2vw,17px)' }}>
-          Primary focus: multifamily and retail properties across Texas. Headquartered in Houston.
+          {t.homeStripBody}
         </span>
       </div>
 
@@ -162,38 +160,36 @@ function HomePage() {
             className="m-0 font-semibold border-t-[3px] border-v2-purple pt-4"
             style={{ fontSize: 'clamp(22px,2.2vw,30px)', letterSpacing: '-0.03em', lineHeight: 1.1 }}
           >
-            Why owners call AxisPoint
+            {t.homeWhyTitle}
           </h2>
           <div>
             <p
               className="m-0 font-serif text-[rgba(28,22,40,0.66)]"
               style={{ fontSize: 'clamp(23px,2.4vw,31px)', fontWeight: 500, lineHeight: 1.42, textWrap: 'pretty' }}
             >
-              Usually one of four situations.{' '}
+              {t.homeWhyLead}{' '}
               <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
-                The current manager has lost ownership&rsquo;s confidence.
+                {t.homeWhySituationManager}
               </strong>{' '}
               <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
-                Self-management has become a second job.
+                {t.homeWhySituationSelf}
               </strong>{' '}
               <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
-                A newly acquired property needs an operating team before the first month closes.
+                {t.homeWhySituationAcquired}
               </strong>{' '}
-              Or{' '}
+              {t.homeWhyOr}{' '}
               <strong className="text-v2-ink" style={{ fontWeight: 600 }}>
-                the reports arrive on time and still do not explain the property.
+                {t.homeWhySituationReports}
               </strong>
             </p>
             <p
               className="mt-[22px] mb-0 text-[rgba(28,22,40,0.66)]"
               style={{ fontSize: 'clamp(15.5px,1.2vw,17px)', lineHeight: 1.65, maxWidth: '52ch' }}
             >
-              The question underneath all four is the same: who is answering for the property today.
-              AxisPoint answers it with one accountable team and two partners close enough to the
-              work to know the property by name.
+              {t.homeWhyBody}
             </p>
             <div className="mt-7">
-              <QuietLink to="/property-management">What AxisPoint takes responsibility for</QuietLink>
+              <QuietLink to="/property-management">{t.homeWhyLink}</QuietLink>
             </div>
           </div>
         </div>
@@ -203,22 +199,20 @@ function HomePage() {
       <section className={`${GUTTER} ${SECTION}`}>
         <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-[22px] lg:gap-20 items-start`}>
           <Eyebrow className="border-t-[3px] border-v2-purple pt-4" style={{ color: 'rgba(56,40,93,0.85)' }}>
-            Strategic layer
+            {t.homeStrategicEyebrow}
           </Eyebrow>
           <div>
             <h2
               className="m-0 font-serif"
               style={{ fontSize: 'clamp(35px,4vw,58px)', fontWeight: 500, lineHeight: 1.06, textWrap: 'pretty', maxWidth: '20ch' }}
             >
-              Property management runs the property. Asset management directs the investment.
+              {t.pmRunsAmDirectsTitle}
             </h2>
             <p
               className="mt-[22px] mb-0 text-[rgba(28,22,40,0.68)]"
               style={{ fontSize: 'clamp(15.5px,1.2vw,17px)', lineHeight: 1.65, maxWidth: '52ch' }}
             >
-              For owners who want an ownership-level view above the operating work, AxisPoint
-              connects what the property is doing to budgets, capital priorities, and hold
-              decisions. Engaged when the property calls for it, not sold as a default.
+              {t.homeStrategicBody}
             </p>
             <div className="mt-6">
               <Link
@@ -226,7 +220,7 @@ function HomePage() {
                 className="inline-flex items-center gap-2 font-semibold text-v2-purple border-b border-[rgba(56,40,93,0.4)] rounded-v2 hover:text-v2-teal-support"
                 style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
               >
-                Asset Management <span aria-hidden="true">&#8594;</span>
+                {t.navAssetManagement} <span aria-hidden="true">&#8594;</span>
               </Link>
             </div>
           </div>
@@ -236,26 +230,23 @@ function HomePage() {
       {/* ── A separate path. One strip, the smallest of the three. ── */}
       <section className={`${GUTTER} py-[26px] lg:py-[38px] border-y border-[rgba(28,22,40,0.14)]`}>
         <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-3.5 lg:gap-20 items-center`}>
-          <Eyebrow className="text-v2-magenta">A separate path</Eyebrow>
+          <Eyebrow className="text-v2-magenta">{t.homeInvestorEyebrow}</Eyebrow>
           <Link
             to="/investor-services"
             className="flex items-center justify-between gap-5 font-medium rounded-v2 hover:text-v2-teal-support"
             style={{ fontSize: 'clamp(17px,1.4vw,19px)', letterSpacing: '-0.02em', minHeight: 44 }}
           >
-            <span>
-              Entering commercial real estate without an operating team behind you? Investor
-              Services is the way in.
-            </span>
+            <span>{t.homeInvestorBody}</span>
             <span aria-hidden="true" className="flex-none" style={{ fontSize: 20 }}>&#8594;</span>
           </Link>
         </div>
       </section>
 
       <ClosingCta
-        title="Tell us what the property needs next."
-        body="Send the property, the current management situation, and the change you are considering. A partner reads it and responds."
-        signature="Zachary Russell and Ethaniel Vu, Partners."
-        ctaLabel="Request a Management Proposal"
+        title={t.homeClosingTitle}
+        body={t.homeClosingBody}
+        signature={t.partnersSignature}
+        ctaLabel={t.navCta}
         ctaTo="/contact?intent=property-management"
       />
     </>

@@ -156,4 +156,185 @@ export const ZH_HANS: Partial<Messages> = {
   notFoundAction: '返回首页',
   languageChooseAria: '选择语言。当前语言：{language}。',
   languageListAria: '选择语言',
+
+  /* ══ Marketing pages (PR 3) ══
+   * Proper nouns preserved: AxisPoint and both partner names stay in Latin script. Place
+   * names use the established Chinese forms (休斯顿, 德克萨斯州). No claim or number changed. */
+
+  partnersSignature: 'Zachary Russell 与 Ethaniel Vu，合伙人。',
+  pmRunsAmDirectsTitle: '物业管理负责运营物业，资产管理负责主导投资方向。',
+
+  homeMetaTitle: 'AxisPoint Partners | 德克萨斯州商业物业管理',
+  homeMetaDescription:
+    'AxisPoint 为德克萨斯州各地的业主管理多户住宅和零售物业，涵盖现场运营、财务管控、供应商表现以及面向业主的报告。',
+  homeHeroAlt: '黄昏时分多户住宅社区的草坪与建筑立面',
+  homeHeroTitle: '由一个团队为您的物业运营负责。',
+  homeHeroLead:
+    'AxisPoint 为德克萨斯州各地的业主管理多户住宅和零售物业，涵盖现场运营、财务管控、供应商表现，以及业主实际阅读的报告。',
+  homeHeroQuietLink: '了解我们承担哪些责任',
+  homeHeroSignature: '由合伙人 Zachary Russell 与 Ethaniel Vu 在休斯顿主理。',
+  homeStripEyebrow: '物业管理优先',
+  homeStripBody: '主要方向：德克萨斯州各地的多户住宅与零售物业。总部位于休斯顿。',
+  homeWhyTitle: '业主为什么联系 AxisPoint',
+  homeWhyLead: '通常是四种情况之一。',
+  homeWhySituationManager: '现有管理方已失去业主的信任。',
+  homeWhySituationSelf: '自行管理已经变成第二份工作。',
+  homeWhySituationAcquired: '新收购的物业需要在第一个月结束前就位一支运营团队。',
+  homeWhyOr: '或者',
+  homeWhySituationReports: '报告按时送达，却依然说不清物业的情况。',
+  homeWhyBody:
+    '这四种情况背后的问题是同一个：今天由谁为这处物业负责。AxisPoint 的回答是一个负责到底的团队，以及两位足够贴近现场、能叫得出物业名字的合伙人。',
+  homeWhyLink: 'AxisPoint 承担哪些责任',
+  homeStrategicEyebrow: '策略层',
+  homeStrategicBody:
+    '对于希望在运营工作之上获得业主视角的客户，AxisPoint 将物业的实际表现与预算、资本优先级和持有决策连接起来。在物业确有需要时才引入，而不是作为标配推销。',
+  homeInvestorEyebrow: '另一条路径',
+  homeInvestorBody: '进入商业地产却没有运营团队支持？投资者服务是您的入口。',
+  homeClosingTitle: '告诉我们这处物业接下来需要什么。',
+  homeClosingBody:
+    '请提供物业情况、目前的管理状况，以及您正在考虑的调整。会有一位合伙人阅读并回复。',
+
+  pmMetaTitle: '休斯顿及德克萨斯州各地的物业管理 | AxisPoint Partners',
+  pmMetaDescription:
+    'AxisPoint 为德克萨斯州的多户住宅和零售物业承担运营责任：现场运营、财务管控、供应商表现以及业主报告。',
+  pmHeroTitle: '休斯顿及德克萨斯州各地的商业物业管理',
+  pmHeroLead:
+    'AxisPoint 为多户住宅和零售物业承担运营责任：现场团队、资金、供应商，以及业主用来做决策的报告。',
+  pmSeeFunctions: '查看四项运营职能',
+  pmPhotoAlt: '德克萨斯州一处多户住宅社区及毗邻零售中心的航拍视角',
+  pmResponsibilityTitle: 'AxisPoint 承担哪些责任',
+  pmResponsibilityBody:
+    '决定物业日常运转的一切，以及一份面向业主的完整记录。物业出现问题时，业主不必再去打听该找谁。',
+  pmFunctionsTitle: '四项运营职能，一个负责到底的团队',
+  pmFnOnsiteTitle: '现场运营',
+  pmFnOnsiteLede:
+    '物业现场的人员以及他们坚持的工作规范。人员安排、租赁监督、响应标准和周转排期，让物业逐周按计划运转。',
+  pmFnOnsiteItem1: '现场人员配置与监督',
+  pmFnOnsiteItem2: '租赁监督',
+  pmFnOnsiteItem3: '住户与租户响应',
+  pmFnOnsiteItem4: '退租周转与交付准备',
+  pmFnOnsiteItem5: '预防性维护',
+  pmFnFinancialTitle: '财务管控',
+  pmFnFinancialLede:
+    '与业主共同编制的预算、事先约定的审批门槛，以及每一个数字都能追溯到相应决策的月度结账。',
+  pmFnFinancialItem1: '年度预算与滚动预测',
+  pmFnFinancialItem2: '审批门槛',
+  pmFnFinancialItem3: '收款与欠费管理',
+  pmFnFinancialItem4: '应付账款与月末结账',
+  pmFnFinancialItem5: '差异说明',
+  pmFnVendorTitle: '供应商表现',
+  pmFnVendorLede:
+    '明确界定的工作范围、真实的招标纪律，以及以结果质量而非工单关闭来衡量的跟进。',
+  pmFnVendorItem1: '工作范围与招标流程',
+  pmFnVendorItem2: '合同与保险合规',
+  pmFnVendorItem3: '质量核验',
+  pmFnVendorItem4: '资本项目协调',
+  pmFnReportingTitle: '业主报告与沟通',
+  pmFnReportingLede:
+    '一份记录说明物业发生了什么、花了多少钱、接下来是什么，另有一位合伙人在报告周期之间随时答复。',
+  pmFnReportingItem1: '月度报告包',
+  pmFnReportingItem2: '运营说明',
+  pmFnReportingItem3: '资本与项目追踪',
+  pmFnReportingItem4: '直接联系合伙人',
+  pmStrengthsTitle: 'AxisPoint 最擅长的领域',
+  pmStrengthsBody:
+    '这些是团队所擅长应对的情况。它们是优势领域而非硬性条件，不在其中的物业同样值得沟通。',
+  pmStrengthTypesTitle: '物业类型',
+  pmStrengthTypesItem1: '以多户住宅为主要方向',
+  pmStrengthTypesItem2: '以零售物业为主要方向',
+  pmStrengthTypesItem3: '能够支撑现场人员的物业',
+  pmStrengthTypesItem4: '同一业主名下统筹管理的投资组合',
+  pmStrengthTypesItem5: '作为单一项目运作的分散型投资组合',
+  pmStrengthGeographyTitle: '地域',
+  pmStrengthGeographyItem1: '休斯顿及周边都会区',
+  pmStrengthGeographyItem2: '达拉斯与沃思堡',
+  pmStrengthGeographyItem3: '圣安东尼奥',
+  pmStrengthGeographyItem4: '奥斯汀',
+  pmStrengthGeographyItem5: '德克萨斯州各地的业主',
+  pmStrengthAssignmentsTitle: '委托类型',
+  pmStrengthAssignmentsItem1: '管理方交接',
+  pmStrengthAssignmentsItem2: '招租期',
+  pmStrengthAssignmentsItem3: '大额资本项目',
+  pmStrengthAssignmentsItem4: '长期积压的运营问题',
+  pmStrengthAssignmentsItem5: '扭转经营的委托',
+  pmQuestionsTitle: '业主在更换管理方前常问的问题',
+  pmQ1: '管理交接需要多长时间？',
+  pmA1: '这取决于物业本身和原管理方，但计划会在启动日期之前写好：人员、系统、银行账户、供应商记录，以及住户或租户沟通，每一项都有明确负责人和时间点。',
+  pmQ2: '实际由谁为我的物业负责？',
+  pmA2: '由合伙人负责。Zachary Russell 与 Ethaniel Vu 足够贴近现场，能叫得出物业的名字，业主也无需经过客户经理层级才能联系到他们。',
+  pmQ3: '每月的报告是什么样的？',
+  pmA3: '固定的报告包，按固定的时间提供，并附书面说明解释各项差异，而不是让业主自己去解读数字。',
+  pmQ4: '你们能接手存在积压问题的物业吗？',
+  pmA4: '可以。积压的维修、未完成的资本工作和人员缺口，都是业主来电的常见原因。方案中会写明先处理什么、按什么顺序处理。',
+  pmRelatedEyebrow: '相关内容',
+  pmRelatedAsset: '资产管理位于运营工作之上，面向希望获得投资视角的业主',
+  pmRelatedInvestor: '投资者服务是尚无运营团队的资金充足客户的入口',
+  pmClosingTitle: '把物业情况和现状发给我们。',
+  pmClosingBody:
+    '一份管理方案会涵盖人员配置、报告包、交接计划，以及 AxisPoint 由谁为该物业负责。',
+
+  amMetaTitle: '面向德克萨斯州业主的资产管理 | AxisPoint Partners',
+  amMetaDescription:
+    '在运营工作之上的业主视角：资本优先级、预算方向和持有决策，由已在运营该物业的团队提供依据。',
+  amHeroTitle: '面向德克萨斯州业主的资产管理',
+  amHeroAnswer:
+    '在运营工作之上的业主视角：资本优先级、预算方向和持有决策，由一支已在运营该物业的团队提供依据。',
+  amPhotoAlt: '从街道视角看休斯顿市中心塔楼与高架步道',
+  amRelationshipEyebrow: '两者的关系',
+  amRelationshipBody:
+    '资产管理是运营工作之上的一层，而不是取代运营。它把物业每周的实际表现与预算、资本优先级以及持有或出售的讨论连接起来。业主在物业确有需要时才引入。',
+  amLayersTitle: '两个层次，说清楚',
+  amDecidesEyebrow: '资产管理负责决定',
+  amDecidesItem1: '资本优先级与推进顺序',
+  amDecidesItem2: '预算方向与滚动预测取向',
+  amDecidesItem3: '持有、再融资与处置的判断',
+  amDecidesItem4: '对照业主意图的绩效评估',
+  amExecutesEyebrow: '物业管理负责执行',
+  amExecutesItem1: '现场运营与人员配置',
+  amExecutesItem2: '财务管控与月度结账',
+  amExecutesItem3: '供应商范围与表现',
+  amExecutesItem4: '业主报告与沟通',
+  amClosingTitle: '先从物业开始，再叠加上面这一层。',
+  amClosingBody:
+    '多数业主从物业管理开始。当投资层面的问题需要同一支团队来回答时，再加入资产管理。',
+
+  isMetaTitle: '德克萨斯州商业地产投资者服务 | AxisPoint Partners',
+  isMetaDescription:
+    '面向在德克萨斯州收购多户住宅或零售物业的资金充足客户，希望在购买之前而非之后就把运营一侧安排妥当。',
+  isHeroTitle: '带着运营团队进入德克萨斯州商业地产的路径',
+  isHeroAnswer:
+    '面向在德克萨斯州收购多户住宅或零售物业的资金充足客户，希望在购买之前而非之后就把运营一侧安排妥当。',
+  isPhotoAlt: '休斯顿一处高速公路立交的航拍视角',
+  isWhoEyebrow: '适合哪些人',
+  isWhoLead: '资金已经就位、但需要运营团队才能行动的客户。',
+  isWhoBody:
+    '投资者服务是三条路径中最小的一条，而且刻意保持如此。它面向初次进入商业地产、或初次进入德克萨斯州的业主，他们希望从第一处物业起就把运营一侧安排好，而不是在成交之后再临时拼凑。',
+  isTimelineBeforeLabel: '购买之前',
+  isTimelineBeforeBody:
+    '对这处物业的运营成本做出判断，使报价背后的假设与管理方实际会用的假设一致。',
+  isTimelineClosingLabel: '成交时',
+  isTimelineClosingBody:
+    '管理团队第一天即到位，人员、系统和供应商关系都已就绪，而不是仍在筹备。',
+  isTimelineAfterLabel: '第一处物业之后',
+  isTimelineAfterBody: '合作关系转入物业管理；若业主视角有此需要，再加入资产管理。',
+  isClosingTitle: '告诉我们您打算收购什么。',
+  isClosingBody:
+    '请提供物业类型、市场和时间安排。会有一位合伙人回复运营层面的判断，以及管理方案大致的样子。',
+  isClosingCta: '洽谈收购事宜',
+
+  partnersMetaTitle: '合伙人 | AxisPoint Partners',
+  partnersMetaDescription:
+    'AxisPoint 由合伙人在休斯顿主理。Zachary Russell 与 Ethaniel Vu 会持续跟进自己接手的物业，业主直接与做决定的人对话。',
+  partnersHeroTitle: '两位合伙人，直接为工作负责',
+  partnersHeroAnswer: 'AxisPoint 由合伙人在休斯顿主理。接下委托的人，就是持续跟进的人。',
+  partnersRoleLabel: '合伙人',
+  partnerRussellBody:
+    '直接负责运营表现：人员决策、管理交接、资本项目，以及投资组合中本月需要重点关注的物业。',
+  partnerVuBody:
+    '直接负责财务管控和面向业主的记录：预算、审批纪律、月度结账，以及业主用来做决策的报告。',
+  partnersHowEyebrow: '我们的工作方式',
+  partnersHowBody:
+    '两位合伙人都会持续跟进自己接手的物业。业主直接与做决定的人对话，而不是与安排在前面的一层人对接。',
+  partnersClosingTitle: '就您的物业与合伙人聊一聊。',
+  partnersClosingBody: '请提供物业情况和现状。阅读它的合伙人，就是将来为它负责的人。',
 };

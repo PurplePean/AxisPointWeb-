@@ -175,4 +175,198 @@ export const ES: Partial<Messages> = {
   notFoundAction: 'Ir al inicio',
   languageChooseAria: 'Elegir idioma. Idioma actual: {language}.',
   languageListAria: 'Elegir idioma',
+
+  /* ══ Marketing pages (PR 3) ══
+   * Proper nouns are preserved exactly: AxisPoint, Houston, Texas, Dallas, Fort Worth,
+   * San Antonio, Austin, and both partner names. No claim, number, or destination changed. */
+
+  partnersSignature: 'Zachary Russell y Ethaniel Vu, socios.',
+  pmRunsAmDirectsTitle:
+    'La administración de propiedades opera la propiedad. La gestión de activos dirige la inversión.',
+
+  homeMetaTitle: 'AxisPoint Partners | Administración de propiedades comerciales en Texas',
+  homeMetaDescription:
+    'AxisPoint administra propiedades multifamiliares y comerciales para propietarios en todo Texas, desde las operaciones en sitio y los controles financieros hasta el desempeño de proveedores y los informes al propietario.',
+  homeHeroAlt: 'Jardín y fachada de un conjunto multifamiliar al atardecer',
+  homeHeroTitle: 'Un solo equipo responsable de cómo funciona su propiedad.',
+  homeHeroLead:
+    'AxisPoint administra propiedades multifamiliares y comerciales para propietarios en todo Texas, desde las operaciones en sitio y los controles financieros hasta el desempeño de proveedores y los informes que leen los propietarios.',
+  homeHeroQuietLink: 'Vea de qué nos hacemos responsables',
+  homeHeroSignature: 'Dirigido por los socios desde Houston: Zachary Russell y Ethaniel Vu.',
+  homeStripEyebrow: 'Primero la administración de propiedades',
+  homeStripBody:
+    'Enfoque principal: propiedades multifamiliares y comerciales en todo Texas. Sede en Houston.',
+  homeWhyTitle: 'Por qué los propietarios llaman a AxisPoint',
+  homeWhyLead: 'Normalmente por una de cuatro situaciones.',
+  homeWhySituationManager: 'El administrador actual ha perdido la confianza de los propietarios.',
+  homeWhySituationSelf: 'Autoadministrar se ha convertido en un segundo empleo.',
+  homeWhySituationAcquired:
+    'Una propiedad recién adquirida necesita un equipo operativo antes de que cierre el primer mes.',
+  homeWhyOr: 'O',
+  homeWhySituationReports:
+    'los informes llegan a tiempo y aun así no explican la propiedad.',
+  homeWhyBody:
+    'La pregunta de fondo en las cuatro es la misma: quién responde hoy por la propiedad. AxisPoint la responde con un equipo responsable y dos socios lo bastante cerca del trabajo como para conocer la propiedad por su nombre.',
+  homeWhyLink: 'De qué se hace responsable AxisPoint',
+  homeStrategicEyebrow: 'Capa estratégica',
+  homeStrategicBody:
+    'Para propietarios que quieren una visión a nivel de propiedad por encima del trabajo operativo, AxisPoint conecta lo que hace la propiedad con los presupuestos, las prioridades de capital y las decisiones de retención. Se contrata cuando la propiedad lo requiere, no se vende por defecto.',
+  homeInvestorEyebrow: 'Un camino aparte',
+  homeInvestorBody:
+    '¿Entra en bienes raíces comerciales sin un equipo operativo detrás? Servicios para inversionistas es la vía de entrada.',
+  homeClosingTitle: 'Cuéntenos qué necesita la propiedad ahora.',
+  homeClosingBody:
+    'Envíe la propiedad, la situación actual de administración y el cambio que está considerando. Un socio lo lee y responde.',
+
+  pmMetaTitle: 'Administración de propiedades en Houston y en todo Texas | AxisPoint Partners',
+  pmMetaDescription:
+    'AxisPoint asume la responsabilidad operativa de propiedades multifamiliares y comerciales en Texas: operaciones en sitio, controles financieros, desempeño de proveedores e informes al propietario.',
+  pmHeroTitle: 'Administración de propiedades comerciales en Houston y en todo Texas',
+  pmHeroLead:
+    'AxisPoint asume la responsabilidad operativa de propiedades multifamiliares y comerciales: el equipo en sitio, el dinero, los proveedores y los informes que los propietarios usan para decidir.',
+  pmSeeFunctions: 'Vea las cuatro funciones operativas',
+  pmPhotoAlt:
+    'Vista aérea de un conjunto multifamiliar de Texas y el centro comercial contiguo',
+  pmResponsibilityTitle: 'De qué se hace responsable AxisPoint',
+  pmResponsibilityBody:
+    'Todo lo que determina cómo funciona la propiedad día a día, y un solo registro de ello para los propietarios. Cuando algo sale mal en la propiedad, los propietarios no tienen que averiguar a quién llamar.',
+  pmFunctionsTitle: 'Cuatro funciones operativas, un equipo responsable',
+  pmFnOnsiteTitle: 'Operaciones en sitio',
+  pmFnOnsiteLede:
+    'Las personas en la propiedad y las rutinas que mantienen. Decisiones de personal, supervisión del arrendamiento, estándares de respuesta y calendarios de preparación que mantienen la propiedad conforme al plan semana a semana.',
+  pmFnOnsiteItem1: 'Personal y supervisión en sitio',
+  pmFnOnsiteItem2: 'Supervisión del arrendamiento',
+  pmFnOnsiteItem3: 'Respuesta a residentes e inquilinos',
+  pmFnOnsiteItem4: 'Desocupaciones y preparación de unidades',
+  pmFnOnsiteItem5: 'Mantenimiento preventivo',
+  pmFnFinancialTitle: 'Controles financieros',
+  pmFnFinancialLede:
+    'Presupuestos elaborados con los propietarios, umbrales de aprobación acordados de antemano y un cierre mensual en el que cualquier cifra puede rastrearse hasta la decisión que la originó.',
+  pmFnFinancialItem1: 'Presupuestos anuales y reproyecciones',
+  pmFnFinancialItem2: 'Umbrales de aprobación',
+  pmFnFinancialItem3: 'Cobranza y morosidad',
+  pmFnFinancialItem4: 'Cuentas por pagar y cierre de mes',
+  pmFnFinancialItem5: 'Explicación de variaciones',
+  pmFnVendorTitle: 'Desempeño de proveedores',
+  pmFnVendorLede:
+    'Trabajo con alcance definido, disciplina real de licitación y seguimiento medido por la calidad del resultado y no por el cierre de un ticket.',
+  pmFnVendorItem1: 'Alcance y proceso de licitación',
+  pmFnVendorItem2: 'Cumplimiento contractual y de seguros',
+  pmFnVendorItem3: 'Verificación de calidad',
+  pmFnVendorItem4: 'Coordinación de proyectos de capital',
+  pmFnReportingTitle: 'Informes y comunicación con el propietario',
+  pmFnReportingLede:
+    'Un solo registro de lo que ocurrió en la propiedad, lo que costó y lo que viene, además de un socio que responde entre periodos de reporte.',
+  pmFnReportingItem1: 'Paquete de informes mensuales',
+  pmFnReportingItem2: 'Narrativa operativa',
+  pmFnReportingItem3: 'Seguimiento de capital y proyectos',
+  pmFnReportingItem4: 'Acceso directo a un socio',
+  pmStrengthsTitle: 'Dónde AxisPoint es más fuerte',
+  pmStrengthsBody:
+    'Estas son las situaciones para las que está construido el equipo. Son áreas de fortaleza y no requisitos, y una propiedad fuera de ellas sigue mereciendo una conversación.',
+  pmStrengthTypesTitle: 'Tipos de propiedad',
+  pmStrengthTypesItem1: 'Multifamiliar como enfoque principal',
+  pmStrengthTypesItem2: 'Comercial minorista como enfoque principal',
+  pmStrengthTypesItem3: 'Propiedades que pueden sostener personal en sitio',
+  pmStrengthTypesItem4: 'Carteras coordinadas de un mismo propietario',
+  pmStrengthTypesItem5: 'Carteras dispersas gestionadas como un solo programa',
+  pmStrengthGeographyTitle: 'Geografía',
+  pmStrengthGeographyItem1: 'Houston y su área metropolitana',
+  pmStrengthGeographyItem2: 'Dallas y Fort Worth',
+  pmStrengthGeographyItem3: 'San Antonio',
+  pmStrengthGeographyItem4: 'Austin',
+  pmStrengthGeographyItem5: 'Propietarios en todo Texas',
+  pmStrengthAssignmentsTitle: 'Asignaciones',
+  pmStrengthAssignmentsItem1: 'Transiciones de administración',
+  pmStrengthAssignmentsItem2: 'Ocupación inicial',
+  pmStrengthAssignmentsItem3: 'Programas de capital intensivos',
+  pmStrengthAssignmentsItem4: 'Problemas operativos postergados',
+  pmStrengthAssignmentsItem5: 'Asignaciones de recuperación',
+  pmQuestionsTitle: 'Preguntas que hacen los propietarios antes de cambiar',
+  pmQ1: '¿Cuánto tarda una transición de administración?',
+  pmA1: 'Depende de la propiedad y del administrador saliente, pero el plan se redacta antes de la fecha de inicio: personal, sistemas, banca, registros de proveedores y comunicación con residentes o inquilinos tienen cada uno un responsable y una fecha.',
+  pmQ2: '¿Quién responderá realmente por mi propiedad?',
+  pmA2: 'Un socio. Zachary Russell y Ethaniel Vu se mantienen lo bastante cerca del trabajo como para conocer la propiedad por su nombre, y los propietarios no pasan por una capa de cuentas para llegar a ellos.',
+  pmQ3: '¿Cómo son los informes mes a mes?',
+  pmA3: 'Un paquete constante en un calendario constante, con una narrativa escrita que explica las variaciones en lugar de dejar que los propietarios interpreten las cifras solos.',
+  pmQ4: '¿Pueden asumir una propiedad con problemas postergados?',
+  pmA4: 'Sí. El mantenimiento postergado, el trabajo de capital sin resolver y las vacantes de personal son razones habituales por las que llaman los propietarios. La propuesta indica qué se atiende primero y en qué orden.',
+  pmRelatedEyebrow: 'Relacionado',
+  pmRelatedAsset:
+    'La gestión de activos se sitúa por encima del trabajo operativo, para propietarios que quieren la visión de la inversión',
+  pmRelatedInvestor:
+    'Servicios para inversionistas es la vía de entrada para clientes con capital y sin equipo operativo',
+  pmClosingTitle: 'Envíenos la propiedad y la situación.',
+  pmClosingBody:
+    'Una propuesta de administración cubre el personal, el paquete de informes, el plan de transición y quién en AxisPoint responde por la propiedad.',
+
+  amMetaTitle: 'Gestión de activos para propietarios en Texas | AxisPoint Partners',
+  amMetaDescription:
+    'Una visión a nivel de propiedad por encima del trabajo operativo: prioridades de capital, dirección presupuestaria y decisiones de retención, informadas por el equipo que ya opera la propiedad.',
+  amHeroTitle: 'Gestión de activos para propietarios en Texas',
+  amHeroAnswer:
+    'Una visión a nivel de propiedad por encima del trabajo operativo: prioridades de capital, dirección presupuestaria y decisiones de retención, informadas por un equipo que ya opera la propiedad.',
+  amPhotoAlt: 'Torre del centro de Houston y pasarela elevada vistas desde la calle',
+  amRelationshipEyebrow: 'La relación',
+  amRelationshipBody:
+    'La gestión de activos es una capa por encima del trabajo operativo, no un reemplazo. Conecta lo que hace la propiedad semana a semana con los presupuestos, las prioridades de capital y la conversación sobre retener o vender. Los propietarios la contratan cuando la propiedad lo requiere.',
+  amLayersTitle: 'Dos capas, dichas con claridad',
+  amDecidesEyebrow: 'La gestión de activos decide',
+  amDecidesItem1: 'Prioridades de capital y su secuencia',
+  amDecidesItem2: 'Dirección presupuestaria y postura de reproyección',
+  amDecidesItem3: 'Preguntas de retención, refinanciamiento y venta',
+  amDecidesItem4: 'Revisión del desempeño frente a la intención de los propietarios',
+  amExecutesEyebrow: 'La administración de propiedades ejecuta',
+  amExecutesItem1: 'Operaciones en sitio y personal',
+  amExecutesItem2: 'Controles financieros y cierre mensual',
+  amExecutesItem3: 'Alcance y desempeño de proveedores',
+  amExecutesItem4: 'Informes y comunicación con el propietario',
+  amClosingTitle: 'Empiece por la propiedad y añada la capa superior.',
+  amClosingBody:
+    'La mayoría de los propietarios empieza con la administración de propiedades. La gestión de activos se añade cuando las preguntas de inversión necesitan que las responda el mismo equipo.',
+
+  isMetaTitle:
+    'Servicios para inversionistas en bienes raíces comerciales de Texas | AxisPoint Partners',
+  isMetaDescription:
+    'Para clientes con capital que adquieren propiedades multifamiliares o comerciales en Texas y quieren el lado operativo resuelto antes de la compra, no después.',
+  isHeroTitle:
+    'Una vía de entrada a los bienes raíces comerciales de Texas con un equipo operativo detrás',
+  isHeroAnswer:
+    'Para clientes con capital que adquieren propiedades multifamiliares o comerciales en Texas y quieren el lado operativo resuelto antes de la compra, no después.',
+  isPhotoAlt: 'Vista aérea de un intercambio vial en Houston',
+  isWhoEyebrow: 'Para quién es',
+  isWhoLead: 'Clientes con capital que necesitan un equipo operativo antes de poder actuar.',
+  isWhoBody:
+    'Servicios para inversionistas es el menor de los tres caminos y sigue siéndolo a propósito. Existe para propietarios que entran en los bienes raíces comerciales, o que entran en Texas, y quieren el lado operativo resuelto desde la primera propiedad en lugar de armarlo después del cierre.',
+  isTimelineBeforeLabel: 'Antes de la compra',
+  isTimelineBeforeBody:
+    'Una lectura operativa de lo que costará operar la propiedad, para que los supuestos detrás de la oferta sean los que usaría un administrador.',
+  isTimelineClosingLabel: 'Al cierre',
+  isTimelineClosingBody:
+    'Un equipo de administración listo desde el primer día, con personal, sistemas y relaciones con proveedores preparados en lugar de pendientes.',
+  isTimelineAfterLabel: 'Después de la primera propiedad',
+  isTimelineAfterBody:
+    'La relación pasa a Administración de propiedades, con Gestión de activos añadida si la visión de los propietarios lo requiere.',
+  isClosingTitle: 'Cuéntenos qué busca adquirir.',
+  isClosingBody:
+    'Envíe el tipo de propiedad, el mercado y el plazo. Un socio responde con una lectura operativa y cómo sería la administración.',
+  isClosingCta: 'Hablar de una adquisición',
+
+  partnersMetaTitle: 'Socios | AxisPoint Partners',
+  partnersMetaDescription:
+    'AxisPoint está dirigida por sus socios desde Houston. Zachary Russell y Ethaniel Vu permanecen en las propiedades que asumen, de modo que los propietarios hablan con quienes toman las decisiones.',
+  partnersHeroTitle: 'Dos socios, directamente responsables del trabajo',
+  partnersHeroAnswer:
+    'AxisPoint está dirigida por sus socios desde Houston. Quienes aceptan el encargo son quienes permanecen en él.',
+  partnersRoleLabel: 'Socio',
+  partnerRussellBody:
+    'Trabaja directamente en el desempeño operativo: decisiones de personal, transiciones, programas de capital y las propiedades de la cartera que requieren atención este mes.',
+  partnerVuBody:
+    'Trabaja directamente en los controles financieros y el registro para los propietarios: presupuestos, disciplina de aprobaciones, cierre mensual y los informes que los propietarios usan para decidir.',
+  partnersHowEyebrow: 'Cómo trabajamos',
+  partnersHowBody:
+    'Ambos socios permanecen en las propiedades que asumen. Los propietarios hablan con quienes toman las decisiones, no con una capa dispuesta delante de ellos.',
+  partnersClosingTitle: 'Hable con un socio sobre su propiedad.',
+  partnersClosingBody:
+    'Envíe la propiedad y la situación. El socio que lo lea es quien respondería por ella.',
 };

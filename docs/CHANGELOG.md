@@ -3,6 +3,16 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-08-11 (Multilingual Content Rollout, PR 3 of 5)
+
+- **feat(web): the five marketing pages are catalog-driven in all nine languages.** Home, Property Management, Asset Management, Investor Services, and Partners, plus the page titles and meta descriptions that originate in those components. 143 new keys, catalog now 258, all eight audit catalogs at full parity. Rendered English is byte-identical to the committed baseline.
+- **feat(web): shared keys rather than duplicated strings.** Service names and the management-proposal call to action reuse the existing `nav*` keys; `pmRunsAmDirectsTitle` is one key shared by the home page and Asset Management, `partnersSignature` by the home page and Property Management. Two keys holding the same English is how surfaces stop matching at the first translation.
+- **fix(web): partner names are never transliterated.** Hindi initially rendered them in Devanagari while `PartnersPage.tsx` renders them in Latin for every locale, which would have shown a reader two spellings of the same person on one page. Names, `AxisPoint`, the email address, and the numeral `404` stay in code rather than in the catalog.
+- **feat(infra): per-locale review artifacts now cover every page.** `apps/web/tests/preview/<code>.txt` holds the chrome once and then all five marketing pages, 237 lines per locale, so a native reader opens one file and reads their whole language in reading order.
+- **verify(web): 90-observation browser review** across five pages, nine locales, and two widths in an isolated headless Chrome over CDP. Urdu is the only `dir="rtl"` and mirrors correctly on every page at both widths; `<html lang>` correct in all 90; **no page-specific overflow introduced** (`<main>` overflow 0px everywhere, page-level overflow only the documented pre-existing 3px chrome case, identical in English); every locale renders a translated `<h1>` so no page fell back to English; zero page exceptions; non-font off-origin requests 0.
+- **audit: React warns that it does not recognise the `fetchPriority` prop**, 18 times, from `PageParts.tsx:97` and `HomePage.tsx:82`. React 18 does not support the attribute. Pre-existing and untouched by this PR; PR 2's review never saw it because the 404 route has no images. Recorded, not fixed.
+- **note: no structured metadata exists in the application**, so none was migrated and none was invented. `ContactPage.tsx` is the intake's shell rather than a marketing page and moves with the intake in PR 4.
+
 ## 2026-08-10 (Multilingual Content Rollout, PR 2 of 5)
 
 - **feat(web): the site chrome is catalog-driven in all nine languages.** Header, footer, shell, 404, and the language selector's assistive labels: 23 keys, total now 115. The header and footer share keys for the names that appear in both, because two keys holding identical English is how they drift apart at the first translation. Rendered English is byte-identical to the committed baseline.
