@@ -158,4 +158,186 @@ export const ZH_HANT: Partial<Messages> = {
   notFoundAction: '返回首頁',
   languageChooseAria: '選擇語言。目前語言：{language}。',
   languageListAria: '選擇語言',
+
+  /* ══ Marketing pages (PR 3) ══
+   * Taiwan vocabulary throughout, NOT a character conversion of ./zh-Hans.ts: 營運 not 运营,
+   * 專案 not 项目, 品質 not 质量, 資訊 not 信息, 休士頓 not 休斯顿, 沃斯堡 not 沃思堡.
+   * Proper nouns preserved: AxisPoint and both partner names stay in Latin script. */
+
+  partnersSignature: 'Zachary Russell 與 Ethaniel Vu，合夥人。',
+  pmRunsAmDirectsTitle: '物業管理負責營運物業，資產管理負責主導投資方向。',
+
+  homeMetaTitle: 'AxisPoint Partners | 德克薩斯州商業物業管理',
+  homeMetaDescription:
+    'AxisPoint 為德克薩斯州各地的業主管理多戶住宅與零售物業，涵蓋現場營運、財務管控、供應商表現以及提供給業主的報告。',
+  homeHeroAlt: '黃昏時分多戶住宅社區的草坪與建築立面',
+  homeHeroTitle: '由一個團隊為您的物業營運負責。',
+  homeHeroLead:
+    'AxisPoint 為德克薩斯州各地的業主管理多戶住宅與零售物業，涵蓋現場營運、財務管控、供應商表現，以及業主實際會看的報告。',
+  homeHeroQuietLink: '了解我們承擔哪些責任',
+  homeHeroSignature: '由合夥人 Zachary Russell 與 Ethaniel Vu 於休士頓主持。',
+  homeStripEyebrow: '物業管理優先',
+  homeStripBody: '主要方向：德克薩斯州各地的多戶住宅與零售物業。總部設於休士頓。',
+  homeWhyTitle: '業主為什麼找上 AxisPoint',
+  homeWhyLead: '通常是四種情況之一。',
+  homeWhySituationManager: '現有管理方已失去業主的信任。',
+  homeWhySituationSelf: '自行管理已經變成第二份工作。',
+  homeWhySituationAcquired: '新收購的物業需要在第一個月結束前就位一支營運團隊。',
+  homeWhyOr: '或者',
+  homeWhySituationReports: '報告準時送達，卻依然說不清物業的狀況。',
+  homeWhyBody:
+    '這四種情況背後的問題是同一個：今天由誰為這處物業負責。AxisPoint 的回答是一個負責到底的團隊，以及兩位貼近現場、叫得出物業名字的合夥人。',
+  homeWhyLink: 'AxisPoint 承擔哪些責任',
+  homeStrategicEyebrow: '策略層',
+  homeStrategicBody:
+    '對於希望在營運工作之上取得業主視角的客戶，AxisPoint 將物業的實際表現與預算、資本優先順序和持有決策連結起來。在物業確有需要時才導入，而不是當成標準配備推銷。',
+  homeInvestorEyebrow: '另一條路徑',
+  homeInvestorBody: '進入商業不動產卻沒有營運團隊支援？投資者服務就是入口。',
+  homeClosingTitle: '告訴我們這處物業接下來需要什麼。',
+  homeClosingBody:
+    '請提供物業狀況、目前的管理情形，以及您正在考慮的調整。會有一位合夥人閱讀並回覆。',
+
+  pmMetaTitle: '休士頓及德克薩斯州各地的物業管理 | AxisPoint Partners',
+  pmMetaDescription:
+    'AxisPoint 為德克薩斯州的多戶住宅與零售物業承擔營運責任：現場營運、財務管控、供應商表現以及業主報告。',
+  pmHeroTitle: '休士頓及德克薩斯州各地的商業物業管理',
+  pmHeroLead:
+    'AxisPoint 為多戶住宅與零售物業承擔營運責任：現場團隊、資金、供應商，以及業主用來做決策的報告。',
+  pmSeeFunctions: '查看四項營運職能',
+  pmPhotoAlt: '德克薩斯州一處多戶住宅社區與相鄰零售中心的空拍視角',
+  pmResponsibilityTitle: 'AxisPoint 承擔哪些責任',
+  pmResponsibilityBody:
+    '決定物業日常運作的一切，以及一份提供給業主的完整紀錄。物業出狀況時，業主不必再去打聽該找誰。',
+  pmFunctionsTitle: '四項營運職能，一個負責到底的團隊',
+  pmFnOnsiteTitle: '現場營運',
+  pmFnOnsiteLede:
+    '物業現場的人員以及他們堅持的作業規範。人力安排、租賃督導、回應標準與交屋排程，讓物業逐週依計畫運作。',
+  pmFnOnsiteItem1: '現場人力配置與督導',
+  pmFnOnsiteItem2: '租賃督導',
+  pmFnOnsiteItem3: '住戶與承租戶回應',
+  pmFnOnsiteItem4: '退租整備與交屋準備',
+  pmFnOnsiteItem5: '預防性維護',
+  pmFnFinancialTitle: '財務管控',
+  pmFnFinancialLede:
+    '與業主共同編列的預算、事先議定的核准門檻，以及每一個數字都能追溯到相應決策的月結作業。',
+  pmFnFinancialItem1: '年度預算與滾動預測',
+  pmFnFinancialItem2: '核准門檻',
+  pmFnFinancialItem3: '收款與欠繳管理',
+  pmFnFinancialItem4: '應付帳款與月底結帳',
+  pmFnFinancialItem5: '差異說明',
+  pmFnVendorTitle: '供應商表現',
+  pmFnVendorLede:
+    '明確界定的工作範圍、確實的招標紀律，以及以成果品質而非工單結案來衡量的後續追蹤。',
+  pmFnVendorItem1: '工作範圍與招標流程',
+  pmFnVendorItem2: '合約與保險合規',
+  pmFnVendorItem3: '品質查核',
+  pmFnVendorItem4: '資本專案協調',
+  pmFnReportingTitle: '業主報告與溝通',
+  pmFnReportingLede:
+    '一份紀錄說明物業發生了什麼、花了多少錢、接下來是什麼，另有一位合夥人在報告週期之間隨時答覆。',
+  pmFnReportingItem1: '月報套件',
+  pmFnReportingItem2: '營運說明',
+  pmFnReportingItem3: '資本與專案追蹤',
+  pmFnReportingItem4: '直接聯繫合夥人',
+  pmStrengthsTitle: 'AxisPoint 最擅長的領域',
+  pmStrengthsBody:
+    '這些是團隊所擅長處理的情況。它們是優勢領域而非硬性條件，不在其中的物業同樣值得談一談。',
+  pmStrengthTypesTitle: '物業類型',
+  pmStrengthTypesItem1: '以多戶住宅為主要方向',
+  pmStrengthTypesItem2: '以零售物業為主要方向',
+  pmStrengthTypesItem3: '能夠支撐現場人力的物業',
+  pmStrengthTypesItem4: '同一業主名下統籌管理的投資組合',
+  pmStrengthTypesItem5: '以單一專案方式運作的分散型投資組合',
+  pmStrengthGeographyTitle: '地區',
+  pmStrengthGeographyItem1: '休士頓及周邊都會區',
+  pmStrengthGeographyItem2: '達拉斯與沃斯堡',
+  pmStrengthGeographyItem3: '聖安東尼奧',
+  pmStrengthGeographyItem4: '奧斯汀',
+  pmStrengthGeographyItem5: '德克薩斯州各地的業主',
+  pmStrengthAssignmentsTitle: '委任類型',
+  pmStrengthAssignmentsItem1: '管理方交接',
+  pmStrengthAssignmentsItem2: '招租期',
+  pmStrengthAssignmentsItem3: '大額資本專案',
+  pmStrengthAssignmentsItem4: '長期累積的營運問題',
+  pmStrengthAssignmentsItem5: '扭轉經營的委任',
+  pmQuestionsTitle: '業主更換管理方前常問的問題',
+  pmQ1: '管理交接需要多久？',
+  pmA1: '這取決於物業本身與原管理方，但計畫會在啟動日期之前寫好：人力、系統、銀行帳戶、供應商紀錄，以及住戶或承租戶溝通，每一項都有明確負責人與時程。',
+  pmQ2: '實際上由誰為我的物業負責？',
+  pmA2: '由合夥人負責。Zachary Russell 與 Ethaniel Vu 貼近現場，叫得出物業的名字，業主也不必經過客戶經理層級才能聯繫到他們。',
+  pmQ3: '每月的報告是什麼樣子？',
+  pmA3: '固定的報告套件，依固定時程提供，並附書面說明解釋各項差異，而不是讓業主自行解讀數字。',
+  pmQ4: '你們能接手有累積問題的物業嗎？',
+  pmA4: '可以。累積的維修、未完成的資本工程與人力缺口，都是業主來電的常見原因。方案中會寫明先處理什麼、依什麼順序處理。',
+  pmRelatedEyebrow: '相關內容',
+  pmRelatedAsset: '資產管理位於營運工作之上，面向希望取得投資視角的業主',
+  pmRelatedInvestor: '投資者服務是尚無營運團隊的資金充足客戶的入口',
+  pmClosingTitle: '把物業狀況與現況寄給我們。',
+  pmClosingBody:
+    '一份管理提案會涵蓋人力配置、報告套件、交接計畫，以及 AxisPoint 由誰為該物業負責。',
+
+  amMetaTitle: '為德克薩斯州業主提供的資產管理 | AxisPoint Partners',
+  amMetaDescription:
+    '在營運工作之上的業主視角：資本優先順序、預算方向與持有決策，由已在營運該物業的團隊提供依據。',
+  amHeroTitle: '為德克薩斯州業主提供的資產管理',
+  amHeroAnswer:
+    '在營運工作之上的業主視角：資本優先順序、預算方向與持有決策，由一支已在營運該物業的團隊提供依據。',
+  amPhotoAlt: '從街道視角看休士頓市中心塔樓與高架人行道',
+  amRelationshipEyebrow: '兩者的關係',
+  amRelationshipBody:
+    '資產管理是營運工作之上的一層，而不是取代營運。它把物業每週的實際表現與預算、資本優先順序以及持有或出售的討論連結起來。業主在物業確有需要時才導入。',
+  amLayersTitle: '兩個層次，說清楚',
+  amDecidesEyebrow: '資產管理負責決定',
+  amDecidesItem1: '資本優先順序與推進次序',
+  amDecidesItem2: '預算方向與滾動預測立場',
+  amDecidesItem3: '持有、再融資與處分的判斷',
+  amDecidesItem4: '對照業主意向的績效檢視',
+  amExecutesEyebrow: '物業管理負責執行',
+  amExecutesItem1: '現場營運與人力配置',
+  amExecutesItem2: '財務管控與月結作業',
+  amExecutesItem3: '供應商範圍與表現',
+  amExecutesItem4: '業主報告與溝通',
+  amClosingTitle: '先從物業開始，再疊上上面這一層。',
+  amClosingBody:
+    '多數業主從物業管理開始。當投資層面的問題需要同一支團隊來回答時，再加入資產管理。',
+
+  isMetaTitle: '德克薩斯州商業不動產投資者服務 | AxisPoint Partners',
+  isMetaDescription:
+    '為在德克薩斯州收購多戶住宅或零售物業的資金充足客戶而設，他們希望在購買之前而非之後就把營運面安排妥當。',
+  isHeroTitle: '帶著營運團隊進入德克薩斯州商業不動產的途徑',
+  isHeroAnswer:
+    '為在德克薩斯州收購多戶住宅或零售物業的資金充足客戶而設，他們希望在購買之前而非之後就把營運面安排妥當。',
+  isPhotoAlt: '休士頓一處高速公路交流道的空拍視角',
+  isWhoEyebrow: '適合哪些人',
+  isWhoLead: '資金已經到位、但需要營運團隊才能行動的客戶。',
+  isWhoBody:
+    '投資者服務是三條路徑中最小的一條，而且刻意維持如此。它面向初次進入商業不動產、或初次進入德克薩斯州的業主，他們希望從第一處物業起就把營運面安排好，而不是在成交之後才臨時湊齊。',
+  isTimelineBeforeLabel: '購買之前',
+  isTimelineBeforeBody:
+    '對這處物業的營運成本做出判斷，使報價背後的假設與管理方實際會採用的假設一致。',
+  isTimelineClosingLabel: '成交時',
+  isTimelineClosingBody:
+    '管理團隊第一天即到位，人力、系統與供應商關係都已備妥，而不是仍在籌備。',
+  isTimelineAfterLabel: '第一處物業之後',
+  isTimelineAfterBody: '合作關係轉入物業管理；若業主視角有此需要，再加入資產管理。',
+  isClosingTitle: '告訴我們您打算收購什麼。',
+  isClosingBody:
+    '請提供物業類型、市場與時程。會有一位合夥人回覆營運層面的判斷，以及管理方案大致的樣貌。',
+  isClosingCta: '洽談收購事宜',
+
+  partnersMetaTitle: '合夥人 | AxisPoint Partners',
+  partnersMetaDescription:
+    'AxisPoint 由合夥人於休士頓主持。Zachary Russell 與 Ethaniel Vu 會持續跟進自己接手的物業，業主直接與做決定的人對話。',
+  partnersHeroTitle: '兩位合夥人，直接為工作負責',
+  partnersHeroAnswer: 'AxisPoint 由合夥人於休士頓主持。接下委任的人，就是持續跟進的人。',
+  partnersRoleLabel: '合夥人',
+  partnerRussellBody:
+    '直接負責營運表現：人力決策、管理交接、資本專案，以及投資組合中本月需要重點關注的物業。',
+  partnerVuBody:
+    '直接負責財務管控與提供給業主的紀錄：預算、核准紀律、月結作業，以及業主用來做決策的報告。',
+  partnersHowEyebrow: '我們的工作方式',
+  partnersHowBody:
+    '兩位合夥人都會持續跟進自己接手的物業。業主直接與做決定的人對話，而不是與安排在前面的一層人往來。',
+  partnersClosingTitle: '就您的物業與合夥人談一談。',
+  partnersClosingBody: '請提供物業狀況與現況。閱讀它的合夥人，就是將來為它負責的人。',
 };

@@ -9,6 +9,8 @@ import {
   ServiceHero,
   QuietLink,
 } from '../components/PageParts';
+import { useMessages } from '../i18n/LocaleProvider';
+import type { Messages } from '../i18n/messages';
 
 /**
  * Investor Services, built from `AxisPoint System Studies.dc.html` with
@@ -22,42 +24,34 @@ import {
  * launch images that never needed an Adobe licence confirmation.
  */
 
-const TIMELINE: { label: string; body: string }[] = [
-  {
-    label: 'Before the purchase',
-    body: 'An operating read on what the property will take to run, so the assumptions behind the offer are the ones a manager would use.',
-  },
-  {
-    label: 'At closing',
-    body: 'A management team in place on day one, with staffing, systems, and vendor relationships ready rather than pending.',
-  },
-  {
-    label: 'After the first property',
-    body: 'The relationship moves into Property Management, with Asset Management added if the ownership view calls for it.',
-  },
+const TIMELINE: { labelKey: keyof Messages; bodyKey: keyof Messages }[] = [
+  { labelKey: 'isTimelineBeforeLabel', bodyKey: 'isTimelineBeforeBody' },
+  { labelKey: 'isTimelineClosingLabel', bodyKey: 'isTimelineClosingBody' },
+  { labelKey: 'isTimelineAfterLabel', bodyKey: 'isTimelineAfterBody' },
 ];
 
 function InvestorServicesPage() {
+  const t = useMessages();
+
   useDocumentMeta({
-    title: 'Investor Services for Texas Commercial Real Estate | AxisPoint Partners',
-    description:
-      'For capital-ready clients acquiring multifamily or retail in Texas who want the operating side accounted for before the purchase, not after it.',
+    title: t.isMetaTitle,
+    description: t.isMetaDescription,
     path: '/investor-services',
   });
 
   return (
     <>
       <ServiceHero
-        eyebrow="Investor Services"
+        eyebrow={t.navInvestorServices}
         eyebrowColor="#9F328C"
-        title="A way into Texas commercial real estate with an operating team behind you"
-        answer="For capital-ready clients acquiring multifamily or retail in Texas who want the operating side accounted for before the purchase, not after it."
+        title={t.isHeroTitle}
+        answer={t.isHeroAnswer}
       />
 
       <PhotoBand
         photo={{
           base: 'investor-services-interchange',
-          alt: 'Aerial view of a highway interchange in Houston',
+          alt: t.isPhotoAlt,
           width: 2560,
           height: 1280,
         }}
@@ -70,22 +64,20 @@ function InvestorServicesPage() {
       <section className={`${GUTTER} ${SECTION}`}>
         <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-6 lg:gap-20 items-start`}>
           <Eyebrow className="text-v2-magenta border-t-[3px] border-v2-magenta pt-4">
-            Who this is for
+            {t.isWhoEyebrow}
           </Eyebrow>
           <div>
             <p
               className="m-0 font-serif text-[rgba(28,22,40,0.68)]"
               style={{ fontSize: 'clamp(23px,2.4vw,31px)', fontWeight: 500, lineHeight: 1.42, textWrap: 'pretty', maxWidth: '26ch' }}
             >
-              Capital-ready clients who need an operating team before they can act.
+              {t.isWhoLead}
             </p>
             <p
               className="mt-[22px] mb-0 text-[rgba(28,22,40,0.68)]"
               style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)', lineHeight: 1.65, maxWidth: '54ch' }}
             >
-              Investor Services is the smaller of the three paths and stays that way on purpose. It
-              exists for owners entering commercial real estate, or entering Texas, who want the
-              operating side handled from the first property rather than assembled after closing.
+              {t.isWhoBody}
             </p>
           </div>
         </div>
@@ -96,7 +88,7 @@ function InvestorServicesPage() {
         <div className={`${MEASURE} grid`}>
           {TIMELINE.map((row, i) => (
             <div
-              key={row.label}
+              key={row.labelKey}
               className={`grid lg:grid-cols-[0.34fr_1fr] gap-2.5 lg:gap-20 py-[22px] lg:py-[30px] border-t border-[rgba(28,22,40,0.16)] ${
                 i === TIMELINE.length - 1 ? 'border-b' : ''
               }`}
@@ -105,23 +97,23 @@ function InvestorServicesPage() {
                 className="m-0 font-semibold"
                 style={{ fontSize: 'clamp(19px,1.8vw,23px)', letterSpacing: '-0.02em' }}
               >
-                {row.label}
+                {t[row.labelKey]}
               </h2>
               <p className="m-0 text-[rgba(28,22,40,0.66)]" style={{ fontSize: 'clamp(15.5px,1.2vw,16.5px)', lineHeight: 1.6 }}>
-                {row.body}
+                {t[row.bodyKey]}
               </p>
             </div>
           ))}
           <div className="mt-[30px] lg:mt-12">
-            <QuietLink to="/property-management">Property Management</QuietLink>
+            <QuietLink to="/property-management">{t.navPropertyManagement}</QuietLink>
           </div>
         </div>
       </section>
 
       <ClosingCta
-        title="Tell us what you are looking to acquire."
-        body="Send the property type, the market, and the timeline. A partner responds with an operating read and what management would look like."
-        ctaLabel="Discuss an acquisition"
+        title={t.isClosingTitle}
+        body={t.isClosingBody}
+        ctaLabel={t.isClosingCta}
         ctaTo="/contact?intent=investor-services"
       />
     </>

@@ -7,8 +7,13 @@ enabled     : false
 review      : unreviewed
 status      : AUDIT CANDIDATE. Model-generated, unreviewed, not approved, not live.
 
-Rendered chrome, in reading order. Route: /no-such-page
+Rendered text in reading order. Site chrome first, then each marketing page.
+Proper nouns (AxisPoint, partner names, place names) are intentionally not translated.
+
 ========================================================================
+SITE CHROME  (header, skip link, 404 copy, footer)  route: /no-such-page
+========================================================================
+
 Chuyển đến nội dung chính
 Axis
 Point
@@ -42,3 +47,191 @@ info@axispoint.llc
 Phục vụ chủ sở hữu trên toàn bang Texas
 Hoạt động môi giới và cho thuê được thực hiện thông qua đối tác có giấy phép của chúng tôi. AxisPoint Partners không cung cấp tư vấn thuế hoặc pháp lý. Trang web này chỉ nhằm mục đích cung cấp thông tin và không cấu thành lời chào bán chứng khoán.
 © 2026 AxisPoint Partners
+
+========================================================================
+PAGE: Home  route: /
+========================================================================
+
+Một đội ngũ chịu trách nhiệm về cách bất động sản của quý vị vận hành.
+AxisPoint quản lý bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ cho chủ sở hữu trên khắp Texas, từ vận hành tại chỗ và kiểm soát tài chính đến hiệu quả nhà cung cấp và những báo cáo mà chủ sở hữu thực sự đọc.
+Yêu cầu đề xuất quản lý
+→
+Xem chúng tôi chịu trách nhiệm những gì
+→
+Do các đối tác Zachary Russell và Ethaniel Vu điều hành từ Houston.
+Quản lý bất động sản trước tiên
+Trọng tâm chính: bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ trên khắp Texas. Trụ sở tại Houston.
+Vì sao chủ sở hữu tìm đến AxisPoint
+Thường là một trong bốn tình huống.
+Đơn vị quản lý hiện tại đã đánh mất niềm tin của chủ sở hữu.
+Tự quản lý đã trở thành một công việc thứ hai.
+Một bất động sản vừa mua lại cần đội ngũ vận hành trước khi tháng đầu tiên khép lại.
+Hoặc
+báo cáo đến đúng hạn nhưng vẫn không giải thích được tình hình bất động sản.
+Câu hỏi nằm dưới cả bốn tình huống đều giống nhau: hôm nay ai chịu trách nhiệm về bất động sản này. AxisPoint trả lời bằng một đội ngũ chịu trách nhiệm và hai đối tác đủ sát công việc để gọi tên từng bất động sản.
+AxisPoint chịu trách nhiệm những gì
+→
+Lớp chiến lược
+Quản lý bất động sản vận hành tài sản. Quản lý tài sản định hướng khoản đầu tư.
+Với những chủ sở hữu muốn có góc nhìn ở cấp sở hữu bên trên công việc vận hành, AxisPoint kết nối những gì bất động sản đang làm với ngân sách, thứ tự ưu tiên vốn và các quyết định nắm giữ. Được sử dụng khi bất động sản thực sự cần, không bán kèm theo mặc định.
+Quản lý tài sản
+→
+Một hướng đi riêng
+Bước vào bất động sản thương mại mà chưa có đội ngũ vận hành phía sau? Dịch vụ cho nhà đầu tư là lối vào.
+→
+Hãy cho chúng tôi biết bất động sản cần gì tiếp theo.
+Gửi thông tin bất động sản, tình hình quản lý hiện tại và thay đổi quý vị đang cân nhắc. Một đối tác sẽ đọc và phản hồi.
+Zachary Russell và Ethaniel Vu, Đối tác.
+Yêu cầu đề xuất quản lý
+→
+
+========================================================================
+PAGE: Property Management  route: /property-management
+========================================================================
+
+Quản lý bất động sản
+Quản lý bất động sản thương mại tại Houston và khắp Texas
+AxisPoint nhận trách nhiệm vận hành cho bất động sản nhà ở nhiều căn hộ và mặt bằng bán lẻ: đội ngũ tại chỗ, dòng tiền, nhà cung cấp và những báo cáo chủ sở hữu dùng để ra quyết định.
+Yêu cầu đề xuất quản lý
+→
+Xem bốn chức năng vận hành
+↓
+AxisPoint chịu trách nhiệm những gì
+Mọi thứ quyết định cách bất động sản vận hành hằng ngày, và một hồ sơ duy nhất dành cho chủ sở hữu. Khi có sự cố tại bất động sản, chủ sở hữu không phải đi tìm xem nên gọi cho ai.
+Bốn chức năng vận hành, một đội ngũ chịu trách nhiệm
+Vận hành tại chỗ
+Những con người tại bất động sản và các quy trình họ tuân thủ. Quyết định nhân sự, giám sát cho thuê, tiêu chuẩn phản hồi và lịch bàn giao giữ cho bất động sản đi đúng kế hoạch từng tuần.
+Nhân sự và giám sát tại chỗ
+Giám sát cho thuê
+Phản hồi cư dân và khách thuê
+Bàn giao và chuẩn bị căn hộ
+Bảo trì phòng ngừa
+Kiểm soát tài chính
+Ngân sách lập cùng chủ sở hữu, ngưỡng phê duyệt thống nhất từ trước, và một kỳ khóa sổ hằng tháng trong đó mọi con số đều truy được về quyết định phía sau nó.
+Ngân sách năm và dự báo điều chỉnh
+Ngưỡng phê duyệt
+Thu tiền và công nợ quá hạn
+Công nợ phải trả và khóa sổ cuối tháng
+Giải trình chênh lệch
+Hiệu quả nhà cung cấp
+Công việc có phạm vi rõ ràng, kỷ luật đấu thầu thực chất, và việc theo sát được đo bằng chất lượng kết quả thay vì bằng việc đóng một phiếu yêu cầu.
+Phạm vi và quy trình đấu thầu
+Tuân thủ hợp đồng và bảo hiểm
+Kiểm chứng chất lượng
+Điều phối dự án vốn
+Báo cáo và trao đổi với chủ sở hữu
+Một hồ sơ duy nhất về những gì đã diễn ra tại bất động sản, chi phí bao nhiêu và điều gì tiếp theo, cùng một đối tác trả lời giữa các kỳ báo cáo.
+Bộ báo cáo hằng tháng
+Thuyết minh vận hành
+Theo dõi vốn và dự án
+Liên hệ trực tiếp với đối tác
+AxisPoint mạnh nhất ở đâu
+Đây là những tình huống đội ngũ được xây dựng để xử lý. Chúng là thế mạnh chứ không phải điều kiện bắt buộc, và một bất động sản nằm ngoài đó vẫn đáng để trao đổi.
+Loại bất động sản
+Nhà ở nhiều căn hộ là trọng tâm chính
+Mặt bằng bán lẻ là trọng tâm chính
+Bất động sản có thể duy trì nhân sự tại chỗ
+Danh mục được điều phối chung dưới một chủ sở hữu
+Danh mục phân tán được vận hành như một chương trình duy nhất
+Địa bàn
+Houston và vùng đô thị lân cận
+Dallas và Fort Worth
+San Antonio
+Austin
+Chủ sở hữu trên toàn bang Texas
+Loại công việc
+Chuyển giao quản lý
+Giai đoạn cho thuê ban đầu
+Chương trình vốn lớn
+Vấn đề vận hành bị trì hoãn
+Công việc cải thiện hoạt động
+Những câu hỏi chủ sở hữu đặt ra trước khi đổi đơn vị quản lý
+Một lần chuyển giao quản lý mất bao lâu?
+Điều đó tùy thuộc vào bất động sản và đơn vị quản lý cũ, nhưng kế hoạch được viết ra trước ngày bắt đầu: nhân sự, hệ thống, ngân hàng, hồ sơ nhà cung cấp và việc thông báo cho cư dân hoặc khách thuê đều có người phụ trách và mốc thời gian riêng.
+Ai thực sự chịu trách nhiệm về bất động sản của tôi?
+Một đối tác. Zachary Russell và Ethaniel Vu đủ sát công việc để gọi tên từng bất động sản, và chủ sở hữu không phải đi qua một lớp quản lý khách hàng mới liên hệ được với họ.
+Báo cáo hằng tháng trông như thế nào?
+Một bộ báo cáo nhất quán theo lịch nhất quán, kèm thuyết minh bằng văn bản giải thích các chênh lệch thay vì để chủ sở hữu tự diễn giải các con số.
+Quý vị có nhận bất động sản đang tồn đọng vấn đề không?
+Có. Bảo trì bị trì hoãn, công việc vốn chưa xử lý và thiếu hụt nhân sự là những lý do phổ biến khiến chủ sở hữu liên hệ. Đề xuất sẽ nêu rõ việc gì được xử lý trước và theo thứ tự nào.
+Liên quan
+Quản lý tài sản nằm bên trên công việc vận hành, dành cho chủ sở hữu muốn có góc nhìn đầu tư
+→
+Dịch vụ cho nhà đầu tư là lối vào dành cho khách hàng đã sẵn vốn nhưng chưa có đội ngũ vận hành
+→
+Hãy gửi cho chúng tôi bất động sản và tình huống.
+Một đề xuất quản lý bao gồm nhân sự, bộ báo cáo, kế hoạch chuyển giao và ai tại AxisPoint chịu trách nhiệm về bất động sản.
+Zachary Russell và Ethaniel Vu, Đối tác.
+Yêu cầu đề xuất quản lý
+→
+
+========================================================================
+PAGE: Asset Management  route: /asset-management
+========================================================================
+
+Quản lý tài sản
+Quản lý tài sản cho chủ sở hữu tại Texas
+Góc nhìn ở cấp sở hữu bên trên công việc vận hành: thứ tự ưu tiên vốn, định hướng ngân sách và quyết định nắm giữ, dựa trên thông tin từ một đội ngũ đang vận hành bất động sản.
+Mối quan hệ
+Quản lý bất động sản vận hành tài sản. Quản lý tài sản định hướng khoản đầu tư.
+Quản lý tài sản là một lớp bên trên công việc vận hành, không thay thế nó. Nó kết nối những gì bất động sản làm hằng tuần với ngân sách, thứ tự ưu tiên vốn và câu chuyện giữ hay bán. Chủ sở hữu sử dụng khi bất động sản thực sự cần.
+Hai lớp, nói cho rõ
+Quản lý tài sản quyết định
+Thứ tự ưu tiên vốn và trình tự triển khai
+Định hướng ngân sách và quan điểm dự báo điều chỉnh
+Các câu hỏi về nắm giữ, tái tài trợ và chuyển nhượng
+Đánh giá hiệu quả so với ý định của chủ sở hữu
+Quản lý bất động sản thực thi
+Vận hành tại chỗ và nhân sự
+Kiểm soát tài chính và khóa sổ hằng tháng
+Phạm vi và hiệu quả nhà cung cấp
+Báo cáo và trao đổi với chủ sở hữu
+Quản lý bất động sản
+→
+Bắt đầu từ bất động sản, rồi thêm lớp bên trên.
+Phần lớn chủ sở hữu bắt đầu bằng quản lý bất động sản. Quản lý tài sản được thêm vào khi các câu hỏi đầu tư cần chính đội ngũ đó trả lời.
+Yêu cầu đề xuất quản lý
+→
+
+========================================================================
+PAGE: Investor Services  route: /investor-services
+========================================================================
+
+Dịch vụ cho nhà đầu tư
+Một lối vào bất động sản thương mại Texas với đội ngũ vận hành phía sau
+Dành cho khách hàng đã sẵn vốn đang mua bất động sản nhà ở nhiều căn hộ hoặc mặt bằng bán lẻ tại Texas, muốn phần vận hành được tính đến trước khi mua chứ không phải sau đó.
+Dành cho ai
+Khách hàng đã sẵn vốn nhưng cần một đội ngũ vận hành mới có thể hành động.
+Dịch vụ cho nhà đầu tư là hướng nhỏ nhất trong ba hướng và cố ý giữ như vậy. Nó dành cho chủ sở hữu bước vào bất động sản thương mại, hoặc bước vào Texas, muốn phần vận hành được lo từ bất động sản đầu tiên thay vì ghép lại sau khi hoàn tất giao dịch.
+Trước khi mua
+Một đánh giá vận hành về chi phí thực tế để vận hành bất động sản, để các giả định phía sau mức chào giá đúng với giả định mà một đơn vị quản lý sẽ dùng.
+Khi hoàn tất giao dịch
+Đội ngũ quản lý có mặt ngay từ ngày đầu, với nhân sự, hệ thống và quan hệ nhà cung cấp đã sẵn sàng thay vì còn dang dở.
+Sau bất động sản đầu tiên
+Mối quan hệ chuyển sang Quản lý bất động sản, kèm Quản lý tài sản nếu góc nhìn của chủ sở hữu cần đến.
+Quản lý bất động sản
+→
+Hãy cho chúng tôi biết quý vị định mua gì.
+Gửi loại bất động sản, thị trường và thời gian dự kiến. Một đối tác sẽ phản hồi kèm đánh giá vận hành và hình dung về công tác quản lý.
+Trao đổi về một thương vụ
+→
+
+========================================================================
+PAGE: Partners  route: /partners
+========================================================================
+
+Đối tác
+Hai đối tác, trực tiếp chịu trách nhiệm về công việc
+AxisPoint do các đối tác điều hành từ Houston. Người nhận công việc cũng chính là người gắn bó với nó.
+Zachary Russell
+Đối tác
+Trực tiếp phụ trách hiệu quả vận hành: quyết định nhân sự, các đợt chuyển giao, chương trình vốn và những bất động sản trong danh mục cần chú ý trong tháng này.
+Ethaniel Vu
+Đối tác
+Trực tiếp phụ trách kiểm soát tài chính và hồ sơ dành cho chủ sở hữu: ngân sách, kỷ luật phê duyệt, khóa sổ hằng tháng và những báo cáo chủ sở hữu dùng để ra quyết định.
+Cách chúng tôi làm việc
+Cả hai đối tác đều gắn bó với những bất động sản họ nhận. Chủ sở hữu trao đổi với người ra quyết định, không phải với một lớp trung gian được xếp phía trước.
+Trao đổi với một đối tác về bất động sản của quý vị.
+Gửi bất động sản và tình huống. Đối tác đọc nó chính là người sẽ chịu trách nhiệm về nó.
+Yêu cầu đề xuất quản lý
+→

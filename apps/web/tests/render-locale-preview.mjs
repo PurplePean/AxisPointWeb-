@@ -6,10 +6,14 @@
  * TypeScript file; what they need is the text as a visitor meets it, in reading order, with the
  * document's language and direction stated. That is what this writes.
  *
- * WHY THE 404 ROUTE. It is the smallest page that contains every surface PR 2 migrated: the skip
- * link, the whole header including the menu affordances, the two 404 strings, and the entire
- * footer. The marketing pages would bury those twenty-one strings under a thousand lines of
- * English that PR 3 has not migrated yet.
+ * WHAT EACH FILE CONTAINS. One file per locale, holding the site chrome once and then each of
+ * the five marketing pages. A reviewer opens ONE file and reads everything in their language,
+ * rather than opening nine files per page or reading TypeScript.
+ *
+ * THE CHROME IS RENDERED ONCE, from the 404 route: the smallest page carrying the skip link,
+ * the whole header, and the entire footer. For the marketing pages only the `<main>` landmark
+ * is extracted, because repeating the identical header and footer five times per file would
+ * bury the page copy a reviewer is actually there to read.
  *
  * WHY IT INJECTS THE CATALOG. `LocaleProvider` loads an audit candidate asynchronously, and
  * effects do not run under `renderToStaticMarkup`, so a plain SSR render would show English for
@@ -43,6 +47,31 @@ function installRenderGlobals() {
   if (typeof globalThis.window === 'undefined') {
     globalThis.window = { location: { search: '', pathname: '/', href: 'http://localhost/' } };
   }
+}
+
+/** The five approved marketing routes, in the order the navigation presents them. */
+const PAGES = [
+  ['Home', '/'],
+  ['Property Management', '/property-management'],
+  ['Asset Management', '/asset-management'],
+  ['Investor Services', '/investor-services'],
+  ['Partners', '/partners'],
+];
+
+/**
+ * The `<main>` landmark only.
+ *
+ * `Layout` renders `<main id="main" tabIndex={-1}>`, so this is stable. Falling back to the
+ * whole document rather than to an empty section: a reviewer seeing the header twice is a
+ * cosmetic problem, a reviewer seeing nothing is a missing page they cannot review.
+ */
+function mainOnly(html) {
+  const start = html.indexOf('<main');
+  if (start === -1) return html;
+  const open = html.indexOf('>', start);
+  const end = html.lastIndexOf('</main>');
+  if (open === -1 || end === -1 || end < open) return html;
+  return html.slice(open + 1, end);
 }
 
 function toText(html) {
@@ -112,30 +141,49 @@ async function main() {
         messages.registerTestCatalog(locale.code, messages.mergeCatalog(candidate));
       }
 
-      const html = renderToStaticMarkup(
-        createElement(
-          LocaleProvider,
-          { initial: locale.code },
-          createElement(MemoryRouter, { initialEntries: ['/no-such-page'] }, createElement(App)),
-        ),
-      );
+      const render = (route) =>
+        renderToStaticMarkup(
+          createElement(
+            LocaleProvider,
+            { initial: locale.code },
+            createElement(MemoryRouter, { initialEntries: [route] }, createElement(App)),
+          ),
+        );
 
-      const header = [
-        `${locale.englishName} (${locale.code})`,
-        `native name : ${locale.nativeName}`,
-        `direction   : ${locale.direction}`,
-        `font stack  : ${locale.fontStack}`,
-        `line height : ${locale.lineHeight}`,
-        `enabled     : ${locale.enabled}`,
-        `review      : ${locale.review}`,
-        `status      : ${status}`,
+      const sections = [
+        [
+          `${locale.englishName} (${locale.code})`,
+          `native name : ${locale.nativeName}`,
+          `direction   : ${locale.direction}`,
+          `font stack  : ${locale.fontStack}`,
+          `line height : ${locale.lineHeight}`,
+          `enabled     : ${locale.enabled}`,
+          `review      : ${locale.review}`,
+          `status      : ${status}`,
+          '',
+          'Rendered text in reading order. Site chrome first, then each marketing page.',
+          'Proper nouns (AxisPoint, partner names, place names) are intentionally not translated.',
+        ].join('\n'),
         '',
-        'Rendered chrome, in reading order. Route: /no-such-page',
+        '='.repeat(72),
+        'SITE CHROME  (header, skip link, 404 copy, footer)  route: /no-such-page',
         '='.repeat(72),
         '',
-      ].join('\n');
+        toText(render('/no-such-page')),
+      ];
 
-      writeFileSync(path.join(outDir, `${locale.code}.txt`), header + toText(html) + '\n', 'utf8');
+      for (const [label, route] of PAGES) {
+        sections.push(
+          '',
+          '='.repeat(72),
+          `PAGE: ${label}  route: ${route}`,
+          '='.repeat(72),
+          '',
+          toText(mainOnly(render(route))),
+        );
+      }
+
+      writeFileSync(path.join(outDir, `${locale.code}.txt`), sections.join('\n') + '\n', 'utf8');
       written += 1;
     }
 

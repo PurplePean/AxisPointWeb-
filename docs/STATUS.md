@@ -3,14 +3,14 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-10 (Multilingual Content Rollout, PR 2 of 5)_
+_Last updated: 2026-08-11 (Multilingual Content Rollout, PR 3 of 5)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | **Multilingual Content Rollout, in progress. PR 1 merged; PR 2 of 5 is open and deliberately unmerged.** All nine locales are built in this one pass; there is no per-locale follow-up pass. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
+| **Current code pass** | **Multilingual Content Rollout, in progress. PRs 1 and 2 merged; PR 3 of 5 is open and deliberately unmerged.** All nine locales are built in this one pass; there is no per-locale follow-up pass. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
 | **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
 | **Next pass** | Staging, planned in [`staging-provisioning.md`](staging-provisioning.md) and not yet provisioned. Every V2 surface is connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
 
@@ -81,10 +81,61 @@ real calendar was contacted and no Google resource exists.
 
 ## Multilingual Content Rollout (in progress)
 
-**PR 1 is merged. PR 2 of 5 is open and held unmerged for review.** PR 1 built the catalog
-infrastructure and the first 92 keys in all nine languages. PR 2 migrates the site chrome.
-PRs 3 and 4 do the marketing pages and the intake; PR 5 does routing, `hreflang`, fonts, and
-the visitor email catalogs.
+**PRs 1 and 2 are merged. PR 3 of 5 is open and held unmerged for review.** PR 1 built the
+catalog infrastructure and the first 92 keys in all nine languages; PR 2 migrated the site
+chrome; PR 3 migrates the five marketing pages. PR 4 does the intake; PR 5 does routing,
+`hreflang`, fonts, and the visitor email catalogs.
+
+**The five marketing pages are catalog-driven in all nine languages (PR 3).** Home, Property
+Management, Asset Management, Investor Services, and Partners, plus their page titles and
+meta descriptions, which live beside their page's copy because a title and a description
+*are* that page's copy. **143 new keys, taking the catalog to 258**, and all eight audit
+catalogs are at full 258/258 parity.
+
+- **Rendered English is byte-identical** to the committed baseline across all seven routes.
+  That is the proof this was a migration and not a rewrite.
+- **Shared keys, not duplicated strings.** The service names and "Request a Management
+  Proposal" appear on these pages exactly as in the chrome and reuse the existing `nav*`
+  keys. `pmRunsAmDirectsTitle` is one key shared by the home page and Asset Management, and
+  `partnersSignature` by the home page and Property Management.
+- **Proper nouns are not catalogued.** Partner names stay in `PartnersPage.tsx`; `AxisPoint`,
+  the email address, and `404` stay in code. Hindi initially transliterated the partner names
+  into Devanagari and was corrected: the component renders them in Latin for every locale, so
+  a reader would otherwise have seen two spellings of the same person on one page.
+- **No structured metadata exists anywhere in the app**, so none was migrated and none was
+  invented. When schema is added it is a separate decision.
+- **`ContactPage.tsx` is deliberately not in this PR.** It is the intake's shell rather than a
+  marketing page, and its copy belongs with the intake in PR 4.
+
+**Per-locale review artifacts now cover everything.** `apps/web/tests/preview/<code>.txt` is
+one file per locale, 237 lines each, holding the site chrome once and then all five marketing
+pages. A native reader opens one file and reads their whole language in reading order. Only
+the `<main>` landmark is taken for the page sections, so the header and footer are not
+repeated five times.
+
+### PR 3 browser review
+
+Ninety observations: five pages, nine locales, 390px and 1512px, in the same isolated
+headless Chrome over CDP as PR 2 (unique temporary profile, unique debugging port,
+`--headless=new`, cleanup limited to the spawned PID and that profile, both verified gone).
+21 screenshots kept in the scratchpad rather than committed.
+
+**All assertions passed.** Urdu is the only `dir="rtl"` on every page at both widths and its
+header, headings, and body all mirror correctly. `<html lang>` is correct in all 90.
+**No page-specific overflow was introduced**: `<main>` overflows by 0px everywhere, and the
+only page-level overflow is the documented pre-existing 3px chrome overflow at 390px, which
+is present identically in English. Every locale renders a translated `<h1>` on every page, so
+no page silently fell back to English. Content volume is plausible per script (English ~2,530
+characters on the mobile home page, Chinese ~1,450 as expected for a denser script, the rest
+2,480 to 2,820), which is the check that catches a page rendering half its copy. Zero page
+exceptions. The only off-origin requests are Google Fonts; **non-font off-origin requests: 0**.
+
+**One new finding, pre-existing and out of scope.** React logs "does not recognize the
+`fetchPriority` prop on a DOM element" 18 times. The attribute is set in
+`PageParts.tsx:97` and `HomePage.tsx:82`, React 18 does not recognise it (React 19 added
+support), and **this PR's diff does not touch either line**. PR 2's review never saw it
+because the 404 route has no images. It is a console warning with no user-visible effect;
+recorded rather than fixed, since it is not localization work.
 
 **The site chrome is catalog-driven in all nine languages (PR 2).** The header, footer,
 shell, 404 page, and the language selector's own assistive labels now render from the

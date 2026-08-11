@@ -179,6 +179,9 @@ test('Simplified and Traditional Chinese are genuinely different text', () => {
     'bookingWithLabel', // brand name, untranslated everywhere
     'footerFirm', // 公司
     'footerCopyright', // brand name and a year
+    'homeWhyOr', // 或者
+    'pmStrengthAssignmentsItem1', // 管理方交接
+    'pmStrengthAssignmentsItem2', // 招租期
   ];
 
   const shared = EN_KEYS.filter((k) => ZH_HANS[k] === ZH_HANT[k]);
