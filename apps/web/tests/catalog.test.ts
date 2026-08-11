@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 
 import { LOCALES, type LocaleCode } from '../src/i18n/locales';
 import { EN, mergeCatalog, messagesFor, resolveCatalog, missingKeys, type Messages } from '../src/i18n/messages';
@@ -175,6 +177,8 @@ test('Simplified and Traditional Chinese are genuinely different text', () => {
     'generalNoteLabel', // 您的留言
     'organizationLabel', // 公司
     'bookingWithLabel', // brand name, untranslated everywhere
+    'footerFirm', // 公司
+    'footerCopyright', // brand name and a year
   ];
 
   const shared = EN_KEYS.filter((k) => ZH_HANS[k] === ZH_HANT[k]);
@@ -185,11 +189,53 @@ test('Simplified and Traditional Chinese are genuinely different text', () => {
       'other, or a genuinely script-neutral string needs adding to SCRIPT_NEUTRAL.',
   );
 
-  // And the bulk must actually differ, so the allowlist cannot quietly grow to cover a paste.
+  /*
+   * And the bulk must actually differ, so the allowlist cannot quietly grow to cover a paste.
+   * Stated as a proportion rather than a fixed count so it does not need editing every time
+   * the catalog grows, which is the kind of churn that trains people to relax a threshold.
+   */
+  const differing = EN_KEYS.length - shared.length;
   assert.ok(
-    EN_KEYS.length - shared.length >= 80,
-    `only ${EN_KEYS.length - shared.length} of ${EN_KEYS.length} keys differ between the two`,
+    differing / EN_KEYS.length >= 0.85,
+    `only ${differing} of ${EN_KEYS.length} keys differ between the two Chinese catalogs`,
   );
+});
+
+/* ── Every key is actually rendered ───────────────────────────────────────── */
+
+test('no catalog key is an orphan', () => {
+  /*
+   * A key nothing renders is a claim of coverage the site does not have, and it is how a
+   * catalog silently rots: the string stays, the JSX that used it is rewritten, and a
+   * translator keeps paying to maintain copy no visitor will ever see. The previous pass
+   * deleted 49 such keys for exactly this reason rather than leaving them as scaffolding.
+   *
+   * The search is a plain substring over application source, which covers both direct
+   * `t.someKey` access and the indirect `labelKey: 'someKey'` form the navigation and footer
+   * use. Catalog and test files are excluded, since a key trivially appears in its own
+   * definition.
+   */
+  const srcRoot = path.join(import.meta.dirname, '..', 'src');
+  const sources: string[] = [];
+
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (abs.includes(path.join('i18n', 'catalogs'))) continue;
+        walk(abs);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry.name)) continue;
+      if (abs.endsWith(path.join('i18n', 'messages.ts'))) continue;
+      sources.push(readFileSync(abs, 'utf8'));
+    }
+  };
+  walk(srcRoot);
+
+  const haystack = sources.join('\n');
+  const orphans = EN_KEYS.filter((key) => !haystack.includes(key));
+  assert.deepEqual(orphans, [], 'catalog keys that nothing in src renders');
 });
 
 /* ── Resolution ───────────────────────────────────────────────────────────── */

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useMessages } from '../i18n/LocaleProvider';
+import { withLanguage } from '../i18n/messages';
 import {
   PREVIEW_FONT_HREF,
   getDefaultLocale,
@@ -86,6 +88,7 @@ export default function LanguageSelector({
   compact = false,
 }: LanguageSelectorProps) {
   const preview = usePreviewMode();
+  const t = useMessages();
   usePreviewFonts(preview);
 
   // One registry, filtered. Production takes the launch gate; the preview relaxes it.
@@ -229,7 +232,11 @@ export default function LanguageSelector({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         /* Stable accessible name. The cycling word never enters it. */
-        aria-label={`Choose language. Current language: ${active.englishName}.`}
+        /* The active locale's ENGLISH name is substituted, unchanged from before this
+           migration. A reviewer may reasonably argue the native name belongs here instead,
+           but swapping it would change what a screen reader announces, which is a behaviour
+           decision rather than a translation one. Recorded in STATUS.md. */
+        aria-label={withLanguage(t.languageChooseAria, active.englishName)}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onTriggerKeyDown}
         onMouseEnter={() => setPaused(true)}
@@ -306,7 +313,7 @@ export default function LanguageSelector({
           ref={listRef}
           role="listbox"
           tabIndex={-1}
-          aria-label="Choose language"
+          aria-label={t.languageListAria}
           aria-activedescendant={`${listboxId}-${activeRow}`}
           onKeyDown={onListKeyDown}
           className="absolute right-0 z-50 m-0 list-none overflow-y-auto bg-white p-0"

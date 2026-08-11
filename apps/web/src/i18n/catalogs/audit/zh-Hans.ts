@@ -126,4 +126,34 @@ export const ZH_HANS: Partial<Messages> = {
   bookingUnavailable: '目前无法预约。未完成任何预约。',
   bookingDurationLabel: '30 分钟',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: '物业管理',
+  navAssetManagement: '资产管理',
+  navInvestorServices: '投资者服务',
+  navPartners: '合伙人',
+  navContact: '联系我们',
+  navCta: '申请物业管理方案',
+  navHomeAria: 'AxisPoint，首页',
+  navPrimaryAria: '主导航',
+  navMenu: '菜单',
+  navMenuDialogAria: '网站菜单',
+  navCloseMenu: '关闭菜单',
+
+  skipToContent: '跳到主要内容',
+
+  footerPositioning: '以物业管理为先，当物业需要更高一层的策略支持时，可加入资产管理。',
+  footerServices: '服务',
+  footerFirm: '公司',
+  footerLocation: '德克萨斯州休斯顿',
+  footerStatewide: '为德克萨斯州各地的业主提供服务',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    '经纪和租赁业务由我们持牌的合作方开展。AxisPoint Partners 不提供税务或法律建议。本网站仅供参考，不构成出售证券的要约。',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: '未找到页面',
+  notFoundAction: '返回首页',
+  languageChooseAria: '选择语言。当前语言：{language}。',
+  languageListAria: '选择语言',
 };

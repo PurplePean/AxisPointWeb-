@@ -136,4 +136,37 @@ export const VI: Partial<Messages> = {
   bookingUnavailable: 'Hiện chưa thể đặt lịch. Chưa có lịch nào được đặt.',
   bookingDurationLabel: '30 phút',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'Quản lý bất động sản',
+  navAssetManagement: 'Quản lý tài sản',
+  navInvestorServices: 'Dịch vụ cho nhà đầu tư',
+  navPartners: 'Đối tác',
+  navContact: 'Liên hệ',
+  navCta: 'Yêu cầu đề xuất quản lý',
+  navHomeAria: 'AxisPoint, trang chủ',
+  navPrimaryAria: 'Chính',
+  // Kept as the English loanword, which is what Vietnamese interfaces overwhelmingly use.
+  // A reviewer may prefer 'Danh mục'.
+  navMenu: 'Menu',
+  navMenuDialogAria: 'Menu trang web',
+  navCloseMenu: 'Đóng menu',
+
+  skipToContent: 'Chuyển đến nội dung chính',
+
+  footerPositioning:
+    'Quản lý bất động sản trước tiên, kèm quản lý tài sản khi bất động sản cần một lớp chiến lược bên trên.',
+  footerServices: 'Dịch vụ',
+  footerFirm: 'Công ty',
+  footerLocation: 'Houston, Texas',
+  footerStatewide: 'Phục vụ chủ sở hữu trên toàn bang Texas',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'Hoạt động môi giới và cho thuê được thực hiện thông qua đối tác có giấy phép của chúng tôi. AxisPoint Partners không cung cấp tư vấn thuế hoặc pháp lý. Trang web này chỉ nhằm mục đích cung cấp thông tin và không cấu thành lời chào bán chứng khoán.',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'Không tìm thấy trang',
+  notFoundAction: 'Về trang chủ',
+  languageChooseAria: 'Chọn ngôn ngữ. Ngôn ngữ hiện tại: {language}.',
+  languageListAria: 'Chọn ngôn ngữ',
 };

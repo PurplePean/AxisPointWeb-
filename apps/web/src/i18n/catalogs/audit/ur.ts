@@ -155,4 +155,36 @@ export const UR: Partial<Messages> = {
   bookingUnavailable: 'اس وقت شیڈولنگ دستیاب نہیں۔ کچھ بک نہیں ہوا۔',
   bookingDurationLabel: '30 منٹ',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'جائیداد کا انتظام',
+  navAssetManagement: 'اثاثہ جات کا انتظام',
+  navInvestorServices: 'سرمایہ کاروں کے لیے خدمات',
+  navPartners: 'شراکت دار',
+  navContact: 'رابطہ',
+  navCta: 'انتظامی تجویز کی درخواست کریں',
+  // LTR brand name followed by an Urdu comma. Another bidi string worth inspecting.
+  navHomeAria: 'AxisPoint، ہوم',
+  navPrimaryAria: 'بنیادی',
+  navMenu: 'مینو',
+  navMenuDialogAria: 'سائٹ مینو',
+  navCloseMenu: 'مینو بند کریں',
+
+  skipToContent: 'مرکزی مواد پر جائیں',
+
+  footerPositioning:
+    'پہلے جائیداد کا انتظام، اور جب جائیداد کو اوپر ایک حکمت عملی کی سطح درکار ہو تو اثاثہ جات کا انتظام بھی دستیاب ہے۔',
+  footerServices: 'خدمات',
+  footerFirm: 'فرم',
+  footerLocation: 'ہیوسٹن، ٹیکساس',
+  footerStatewide: 'پورے ٹیکساس میں مالکان کی خدمت',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'بروکریج اور لیزنگ کی سرگرمیاں ہمارے لائسنس یافتہ شراکت دار کے ذریعے انجام دی جاتی ہیں۔ AxisPoint Partners ٹیکس یا قانونی مشورہ فراہم نہیں کرتا۔ یہ ویب سائٹ صرف معلوماتی مقاصد کے لیے ہے اور سیکیورٹیز فروخت کرنے کی پیشکش نہیں ہے۔',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'صفحہ نہیں ملا',
+  notFoundAction: 'ہوم پر جائیں',
+  languageChooseAria: 'زبان منتخب کریں۔ موجودہ زبان: {language}۔',
+  languageListAria: 'زبان منتخب کریں',
 };

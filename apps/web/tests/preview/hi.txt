@@ -1,0 +1,44 @@
+Hindi (hi)
+native name : हिन्दी
+direction   : ltr
+font stack  : 'Noto Sans Devanagari', 'Figtree', system-ui, sans-serif
+line height : 1.55
+enabled     : false
+review      : unreviewed
+status      : AUDIT CANDIDATE. Model-generated, unreviewed, not approved, not live.
+
+Rendered chrome, in reading order. Route: /no-such-page
+========================================================================
+मुख्य सामग्री पर जाएं
+Axis
+Point
+संपत्ति प्रबंधन
+परिसंपत्ति प्रबंधन
+निवेशक सेवाएं
+साझेदार
+Language
+English
+▾
+प्रबंधन प्रस्ताव का अनुरोध करें
+Language
+EN
+▾
+मेन्यू
+404
+पृष्ठ नहीं मिला
+मुखपृष्ठ पर जाएं
+Axis
+Point
+पहले संपत्ति प्रबंधन, और जब संपत्ति को ऊपर एक रणनीतिक परत की जरूरत हो तो परिसंपत्ति प्रबंधन भी उपलब्ध।
+सेवाएं
+संपत्ति प्रबंधन
+परिसंपत्ति प्रबंधन
+निवेशक सेवाएं
+फर्म
+साझेदार
+संपर्क
+ह्यूस्टन, टेक्सास
+info@axispoint.llc
+पूरे टेक्सास में संपत्ति स्वामियों की सेवा
+ब्रोकरेज और लीजिंग गतिविधियां हमारे लाइसेंस प्राप्त साझेदार के माध्यम से संचालित होती हैं। AxisPoint Partners कर या कानूनी सलाह नहीं देता। यह वेबसाइट केवल सूचना के उद्देश्य से है और प्रतिभूतियां बेचने का प्रस्ताव नहीं है।
+© 2026 AxisPoint Partners
