@@ -24,6 +24,7 @@
     "test:frontend": "pnpm test:client && pnpm test:web && pnpm test:qr",
     "verify:bundle": "node scripts/test/inspect-bundle.mjs apps/web/dist",
     "verify:baseline": "node apps/web/tests/render-baseline.mjs",
+    "verify:aria": "node apps/web/tests/verify-aria.mjs",
     "baseline:write": "node apps/web/tests/render-baseline.mjs --write",
     "gas:push": "cd scripts/gas && clasp push"
   },

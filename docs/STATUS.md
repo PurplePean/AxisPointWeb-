@@ -160,9 +160,65 @@ decision somebody has to make, and each is flagged in its catalog's header too.
 | All | `footerLegal` is legal copy. A native reader is **not sufficient**: a mistranslated disclaimer does not read as broken, it reads as a different promise, and this one needs somebody qualified to confirm the translated sentence carries the same meaning |
 
 **One limit of the English baseline, stated so nobody over-trusts it.** `verify:baseline`
-compares rendered **text**, with tags and attributes stripped. It therefore proves visible
-copy did not move, and it does **not** cover `aria-label` values. The assistive labels
-migrated in PR 2 are covered by type-checking and by the no-orphan-key test instead.
+compares rendered **text**, with tags and attributes stripped, so it proves visible copy did
+not move and does **not** cover `aria-label` values.
+
+**`pnpm verify:aria` covers the attributes, and covers exactly half of them.** It renders the
+real component tree in five locales (English, Spanish, Simplified Chinese, Hindi, Urdu) and
+asserts the actual rendered `aria-label` values, including that `{language}` is substituted
+rather than announced aloud. Type-checking and the no-orphan-key test are **not** sufficient
+for this and were never claimed to be: a negative control that rebinds one label to a
+different valid key passes both of them while the screen reader says the wrong thing, and
+`verify:aria` catches it. A second control proves it catches an unsubstituted placeholder.
+
+**Three of the six migrated labels cannot be reached by any static render.**
+`navMenuDialogAria`, `navCloseMenu`, and `languageListAria` sit inside `{open && (...)}`
+branches, and `renderToStaticMarkup` renders initial state, which is closed. `verify:aria`
+prints them as uncovered rather than reporting a pass over half the surface. **They are
+covered by the browser review below instead.**
+
+### Browser review of PR 2: done
+
+Run in an isolated headless Chrome driven over the DevTools Protocol from Node's built-in
+`WebSocket`, against the already-running dev server. No dependency was added. Unique
+temporary profile, unique debugging port, `--headless=new`, and cleanup limited to the one
+spawned PID and that profile, both verified gone afterwards. Nine locales at 390px and
+1512px, 18 observations and 18 screenshots.
+
+**What passed.** Urdu is the only `dir="rtl"` and every other locale is `ltr`.
+`<html lang>` matches the selected locale in all nine. The RTL header mirrors correctly at
+both widths: lockup right, navigation right to left, action on the far left. Locale
+switching applies the catalog in all nine. Footers do not overflow at either width. **Zero
+console errors and zero page exceptions across the whole run.** The only off-origin requests
+are Google Fonts: Figtree and Cormorant Garamond from `index.html`, plus the six Noto
+families, which are requested **only** under the preview gate via `PREVIEW_FONT_HREF`. No
+submission endpoint was contacted.
+
+**All three menu-open labels are translated in all nine locales**, confirmed by opening the
+menus in a real browser: `languageListAria` at both widths, `navMenuDialogAria` and
+`navCloseMenu` at mobile where the menu exists.
+
+### Two findings from the browser review, neither caused by PR 2
+
+**1. The per-locale `fontStack` is never applied to page content.** `locales.ts` defines a
+script stack per locale, and the only consumers are three sites inside
+`LanguageSelector.tsx`. `LocaleProvider` sets `lang` and `dir` and nothing else. The computed
+`font-family` on navigation links is `Figtree, sans-serif` for **every** locale including the
+CJK, Indic, and Arabic ones, so translated chrome renders through whatever arbitrary system
+font the browser falls back to rather than the specified Noto family. It reads acceptably in
+the screenshots, but it is not the approved stack and it is not predictable across machines.
+PR 2 did not cause this; it made it visible, because the chrome was English until now.
+**Fonts are PR 5's scope and this is recorded for it.**
+
+**2. A pre-existing 3px horizontal overflow at 390px.** The header's right-hand control
+cluster ends at x=393 in a 390px viewport, so every page scrolls 3px horizontally on a small
+phone. A dedicated probe shows it is **constant and locale-independent**: it is present in
+the production-like configuration with English and no preview gate, and it does not vary with
+the cycling decorative word, whose slot is a fixed 62px. The first review pass appeared to
+flag only three locales, which was measurement timing rather than a locale effect, and that
+attribution was wrong. It is not caused by PR 2: rendered English is byte-identical per the
+baseline, and PR 2 changed only the source of identical strings plus non-layout `aria`
+attributes. **Recommended as a separate small fix, deliberately not made here.**
 
 ### Production Readiness items recorded by this pass
 
@@ -542,6 +598,10 @@ entirely rather than printed and unkeepable.
 - Once FTP secrets exist, every push to `main` deploys immediately with no approval gate.
   Decide on a gate **before** adding the secrets
 - Deleting a live Google Sheet tab is not git-revertible
+- **The header overflows its viewport by 3px at 390px**, so every page scrolls horizontally
+  on a small phone. Pre-existing, locale-independent, and measured in the PR 2 browser review
+- **No script font reaches page content.** A launched non-English locale would render in a
+  system fallback rather than its approved Noto family until PR 5 applies `fontStack`
 
 ## Rollback anchors
 
