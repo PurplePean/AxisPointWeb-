@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Nav from './Nav';
 import Footer from './Footer';
+import { useMessages } from '../i18n/LocaleProvider';
 
 /**
  * The shared public-site shell: skip link, header, main landmark, footer.
@@ -12,6 +13,7 @@ import Footer from './Footer';
  */
 function Layout() {
   const { pathname, hash } = useLocation();
+  const t = useMessages();
 
   // Scroll to top on route change, unless the destination carries a hash.
   useEffect(() => {
@@ -31,7 +33,7 @@ function Layout() {
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:inline-flex focus:items-center focus:rounded-v2 focus:bg-v2-teal focus:px-5 focus:font-bold focus:text-v2-action-label"
         style={{ minHeight: 44 }}
       >
-        Skip to main content
+        {t.skipToContent}
       </a>
 
       <Nav />

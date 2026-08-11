@@ -1,0 +1,44 @@
+Punjabi (pa)
+native name : ਪੰਜਾਬੀ
+direction   : ltr
+font stack  : 'Noto Sans Gurmukhi', 'Figtree', system-ui, sans-serif
+line height : 1.55
+enabled     : false
+review      : unreviewed
+status      : AUDIT CANDIDATE. Model-generated, unreviewed, not approved, not live.
+
+Rendered chrome, in reading order. Route: /no-such-page
+========================================================================
+ਮੁੱਖ ਸਮੱਗਰੀ ਤੇ ਜਾਓ
+Axis
+Point
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ
+ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ
+ਭਾਈਵਾਲ
+Language
+English
+▾
+ਪ੍ਰਬੰਧਨ ਪ੍ਰਸਤਾਵ ਦੀ ਬੇਨਤੀ ਕਰੋ
+Language
+EN
+▾
+ਮੀਨੂ
+404
+ਪੰਨਾ ਨਹੀਂ ਮਿਲਿਆ
+ਹੋਮ ਤੇ ਜਾਓ
+Axis
+Point
+ਪਹਿਲਾਂ ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ, ਅਤੇ ਜਦੋਂ ਜਾਇਦਾਦ ਨੂੰ ਉੱਪਰ ਇੱਕ ਰਣਨੀਤਕ ਪਰਤ ਦੀ ਲੋੜ ਹੋਵੇ ਤਾਂ ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ ਵੀ ਉਪਲਬਧ।
+ਸੇਵਾਵਾਂ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ
+ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ
+ਫਰਮ
+ਭਾਈਵਾਲ
+ਸੰਪਰਕ
+ਹਿਊਸਟਨ, ਟੈਕਸਾਸ
+info@axispoint.llc
+ਪੂਰੇ ਟੈਕਸਾਸ ਵਿੱਚ ਮਾਲਕਾਂ ਦੀ ਸੇਵਾ
+ਬ੍ਰੋਕਰੇਜ ਅਤੇ ਲੀਜ਼ਿੰਗ ਗਤੀਵਿਧੀਆਂ ਸਾਡੇ ਲਾਇਸੰਸਸ਼ੁਦਾ ਭਾਈਵਾਲ ਰਾਹੀਂ ਕੀਤੀਆਂ ਜਾਂਦੀਆਂ ਹਨ। AxisPoint Partners ਟੈਕਸ ਜਾਂ ਕਾਨੂੰਨੀ ਸਲਾਹ ਨਹੀਂ ਦਿੰਦਾ। ਇਹ ਵੈੱਬਸਾਈਟ ਸਿਰਫ਼ ਜਾਣਕਾਰੀ ਦੇ ਉਦੇਸ਼ ਲਈ ਹੈ ਅਤੇ ਪ੍ਰਤੀਭੂਤੀਆਂ ਵੇਚਣ ਦੀ ਪੇਸ਼ਕਸ਼ ਨਹੀਂ ਹੈ।
+© 2026 AxisPoint Partners

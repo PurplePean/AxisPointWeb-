@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Mark } from '@axispoint/brand';
+import { useMessages } from '../i18n/LocaleProvider';
+import type { Messages } from '../i18n/messages';
 
 /**
  * Shared site footer, built from the approved source `AxisPointFooter.dc.html`
@@ -23,15 +25,21 @@ import { Mark } from '@axispoint/brand';
  *     decision this pass is authorised to make. Flagged for owner confirmation.
  */
 
-const SERVICES: [string, string][] = [
-  ['Property Management', '/property-management'],
-  ['Asset Management', '/asset-management'],
-  ['Investor Services', '/investor-services'],
+/*
+ * Catalog keys, not labels, and deliberately the SAME keys the header uses. The three
+ * service names and Partners appear in both places and must always read identically; two
+ * keys holding the same English is exactly how they stop matching once somebody translates
+ * one of them.
+ */
+const SERVICES: [keyof Messages, string][] = [
+  ['navPropertyManagement', '/property-management'],
+  ['navAssetManagement', '/asset-management'],
+  ['navInvestorServices', '/investor-services'],
 ];
 
-const FIRM: [string, string][] = [
-  ['Partners', '/partners'],
-  ['Contact', '/contact'],
+const FIRM: [keyof Messages, string][] = [
+  ['navPartners', '/partners'],
+  ['navContact', '/contact'],
 ];
 
 const linkClass =
@@ -49,6 +57,8 @@ function ColumnHeading({ children }: { children: React.ReactNode }) {
 }
 
 function Footer() {
+  const t = useMessages();
+
   return (
     <footer
       id="site-footer"
@@ -60,42 +70,39 @@ function Footer() {
           <div style={{ marginBottom: 14 }}>
             <Mark variant="onDark" mode="lockup" height={23} />
           </div>
-          <p style={{ margin: 0, lineHeight: 1.6, maxWidth: '34ch' }}>
-            Property management first, with asset management available when the property calls for
-            a strategic layer above it.
-          </p>
+          <p style={{ margin: 0, lineHeight: 1.6, maxWidth: '34ch' }}>{t.footerPositioning}</p>
         </div>
 
         <div>
-          <ColumnHeading>Services</ColumnHeading>
+          <ColumnHeading>{t.footerServices}</ColumnHeading>
           <div className="grid gap-2.5">
-            {SERVICES.map(([label, to]) => (
+            {SERVICES.map(([labelKey, to]) => (
               <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
-                {label}
+                {t[labelKey]}
               </Link>
             ))}
           </div>
         </div>
 
         <div>
-          <ColumnHeading>Firm</ColumnHeading>
+          <ColumnHeading>{t.footerFirm}</ColumnHeading>
           <div className="grid gap-2.5">
-            {FIRM.map(([label, to]) => (
+            {FIRM.map(([labelKey, to]) => (
               <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
-                {label}
+                {t[labelKey]}
               </Link>
             ))}
           </div>
         </div>
 
         <div>
-          <ColumnHeading>Houston, Texas</ColumnHeading>
+          <ColumnHeading>{t.footerLocation}</ColumnHeading>
           <div className="grid gap-2.5">
             <a href="mailto:info@axispoint.llc" className={linkClass} style={{ minHeight: 44 }}>
               info@axispoint.llc
             </a>
             <span className="inline-flex items-center" style={{ minHeight: 44 }}>
-              Serving owners statewide across Texas
+              {t.footerStatewide}
             </span>
           </div>
         </div>
@@ -105,12 +112,8 @@ function Footer() {
         className="flex flex-wrap justify-between gap-3 border-t border-white/[0.12] text-[rgba(255,255,255,0.45)]"
         style={{ marginTop: 44, paddingTop: 18, fontSize: 12 }}
       >
-        <p style={{ margin: 0, maxWidth: '80ch', lineHeight: 1.6 }}>
-          Brokerage and leasing activities are conducted through our licensed partner. AxisPoint
-          Partners does not provide tax or legal advice. This website is intended for informational
-          purposes only and does not constitute an offer to sell securities.
-        </p>
-        <p style={{ margin: 0 }}>&copy; 2026 AxisPoint Partners</p>
+        <p style={{ margin: 0, maxWidth: '80ch', lineHeight: 1.6 }}>{t.footerLegal}</p>
+        <p style={{ margin: 0 }}>{t.footerCopyright}</p>
       </div>
     </footer>
   );

@@ -3,6 +3,15 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-08-10 (Multilingual Content Rollout, PR 2 of 5)
+
+- **feat(web): the site chrome is catalog-driven in all nine languages.** Header, footer, shell, 404, and the language selector's assistive labels: 23 keys, total now 115. The header and footer share keys for the names that appear in both, because two keys holding identical English is how they drift apart at the first translation. Rendered English is byte-identical to the committed baseline.
+- **feat(web): assistive labels are translated, not left English.** `aria-label` on the lockup, primary navigation, menu dialog, close button, and both language-selector controls. A screen-reader user hears these in place of seeing the layout, so an untranslated one is a worse failure than an untranslated visible string, not a lesser one.
+- **feat(web): one interpolated catalog string**, `languageChooseAria`, with a literal `{language}` placeholder and a `String.replace` helper. Deliberately not a formatting library or ICU syntax; one placeholder justifies neither, and an unfamiliar message syntax is one more thing a translator can get wrong.
+- **feat(infra): committed rendered locale previews** at `apps/web/tests/preview/<code>.txt`, one per locale, produced by `render-locale-preview.mjs`. They render the 404 route, the smallest page containing every chrome surface, with direction, font stack, and review status stated. Native readers should review these rather than the TypeScript catalogs. Expected to change as translations are corrected, unlike the English baseline.
+- **feat(infra): a no-orphan-key test.** Every catalog key must appear in application source, so a key nothing renders fails instead of quietly becoming copy a translator maintains for nobody.
+- **docs: the baseline's scope is now stated.** `verify:baseline` compares rendered text with attributes stripped, so it proves visible copy did not move and does **not** cover `aria-label` values.
+
 ## 2026-08-10 (Multilingual Content Rollout, PR 1 of 5)
 
 - **feat(web): eight audit-candidate locale catalogs, all 92 keys, none reviewed.** Spanish, Simplified and Traditional Chinese, Vietnamese, Hindi, Urdu, Gujarati, and Punjabi now exist under `apps/web/src/i18n/catalogs/audit/`. **The text is model-generated and no speaker of any of these languages has read it.** Not approved, not professionally translated, not native-reviewed, not production-ready. All eight remain `enabled: false` and `review: 'unreviewed'`, so nothing is advertised, routed to, or indexed. They exist to give a native reader something to correct.

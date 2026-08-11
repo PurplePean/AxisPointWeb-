@@ -143,4 +143,36 @@ export const ES: Partial<Messages> = {
   bookingDurationLabel: '30 minutos',
   // Brand name. Not translated in any locale.
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'Administración de propiedades',
+  navAssetManagement: 'Gestión de activos',
+  navInvestorServices: 'Servicios para inversionistas',
+  // The firm's people, not business partners in general.
+  navPartners: 'Socios',
+  navContact: 'Contacto',
+  navCta: 'Solicitar una propuesta de administración',
+  navHomeAria: 'AxisPoint, inicio',
+  navPrimaryAria: 'Principal',
+  navMenu: 'Menú',
+  navMenuDialogAria: 'Menú del sitio',
+  navCloseMenu: 'Cerrar menú',
+
+  skipToContent: 'Ir al contenido principal',
+
+  footerPositioning:
+    'Primero la administración de propiedades, con gestión de activos disponible cuando la propiedad requiere una capa estratégica por encima.',
+  footerServices: 'Servicios',
+  footerFirm: 'La firma',
+  footerLocation: 'Houston, Texas',
+  footerStatewide: 'Al servicio de propietarios en todo Texas',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'Las actividades de corretaje y arrendamiento se realizan a través de nuestro socio con licencia. AxisPoint Partners no brinda asesoría fiscal ni legal. Este sitio web tiene únicamente fines informativos y no constituye una oferta de venta de valores.',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'Página no encontrada',
+  notFoundAction: 'Ir al inicio',
+  languageChooseAria: 'Elegir idioma. Idioma actual: {language}.',
+  languageListAria: 'Elegir idioma',
 };

@@ -137,4 +137,35 @@ export const PA: Partial<Messages> = {
   bookingUnavailable: 'ਇਸ ਵੇਲੇ ਸਮਾਂ ਤੈਅ ਕਰਨਾ ਉਪਲਬਧ ਨਹੀਂ। ਕੁਝ ਵੀ ਬੁੱਕ ਨਹੀਂ ਹੋਇਆ।',
   bookingDurationLabel: '30 ਮਿੰਟ',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ',
+  navAssetManagement: 'ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ',
+  navInvestorServices: 'ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ',
+  navPartners: 'ਭਾਈਵਾਲ',
+  navContact: 'ਸੰਪਰਕ',
+  navCta: 'ਪ੍ਰਬੰਧਨ ਪ੍ਰਸਤਾਵ ਦੀ ਬੇਨਤੀ ਕਰੋ',
+  navHomeAria: 'AxisPoint, ਹੋਮ',
+  navPrimaryAria: 'ਮੁੱਖ',
+  navMenu: 'ਮੀਨੂ',
+  navMenuDialogAria: 'ਸਾਈਟ ਮੀਨੂ',
+  navCloseMenu: 'ਮੀਨੂ ਬੰਦ ਕਰੋ',
+
+  skipToContent: 'ਮੁੱਖ ਸਮੱਗਰੀ ਤੇ ਜਾਓ',
+
+  footerPositioning:
+    'ਪਹਿਲਾਂ ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ, ਅਤੇ ਜਦੋਂ ਜਾਇਦਾਦ ਨੂੰ ਉੱਪਰ ਇੱਕ ਰਣਨੀਤਕ ਪਰਤ ਦੀ ਲੋੜ ਹੋਵੇ ਤਾਂ ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ ਵੀ ਉਪਲਬਧ।',
+  footerServices: 'ਸੇਵਾਵਾਂ',
+  footerFirm: 'ਫਰਮ',
+  footerLocation: 'ਹਿਊਸਟਨ, ਟੈਕਸਾਸ',
+  footerStatewide: 'ਪੂਰੇ ਟੈਕਸਾਸ ਵਿੱਚ ਮਾਲਕਾਂ ਦੀ ਸੇਵਾ',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'ਬ੍ਰੋਕਰੇਜ ਅਤੇ ਲੀਜ਼ਿੰਗ ਗਤੀਵਿਧੀਆਂ ਸਾਡੇ ਲਾਇਸੰਸਸ਼ੁਦਾ ਭਾਈਵਾਲ ਰਾਹੀਂ ਕੀਤੀਆਂ ਜਾਂਦੀਆਂ ਹਨ। AxisPoint Partners ਟੈਕਸ ਜਾਂ ਕਾਨੂੰਨੀ ਸਲਾਹ ਨਹੀਂ ਦਿੰਦਾ। ਇਹ ਵੈੱਬਸਾਈਟ ਸਿਰਫ਼ ਜਾਣਕਾਰੀ ਦੇ ਉਦੇਸ਼ ਲਈ ਹੈ ਅਤੇ ਪ੍ਰਤੀਭੂਤੀਆਂ ਵੇਚਣ ਦੀ ਪੇਸ਼ਕਸ਼ ਨਹੀਂ ਹੈ।',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'ਪੰਨਾ ਨਹੀਂ ਮਿਲਿਆ',
+  notFoundAction: 'ਹੋਮ ਤੇ ਜਾਓ',
+  languageChooseAria: 'ਭਾਸ਼ਾ ਚੁਣੋ। ਮੌਜੂਦਾ ਭਾਸ਼ਾ: {language}।',
+  languageListAria: 'ਭਾਸ਼ਾ ਚੁਣੋ',
 };

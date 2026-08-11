@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Mark } from '@axispoint/brand';
 import LanguageSelector from './LanguageSelector';
 import { useLocale } from '../i18n/LocaleProvider';
+import type { Messages } from '../i18n/messages';
 
 /**
  * Shared site header, built from the approved V2 sources (design@2026-07-30):
@@ -20,14 +21,22 @@ import { useLocale } from '../i18n/LocaleProvider';
  * docs/STATUS.md.
  */
 
-const LINKS: { to: string; label: string }[] = [
-  { to: '/property-management', label: 'Property Management' },
-  { to: '/asset-management', label: 'Asset Management' },
-  { to: '/investor-services', label: 'Investor Services' },
-  { to: '/partners', label: 'Partners' },
+/**
+ * Destinations carry a catalog KEY, not a label.
+ *
+ * The same shape the intake's stable-token controls use, and for the same reason: a
+ * module-level constant holding English is a string that cannot follow the reader's
+ * language, and the footer renders these identical labels from the identical keys, so the
+ * header and the footer cannot drift apart in a later translation.
+ */
+const LINKS: { to: string; labelKey: keyof Messages }[] = [
+  { to: '/property-management', labelKey: 'navPropertyManagement' },
+  { to: '/asset-management', labelKey: 'navAssetManagement' },
+  { to: '/investor-services', labelKey: 'navInvestorServices' },
+  { to: '/partners', labelKey: 'navPartners' },
 ];
 
-const CTA = { to: '/contact?intent=property-management', label: 'Request a Management Proposal' };
+const CTA = { to: '/contact?intent=property-management', labelKey: 'navCta' } as const;
 
 /**
  * The static English label that stood here through Passes 2 to 5 is replaced by the
@@ -55,7 +64,7 @@ function Nav() {
    * the intake hardcoded `pageLocale: 'en'` because it had no way to ask what the visitor
    * had chosen, so a selection could never reach a submission.
    */
-  const { code: locale, setLocale } = useLocale();
+  const { code: locale, setLocale, t } = useLocale();
   const { pathname, search } = useLocation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -138,7 +147,7 @@ function Nav() {
                Vertical padding grows the hit area and an equal negative margin pulls
                the layout back, so the header keeps its approved 63px height. */
             style={{ padding: '11px 0', margin: '-11px 0' }}
-            aria-label="AxisPoint, home"
+            aria-label={t.navHomeAria}
           >
             <Mark variant="fullcolor" mode="lockup" height={23} />
           </Link>
@@ -147,7 +156,7 @@ function Nav() {
               the four labels plus the full CTA wording cannot hold their measure at
               834px without wrapping, and the approved sources specify no tablet
               composition, so the mobile treatment carries that width. */}
-          <nav aria-label="Primary" className="hidden lg:flex items-center gap-[30px]">
+          <nav aria-label={t.navPrimaryAria} className="hidden lg:flex items-center gap-[30px]">
             {LINKS.map((link) => (
               <NavLink
                 key={link.to}
@@ -163,7 +172,7 @@ function Nav() {
                    approved height, the same technique used on the lockup. */
                 style={{ fontSize: 13.5, minHeight: 44, padding: '12px 0', margin: '-12px 0' }}
               >
-                {link.label}
+                {t[link.labelKey]}
               </NavLink>
             ))}
 
@@ -174,7 +183,7 @@ function Nav() {
               className="inline-flex items-center rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
               style={{ fontSize: 13, padding: '11px 18px', minHeight: 44 }}
             >
-              {CTA.label}
+              {t[CTA.labelKey]}
             </Link>
           </nav>
 
@@ -195,7 +204,7 @@ function Nav() {
                 className="font-bold uppercase text-[rgba(28,22,40,0.6)]"
                 style={{ fontSize: 12, letterSpacing: '0.12em' }}
               >
-                Menu
+                {t.navMenu}
               </span>
               <span aria-hidden="true" className="grid gap-[5px]">
                 <span className="block bg-v2-ink" style={{ width: 22, height: 1.5 }} />
@@ -212,7 +221,7 @@ function Nav() {
           ref={panelRef}
           role="dialog"
           aria-modal="true"
-          aria-label="Site menu"
+          aria-label={t.navMenuDialogAria}
           className="lg:hidden fixed inset-0 z-50 flex flex-col bg-v2-surface"
         >
           <div
@@ -223,14 +232,14 @@ function Nav() {
               to="/"
               className="inline-flex items-center rounded-v2"
               style={{ padding: '11px 0', margin: '-11px 0' }}
-              aria-label="AxisPoint, home"
+              aria-label={t.navHomeAria}
             >
               <Mark variant="fullcolor" mode="lockup" height={23} />
             </Link>
             <button
               type="button"
               onClick={() => close()}
-              aria-label="Close menu"
+              aria-label={t.navCloseMenu}
               className="inline-flex items-center justify-center rounded-v2"
               style={{ minWidth: 44, minHeight: 44 }}
             >
@@ -250,7 +259,7 @@ function Nav() {
             </button>
           </div>
 
-          <nav aria-label="Primary" className="flex-1 overflow-y-auto px-5 py-2">
+          <nav aria-label={t.navPrimaryAria} className="flex-1 overflow-y-auto px-5 py-2">
             <div className="grid border-t border-[rgba(28,22,40,0.14)]">
               {LINKS.map((link) => (
                 <NavLink
@@ -264,7 +273,7 @@ function Nav() {
                   }
                   style={{ minHeight: 54, fontSize: 15 }}
                 >
-                  {link.label}
+                  {t[link.labelKey]}
                   <span aria-hidden="true" style={{ fontSize: 17, color: 'rgba(28,22,40,0.45)' }}>
                     &#8594;
                   </span>
@@ -277,7 +286,7 @@ function Nav() {
               className="mt-6 flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
               style={{ minHeight: 54, fontSize: 15, padding: '0 22px' }}
             >
-              {CTA.label}
+              {t[CTA.labelKey]}
             </Link>
           </nav>
         </div>

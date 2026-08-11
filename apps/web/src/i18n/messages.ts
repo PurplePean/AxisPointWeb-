@@ -139,6 +139,52 @@ export interface Messages {
   bookingUnavailable: string;
   bookingDurationLabel: string;
   bookingWithLabel: string;
+
+  /* ── Site chrome: navigation, footer, shell, 404 (added in PR 2) ──
+   *
+   * The four service and firm names are ONE key each, shared by the header and the
+   * footer, because both render the same label for the same destination. Two keys with
+   * identical values is how the header and footer drift apart in a later translation.
+   *
+   * The `*Aria` keys are assistive-technology labels. They are copy: a screen-reader user
+   * hears them instead of seeing the layout, so leaving them English on a translated page
+   * is worse than leaving a visible string English, not better. */
+  navPropertyManagement: string;
+  navAssetManagement: string;
+  navInvestorServices: string;
+  navPartners: string;
+  navContact: string;
+  navCta: string;
+  navHomeAria: string;
+  navPrimaryAria: string;
+  navMenu: string;
+  navMenuDialogAria: string;
+  navCloseMenu: string;
+
+  skipToContent: string;
+
+  footerPositioning: string;
+  footerServices: string;
+  footerFirm: string;
+  footerLocation: string;
+  footerStatewide: string;
+  /** Legal copy. See the warning above the English value. */
+  footerLegal: string;
+  footerCopyright: string;
+
+  notFoundMessage: string;
+  notFoundAction: string;
+
+  /**
+   * The language selector's own assistive labels.
+   *
+   * `{language}` is substituted at the call site with the active locale's name. This is the
+   * only interpolated string in the catalog, and it is a literal `String.replace` rather than
+   * a formatting library: one placeholder does not justify a dependency, and an ICU message
+   * syntax nobody else uses would be a second thing translators have to get right.
+   */
+  languageChooseAria: string;
+  languageListAria: string;
 }
 
 /**
@@ -263,7 +309,52 @@ export const EN: Messages = {
   bookingUnavailable: 'Scheduling is unavailable right now. Nothing was booked.',
   bookingDurationLabel: '30 minutes',
   bookingWithLabel: 'AxisPoint Partners',
+
+  navPropertyManagement: 'Property Management',
+  navAssetManagement: 'Asset Management',
+  navInvestorServices: 'Investor Services',
+  navPartners: 'Partners',
+  navContact: 'Contact',
+  navCta: 'Request a Management Proposal',
+  navHomeAria: 'AxisPoint, home',
+  navPrimaryAria: 'Primary',
+  navMenu: 'Menu',
+  navMenuDialogAria: 'Site menu',
+  navCloseMenu: 'Close menu',
+
+  skipToContent: 'Skip to main content',
+
+  footerPositioning:
+    'Property management first, with asset management available when the property calls for a strategic layer above it.',
+  footerServices: 'Services',
+  footerFirm: 'Firm',
+  footerLocation: 'Houston, Texas',
+  footerStatewide: 'Serving owners statewide across Texas',
+  /*
+   * LEGAL COPY. Carried forward verbatim from the footer; `STATUS.md` records that a legal
+   * review is a prelaunch check and this pass does not perform one.
+   *
+   * The translated versions of this one string deserve more scepticism than anything else in
+   * the catalogs. A mistranslated disclaimer does not read as broken, it reads as a different
+   * promise, and "does not constitute an offer to sell securities" is a sentence whose force
+   * comes from its exact wording. A native reader is not sufficient here: this needs somebody
+   * qualified to say the translated sentence carries the same meaning.
+   */
+  footerLegal:
+    'Brokerage and leasing activities are conducted through our licensed partner. AxisPoint Partners does not provide tax or legal advice. This website is intended for informational purposes only and does not constitute an offer to sell securities.',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'Page not found',
+  notFoundAction: 'Go Home',
+
+  languageChooseAria: 'Choose language. Current language: {language}.',
+  languageListAria: 'Choose language',
 };
+
+/** The one interpolation in the catalog. See `languageChooseAria`. */
+export function withLanguage(template: string, language: string): string {
+  return template.replace('{language}', language);
+}
 
 /**
  * THE FALLBACK RULE, now stated per key rather than per catalog.

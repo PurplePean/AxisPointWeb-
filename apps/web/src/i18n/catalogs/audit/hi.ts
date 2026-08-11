@@ -139,4 +139,35 @@ export const HI: Partial<Messages> = {
   bookingUnavailable: 'अभी बुकिंग उपलब्ध नहीं है। कुछ भी बुक नहीं हुआ।',
   bookingDurationLabel: '30 मिनट',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'संपत्ति प्रबंधन',
+  navAssetManagement: 'परिसंपत्ति प्रबंधन',
+  navInvestorServices: 'निवेशक सेवाएं',
+  navPartners: 'साझेदार',
+  navContact: 'संपर्क',
+  navCta: 'प्रबंधन प्रस्ताव का अनुरोध करें',
+  navHomeAria: 'AxisPoint, मुखपृष्ठ',
+  navPrimaryAria: 'मुख्य',
+  navMenu: 'मेन्यू',
+  navMenuDialogAria: 'साइट मेन्यू',
+  navCloseMenu: 'मेन्यू बंद करें',
+
+  skipToContent: 'मुख्य सामग्री पर जाएं',
+
+  footerPositioning:
+    'पहले संपत्ति प्रबंधन, और जब संपत्ति को ऊपर एक रणनीतिक परत की जरूरत हो तो परिसंपत्ति प्रबंधन भी उपलब्ध।',
+  footerServices: 'सेवाएं',
+  footerFirm: 'फर्म',
+  footerLocation: 'ह्यूस्टन, टेक्सास',
+  footerStatewide: 'पूरे टेक्सास में संपत्ति स्वामियों की सेवा',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'ब्रोकरेज और लीजिंग गतिविधियां हमारे लाइसेंस प्राप्त साझेदार के माध्यम से संचालित होती हैं। AxisPoint Partners कर या कानूनी सलाह नहीं देता। यह वेबसाइट केवल सूचना के उद्देश्य से है और प्रतिभूतियां बेचने का प्रस्ताव नहीं है।',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'पृष्ठ नहीं मिला',
+  notFoundAction: 'मुखपृष्ठ पर जाएं',
+  languageChooseAria: 'भाषा चुनें। वर्तमान भाषा: {language}।',
+  languageListAria: 'भाषा चुनें',
 };

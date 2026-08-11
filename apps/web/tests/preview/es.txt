@@ -1,0 +1,44 @@
+Spanish (es)
+native name : Español
+direction   : ltr
+font stack  : 'Figtree', system-ui, sans-serif
+line height : 1.2
+enabled     : false
+review      : unreviewed
+status      : AUDIT CANDIDATE. Model-generated, unreviewed, not approved, not live.
+
+Rendered chrome, in reading order. Route: /no-such-page
+========================================================================
+Ir al contenido principal
+Axis
+Point
+Administración de propiedades
+Gestión de activos
+Servicios para inversionistas
+Socios
+Language
+English
+▾
+Solicitar una propuesta de administración
+Language
+EN
+▾
+Menú
+404
+Página no encontrada
+Ir al inicio
+Axis
+Point
+Primero la administración de propiedades, con gestión de activos disponible cuando la propiedad requiere una capa estratégica por encima.
+Servicios
+Administración de propiedades
+Gestión de activos
+Servicios para inversionistas
+La firma
+Socios
+Contacto
+Houston, Texas
+info@axispoint.llc
+Al servicio de propietarios en todo Texas
+Las actividades de corretaje y arrendamiento se realizan a través de nuestro socio con licencia. AxisPoint Partners no brinda asesoría fiscal ni legal. Este sitio web tiene únicamente fines informativos y no constituye una oferta de venta de valores.
+© 2026 AxisPoint Partners

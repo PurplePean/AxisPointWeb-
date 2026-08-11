@@ -126,4 +126,36 @@ export const ZH_HANT: Partial<Messages> = {
   bookingUnavailable: '目前無法安排預約。未完成任何預約。',
   bookingDurationLabel: '30 分鐘',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: '物業管理',
+  navAssetManagement: '資產管理',
+  navInvestorServices: '投資者服務',
+  navPartners: '合夥人',
+  navContact: '聯絡我們',
+  navCta: '申請物業管理方案',
+  navHomeAria: 'AxisPoint，首頁',
+  navPrimaryAria: '主導覽',
+  // Taiwan uses 選單 where the mainland uses 菜单. One of the clearest tells that this
+  // file is not a character conversion of ./zh-Hans.ts.
+  navMenu: '選單',
+  navMenuDialogAria: '網站選單',
+  navCloseMenu: '關閉選單',
+
+  skipToContent: '跳到主要內容',
+
+  footerPositioning: '以物業管理為先，當物業需要更高一層的策略支援時，可加入資產管理。',
+  footerServices: '服務',
+  footerFirm: '公司',
+  footerLocation: '德克薩斯州休士頓',
+  footerStatewide: '為德克薩斯州各地的業主提供服務',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    '經紀和租賃業務由我們持牌的合作方開展。AxisPoint Partners 不提供稅務或法律建議。本網站僅供參考，不構成出售證券的要約。',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: '找不到頁面',
+  notFoundAction: '返回首頁',
+  languageChooseAria: '選擇語言。目前語言：{language}。',
+  languageListAria: '選擇語言',
 };

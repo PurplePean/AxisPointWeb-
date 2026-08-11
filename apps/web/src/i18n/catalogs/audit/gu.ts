@@ -135,4 +135,35 @@ export const GU: Partial<Messages> = {
   bookingUnavailable: 'અત્યારે સમય નક્કી કરવાનું ઉપલબ્ધ નથી. કંઈ બુક થયું નથી.',
   bookingDurationLabel: '30 મિનિટ',
   bookingWithLabel: 'AxisPoint Partners',
+
+  /* ── Site chrome (PR 2) ── */
+  navPropertyManagement: 'મિલકત વ્યવસ્થાપન',
+  navAssetManagement: 'સંપત્તિ વ્યવસ્થાપન',
+  navInvestorServices: 'રોકાણકાર સેવાઓ',
+  navPartners: 'ભાગીદારો',
+  navContact: 'સંપર્ક',
+  navCta: 'વ્યવસ્થાપન દરખાસ્તની વિનંતી કરો',
+  navHomeAria: 'AxisPoint, હોમ',
+  navPrimaryAria: 'મુખ્ય',
+  navMenu: 'મેનૂ',
+  navMenuDialogAria: 'સાઇટ મેનૂ',
+  navCloseMenu: 'મેનૂ બંધ કરો',
+
+  skipToContent: 'મુખ્ય સામગ્રી પર જાઓ',
+
+  footerPositioning:
+    'પહેલાં મિલકત વ્યવસ્થાપન, અને જ્યારે મિલકતને ઉપર વ્યૂહાત્મક સ્તરની જરૂર હોય ત્યારે સંપત્તિ વ્યવસ્થાપન પણ ઉપલબ્ધ.',
+  footerServices: 'સેવાઓ',
+  footerFirm: 'પેઢી',
+  footerLocation: 'હ્યુસ્ટન, ટેક્સાસ',
+  footerStatewide: 'સમગ્ર ટેક્સાસમાં માલિકોની સેવા',
+  // LEGAL. Needs a qualified reviewer, not only a native reader. See the English original.
+  footerLegal:
+    'બ્રોકરેજ અને લીઝિંગ પ્રવૃત્તિઓ અમારા લાઇસન્સ ધરાવતા ભાગીદાર દ્વારા હાથ ધરવામાં આવે છે. AxisPoint Partners કર કે કાનૂની સલાહ આપતું નથી. આ વેબસાઇટ ફક્ત માહિતીના હેતુ માટે છે અને સિક્યોરિટીઝ વેચવાની ઓફર નથી.',
+  footerCopyright: '© 2026 AxisPoint Partners',
+
+  notFoundMessage: 'પૃષ્ઠ મળ્યું નથી',
+  notFoundAction: 'હોમ પર જાઓ',
+  languageChooseAria: 'ભાષા પસંદ કરો. વર્તમાન ભાષા: {language}.',
+  languageListAria: 'ભાષા પસંદ કરો',
 };

@@ -1,0 +1,44 @@
+Traditional Chinese (zh-Hant)
+native name : 繁體中文
+direction   : ltr
+font stack  : 'Noto Sans TC', 'Figtree', system-ui, sans-serif
+line height : 1.3
+enabled     : false
+review      : unreviewed
+status      : AUDIT CANDIDATE. Model-generated, unreviewed, not approved, not live.
+
+Rendered chrome, in reading order. Route: /no-such-page
+========================================================================
+跳到主要內容
+Axis
+Point
+物業管理
+資產管理
+投資者服務
+合夥人
+Language
+English
+▾
+申請物業管理方案
+Language
+EN
+▾
+選單
+404
+找不到頁面
+返回首頁
+Axis
+Point
+以物業管理為先，當物業需要更高一層的策略支援時，可加入資產管理。
+服務
+物業管理
+資產管理
+投資者服務
+公司
+合夥人
+聯絡我們
+德克薩斯州休士頓
+info@axispoint.llc
+為德克薩斯州各地的業主提供服務
+經紀和租賃業務由我們持牌的合作方開展。AxisPoint Partners 不提供稅務或法律建議。本網站僅供參考，不構成出售證券的要約。
+© 2026 AxisPoint Partners
