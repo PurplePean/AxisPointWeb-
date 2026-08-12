@@ -361,4 +361,147 @@ export const PA: Partial<Messages> = {
   partnersClosingTitle: 'ਆਪਣੀ ਜਾਇਦਾਦ ਬਾਰੇ ਕਿਸੇ ਭਾਈਵਾਲ ਨਾਲ ਗੱਲ ਕਰੋ।',
   partnersClosingBody:
     'ਜਾਇਦਾਦ ਅਤੇ ਹਾਲਾਤ ਭੇਜੋ। ਜੋ ਭਾਈਵਾਲ ਇਸਨੂੰ ਪੜ੍ਹਦਾ ਹੈ, ਉਹੀ ਇਸ ਦਾ ਜਵਾਬ ਦੇਵੇਗਾ।',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Display text only; stored values stay stable snake_case tokens. Placeholders
+   * {name} {email} {count} {day} {time} {mode} {language} must survive exactly. */
+
+  contactEyebrow: 'ਸੰਪਰਕ',
+  contactHeroTitle: 'AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ',
+  contactHeroLead:
+    'ਹਿਊਸਟਨ ਤੋਂ ਭਾਈਵਾਲਾਂ ਦੀ ਅਗਵਾਈ ਵਿੱਚ, ਪੂਰੇ ਟੈਕਸਾਸ ਦੇ ਮਾਲਕਾਂ ਦੀ ਸੇਵਾ। ਦੱਸੋ ਤੁਹਾਨੂੰ ਕੀ ਚਾਹੀਦਾ ਹੈ ਅਤੇ ਇੱਕ ਭਾਈਵਾਲ ਇਸਨੂੰ ਪੜ੍ਹਦਾ ਹੈ।',
+  contactMetaTitle: 'AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ | AxisPoint Partners',
+  contactMetaDescription:
+    'ਹਿਊਸਟਨ, ਟੈਕਸਾਸ ਤੋਂ ਸਿੱਧੇ AxisPoint ਤੱਕ ਪਹੁੰਚੋ, ਪੂਰੇ ਰਾਜ ਦੇ ਮਾਲਕਾਂ ਦੀ ਸੇਵਾ। ਆਪਣੇ ਹਾਲਾਤ ਨਾਲ ਮੇਲ ਖਾਂਦਾ ਰਾਹ ਚੁਣੋ, ਜਾਂ info@axispoint.llc ਤੇ ਲਿਖੋ।',
+  contactPathwayPmAm: 'ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ ਅਤੇ ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ',
+  contactPmMetaTitle: 'ਪ੍ਰਬੰਧਨ ਪ੍ਰਸਤਾਵ ਦੀ ਬੇਨਤੀ ਕਰੋ | AxisPoint Partners',
+  contactPmMetaDescription:
+    'ਜਾਇਦਾਦ, ਪ੍ਰਬੰਧਨ ਦੀ ਮੌਜੂਦਾ ਹਾਲਤ, ਅਤੇ ਜੋ ਤਬਦੀਲੀ ਤੁਸੀਂ ਸੋਚ ਰਹੇ ਹੋ, ਭੇਜੋ। ਇੱਕ ਭਾਈਵਾਲ ਇਸਨੂੰ ਪੜ੍ਹ ਕੇ ਜਵਾਬ ਦਿੰਦਾ ਹੈ।',
+  contactAmMetaTitle:
+    'ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ ਸਮੇਤ ਪ੍ਰਬੰਧਨ ਪ੍ਰਸਤਾਵ ਦੀ ਬੇਨਤੀ ਕਰੋ | AxisPoint Partners',
+  contactAmMetaDescription:
+    'ਪ੍ਰਬੰਧਨ ਪ੍ਰਸਤਾਵ ਵਿੱਚ ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ ਦੀ ਦਿਲਚਸਪੀ ਸਪਸ਼ਟ ਕਰ ਕੇ ਸ਼ੁਰੂ ਕਰੋ, ਤਾਂ ਜੋ ਸੰਚਾਲਨ ਕੰਮ ਅਤੇ ਨਿਵੇਸ਼ ਦਾ ਨਜ਼ਰੀਆ ਇੱਕੋ ਟੀਮ ਸੰਭਾਲੇ।',
+  contactIsMetaTitle: 'ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ ਬਾਰੇ ਪੁੱਛਗਿੱਛ | AxisPoint Partners',
+  contactIsMetaDescription:
+    'ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ ਕਿੱਥੇ ਹੋ। ਇੱਕ ਭਾਈਵਾਲ ਸੰਚਾਲਨ ਮੁਲਾਂਕਣ ਨਾਲ ਜਵਾਬ ਦਿੰਦਾ ਹੈ ਅਤੇ ਦੱਸਦਾ ਹੈ ਕਿ ਪ੍ਰਬੰਧਨ ਕਿਹੋ ਜਿਹਾ ਹੋਵੇਗਾ।',
+  contactGeneralMetaTitle: 'AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ | AxisPoint Partners',
+  contactGeneralMetaDescription:
+    'ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਕੌਣ ਹੋ ਅਤੇ ਤੁਹਾਨੂੰ ਕੀ ਚਾਹੀਦਾ ਹੈ। ਅਸੀਂ ਇਸਨੂੰ ਸਹੀ ਭਾਈਵਾਲ ਤੱਕ ਪਹੁੰਚਾਵਾਂਗੇ।',
+
+  fieldOptional: 'ਵਿਕਲਪਿਕ',
+
+  gatewayEmailPrefix: 'ਈਮੇਲ ਵੱਧ ਪਸੰਦ ਹੈ? ਲਿਖੋ',
+
+  ledgerChangePath: 'ਰਾਹ ਬਦਲੋ',
+  labelProperty: 'ਜਾਇਦਾਦ',
+  labelPropertyEmpty: 'ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ',
+  labelSituation: 'ਹਾਲਾਤ',
+  labelSituationEmpty: 'ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ',
+  labelContact: 'ਸੰਪਰਕ',
+  labelContactEmpty: 'ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ',
+  labelInvolvement: 'ਸ਼ਮੂਲੀਅਤ',
+  labelPathway: 'ਰਾਹ',
+  labelTopic: 'ਵਿਸ਼ਾ',
+  labelFollowUpLanguage: 'ਸੰਪਰਕ ਦੀ ਭਾਸ਼ਾ',
+
+  confirmKickerProperty: 'ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜ ਦਿੱਤੇ',
+  confirmKickerInquiry: 'ਪੁੱਛਗਿੱਛ ਭੇਜ ਦਿੱਤੀ',
+  confirmTitleProperty: 'ਧੰਨਵਾਦ, {name}। ਸਾਨੂੰ ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਮਿਲ ਗਏ ਹਨ।',
+  confirmTitleInquiry: 'ਧੰਨਵਾਦ, {name}। ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਸਾਡੇ ਕੋਲ ਹੈ।',
+  confirmBodyProperty: 'Zachary ਜਾਂ Ethaniel ਜਾਣਕਾਰੀ ਵੇਖ ਕੇ ਸਿੱਧਾ ਸੰਪਰਕ ਕਰਨਗੇ।',
+  confirmBodyInquiry: 'Zachary ਜਾਂ Ethaniel ਇਸਨੂੰ ਵੇਖ ਕੇ ਸਿੱਧਾ {email} ਤੇ ਸੰਪਰਕ ਕਰਨਗੇ।',
+  confirmWhatYouSent: 'ਤੁਸੀਂ ਕੀ ਭੇਜਿਆ',
+  confirmScheduleCta: '30 ਮਿੰਟ ਦੀ ਕਾਲ ਤੈਅ ਕਰੋ',
+  confirmWait: 'ਮੈਂ ਸੰਪਰਕ ਦੀ ਉਡੀਕ ਕਰਾਂਗਾ',
+  backToAxisPoint: 'AxisPoint ਤੇ ਵਾਪਸ',
+
+  scheduleKicker: 'ਵਿਕਲਪਿਕ ਅਗਲਾ ਕਦਮ',
+  scheduleTitle: '30 ਮਿੰਟ ਦੀ ਕਾਲ ਤੈਅ ਕਰੋ',
+  scheduleLead:
+    'ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਪਹਿਲਾਂ ਹੀ ਭੇਜੇ ਜਾ ਚੁੱਕੇ ਹਨ। ਸਮਾਂ ਤਾਂ ਹੀ ਚੁਣੋ ਜੇ ਇਹ ਤੁਹਾਡੇ ਲਈ ਲਾਭਦਾਇਕ ਹੋਵੇ।',
+  scheduleSelectDate: 'ਤਾਰੀਖ਼ ਚੁਣੋ',
+  scheduleSelectTime: 'ਸਮਾਂ ਚੁਣੋ',
+  scheduleChooseDateFirst: 'ਸਮੇਂ ਵੇਖਣ ਲਈ ਪਹਿਲਾਂ ਤਾਰੀਖ਼ ਚੁਣੋ।',
+  scheduleHowMeet: 'ਅਸੀਂ ਕਿਸ ਤਰ੍ਹਾਂ ਗੱਲ ਕਰੀਏ?',
+  scheduleSelectedLabel: 'ਚੁਣਿਆ ਗਿਆ',
+  scheduleSelectedSummary: '{day} ਨੂੰ {time} ਵਜੇ, {mode}',
+  scheduleSelectedEmpty: 'ਤਾਰੀਖ਼, ਸਮਾਂ ਅਤੇ ਗੱਲ ਕਰਨ ਦਾ ਤਰੀਕਾ ਚੁਣੋ',
+  scheduleConfirm: 'ਇਹ ਸਮਾਂ ਪੱਕਾ ਕਰੋ',
+  scheduleBooking: 'ਤੈਅ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ',
+
+  scheduledKicker: 'ਕਾਲ ਪੱਕੀ ਹੋਈ',
+  scheduledTitle: 'ਤੁਸੀਂ ਕੈਲੰਡਰ ਵਿੱਚ ਹੋ।',
+  labelWhen: 'ਕਦੋਂ',
+  labelFormat: 'ਰੂਪ',
+  labelLength: 'ਮਿਆਦ',
+  labelWith: 'ਕਿਸ ਨਾਲ',
+  scheduledWhenValue: '{day}, {time} Central',
+  scheduledInviteNote:
+    'ਕੈਲੰਡਰ ਸੱਦਾ {email} ਤੇ ਜਾਵੇਗਾ। ਸਮਾਂ ਬਦਲਣਾ ਹੋਵੇ ਤਾਂ ਉਸੇ ਦਾ ਜਵਾਬ ਦਿਓ।',
+  scheduledDevNote:
+    'ਡਿਵੈਲਪਮੈਂਟ ਝਲਕ। ਬੁਕਿੰਗ ਕਮਾਂਡ ਸਿਮੂਲੇਟਰ ਤੇ ਚੱਲੀ, ਇਸ ਲਈ ਕੋਈ ਕੈਲੰਡਰ ਇਵੈਂਟ ਨਹੀਂ ਬਣਿਆ ਅਤੇ ਕੋਈ ਸੱਦਾ ਨਹੀਂ ਭੇਜਿਆ ਗਿਆ।',
+
+  skippedTitle: 'ਕੋਈ ਕਾਲ ਤੈਅ ਨਹੀਂ ਹੋਈ। ਤੁਹਾਡੇ ਤੋਂ ਹੋਰ ਕੁਝ ਨਹੀਂ ਚਾਹੀਦਾ।',
+  skippedBody:
+    'ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ Zachary ਅਤੇ Ethaniel ਕੋਲ ਹਨ, ਅਤੇ ਉਹ {email} ਤੇ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨਗੇ। ਬਾਅਦ ਵਿੱਚ ਲਾਭਦਾਇਕ ਲੱਗੇ ਤਾਂ ਤੁਸੀਂ ਹੁਣ ਵੀ ਸਮਾਂ ਚੁਣ ਸਕਦੇ ਹੋ।',
+
+  errorSummaryOne: 'ਇੱਕ ਖਾਨੇ ਵੱਲ ਧਿਆਨ ਚਾਹੀਦਾ ਹੈ।',
+  errorSummaryTwo: 'ਦੋ ਖਾਨਿਆਂ ਵੱਲ ਧਿਆਨ ਚਾਹੀਦਾ ਹੈ।',
+  errorSummaryMany: '{count} ਖਾਨਿਆਂ ਵੱਲ ਧਿਆਨ ਚਾਹੀਦਾ ਹੈ।',
+  errorSummaryFixInquiry: 'ਹੇਠਾਂ ਨਿਸ਼ਾਨਬੱਧ ਖਾਨੇ ਠੀਕ ਕਰੋ, ਫਿਰ ਪੁੱਛਗਿੱਛ ਦੁਬਾਰਾ ਭੇਜੋ।',
+  errorSummaryFixProperty:
+    'ਆਪਣਾ ਪੂਰਾ ਨਾਮ ਅਤੇ ਇੱਕ ਈਮੇਲ ਪਤਾ ਸ਼ਾਮਲ ਕਰੋ ਜਿਸ ਤੇ ਅਸੀਂ ਜਵਾਬ ਦੇ ਸਕੀਏ, ਫਿਰ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਦੁਬਾਰਾ ਭੇਜੋ।',
+  failedTitleInquiry: 'ਅਸੀਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਨਹੀਂ ਭੇਜ ਸਕੇ।',
+  failedTitleProperty: 'ਅਸੀਂ ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਨਹੀਂ ਭੇਜ ਸਕੇ।',
+  failedBody: 'ਤੁਹਾਡੇ ਜਵਾਬ ਹੁਣ ਵੀ ਇੱਥੇ ਹਨ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਸਿੱਧਾ AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ।',
+  tryAgain: 'ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ',
+  unavailableTitle: 'ਇਸ ਵੇਲੇ ਭੇਜਣਾ ਉਪਲਬਧ ਨਹੀਂ।',
+  unavailableBody:
+    'ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਗਿਆ। ਤੁਹਾਡੇ ਜਵਾਬ ਹੁਣ ਵੀ ਇੱਥੇ ਹਨ, ਅਤੇ ਇਸ ਦੌਰਾਨ ਤੁਸੀਂ ਸਿੱਧਾ AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰ ਸਕਦੇ ਹੋ।',
+  blockedBody:
+    'ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਗਿਆ, ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰਨ ਨਾਲ ਮਦਦ ਨਹੀਂ ਮਿਲੇਗੀ। ਤੁਹਾਡੇ ਜਵਾਬ ਹੁਣ ਵੀ ਇੱਥੇ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਸਿੱਧਾ AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ।',
+  emailAxisPoint: 'AxisPoint ਨੂੰ ਈਮੇਲ ਕਰੋ',
+
+  fieldFullName: 'ਪੂਰਾ ਨਾਮ',
+  fieldEmail: 'ਈਮੇਲ',
+  fieldPhone: 'ਫ਼ੋਨ',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: 'ਸਿੱਧੀ ਕਾਲ ਪਸੰਦ ਹੋਵੇ ਤਾਂ ਨੰਬਰ ਸ਼ਾਮਲ ਕਰੋ।',
+  fieldCompanyOwnership: 'ਕੰਪਨੀ ਜਾਂ ਮਾਲਕੀ ਸਮੂਹ',
+  fieldLanguageFollowUp: 'ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ',
+  followUpHelpChosen:
+    'ਜਿੱਥੇ ਕੋਈ ਭਾਈਵਾਲ ਉਪਲਬਧ ਹੋਵੇਗਾ ਉੱਥੇ ਅਸੀਂ {language} ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ, ਨਹੀਂ ਤਾਂ ਅੰਗਰੇਜ਼ੀ ਵਿੱਚ।',
+  followUpHelpDefault: 'ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।',
+  sending: 'ਭੇਜਿਆ ਜਾ ਰਿਹਾ ਹੈ',
+  noDocuments: 'ਇਸ ਪੜਾਅ ਤੇ ਕਿਸੇ ਦਸਤਾਵੇਜ਼ ਦੀ ਲੋੜ ਨਹੀਂ।',
+
+  step1Title: 'ਆਪਣੀ ਜਾਇਦਾਦ ਬਾਰੇ ਦੱਸੋ।',
+  step1Lead:
+    'ਕੁਝ ਵੇਰਵੇ ਸਾਨੂੰ ਸਮਝਣ ਵਿੱਚ ਮਦਦ ਕਰਨਗੇ ਕਿ ਤੁਹਾਡੇ ਕੋਲ ਕੀ ਹੈ, ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ, ਅਤੇ ਕੀ AxisPoint ਸਹੀ ਸੰਚਾਲਨ ਭਾਈਵਾਲ ਹੈ।',
+  step1SubTitle: 'ਅਸੀਂ ਕਿਸ ਬਾਰੇ ਗੱਲ ਕਰ ਰਹੇ ਹਾਂ?',
+  legendPropertyType: 'ਜਾਇਦਾਦ ਦੀ ਕਿਸਮ',
+  legendPropertyScope: 'ਜਾਇਦਾਦ ਦਾ ਦਾਇਰਾ',
+  fieldLocation: 'ਜਾਇਦਾਦ ਕਿੱਥੇ ਸਥਿਤ ਹੈ?',
+  fieldLocationPlaceholder: 'ਸ਼ਹਿਰ ਜਾਂ ਬਾਜ਼ਾਰ',
+  fieldLocationHelp: 'ਫ਼ਿਲਹਾਲ ਸ਼ਹਿਰ ਜਾਂ ਬਾਜ਼ਾਰ ਕਾਫ਼ੀ ਹੈ। ਪੂਰਾ ਪਤਾ ਲੋੜੀਂਦਾ ਨਹੀਂ।',
+  fieldPropertyCount: 'ਜਾਇਦਾਦਾਂ ਦੀ ਗਿਣਤੀ',
+  fieldPropertyCountPlaceholder: 'ਉਦਾਹਰਨ ਲਈ 6',
+  notSure: 'ਪੱਕਾ ਪਤਾ ਨਹੀਂ',
+  continueLabel: 'ਜਾਰੀ ਰੱਖੋ',
+  step1Footer: 'ਪੜਾਅ 1 ਵਿੱਚੋਂ 3। ਕੁੱਲ ਮਿਲਾ ਕੇ ਲਗਭਗ 60 ਤੋਂ 90 ਸਕਿੰਟ।',
+
+  step2Title: 'ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ?',
+  legendCurrentSituation: 'ਮੌਜੂਦਾ ਹਾਲਾਤ',
+  legendInvolvement: 'ਤੁਸੀਂ AxisPoint ਦੀ ਸ਼ਮੂਲੀਅਤ ਕਿੱਥੇ ਚਾਹੋਗੇ?',
+  fieldTiming: 'ਸਮਾਂ',
+  fieldTimingPlaceholder: 'ਇੱਕ ਸਮਾਂ-ਸੀਮਾ ਚੁਣੋ',
+  fieldUnderstand: 'ਗੱਲ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਸਾਨੂੰ ਕੀ ਸਮਝ ਲੈਣਾ ਚਾਹੀਦਾ ਹੈ?',
+  fieldUnderstandPlaceholder:
+    'ਜਾਇਦਾਦ, ਮੌਜੂਦਾ ਪ੍ਰਬੰਧਕ ਜਾਂ ਸਮਾਂ-ਸੀਮਾ ਬਾਰੇ ਕੁਝ ਵੀ',
+  backLabel: 'ਪਿੱਛੇ',
+
+  step3Title: 'ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ?',
+  privacyNote:
+    'AxisPoint ਇਸ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਦੀ ਸਮੀਖਿਆ ਕਰਨ ਅਤੇ ਸਿੱਧਾ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਕਰੇਗਾ।',
+  sendPropertyDetails: 'ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜੋ',
 };

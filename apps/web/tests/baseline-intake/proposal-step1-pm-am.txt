@@ -1,0 +1,33 @@
+CONTACT
+Property Management and Asset Management
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+PROPERTY MANAGEMENT
+Change path
+01
+Property
+Type, location, and scale
+02
+Situation
+What needs to change
+03
+Contact
+How we follow up
+Tell us about your property.
+A few details will help us understand what you own, what needs to change, and whether AxisPoint is the right operating partner.
+What are we discussing?
+Property type
+Multifamily
+Retail
+Mixed portfolio
+Another property type
+Property scope
+One property
+Portfolio
+Where is the property located?
+City or market is enough for now. No street address needed.
+Approximate scale
+Not sure
+Choose a property type above and this adapts to the right measure.
+Continue
+→
+Step 1 of 3. About 60 to 90 seconds in total.

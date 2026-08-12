@@ -1,0 +1,41 @@
+CONTACT
+General inquiry
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+GENERAL INQUIRY
+Change path
+What can we help with?
+Tell us who you are and what you need. We will route it to the right partner.
+!
+3 fields need attention. Correct the fields marked below, then send the inquiry again.
+What is this about?
+Select one
+A question about AxisPoint
+Vendor or service provider
+Employment
+Press or media
+Something else
+!
+Choose the option that best describes your inquiry.
+Full name
+!
+Enter the name we should ask for when we call.
+Email
+!
+This address is missing the part after the @ sign. Add the full address, for example name@company.com.
+Phone Optional
+Company Optional
+Your message Optional
+Language for follow-up Optional
+Same as this page, English
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Leave this alone and we reply in the language of this page.
+Send Inquiry
+No documents needed at this stage.

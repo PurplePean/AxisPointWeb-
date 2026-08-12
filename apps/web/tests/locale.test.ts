@@ -181,20 +181,59 @@ test('a registered test catalog is selected, and an incomplete one is caught', (
 /* ── Booking: same instant, different words ───────────────────────────────── */
 
 test('changing the display language never moves the meeting', () => {
+  /*
+   * ALL NINE SUPPORTED LOCALES, not a sample.
+   *
+   * This previously compared only 'en-US' and 'es-MX'. That proved the principle but not the
+   * product: the app passes the registry's locale CODE straight through as the display
+   * locale (`useIntake.ts` calls `candidateDays(now, pageLocale)`), so the values actually
+   * exercised in production are 'en', 'es', 'zh-Hans', 'zh-Hant', 'vi', 'hi', 'ur', 'gu' and
+   * 'pa'. Seven of them had no assertion at all, and the browser review could only compare
+   * normalised clock digits, which would not catch a genuinely different instant that
+   * happened to render with the same digits.
+   *
+   * The inputs are identical for every locale, so any difference in `slotStart` would mean
+   * the display language moved the meeting.
+   */
   const now = new Date('2026-08-10T14:00:00Z');
-  const enDays = candidateDays(now, 'en-US');
-  const esDays = candidateDays(now, 'es-MX');
+  const codes = LOCALES.map((l) => l.code);
+  assert.equal(codes.length, 9, 'expected all nine supported locales');
 
-  assert.equal(enDays.length, esDays.length);
-  assert.deepEqual(enDays.map((d) => d.key), esDays.map((d) => d.key));
+  const reference = candidateDays(now, codes[0]);
+  const referenceSlots = candidateSlots(reference[0], now, codes[0]);
 
-  const enSlots = candidateSlots(enDays[0], now, 'en-US');
-  const esSlots = candidateSlots(esDays[0], now, 'es-MX');
+  for (const code of codes) {
+    const days = candidateDays(now, code);
+    assert.equal(days.length, reference.length, `${code}: day count differs`);
+    assert.deepEqual(
+      days.map((d) => d.key),
+      reference.map((d) => d.key),
+      `${code}: candidate days differ`,
+    );
 
-  // The instants are identical to the character.
-  assert.deepEqual(enSlots.map((s) => s.slotStart), esSlots.map((s) => s.slotStart));
-  // Every slot still carries a real Central offset.
-  enSlots.forEach((s) => assert.match(s.slotStart, /[+-]0[56]:00$/));
+    const slots = candidateSlots(days[0], now, code);
+    assert.deepEqual(
+      slots.map((s) => s.slotStart),
+      referenceSlots.map((s) => s.slotStart),
+      `${code}: slotStart values differ from ${codes[0]}`,
+    );
+
+    // Every slot still carries a real Central offset, in every locale.
+    slots.forEach((s) => assert.match(s.slotStart, /[+-]0[56]:00$/));
+  }
+
+  /*
+   * And the test must not be able to pass because nothing is localised at all. If every
+   * locale rendered the same label, the assertions above would hold trivially while the
+   * feature was broken, so at least one locale has to differ visibly from English.
+   */
+  const englishLabels = referenceSlots.map((s) => s.label).join('|');
+  const anyDiffers = codes
+    .slice(1)
+    .some((code) => candidateSlots(candidateDays(now, code)[0], now, code)
+      .map((s) => s.label)
+      .join('|') !== englishLabels);
+  assert.ok(anyDiffers, 'no locale localised its slot labels, so the instant test is vacuous');
 });
 
 test('the display language does change the visible words', () => {

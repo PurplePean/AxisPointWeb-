@@ -369,4 +369,154 @@ export const ES: Partial<Messages> = {
   partnersClosingTitle: 'Hable con un socio sobre su propiedad.',
   partnersClosingBody:
     'Envíe la propiedad y la situación. El socio que lo lea es quien respondería por ella.',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Every value here is DISPLAY TEXT. None is stored or sent: the wire carries stable
+   * snake_case tokens, unchanged by translation. Placeholders {name} {email} {count} {day}
+   * {time} {mode} {language} must survive exactly, spelling included. */
+
+  contactEyebrow: 'Contacto',
+  contactHeroTitle: 'Contacte con AxisPoint',
+  contactHeroLead:
+    'Dirigido por los socios desde Houston, al servicio de propietarios en todo Texas. Díganos qué necesita y un socio lo lee.',
+  contactMetaTitle: 'Contacte con AxisPoint | AxisPoint Partners',
+  contactMetaDescription:
+    'Comuníquese directamente con AxisPoint desde Houston, Texas, con servicio a propietarios en todo el estado. Elija la vía que corresponda a su situación o escriba a info@axispoint.llc.',
+  contactPathwayPmAm: 'Administración de propiedades y gestión de activos',
+  contactPmMetaTitle: 'Solicitar una propuesta de administración | AxisPoint Partners',
+  contactPmMetaDescription:
+    'Envíe la propiedad, la situación actual de administración y el cambio que está considerando. Un socio lo lee y responde.',
+  contactAmMetaTitle:
+    'Solicitar una propuesta de administración con gestión de activos | AxisPoint Partners',
+  contactAmMetaDescription:
+    'Inicie la propuesta de administración con el interés en gestión de activos identificado, para que el trabajo operativo y la visión de la inversión los lleve el mismo equipo.',
+  contactIsMetaTitle: 'Consulta de servicios para inversionistas | AxisPoint Partners',
+  contactIsMetaDescription:
+    'Cuéntenos en qué punto del proceso se encuentra. Un socio responde con una lectura operativa y cómo sería la administración.',
+  contactGeneralMetaTitle: 'Contacte con AxisPoint | AxisPoint Partners',
+  contactGeneralMetaDescription:
+    'Díganos quién es y qué necesita. Lo dirigiremos al socio adecuado.',
+
+  fieldOptional: 'Opcional',
+
+  gatewayEmailPrefix: '¿Prefiere el correo? Escriba a',
+
+  ledgerChangePath: 'Cambiar de vía',
+  labelProperty: 'Propiedad',
+  labelPropertyEmpty: 'Tipo, ubicación y escala',
+  labelSituation: 'Situación',
+  labelSituationEmpty: 'Qué necesita cambiar',
+  labelContact: 'Contacto',
+  labelContactEmpty: 'Cómo damos seguimiento',
+  labelInvolvement: 'Participación',
+  labelPathway: 'Vía',
+  labelTopic: 'Tema',
+  labelFollowUpLanguage: 'Idioma de seguimiento',
+
+  confirmKickerProperty: 'Datos de la propiedad enviados',
+  confirmKickerInquiry: 'Consulta enviada',
+  confirmTitleProperty: 'Gracias, {name}. Tenemos los datos de su propiedad.',
+  confirmTitleInquiry: 'Gracias, {name}. Su consulta está con nosotros.',
+  confirmBodyProperty: 'Zachary o Ethaniel revisarán la información y darán seguimiento directamente.',
+  confirmBodyInquiry:
+    'Zachary o Ethaniel la revisarán y darán seguimiento directamente a {email}.',
+  confirmWhatYouSent: 'Lo que envió',
+  confirmScheduleCta: 'Programar una llamada de 30 minutos',
+  confirmWait: 'Prefiero esperar el seguimiento',
+  backToAxisPoint: 'Volver a AxisPoint',
+
+  scheduleKicker: 'Paso opcional',
+  scheduleTitle: 'Programar una llamada de 30 minutos',
+  scheduleLead:
+    'Los datos de su propiedad ya fueron enviados. Elija un horario solo si le resulta útil.',
+  scheduleSelectDate: 'Seleccione una fecha',
+  scheduleSelectTime: 'Seleccione una hora',
+  scheduleChooseDateFirst: 'Elija una fecha para ver los horarios.',
+  scheduleHowMeet: '¿Cómo prefiere que nos reunamos?',
+  scheduleSelectedLabel: 'Seleccionado',
+  scheduleSelectedSummary: '{day} a las {time}, {mode}',
+  scheduleSelectedEmpty: 'Elija una fecha, una hora y la forma de reunirse',
+  scheduleConfirm: 'Confirmar este horario',
+  scheduleBooking: 'Reservando',
+
+  scheduledKicker: 'Llamada confirmada',
+  scheduledTitle: 'Ya está en el calendario.',
+  labelWhen: 'Cuándo',
+  labelFormat: 'Formato',
+  labelLength: 'Duración',
+  labelWith: 'Con',
+  // "Central" names the firm's zone and is not translated: the instant is computed in
+  // America/Chicago regardless of the reader's language.
+  scheduledWhenValue: '{day}, {time} Central',
+  scheduledInviteNote:
+    'Se enviará una invitación de calendario a {email}. Responda a ella si necesita cambiar el horario.',
+  scheduledDevNote:
+    'Vista previa de desarrollo. El comando de reserva se ejecutó contra el simulador, así que no se creó ningún evento de calendario ni se envió ninguna invitación.',
+
+  skippedTitle: 'Sin llamada programada. No necesitamos nada más de usted.',
+  skippedBody:
+    'Los datos de su propiedad están con Zachary y Ethaniel, y lo contactarán en {email}. Todavía puede elegir un horario si le resulta útil.',
+
+  errorSummaryOne: 'Un campo necesita atención.',
+  errorSummaryTwo: 'Dos campos necesitan atención.',
+  errorSummaryMany: '{count} campos necesitan atención.',
+  errorSummaryFixInquiry:
+    'Corrija los campos marcados abajo y luego envíe la consulta de nuevo.',
+  errorSummaryFixProperty:
+    'Agregue su nombre completo y una dirección de correo a la que podamos responder, y luego envíe los datos de la propiedad de nuevo.',
+  failedTitleInquiry: 'No pudimos enviar su consulta.',
+  failedTitleProperty: 'No pudimos enviar los datos de su propiedad.',
+  failedBody:
+    'Sus respuestas siguen aquí. Inténtelo de nuevo o comuníquese directamente con AxisPoint.',
+  tryAgain: 'Intentar de nuevo',
+  unavailableTitle: 'El envío no está disponible en este momento.',
+  unavailableBody:
+    'No se envió nada. Sus respuestas siguen aquí y, mientras tanto, puede comunicarse directamente con AxisPoint.',
+  blockedBody:
+    'No se envió nada, y volver a intentarlo no ayudaría. Sus respuestas siguen aquí. Comuníquese directamente con AxisPoint.',
+  emailAxisPoint: 'Escribir a AxisPoint',
+
+  fieldFullName: 'Nombre completo',
+  fieldEmail: 'Correo electrónico',
+  fieldPhone: 'Teléfono',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: 'Agregue un número si prefiere una llamada directa.',
+  fieldCompanyOwnership: 'Empresa o grupo propietario',
+  fieldLanguageFollowUp: 'Idioma para el seguimiento',
+  followUpHelpChosen:
+    'Responderemos en {language} cuando haya un socio disponible, y en inglés en caso contrario.',
+  followUpHelpDefault: 'Déjelo así y respondemos en el idioma de esta página.',
+  sending: 'Enviando',
+  noDocuments: 'No hacen falta documentos en esta etapa.',
+
+  step1Title: 'Cuéntenos sobre su propiedad.',
+  step1Lead:
+    'Unos pocos datos nos ayudarán a entender qué posee, qué necesita cambiar y si AxisPoint es el socio operativo adecuado.',
+  step1SubTitle: '¿De qué estamos hablando?',
+  legendPropertyType: 'Tipo de propiedad',
+  legendPropertyScope: 'Alcance de la propiedad',
+  fieldLocation: '¿Dónde está ubicada la propiedad?',
+  fieldLocationPlaceholder: 'Ciudad o mercado',
+  fieldLocationHelp:
+    'Por ahora basta con la ciudad o el mercado. No hace falta la dirección exacta.',
+  fieldPropertyCount: 'Número de propiedades',
+  fieldPropertyCountPlaceholder: 'Por ejemplo 6',
+  notSure: 'No estoy seguro',
+  continueLabel: 'Continuar',
+  step1Footer: 'Paso 1 de 3. Unos 60 a 90 segundos en total.',
+
+  step2Title: '¿Qué necesita cambiar?',
+  legendCurrentSituation: 'Situación actual',
+  legendInvolvement: '¿Dónde le gustaría que participe AxisPoint?',
+  fieldTiming: 'Plazo',
+  fieldTimingPlaceholder: 'Seleccione un plazo',
+  fieldUnderstand: '¿Qué deberíamos saber antes de hablar?',
+  fieldUnderstandPlaceholder:
+    'Cualquier cosa sobre la propiedad, el administrador actual o el plazo',
+  backLabel: 'Atrás',
+
+  step3Title: '¿Cómo damos seguimiento?',
+  privacyNote:
+    'AxisPoint usará esta información para revisar su consulta y darle seguimiento directamente.',
+  sendPropertyDetails: 'Enviar los datos de la propiedad',
 };

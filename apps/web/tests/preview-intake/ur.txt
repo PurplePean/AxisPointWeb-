@@ -1,0 +1,640 @@
+ur intake and booking review
+Model-generated audit candidate unless the locale is English. Not reviewed, not approved.
+Placeholders are substituted with sample values; proper nouns are intentionally untranslated.
+
+========================================================================
+STATE: gateway
+========================================================================
+
+رابطہ
+AxisPoint سے رابطہ کریں
+ہیوسٹن سے شراکت داروں کی قیادت میں، پورے ٹیکساس کے مالکان کی خدمت۔ بتائیں آپ کو کیا درکار ہے اور ایک شراکت دار اسے پڑھتا ہے۔
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+آپ کس بارے میں بات کرنا چاہیں گے؟
+وہ راستہ منتخب کریں جو آپ کی صورتحال سے سب سے زیادہ مطابقت رکھتا ہو۔ آپ بعد میں اسے تبدیل کر سکتے ہیں۔
+زیادہ تر مالکان یہیں سے شروع کرتے ہیں
+جائیداد کے مالک
+میں ایک جائیداد کا مالک ہوں یا اس کی نگرانی کرتا ہوں اور مجھے انتظام کی ضرورت ہے۔
+جائیداد کی تفصیلات شروع کریں
+→
+اثاثہ جات کا انتظام
+→
+میرے پاس جائیداد ہے اور مجھے حکمت عملی، کارکردگی اور رپورٹنگ کی رہنمائی میں مدد چاہیے۔
+سرمایہ کاروں کے لیے خدمات
+→
+میں تجارتی جائیداد خریدنے کی تیاری کر رہا ہوں اور مجھے ایک آپریٹنگ ٹیم چاہیے۔
+عمومی استفسار
+→
+کچھ اور۔ وینڈرز، پریس، ملازمت یا کوئی سوال۔
+ای میل زیادہ پسند ہے؟ لکھیں info@axispoint.llc
+
+========================================================================
+STATE: proposal-step1
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+اپنی جائیداد کے بارے میں بتائیں۔
+چند تفصیلات ہمیں سمجھنے میں مدد دیں گی کہ آپ کے پاس کیا ہے، کیا تبدیل ہونا چاہیے، اور کیا AxisPoint درست آپریٹنگ شراکت دار ہے۔
+ہم کس بارے میں بات کر رہے ہیں؟
+جائیداد کی قسم
+کثیر خاندانی
+ریٹیل
+مخلوط پورٹ فولیو
+کسی اور قسم کی جائیداد
+جائیداد کا دائرہ
+ایک جائیداد
+پورٹ فولیو
+جائیداد کہاں واقع ہے؟
+فی الحال شہر یا مارکیٹ کافی ہے۔ مکمل پتہ درکار نہیں۔
+تخمینی حجم
+یقین نہیں
+اوپر جائیداد کی قسم منتخب کریں، یہ خود درست پیمانے کے مطابق ہو جائے گا۔
+جاری رکھیں
+→
+مرحلہ 1 از 3۔ مجموعی طور پر تقریباً 60 سے 90 سیکنڈ۔
+
+========================================================================
+STATE: proposal-step2
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+کیا تبدیل ہونا چاہیے؟
+موجودہ صورتحال
+موجودہ انتظام تبدیل کرنا
+خود انتظام سے ہٹنا
+حال ہی میں خریدی گئی یا معاہدے کے تحت
+ابتدائی کرایہ داری یا کارکردگی میں بہتری
+آپریشنز یا رپورٹنگ کے مسائل
+انتظامی اختیارات دیکھ رہے ہیں
+کچھ اور
+آپ AxisPoint کی شمولیت کہاں چاہیں گے؟
+جائیداد کا انتظام
+جائیداد کو روزمرہ کی بنیاد پر چلانا۔
+جائیداد کا انتظام + اثاثہ جات کا انتظام
+جائیداد چلانا اور سرمایہ کاری کی حکمت عملی طے کرنے میں مدد کرنا۔
+یقین نہیں
+مناسب سطح طے کرنے میں میری مدد کریں۔
+وقت
+ایک مدت منتخب کریں
+فوری طور پر
+30 دن کے اندر
+30 سے 60 دن
+60 سے 90 دن
+ابھی غور کر رہے ہیں
+بات کرنے سے پہلے ہمیں کیا سمجھ لینا چاہیے؟ اختیاری
+←
+واپس
+جاری رکھیں
+→
+
+========================================================================
+STATE: proposal-step3
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+ہم کیسے رابطہ کریں؟
+پورا نام
+آپ چاہتے ہیں کہ ہم آپ کو کس نام سے مخاطب کریں۔
+ای میل
+جہاں ہم اپنا جواب اور آگے کی تفصیلات بھیجیں گے۔
+فون اختیاری
+براہ راست کال پسند ہو تو ایک نمبر شامل کریں۔
+کمپنی یا ملکیتی گروپ اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+AxisPoint اس معلومات کو آپ کے استفسار کا جائزہ لینے اور براہ راست آپ سے رابطہ کرنے کے لیے استعمال کرے گا۔
+←
+واپس
+جائیداد کی تفصیلات بھیجیں
+
+========================================================================
+STATE: proposal-step3-invalid
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+ہم کیسے رابطہ کریں؟
+!
+دو خانوں پر توجہ درکار ہے۔ اپنا پورا نام اور ایک ای میل پتہ شامل کریں جس پر ہم جواب دے سکیں، پھر جائیداد کی تفصیلات دوبارہ بھیجیں۔
+پورا نام
+!
+وہ نام درج کریں جو ہمیں کال کرتے وقت پوچھنا چاہیے۔
+ای میل
+!
+اس پتے میں @ نشان کے بعد کا حصہ موجود نہیں۔ مکمل پتہ درج کریں، مثال کے طور پر name@company.com۔
+فون اختیاری
+براہ راست کال پسند ہو تو ایک نمبر شامل کریں۔
+کمپنی یا ملکیتی گروپ اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+AxisPoint اس معلومات کو آپ کے استفسار کا جائزہ لینے اور براہ راست آپ سے رابطہ کرنے کے لیے استعمال کرے گا۔
+←
+واپس
+جائیداد کی تفصیلات بھیجیں
+
+========================================================================
+STATE: proposal-step3-sending
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+ہم کیسے رابطہ کریں؟
+پورا نام
+آپ چاہتے ہیں کہ ہم آپ کو کس نام سے مخاطب کریں۔
+ای میل
+جہاں ہم اپنا جواب اور آگے کی تفصیلات بھیجیں گے۔
+فون اختیاری
+براہ راست کال پسند ہو تو ایک نمبر شامل کریں۔
+کمپنی یا ملکیتی گروپ اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+AxisPoint اس معلومات کو آپ کے استفسار کا جائزہ لینے اور براہ راست آپ سے رابطہ کرنے کے لیے استعمال کرے گا۔
+←
+واپس
+بھیجا جا رہا ہے
+
+========================================================================
+STATE: proposal-step3-failed
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+جائیداد کا انتظام
+راستہ تبدیل کریں
+01
+جائیداد
+قسم، مقام اور حجم
+02
+صورتحال
+کیا تبدیل ہونا چاہیے
+03
+رابطہ
+ہم کیسے رابطہ کریں
+ہم کیسے رابطہ کریں؟
+!
+ہم آپ کی جائیداد کی تفصیلات نہ بھیج سکے۔ Your answers are still here. Try again or contact AxisPoint directly.
+Try again
+→
+info@axispoint.llc
+پورا نام
+آپ چاہتے ہیں کہ ہم آپ کو کس نام سے مخاطب کریں۔
+ای میل
+جہاں ہم اپنا جواب اور آگے کی تفصیلات بھیجیں گے۔
+فون اختیاری
+براہ راست کال پسند ہو تو ایک نمبر شامل کریں۔
+کمپنی یا ملکیتی گروپ اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+AxisPoint اس معلومات کو آپ کے استفسار کا جائزہ لینے اور براہ راست آپ سے رابطہ کرنے کے لیے استعمال کرے گا۔
+←
+واپس
+جائیداد کی تفصیلات بھیجیں
+
+========================================================================
+STATE: short-investor
+========================================================================
+
+رابطہ
+سرمایہ کاروں کے لیے خدمات
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+سرمایہ کاروں کے لیے خدمات
+راستہ تبدیل کریں
+بتائیں کہ آپ اس عمل میں کہاں ہیں۔
+شروع کرنے کے لیے ایک مختصر نوٹ کافی ہے۔ گفتگو طے کرنے کے لیے ہم رابطہ کریں گے۔
+آپ اس عمل میں کہاں ہیں؟
+ایک منتخب کریں
+اپنی پہلی خریداری پر غور کر رہا ہوں
+اس وقت معاہدے کے تحت
+فعال طور پر تلاش کر رہے ہیں
+جائیداد موجود ہے، آپریٹنگ ٹیم چاہیے
+کچھ اور
+پورا نام
+آپ چاہتے ہیں کہ ہم آپ کو کس نام سے مخاطب کریں۔
+ای میل
+جہاں ہم اپنا جواب اور آگے کی تفصیلات بھیجیں گے۔
+فون اختیاری
+کمپنی اختیاری
+آپ کس چیز پر غور کر رہے ہیں؟ اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+استفسار بھیجیں
+اس مرحلے پر کسی دستاویز کی ضرورت نہیں۔
+
+========================================================================
+STATE: short-general
+========================================================================
+
+رابطہ
+عمومی استفسار
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+عمومی استفسار
+راستہ تبدیل کریں
+ہم کس چیز میں مدد کر سکتے ہیں؟
+بتائیں کہ آپ کون ہیں اور آپ کو کیا چاہیے۔ ہم اسے مناسب پارٹنر تک پہنچائیں گے۔
+یہ کس بارے میں ہے؟
+ایک منتخب کریں
+AxisPoint کے بارے میں ایک سوال
+وینڈر یا سروس فراہم کنندہ
+ملازمت
+پریس یا میڈیا
+کچھ اور
+پورا نام
+آپ چاہتے ہیں کہ ہم آپ کو کس نام سے مخاطب کریں۔
+ای میل
+جہاں ہم اپنا جواب اور آگے کی تفصیلات بھیجیں گے۔
+فون اختیاری
+کمپنی اختیاری
+آپ کا پیغام اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+استفسار بھیجیں
+اس مرحلے پر کسی دستاویز کی ضرورت نہیں۔
+
+========================================================================
+STATE: short-invalid
+========================================================================
+
+رابطہ
+عمومی استفسار
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+عمومی استفسار
+راستہ تبدیل کریں
+ہم کس چیز میں مدد کر سکتے ہیں؟
+بتائیں کہ آپ کون ہیں اور آپ کو کیا چاہیے۔ ہم اسے مناسب پارٹنر تک پہنچائیں گے۔
+!
+3 خانوں پر توجہ درکار ہے۔ نیچے نشان زد خانے درست کریں، پھر استفسار دوبارہ بھیجیں۔
+یہ کس بارے میں ہے؟
+ایک منتخب کریں
+AxisPoint کے بارے میں ایک سوال
+وینڈر یا سروس فراہم کنندہ
+ملازمت
+پریس یا میڈیا
+کچھ اور
+!
+وہ اختیار منتخب کریں جو آپ کے استفسار کو بہترین طور پر بیان کرتا ہو۔
+پورا نام
+!
+وہ نام درج کریں جو ہمیں کال کرتے وقت پوچھنا چاہیے۔
+ای میل
+!
+اس پتے میں @ نشان کے بعد کا حصہ موجود نہیں۔ مکمل پتہ درج کریں، مثال کے طور پر name@company.com۔
+فون اختیاری
+کمپنی اختیاری
+آپ کا پیغام اختیاری
+رابطے کے لیے زبان اختیاری
+اسی صفحے کی طرح، اردو
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+اسے ویسا ہی رہنے دیں، ہم اس صفحے کی زبان میں جواب دیں گے۔
+استفسار بھیجیں
+اس مرحلے پر کسی دستاویز کی ضرورت نہیں۔
+
+========================================================================
+STATE: confirmation-pm
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+جائیداد کی تفصیلات بھیج دی گئیں
+شکریہ، there۔ ہمیں آپ کی جائیداد کی تفصیلات مل گئی ہیں۔
+Zachary یا Ethaniel معلومات دیکھ کر براہ راست رابطہ کریں گے۔
+آپ نے کیا بھیجا
+جائیداد
+بیان نہیں کیا گیا
+صورتحال
+بیان نہیں کیا گیا
+شمولیت
+بیان نہیں کیا گیا
+AxisPoint پر واپس
+
+========================================================================
+STATE: confirmation-short
+========================================================================
+
+رابطہ
+عمومی استفسار
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+استفسار بھیج دیا گیا
+شکریہ، there۔ آپ کا استفسار ہمارے پاس ہے۔
+Zachary یا Ethaniel اسے دیکھ کر براہ راست your email پر رابطہ کریں گے۔
+آپ نے کیا بھیجا
+راستہ
+عمومی استفسار
+موضوع
+بیان نہیں کیا گیا
+رابطے کی زبان
+English
+AxisPoint پر واپس
+
+========================================================================
+STATE: booking-picker
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+اختیاری اگلا قدم
+30 منٹ کی کال طے کریں
+آپ کی جائیداد کی تفصیلات پہلے ہی بھیجی جا چکی ہیں۔ وقت صرف تب منتخب کریں جب یہ آپ کے لیے مفید ہو۔
+تاریخ منتخب کریں
+منگل، 11 اگست
+بدھ، 12 اگست
+جمعرات، 13 اگست
+جمعہ، 14 اگست
+پیر، 17 اگست
+منگل، 18 اگست
+بدھ، 19 اگست
+جمعرات، 20 اگست
+جمعہ، 21 اگست
+پیر، 24 اگست
+منگل، 25 اگست
+بدھ، 26 اگست
+جمعرات، 27 اگست
+جمعہ، 28 اگست
+پیر، 31 اگست
+منگل، 1 ستمبر
+بدھ، 2 ستمبر
+جمعرات، 3 ستمبر
+جمعہ، 4 ستمبر
+پیر، 7 ستمبر
+منگل، 8 ستمبر
+بدھ، 9 ستمبر
+جمعرات، 10 ستمبر
+جمعہ، 11 ستمبر
+پیر، 14 ستمبر
+منگل، 15 ستمبر
+بدھ، 16 ستمبر
+جمعرات، 17 ستمبر
+جمعہ، 18 ستمبر
+پیر، 21 ستمبر
+منگل، 22 ستمبر
+بدھ، 23 ستمبر
+جمعرات، 24 ستمبر
+جمعہ، 25 ستمبر
+پیر، 28 ستمبر
+منگل، 29 ستمبر
+بدھ، 30 ستمبر
+جمعرات، 1 اکتوبر
+جمعہ، 2 اکتوبر
+پیر، 5 اکتوبر
+منگل، 6 اکتوبر
+بدھ، 7 اکتوبر
+جمعرات، 8 اکتوبر
+جمعہ، 9 اکتوبر
+اوقات سینٹرل ٹائم، ہیوسٹن میں دکھائے گئے ہیں۔ دستیابی کی تصدیق بکنگ کے وقت ہوتی ہے۔
+وقت منتخب کریں
+اوقات دیکھنے کے لیے پہلے تاریخ منتخب کریں۔
+ہم کس طرح بات کریں؟
+فون کال
+ویڈیو میٹنگ
+منتخب شدہ
+تاریخ، وقت اور بات کرنے کا طریقہ منتخب کریں
+یہ وقت طے کریں
+→
+
+========================================================================
+STATE: booking-selected
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+اختیاری اگلا قدم
+30 منٹ کی کال طے کریں
+آپ کی جائیداد کی تفصیلات پہلے ہی بھیجی جا چکی ہیں۔ وقت صرف تب منتخب کریں جب یہ آپ کے لیے مفید ہو۔
+تاریخ منتخب کریں
+منگل، 11 اگست
+بدھ، 12 اگست
+جمعرات، 13 اگست
+جمعہ، 14 اگست
+پیر، 17 اگست
+منگل، 18 اگست
+بدھ، 19 اگست
+جمعرات، 20 اگست
+جمعہ، 21 اگست
+پیر، 24 اگست
+منگل، 25 اگست
+بدھ، 26 اگست
+جمعرات، 27 اگست
+جمعہ، 28 اگست
+پیر، 31 اگست
+منگل، 1 ستمبر
+بدھ، 2 ستمبر
+جمعرات، 3 ستمبر
+جمعہ، 4 ستمبر
+پیر، 7 ستمبر
+منگل، 8 ستمبر
+بدھ، 9 ستمبر
+جمعرات، 10 ستمبر
+جمعہ، 11 ستمبر
+پیر، 14 ستمبر
+منگل، 15 ستمبر
+بدھ، 16 ستمبر
+جمعرات، 17 ستمبر
+جمعہ، 18 ستمبر
+پیر، 21 ستمبر
+منگل، 22 ستمبر
+بدھ، 23 ستمبر
+جمعرات، 24 ستمبر
+جمعہ، 25 ستمبر
+پیر، 28 ستمبر
+منگل، 29 ستمبر
+بدھ، 30 ستمبر
+جمعرات، 1 اکتوبر
+جمعہ، 2 اکتوبر
+پیر، 5 اکتوبر
+منگل، 6 اکتوبر
+بدھ، 7 اکتوبر
+جمعرات، 8 اکتوبر
+جمعہ، 9 اکتوبر
+اوقات سینٹرل ٹائم، ہیوسٹن میں دکھائے گئے ہیں۔ دستیابی کی تصدیق بکنگ کے وقت ہوتی ہے۔
+وقت منتخب کریں
+11:00 AM
+11:30 AM
+12:00 PM
+12:30 PM
+1:00 PM
+1:30 PM
+2:00 PM
+2:30 PM
+3:00 PM
+3:30 PM
+4:00 PM
+4:30 PM
+ہم کس طرح بات کریں؟
+فون کال
+ویڈیو میٹنگ
+منتخب شدہ
+منگل، 11 اگست کو 11:00 AM بجے، Phone call
+یہ وقت طے کریں
+→
+
+========================================================================
+STATE: booking-scheduled
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+کال طے ہو گئی
+آپ کیلنڈر میں شامل ہیں۔
+کب
+، Central
+طریقہ
+دورانیہ
+30 منٹ
+کس کے ساتھ
+AxisPoint Partners
+کیلنڈر کی دعوت your email پر جائے گی۔ وقت تبدیل کرنا ہو تو اسی کا جواب دیں۔
+ڈویلپمنٹ پیش نظارہ۔ بکنگ کمانڈ سمیولیٹر پر چلی، اس لیے کوئی کیلنڈر ایونٹ نہیں بنا اور کوئی دعوت نہیں بھیجی گئی۔
+Back to AxisPoint
+
+========================================================================
+STATE: booking-skipped
+========================================================================
+
+رابطہ
+جائیداد کا انتظام
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+جائیداد کی تفصیلات بھیج دی گئیں
+کوئی کال طے نہیں ہوئی۔ آپ سے مزید کچھ درکار نہیں۔
+آپ کی جائیداد کی تفصیلات Zachary اور Ethaniel کے پاس ہیں، اور وہ your email پر آپ سے رابطہ کریں گے۔ بعد میں مفید لگے تو آپ اب بھی وقت منتخب کر سکتے ہیں۔
+30 منٹ کی کال طے کریں
+→
+AxisPoint پر واپس

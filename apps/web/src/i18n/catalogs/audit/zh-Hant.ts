@@ -340,4 +340,139 @@ export const ZH_HANT: Partial<Messages> = {
     '兩位合夥人都會持續跟進自己接手的物業。業主直接與做決定的人對話，而不是與安排在前面的一層人往來。',
   partnersClosingTitle: '就您的物業與合夥人談一談。',
   partnersClosingBody: '請提供物業狀況與現況。閱讀它的合夥人，就是將來為它負責的人。',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Taiwan vocabulary, not a conversion of ./zh-Hans.ts: 選單/預約/資訊/專案 and 休士頓.
+   * Display text only; stored values stay stable snake_case tokens. Placeholders
+   * {name} {email} {count} {day} {time} {mode} {language} must survive exactly. */
+
+  contactEyebrow: '聯絡我們',
+  contactHeroTitle: '聯絡 AxisPoint',
+  contactHeroLead:
+    '由合夥人於休士頓主持，服務德克薩斯州各地的業主。請告訴我們您的需求，會有一位合夥人閱讀。',
+  contactMetaTitle: '聯絡 AxisPoint | AxisPoint Partners',
+  contactMetaDescription:
+    '從德克薩斯州休士頓直接聯絡 AxisPoint，服務全州業主。請選擇符合您情況的方向，或來信 info@axispoint.llc。',
+  contactPathwayPmAm: '物業管理與資產管理',
+  contactPmMetaTitle: '申請物業管理方案 | AxisPoint Partners',
+  contactPmMetaDescription:
+    '請提供物業狀況、目前的管理情形，以及您正在考慮的調整。會有一位合夥人閱讀並回覆。',
+  contactAmMetaTitle: '申請含資產管理的物業管理方案 | AxisPoint Partners',
+  contactAmMetaDescription:
+    '提交物業管理方案時一併說明資產管理需求，讓營運工作與投資視角由同一支團隊負責。',
+  contactIsMetaTitle: '投資者服務諮詢 | AxisPoint Partners',
+  contactIsMetaDescription:
+    '請告訴我們您目前處於哪個階段。會有一位合夥人回覆營運層面的判斷，以及管理方案大致的樣貌。',
+  contactGeneralMetaTitle: '聯絡 AxisPoint | AxisPoint Partners',
+  contactGeneralMetaDescription: '請告訴我們您的身分和需求。我們會轉交給合適的合夥人。',
+
+  fieldOptional: '選填',
+
+  gatewayEmailPrefix: '習慣用電子郵件？請來信',
+
+  ledgerChangePath: '更換方向',
+  labelProperty: '物業',
+  labelPropertyEmpty: '類型、位置與規模',
+  labelSituation: '狀況',
+  labelSituationEmpty: '需要改變什麼',
+  labelContact: '聯絡方式',
+  labelContactEmpty: '我們如何跟進',
+  labelInvolvement: '參與程度',
+  labelPathway: '路徑',
+  labelTopic: '主題',
+  labelFollowUpLanguage: '跟進語言',
+
+  confirmKickerProperty: '物業資料已送出',
+  confirmKickerInquiry: '諮詢已送出',
+  confirmTitleProperty: '謝謝您，{name}。我們已收到您的物業資料。',
+  confirmTitleInquiry: '謝謝您，{name}。您的諮詢已在我們這裡。',
+  confirmBodyProperty: 'Zachary 或 Ethaniel 會檢視這些資料並直接跟進。',
+  confirmBodyInquiry: 'Zachary 或 Ethaniel 會檢視並直接透過 {email} 與您聯絡。',
+  confirmWhatYouSent: '您送出的內容',
+  confirmScheduleCta: '預約 30 分鐘通話',
+  confirmWait: '我等待後續聯絡',
+  backToAxisPoint: '返回 AxisPoint',
+
+  scheduleKicker: '選擇性的下一步',
+  scheduleTitle: '預約 30 分鐘通話',
+  scheduleLead: '您的物業資料已經送出。只有在對您有用時才需要選擇時間。',
+  scheduleSelectDate: '選擇日期',
+  scheduleSelectTime: '選擇時間',
+  scheduleChooseDateFirst: '請先選擇日期以檢視時段。',
+  scheduleHowMeet: '您希望以何種方式洽談？',
+  scheduleSelectedLabel: '已選擇',
+  scheduleSelectedSummary: '{day} {time}，{mode}',
+  scheduleSelectedEmpty: '請選擇日期、時間與洽談方式',
+  scheduleConfirm: '確認此時間',
+  scheduleBooking: '預約中',
+
+  scheduledKicker: '通話已確認',
+  scheduledTitle: '已排入行事曆。',
+  labelWhen: '時間',
+  labelFormat: '形式',
+  labelLength: '長度',
+  labelWith: '對象',
+  // 「Central」指公司所在時區，不作翻譯：無論讀者使用哪種語言，時間都以 America/Chicago 計算。
+  scheduledWhenValue: '{day}，{time} Central',
+  scheduledInviteNote: '行事曆邀請將寄至 {email}。如需更改時間，請直接回覆該邀請。',
+  scheduledDevNote:
+    '開發預覽。預約指令是對模擬器執行的，因此沒有建立任何行事曆事件，也沒有寄出任何邀請。',
+
+  skippedTitle: '未預約通話。您不需要再做任何事。',
+  skippedBody:
+    '您的物業資料已交給 Zachary 與 Ethaniel，他們會透過 {email} 與您聯絡。日後若有需要，您仍可以選擇時間。',
+
+  errorSummaryOne: '有 1 項需要處理。',
+  errorSummaryTwo: '有 2 項需要處理。',
+  errorSummaryMany: '有 {count} 項需要處理。',
+  errorSummaryFixInquiry: '請修改下方標示的內容，然後重新送出諮詢。',
+  errorSummaryFixProperty: '請填寫您的姓名與我們可以回覆的電子郵件地址，然後重新送出物業資料。',
+  failedTitleInquiry: '我們無法送出您的諮詢。',
+  failedTitleProperty: '我們無法送出您的物業資料。',
+  failedBody: '您填寫的內容仍然保留。請重試，或直接聯絡 AxisPoint。',
+  tryAgain: '重試',
+  unavailableTitle: '目前無法送出。',
+  unavailableBody: '未送出任何內容。您填寫的內容仍然保留，在此期間可以直接聯絡 AxisPoint。',
+  blockedBody: '未送出任何內容，重試也不會有幫助。您填寫的內容仍然保留。請直接聯絡 AxisPoint。',
+  emailAxisPoint: '寄信給 AxisPoint',
+
+  fieldFullName: '姓名',
+  fieldEmail: '電子郵件',
+  fieldPhone: '電話',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: '如果您比較希望直接通話，請留下電話號碼。',
+  fieldCompanyOwnership: '公司或產權方',
+  fieldLanguageFollowUp: '跟進使用的語言',
+  followUpHelpChosen: '在有合夥人可以配合時，我們會用{language}回覆，否則使用英文。',
+  followUpHelpDefault: '保持不變，我們會以本頁面的語言回覆。',
+  sending: '送出中',
+  noDocuments: '此階段不需要提供任何文件。',
+
+  step1Title: '請介紹一下您的物業。',
+  step1Lead:
+    '幾項基本資料可以幫助我們了解您擁有什麼、需要改變什麼，以及 AxisPoint 是否是合適的營運夥伴。',
+  step1SubTitle: '我們要談的是什麼？',
+  legendPropertyType: '物業類型',
+  legendPropertyScope: '物業範圍',
+  fieldLocation: '物業位於何處？',
+  fieldLocationPlaceholder: '城市或區域市場',
+  fieldLocationHelp: '目前填寫城市或區域市場即可，不需要詳細地址。',
+  fieldPropertyCount: '物業數量',
+  fieldPropertyCountPlaceholder: '例如 6',
+  notSure: '尚不確定',
+  continueLabel: '繼續',
+  step1Footer: '第 1 步，共 3 步。全部約需 60 至 90 秒。',
+
+  step2Title: '需要改變什麼？',
+  legendCurrentSituation: '目前的狀況',
+  legendInvolvement: '您希望 AxisPoint 參與到哪一層？',
+  fieldTiming: '時間安排',
+  fieldTimingPlaceholder: '請選擇時間範圍',
+  fieldUnderstand: '在洽談之前，我們還應了解什麼？',
+  fieldUnderstandPlaceholder: '關於物業、現有管理方或時間安排的任何情況',
+  backLabel: '返回',
+
+  step3Title: '我們該如何跟進？',
+  privacyNote: 'AxisPoint 會使用這些資料來了解您的諮詢，並直接與您聯絡。',
+  sendPropertyDetails: '送出物業資料',
 };

@@ -337,4 +337,138 @@ export const ZH_HANS: Partial<Messages> = {
     '两位合伙人都会持续跟进自己接手的物业。业主直接与做决定的人对话，而不是与安排在前面的一层人对接。',
   partnersClosingTitle: '就您的物业与合伙人聊一聊。',
   partnersClosingBody: '请提供物业情况和现状。阅读它的合伙人，就是将来为它负责的人。',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Display text only. Stored values remain stable snake_case tokens. Placeholders
+   * {name} {email} {count} {day} {time} {mode} {language} must survive exactly. */
+
+  contactEyebrow: '联系我们',
+  contactHeroTitle: '联系 AxisPoint',
+  contactHeroLead:
+    '由合伙人在休斯顿主理，服务德克萨斯州各地的业主。请告诉我们您的需求，会有一位合伙人阅读。',
+  contactMetaTitle: '联系 AxisPoint | AxisPoint Partners',
+  contactMetaDescription:
+    '从德克萨斯州休斯顿直接联系 AxisPoint，服务全州业主。选择符合您情况的方向，或写信至 info@axispoint.llc。',
+  contactPathwayPmAm: '物业管理与资产管理',
+  contactPmMetaTitle: '申请物业管理方案 | AxisPoint Partners',
+  contactPmMetaDescription:
+    '请提供物业情况、目前的管理状况，以及您正在考虑的调整。会有一位合伙人阅读并回复。',
+  contactAmMetaTitle: '申请含资产管理的物业管理方案 | AxisPoint Partners',
+  contactAmMetaDescription:
+    '在提交物业管理方案时一并说明资产管理需求，让运营工作和投资视角由同一支团队负责。',
+  contactIsMetaTitle: '投资者服务咨询 | AxisPoint Partners',
+  contactIsMetaDescription:
+    '请告诉我们您目前处于哪个阶段。会有一位合伙人回复运营层面的判断，以及管理方案大致的样子。',
+  contactGeneralMetaTitle: '联系 AxisPoint | AxisPoint Partners',
+  contactGeneralMetaDescription: '请告诉我们您的身份和需求。我们会转交给合适的合伙人。',
+
+  fieldOptional: '选填',
+
+  gatewayEmailPrefix: '更习惯用邮件？请写信至',
+
+  ledgerChangePath: '更换方向',
+  labelProperty: '物业',
+  labelPropertyEmpty: '类型、位置与规模',
+  labelSituation: '情况',
+  labelSituationEmpty: '需要改变什么',
+  labelContact: '联系方式',
+  labelContactEmpty: '我们如何跟进',
+  labelInvolvement: '参与程度',
+  labelPathway: '路径',
+  labelTopic: '主题',
+  labelFollowUpLanguage: '跟进语言',
+
+  confirmKickerProperty: '物业信息已提交',
+  confirmKickerInquiry: '咨询已提交',
+  confirmTitleProperty: '谢谢您，{name}。我们已收到您的物业信息。',
+  confirmTitleInquiry: '谢谢您，{name}。您的咨询已在我们这里。',
+  confirmBodyProperty: 'Zachary 或 Ethaniel 会查看这些信息并直接跟进。',
+  confirmBodyInquiry: 'Zachary 或 Ethaniel 会查看并直接通过 {email} 与您联系。',
+  confirmWhatYouSent: '您提交的内容',
+  confirmScheduleCta: '预约 30 分钟通话',
+  confirmWait: '我等待后续联系',
+  backToAxisPoint: '返回 AxisPoint',
+
+  scheduleKicker: '可选的下一步',
+  scheduleTitle: '预约 30 分钟通话',
+  scheduleLead: '您的物业信息已经提交。只有在对您有用时才需要选择时间。',
+  scheduleSelectDate: '选择日期',
+  scheduleSelectTime: '选择时间',
+  scheduleChooseDateFirst: '请先选择日期以查看时间。',
+  scheduleHowMeet: '您希望以何种方式沟通？',
+  scheduleSelectedLabel: '已选择',
+  scheduleSelectedSummary: '{day} {time}，{mode}',
+  scheduleSelectedEmpty: '请选择日期、时间和沟通方式',
+  scheduleConfirm: '确认此时间',
+  scheduleBooking: '预约中',
+
+  scheduledKicker: '通话已确认',
+  scheduledTitle: '已列入日程。',
+  labelWhen: '时间',
+  labelFormat: '形式',
+  labelLength: '时长',
+  labelWith: '对方',
+  // "Central" 指公司所在时区，不作翻译：无论读者使用哪种语言，时间都按 America/Chicago 计算。
+  scheduledWhenValue: '{day}，{time} Central',
+  scheduledInviteNote: '日历邀请将发送至 {email}。如需更改时间，请直接回复该邀请。',
+  scheduledDevNote:
+    '开发预览。预约命令是对模拟器执行的，因此没有创建任何日历事件，也没有发送任何邀请。',
+
+  skippedTitle: '未预约通话。您无需再做任何事。',
+  skippedBody:
+    '您的物业信息已交给 Zachary 和 Ethaniel，他们会通过 {email} 与您联系。如果之后有需要，您仍可以选择时间。',
+
+  errorSummaryOne: '有 1 项需要处理。',
+  errorSummaryTwo: '有 2 项需要处理。',
+  errorSummaryMany: '有 {count} 项需要处理。',
+  errorSummaryFixInquiry: '请修改下方标记的内容，然后重新提交咨询。',
+  errorSummaryFixProperty: '请填写您的姓名和我们可以回复的邮箱地址，然后重新提交物业信息。',
+  failedTitleInquiry: '我们无法提交您的咨询。',
+  failedTitleProperty: '我们无法提交您的物业信息。',
+  failedBody: '您填写的内容仍然保留。请重试，或直接联系 AxisPoint。',
+  tryAgain: '重试',
+  unavailableTitle: '目前无法提交。',
+  unavailableBody: '未提交任何内容。您填写的内容仍然保留，在此期间可以直接联系 AxisPoint。',
+  blockedBody: '未提交任何内容，重试也不会有帮助。您填写的内容仍然保留。请直接联系 AxisPoint。',
+  emailAxisPoint: '发邮件给 AxisPoint',
+
+  fieldFullName: '姓名',
+  fieldEmail: '电子邮箱',
+  fieldPhone: '电话',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: '如果您更希望直接通话，请留下电话号码。',
+  fieldCompanyOwnership: '公司或产权方',
+  fieldLanguageFollowUp: '跟进使用的语言',
+  followUpHelpChosen: '在有合伙人可用时，我们会用{language}回复，否则使用英语。',
+  followUpHelpDefault: '保持不变，我们将使用本页面的语言回复。',
+  sending: '提交中',
+  noDocuments: '此阶段无需提供任何文件。',
+
+  step1Title: '请介绍一下您的物业。',
+  step1Lead:
+    '几项基本信息可以帮助我们了解您拥有什么、需要改变什么，以及 AxisPoint 是否是合适的运营伙伴。',
+  step1SubTitle: '我们要讨论的是什么？',
+  legendPropertyType: '物业类型',
+  legendPropertyScope: '物业范围',
+  fieldLocation: '物业位于何处？',
+  fieldLocationPlaceholder: '城市或区域市场',
+  fieldLocationHelp: '目前填写城市或区域市场即可，无需详细地址。',
+  fieldPropertyCount: '物业数量',
+  fieldPropertyCountPlaceholder: '例如 6',
+  notSure: '尚不确定',
+  continueLabel: '继续',
+  step1Footer: '第 1 步，共 3 步。全部约需 60 至 90 秒。',
+
+  step2Title: '需要改变什么？',
+  legendCurrentSituation: '目前的情况',
+  legendInvolvement: '您希望 AxisPoint 参与到哪一层？',
+  fieldTiming: '时间安排',
+  fieldTimingPlaceholder: '请选择时间范围',
+  fieldUnderstand: '在沟通之前，我们还应了解什么？',
+  fieldUnderstandPlaceholder: '关于物业、现有管理方或时间安排的任何情况',
+  backLabel: '返回',
+
+  step3Title: '我们该如何跟进？',
+  privacyNote: 'AxisPoint 将使用这些信息来了解您的咨询，并直接与您联系。',
+  sendPropertyDetails: '提交物业信息',
 };

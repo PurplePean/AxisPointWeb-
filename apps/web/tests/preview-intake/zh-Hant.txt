@@ -1,0 +1,640 @@
+zh-Hant intake and booking review
+Model-generated audit candidate unless the locale is English. Not reviewed, not approved.
+Placeholders are substituted with sample values; proper nouns are intentionally untranslated.
+
+========================================================================
+STATE: gateway
+========================================================================
+
+聯絡我們
+聯絡 AxisPoint
+由合夥人於休士頓主持，服務德克薩斯州各地的業主。請告訴我們您的需求，會有一位合夥人閱讀。
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+您想諮詢哪方面的事務？
+請選擇最符合您情況的方向。之後仍可變更。
+多數業主從這裡開始
+物業業主
+我擁有或負責一處物業，需要管理服務。
+開始填寫物業資料
+→
+資產管理
+→
+我擁有物業，希望有人協助制定策略、提升表現並提供報告。
+投資者服務
+→
+我正準備收購商業地產，需要一支營運團隊。
+一般諮詢
+→
+其他事務。供應商、媒體、招聘或其他問題。
+習慣用電子郵件？請來信 info@axispoint.llc
+
+========================================================================
+STATE: proposal-step1
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+請介紹一下您的物業。
+幾項基本資料可以幫助我們了解您擁有什麼、需要改變什麼，以及 AxisPoint 是否是合適的營運夥伴。
+我們要談的是什麼？
+物業類型
+多戶住宅
+零售物業
+混合型投資組合
+其他物業類型
+物業範圍
+單一物業
+投資組合
+物業位於何處？
+目前填寫城市或區域市場即可，不需要詳細地址。
+大致規模
+尚不確定
+在上方選擇物業類型，此處會自動調整為對應的計量方式。
+繼續
+→
+第 1 步，共 3 步。全部約需 60 至 90 秒。
+
+========================================================================
+STATE: proposal-step2
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+需要改變什麼？
+目前的狀況
+更換現有管理方
+不再自行管理
+近期收購或正在簽約
+招租期或扭轉經營
+營運或報告方面的問題
+正在了解管理方案
+其他情況
+您希望 AxisPoint 參與到哪一層？
+物業管理
+負責物業的日常營運。
+物業管理 + 資產管理
+負責物業營運，並協助制定投資策略。
+尚不確定
+請協助我判斷合適的參與程度。
+時間安排
+請選擇時間範圍
+立即
+30 天內
+30 至 60 天
+60 至 90 天
+仍在考慮
+在洽談之前，我們還應了解什麼？ 選填
+←
+返回
+繼續
+→
+
+========================================================================
+STATE: proposal-step3
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+我們該如何跟進？
+姓名
+您希望我們如何稱呼您。
+電子郵件
+我們將把回覆和後續資訊寄送至此處。
+電話 選填
+如果您比較希望直接通話，請留下電話號碼。
+公司或產權方 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+AxisPoint 會使用這些資料來了解您的諮詢，並直接與您聯絡。
+←
+返回
+送出物業資料
+
+========================================================================
+STATE: proposal-step3-invalid
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+我們該如何跟進？
+!
+有 2 項需要處理。 請填寫您的姓名與我們可以回覆的電子郵件地址，然後重新送出物業資料。
+姓名
+!
+請填寫我們致電時應當詢問的姓名。
+電子郵件
+!
+此地址缺少 @ 符號後面的部分。請填寫完整地址，例如 name@company.com。
+電話 選填
+如果您比較希望直接通話，請留下電話號碼。
+公司或產權方 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+AxisPoint 會使用這些資料來了解您的諮詢，並直接與您聯絡。
+←
+返回
+送出物業資料
+
+========================================================================
+STATE: proposal-step3-sending
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+我們該如何跟進？
+姓名
+您希望我們如何稱呼您。
+電子郵件
+我們將把回覆和後續資訊寄送至此處。
+電話 選填
+如果您比較希望直接通話，請留下電話號碼。
+公司或產權方 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+AxisPoint 會使用這些資料來了解您的諮詢，並直接與您聯絡。
+←
+返回
+送出中
+
+========================================================================
+STATE: proposal-step3-failed
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+物業管理
+更換方向
+01
+物業
+類型、位置與規模
+02
+狀況
+需要改變什麼
+03
+聯絡方式
+我們如何跟進
+我們該如何跟進？
+!
+我們無法送出您的物業資料。 Your answers are still here. Try again or contact AxisPoint directly.
+Try again
+→
+info@axispoint.llc
+姓名
+您希望我們如何稱呼您。
+電子郵件
+我們將把回覆和後續資訊寄送至此處。
+電話 選填
+如果您比較希望直接通話，請留下電話號碼。
+公司或產權方 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+AxisPoint 會使用這些資料來了解您的諮詢，並直接與您聯絡。
+←
+返回
+送出物業資料
+
+========================================================================
+STATE: short-investor
+========================================================================
+
+聯絡我們
+投資者服務
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+投資者服務
+更換方向
+請告訴我們您目前處於哪個階段。
+簡短說明即可開始。我們會跟進安排一次洽談。
+您目前處於哪個階段？
+請選擇一項
+正在考慮首次收購
+目前已簽約
+正在積極尋找
+已有物業，需要營運團隊
+其他情況
+姓名
+您希望我們如何稱呼您。
+電子郵件
+我們將把回覆和後續資訊寄送至此處。
+電話 選填
+公司 選填
+您在關注什麼？ 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+送出諮詢
+此階段不需要提供任何文件。
+
+========================================================================
+STATE: short-general
+========================================================================
+
+聯絡我們
+一般諮詢
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+一般諮詢
+更換方向
+我們能為您做什麼？
+請告訴我們您的身分和需求。我們會轉交給合適的合夥人。
+這是關於什麼的？
+請選擇一項
+關於 AxisPoint 的問題
+供應商或服務提供方
+招聘就業
+媒體或新聞
+其他情況
+姓名
+您希望我們如何稱呼您。
+電子郵件
+我們將把回覆和後續資訊寄送至此處。
+電話 選填
+公司 選填
+您的留言 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+送出諮詢
+此階段不需要提供任何文件。
+
+========================================================================
+STATE: short-invalid
+========================================================================
+
+聯絡我們
+一般諮詢
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+一般諮詢
+更換方向
+我們能為您做什麼？
+請告訴我們您的身分和需求。我們會轉交給合適的合夥人。
+!
+有 3 項需要處理。 請修改下方標示的內容，然後重新送出諮詢。
+這是關於什麼的？
+請選擇一項
+關於 AxisPoint 的問題
+供應商或服務提供方
+招聘就業
+媒體或新聞
+其他情況
+!
+請選擇最能說明您諮詢內容的選項。
+姓名
+!
+請填寫我們致電時應當詢問的姓名。
+電子郵件
+!
+此地址缺少 @ 符號後面的部分。請填寫完整地址，例如 name@company.com。
+電話 選填
+公司 選填
+您的留言 選填
+跟進使用的語言 選填
+與本頁相同，繁體中文
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+保持不變，我們會以本頁面的語言回覆。
+送出諮詢
+此階段不需要提供任何文件。
+
+========================================================================
+STATE: confirmation-pm
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+物業資料已送出
+謝謝您，there。我們已收到您的物業資料。
+Zachary 或 Ethaniel 會檢視這些資料並直接跟進。
+您送出的內容
+物業
+未填寫
+狀況
+未填寫
+參與程度
+未填寫
+返回 AxisPoint
+
+========================================================================
+STATE: confirmation-short
+========================================================================
+
+聯絡我們
+一般諮詢
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+諮詢已送出
+謝謝您，there。您的諮詢已在我們這裡。
+Zachary 或 Ethaniel 會檢視並直接透過 your email 與您聯絡。
+您送出的內容
+路徑
+一般諮詢
+主題
+未填寫
+跟進語言
+English
+返回 AxisPoint
+
+========================================================================
+STATE: booking-picker
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+選擇性的下一步
+預約 30 分鐘通話
+您的物業資料已經送出。只有在對您有用時才需要選擇時間。
+選擇日期
+8月11日星期二
+8月12日星期三
+8月13日星期四
+8月14日星期五
+8月17日星期一
+8月18日星期二
+8月19日星期三
+8月20日星期四
+8月21日星期五
+8月24日星期一
+8月25日星期二
+8月26日星期三
+8月27日星期四
+8月28日星期五
+8月31日星期一
+9月1日星期二
+9月2日星期三
+9月3日星期四
+9月4日星期五
+9月7日星期一
+9月8日星期二
+9月9日星期三
+9月10日星期四
+9月11日星期五
+9月14日星期一
+9月15日星期二
+9月16日星期三
+9月17日星期四
+9月18日星期五
+9月21日星期一
+9月22日星期二
+9月23日星期三
+9月24日星期四
+9月25日星期五
+9月28日星期一
+9月29日星期二
+9月30日星期三
+10月1日星期四
+10月2日星期五
+10月5日星期一
+10月6日星期二
+10月7日星期三
+10月8日星期四
+10月9日星期五
+時間以美國中部時間（休士頓）顯示。可預約時段於您預約時確認。
+選擇時間
+請先選擇日期以檢視時段。
+您希望以何種方式洽談？
+電話通話
+視訊會議
+已選擇
+請選擇日期、時間與洽談方式
+確認此時間
+→
+
+========================================================================
+STATE: booking-selected
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+選擇性的下一步
+預約 30 分鐘通話
+您的物業資料已經送出。只有在對您有用時才需要選擇時間。
+選擇日期
+8月11日星期二
+8月12日星期三
+8月13日星期四
+8月14日星期五
+8月17日星期一
+8月18日星期二
+8月19日星期三
+8月20日星期四
+8月21日星期五
+8月24日星期一
+8月25日星期二
+8月26日星期三
+8月27日星期四
+8月28日星期五
+8月31日星期一
+9月1日星期二
+9月2日星期三
+9月3日星期四
+9月4日星期五
+9月7日星期一
+9月8日星期二
+9月9日星期三
+9月10日星期四
+9月11日星期五
+9月14日星期一
+9月15日星期二
+9月16日星期三
+9月17日星期四
+9月18日星期五
+9月21日星期一
+9月22日星期二
+9月23日星期三
+9月24日星期四
+9月25日星期五
+9月28日星期一
+9月29日星期二
+9月30日星期三
+10月1日星期四
+10月2日星期五
+10月5日星期一
+10月6日星期二
+10月7日星期三
+10月8日星期四
+10月9日星期五
+時間以美國中部時間（休士頓）顯示。可預約時段於您預約時確認。
+選擇時間
+上午11:00
+上午11:30
+下午12:00
+下午12:30
+下午1:00
+下午1:30
+下午2:00
+下午2:30
+下午3:00
+下午3:30
+下午4:00
+下午4:30
+您希望以何種方式洽談？
+電話通話
+視訊會議
+已選擇
+8月11日星期二 上午11:00，Phone call
+確認此時間
+→
+
+========================================================================
+STATE: booking-scheduled
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+通話已確認
+已排入行事曆。
+時間
+， Central
+形式
+長度
+30 分鐘
+對象
+AxisPoint Partners
+行事曆邀請將寄至 your email。如需更改時間，請直接回覆該邀請。
+開發預覽。預約指令是對模擬器執行的，因此沒有建立任何行事曆事件，也沒有寄出任何邀請。
+Back to AxisPoint
+
+========================================================================
+STATE: booking-skipped
+========================================================================
+
+聯絡我們
+物業管理
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+物業資料已送出
+未預約通話。您不需要再做任何事。
+您的物業資料已交給 Zachary 與 Ethaniel，他們會透過 your email 與您聯絡。日後若有需要，您仍可以選擇時間。
+預約 30 分鐘通話
+→
+返回 AxisPoint

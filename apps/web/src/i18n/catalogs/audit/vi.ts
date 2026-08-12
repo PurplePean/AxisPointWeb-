@@ -367,4 +367,152 @@ export const VI: Partial<Messages> = {
   partnersClosingTitle: 'Trao đổi với một đối tác về bất động sản của quý vị.',
   partnersClosingBody:
     'Gửi bất động sản và tình huống. Đối tác đọc nó chính là người sẽ chịu trách nhiệm về nó.',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Display text only; stored values stay stable snake_case tokens. Placeholders
+   * {name} {email} {count} {day} {time} {mode} {language} must survive exactly. */
+
+  contactEyebrow: 'Liên hệ',
+  contactHeroTitle: 'Liên hệ AxisPoint',
+  contactHeroLead:
+    'Do các đối tác điều hành từ Houston, phục vụ chủ sở hữu trên khắp Texas. Hãy cho chúng tôi biết quý vị cần gì và một đối tác sẽ đọc.',
+  contactMetaTitle: 'Liên hệ AxisPoint | AxisPoint Partners',
+  contactMetaDescription:
+    'Liên hệ trực tiếp với AxisPoint từ Houston, Texas, phục vụ chủ sở hữu trên toàn bang. Hãy chọn hướng phù hợp với tình huống của quý vị, hoặc viết thư tới info@axispoint.llc.',
+  contactPathwayPmAm: 'Quản lý bất động sản và quản lý tài sản',
+  contactPmMetaTitle: 'Yêu cầu đề xuất quản lý | AxisPoint Partners',
+  contactPmMetaDescription:
+    'Gửi thông tin bất động sản, tình hình quản lý hiện tại và thay đổi quý vị đang cân nhắc. Một đối tác sẽ đọc và phản hồi.',
+  contactAmMetaTitle: 'Yêu cầu đề xuất quản lý kèm quản lý tài sản | AxisPoint Partners',
+  contactAmMetaDescription:
+    'Bắt đầu đề xuất quản lý với nhu cầu quản lý tài sản được nêu rõ, để công việc vận hành và góc nhìn đầu tư do cùng một đội ngũ đảm nhận.',
+  contactIsMetaTitle: 'Câu hỏi về dịch vụ cho nhà đầu tư | AxisPoint Partners',
+  contactIsMetaDescription:
+    'Hãy cho chúng tôi biết quý vị đang ở giai đoạn nào. Một đối tác sẽ phản hồi kèm đánh giá vận hành và hình dung về công tác quản lý.',
+  contactGeneralMetaTitle: 'Liên hệ AxisPoint | AxisPoint Partners',
+  contactGeneralMetaDescription:
+    'Hãy cho chúng tôi biết quý vị là ai và cần gì. Chúng tôi sẽ chuyển đến đúng đối tác.',
+
+  fieldOptional: 'Không bắt buộc',
+
+  gatewayEmailPrefix: 'Quý vị thích dùng email hơn? Hãy viết tới',
+
+  ledgerChangePath: 'Đổi hướng',
+  labelProperty: 'Bất động sản',
+  labelPropertyEmpty: 'Loại, vị trí và quy mô',
+  labelSituation: 'Tình huống',
+  labelSituationEmpty: 'Điều gì cần thay đổi',
+  labelContact: 'Liên hệ',
+  labelContactEmpty: 'Cách chúng tôi liên hệ lại',
+  labelInvolvement: 'Mức độ tham gia',
+  labelPathway: 'Hướng',
+  labelTopic: 'Chủ đề',
+  labelFollowUpLanguage: 'Ngôn ngữ liên hệ lại',
+
+  confirmKickerProperty: 'Đã gửi thông tin bất động sản',
+  confirmKickerInquiry: 'Đã gửi câu hỏi',
+  confirmTitleProperty: 'Cảm ơn {name}. Chúng tôi đã nhận thông tin bất động sản của quý vị.',
+  confirmTitleInquiry: 'Cảm ơn {name}. Câu hỏi của quý vị đã đến với chúng tôi.',
+  confirmBodyProperty: 'Zachary hoặc Ethaniel sẽ xem lại thông tin và liên hệ trực tiếp.',
+  confirmBodyInquiry: 'Zachary hoặc Ethaniel sẽ xem lại và liên hệ trực tiếp qua {email}.',
+  confirmWhatYouSent: 'Những gì quý vị đã gửi',
+  confirmScheduleCta: 'Đặt cuộc gọi 30 phút',
+  confirmWait: 'Tôi sẽ chờ liên hệ lại',
+  backToAxisPoint: 'Quay lại AxisPoint',
+
+  scheduleKicker: 'Bước tiếp theo không bắt buộc',
+  scheduleTitle: 'Đặt cuộc gọi 30 phút',
+  scheduleLead:
+    'Thông tin bất động sản của quý vị đã được gửi. Chỉ chọn giờ nếu điều đó hữu ích với quý vị.',
+  scheduleSelectDate: 'Chọn ngày',
+  scheduleSelectTime: 'Chọn giờ',
+  scheduleChooseDateFirst: 'Hãy chọn ngày để xem các khung giờ.',
+  scheduleHowMeet: 'Quý vị muốn trao đổi theo hình thức nào?',
+  scheduleSelectedLabel: 'Đã chọn',
+  scheduleSelectedSummary: '{day} lúc {time}, {mode}',
+  scheduleSelectedEmpty: 'Hãy chọn ngày, giờ và hình thức trao đổi',
+  scheduleConfirm: 'Xác nhận giờ này',
+  scheduleBooking: 'Đang đặt lịch',
+
+  scheduledKicker: 'Đã xác nhận cuộc gọi',
+  scheduledTitle: 'Quý vị đã có trong lịch.',
+  labelWhen: 'Thời gian',
+  labelFormat: 'Hình thức',
+  labelLength: 'Thời lượng',
+  labelWith: 'Với',
+  // "Central" là múi giờ của công ty và không được dịch: thời điểm luôn được tính theo
+  // America/Chicago, bất kể người đọc dùng ngôn ngữ nào.
+  scheduledWhenValue: '{day}, {time} Central',
+  scheduledInviteNote:
+    'Lời mời lịch sẽ được gửi tới {email}. Hãy trả lời lời mời đó nếu quý vị cần đổi giờ.',
+  scheduledDevNote:
+    'Bản xem trước dành cho phát triển. Lệnh đặt lịch chạy trên trình mô phỏng, nên không có sự kiện lịch nào được tạo và không có lời mời nào được gửi.',
+
+  skippedTitle: 'Chưa đặt cuộc gọi nào. Quý vị không cần làm gì thêm.',
+  skippedBody:
+    'Thông tin bất động sản của quý vị đang ở chỗ Zachary và Ethaniel, và họ sẽ liên hệ qua {email}. Quý vị vẫn có thể chọn giờ nếu sau này thấy cần.',
+
+  errorSummaryOne: 'Một mục cần được xem lại.',
+  errorSummaryTwo: 'Hai mục cần được xem lại.',
+  errorSummaryMany: '{count} mục cần được xem lại.',
+  errorSummaryFixInquiry:
+    'Hãy sửa các mục được đánh dấu bên dưới, rồi gửi lại câu hỏi.',
+  errorSummaryFixProperty:
+    'Hãy nhập họ tên và một địa chỉ email chúng tôi có thể phản hồi, rồi gửi lại thông tin bất động sản.',
+  failedTitleInquiry: 'Chúng tôi không gửi được câu hỏi của quý vị.',
+  failedTitleProperty: 'Chúng tôi không gửi được thông tin bất động sản của quý vị.',
+  failedBody:
+    'Các câu trả lời của quý vị vẫn còn đây. Hãy thử lại hoặc liên hệ trực tiếp với AxisPoint.',
+  tryAgain: 'Thử lại',
+  unavailableTitle: 'Hiện chưa thể gửi.',
+  unavailableBody:
+    'Chưa có gì được gửi. Các câu trả lời của quý vị vẫn còn đây, và trong lúc này quý vị có thể liên hệ trực tiếp với AxisPoint.',
+  blockedBody:
+    'Chưa có gì được gửi, và thử lại cũng không giúp ích. Các câu trả lời của quý vị vẫn còn đây. Hãy liên hệ trực tiếp với AxisPoint.',
+  emailAxisPoint: 'Gửi email cho AxisPoint',
+
+  fieldFullName: 'Họ và tên',
+  fieldEmail: 'Email',
+  fieldPhone: 'Điện thoại',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: 'Hãy để lại số nếu quý vị muốn được gọi trực tiếp.',
+  fieldCompanyOwnership: 'Công ty hoặc nhóm sở hữu',
+  fieldLanguageFollowUp: 'Ngôn ngữ khi liên hệ lại',
+  followUpHelpChosen:
+    'Chúng tôi sẽ trả lời bằng {language} khi có đối tác phù hợp, và bằng tiếng Anh trong các trường hợp khác.',
+  followUpHelpDefault:
+    'Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.',
+  sending: 'Đang gửi',
+  noDocuments: 'Chưa cần tài liệu nào ở giai đoạn này.',
+
+  step1Title: 'Hãy cho chúng tôi biết về bất động sản của quý vị.',
+  step1Lead:
+    'Một vài thông tin sẽ giúp chúng tôi hiểu quý vị đang sở hữu gì, điều gì cần thay đổi, và liệu AxisPoint có phải đối tác vận hành phù hợp hay không.',
+  step1SubTitle: 'Chúng ta đang nói về điều gì?',
+  legendPropertyType: 'Loại bất động sản',
+  legendPropertyScope: 'Phạm vi bất động sản',
+  fieldLocation: 'Bất động sản nằm ở đâu?',
+  fieldLocationPlaceholder: 'Thành phố hoặc thị trường',
+  fieldLocationHelp:
+    'Hiện tại chỉ cần thành phố hoặc thị trường. Không cần địa chỉ cụ thể.',
+  fieldPropertyCount: 'Số lượng bất động sản',
+  fieldPropertyCountPlaceholder: 'Ví dụ 6',
+  notSure: 'Chưa chắc',
+  continueLabel: 'Tiếp tục',
+  step1Footer: 'Bước 1 trên 3. Tổng cộng khoảng 60 đến 90 giây.',
+
+  step2Title: 'Điều gì cần thay đổi?',
+  legendCurrentSituation: 'Tình hình hiện tại',
+  legendInvolvement: 'Quý vị muốn AxisPoint tham gia ở mức nào?',
+  fieldTiming: 'Thời gian',
+  fieldTimingPlaceholder: 'Chọn khung thời gian',
+  fieldUnderstand: 'Chúng tôi nên biết điều gì trước khi trao đổi?',
+  fieldUnderstandPlaceholder:
+    'Bất cứ điều gì về bất động sản, đơn vị quản lý hiện tại hoặc thời gian',
+  backLabel: 'Quay lại',
+
+  step3Title: 'Chúng tôi nên liên hệ lại thế nào?',
+  privacyNote:
+    'AxisPoint sẽ dùng thông tin này để xem xét câu hỏi của quý vị và liên hệ trực tiếp.',
+  sendPropertyDetails: 'Gửi thông tin bất động sản',
 };

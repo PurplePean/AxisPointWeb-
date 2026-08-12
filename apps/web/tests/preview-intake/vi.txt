@@ -1,0 +1,640 @@
+vi intake and booking review
+Model-generated audit candidate unless the locale is English. Not reviewed, not approved.
+Placeholders are substituted with sample values; proper nouns are intentionally untranslated.
+
+========================================================================
+STATE: gateway
+========================================================================
+
+LIÊN HỆ
+Liên hệ AxisPoint
+Do các đối tác điều hành từ Houston, phục vụ chủ sở hữu trên khắp Texas. Hãy cho chúng tôi biết quý vị cần gì và một đối tác sẽ đọc.
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+Quý vị muốn trao đổi về điều gì?
+Hãy chọn hướng phù hợp nhất với tình huống của quý vị. Quý vị có thể thay đổi sau.
+PHẦN LỚN CHỦ SỞ HỮU BẮT ĐẦU TỪ ĐÂY
+Chủ sở hữu bất động sản
+Tôi sở hữu hoặc phụ trách một bất động sản và cần dịch vụ quản lý.
+Bắt đầu nhập thông tin bất động sản
+→
+Quản lý tài sản
+→
+Tôi sở hữu bất động sản và muốn được hỗ trợ định hướng chiến lược, hiệu quả hoạt động và báo cáo.
+Dịch vụ cho nhà đầu tư
+→
+Tôi đang chuẩn bị mua bất động sản thương mại và cần một đội ngũ vận hành.
+Câu hỏi chung
+→
+Việc khác. Nhà cung cấp, báo chí, tuyển dụng hoặc một câu hỏi.
+Quý vị thích dùng email hơn? Hãy viết tới info@axispoint.llc
+
+========================================================================
+STATE: proposal-step1
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Hãy cho chúng tôi biết về bất động sản của quý vị.
+Một vài thông tin sẽ giúp chúng tôi hiểu quý vị đang sở hữu gì, điều gì cần thay đổi, và liệu AxisPoint có phải đối tác vận hành phù hợp hay không.
+Chúng ta đang nói về điều gì?
+Loại bất động sản
+Nhà ở nhiều căn hộ
+Mặt bằng bán lẻ
+Danh mục hỗn hợp
+Loại bất động sản khác
+Phạm vi bất động sản
+Một bất động sản
+Danh mục đầu tư
+Bất động sản nằm ở đâu?
+Hiện tại chỉ cần thành phố hoặc thị trường. Không cần địa chỉ cụ thể.
+Quy mô ước tính
+Chưa chắc
+Chọn loại bất động sản ở trên và mục này sẽ chuyển sang đơn vị đo phù hợp.
+Tiếp tục
+→
+Bước 1 trên 3. Tổng cộng khoảng 60 đến 90 giây.
+
+========================================================================
+STATE: proposal-step2
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Điều gì cần thay đổi?
+Tình hình hiện tại
+Thay đơn vị quản lý hiện tại
+Ngừng tự quản lý
+Mới mua lại hoặc đang trong hợp đồng
+Giai đoạn cho thuê ban đầu hoặc cải thiện hoạt động
+Vấn đề về vận hành hoặc báo cáo
+Đang tìm hiểu các phương án quản lý
+Việc khác
+Quý vị muốn AxisPoint tham gia ở mức nào?
+Quản lý bất động sản
+Vận hành bất động sản hằng ngày.
+Quản lý bất động sản + Quản lý tài sản
+Vận hành bất động sản và hỗ trợ định hướng chiến lược đầu tư.
+Chưa chắc chắn
+Hãy giúp tôi xác định mức độ tham gia phù hợp.
+Thời gian
+Chọn khung thời gian
+Ngay lập tức
+Trong vòng 30 ngày
+Từ 30 đến 60 ngày
+Từ 60 đến 90 ngày
+Vẫn đang tìm hiểu
+Chúng tôi nên biết điều gì trước khi trao đổi? Không bắt buộc
+←
+Quay lại
+Tiếp tục
+→
+
+========================================================================
+STATE: proposal-step3
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Chúng tôi nên liên hệ lại thế nào?
+Họ và tên
+Cách quý vị muốn chúng tôi xưng hô.
+Email
+Nơi chúng tôi sẽ gửi phản hồi và các thông tin tiếp theo.
+Điện thoại Không bắt buộc
+Hãy để lại số nếu quý vị muốn được gọi trực tiếp.
+Công ty hoặc nhóm sở hữu Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+AxisPoint sẽ dùng thông tin này để xem xét câu hỏi của quý vị và liên hệ trực tiếp.
+←
+Quay lại
+Gửi thông tin bất động sản
+
+========================================================================
+STATE: proposal-step3-invalid
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Chúng tôi nên liên hệ lại thế nào?
+!
+Hai mục cần được xem lại. Hãy nhập họ tên và một địa chỉ email chúng tôi có thể phản hồi, rồi gửi lại thông tin bất động sản.
+Họ và tên
+!
+Hãy nhập tên chúng tôi nên hỏi khi gọi điện.
+Email
+!
+Địa chỉ này thiếu phần sau dấu @. Hãy nhập địa chỉ đầy đủ, ví dụ name@company.com.
+Điện thoại Không bắt buộc
+Hãy để lại số nếu quý vị muốn được gọi trực tiếp.
+Công ty hoặc nhóm sở hữu Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+AxisPoint sẽ dùng thông tin này để xem xét câu hỏi của quý vị và liên hệ trực tiếp.
+←
+Quay lại
+Gửi thông tin bất động sản
+
+========================================================================
+STATE: proposal-step3-sending
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Chúng tôi nên liên hệ lại thế nào?
+Họ và tên
+Cách quý vị muốn chúng tôi xưng hô.
+Email
+Nơi chúng tôi sẽ gửi phản hồi và các thông tin tiếp theo.
+Điện thoại Không bắt buộc
+Hãy để lại số nếu quý vị muốn được gọi trực tiếp.
+Công ty hoặc nhóm sở hữu Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+AxisPoint sẽ dùng thông tin này để xem xét câu hỏi của quý vị và liên hệ trực tiếp.
+←
+Quay lại
+Đang gửi
+
+========================================================================
+STATE: proposal-step3-failed
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+QUẢN LÝ BẤT ĐỘNG SẢN
+Đổi hướng
+01
+Bất động sản
+Loại, vị trí và quy mô
+02
+Tình huống
+Điều gì cần thay đổi
+03
+Liên hệ
+Cách chúng tôi liên hệ lại
+Chúng tôi nên liên hệ lại thế nào?
+!
+Chúng tôi không gửi được thông tin bất động sản của quý vị. Your answers are still here. Try again or contact AxisPoint directly.
+Try again
+→
+info@axispoint.llc
+Họ và tên
+Cách quý vị muốn chúng tôi xưng hô.
+Email
+Nơi chúng tôi sẽ gửi phản hồi và các thông tin tiếp theo.
+Điện thoại Không bắt buộc
+Hãy để lại số nếu quý vị muốn được gọi trực tiếp.
+Công ty hoặc nhóm sở hữu Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+AxisPoint sẽ dùng thông tin này để xem xét câu hỏi của quý vị và liên hệ trực tiếp.
+←
+Quay lại
+Gửi thông tin bất động sản
+
+========================================================================
+STATE: short-investor
+========================================================================
+
+LIÊN HỆ
+Dịch vụ cho nhà đầu tư
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+DỊCH VỤ CHO NHÀ ĐẦU TƯ
+Đổi hướng
+Hãy cho chúng tôi biết quý vị đang ở giai đoạn nào.
+Một ghi chú ngắn là đủ để bắt đầu. Chúng tôi sẽ liên hệ để sắp xếp một cuộc trao đổi.
+Quý vị đang ở giai đoạn nào?
+Chọn một mục
+Đang tìm hiểu thương vụ đầu tiên
+Hiện đang trong hợp đồng
+Đang tích cực tìm kiếm
+Đã có bất động sản, cần đội ngũ vận hành
+Việc khác
+Họ và tên
+Cách quý vị muốn chúng tôi xưng hô.
+Email
+Nơi chúng tôi sẽ gửi phản hồi và các thông tin tiếp theo.
+Điện thoại Không bắt buộc
+Công ty Không bắt buộc
+Quý vị đang quan tâm đến điều gì? Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+Gửi câu hỏi
+Chưa cần tài liệu nào ở giai đoạn này.
+
+========================================================================
+STATE: short-general
+========================================================================
+
+LIÊN HỆ
+Câu hỏi chung
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+CÂU HỎI CHUNG
+Đổi hướng
+Chúng tôi có thể giúp gì?
+Hãy cho chúng tôi biết quý vị là ai và cần gì. Chúng tôi sẽ chuyển đến đúng đối tác.
+Đây là về việc gì?
+Chọn một mục
+Một câu hỏi về AxisPoint
+Nhà cung cấp hoặc đơn vị dịch vụ
+Việc làm
+Báo chí hoặc truyền thông
+Việc khác
+Họ và tên
+Cách quý vị muốn chúng tôi xưng hô.
+Email
+Nơi chúng tôi sẽ gửi phản hồi và các thông tin tiếp theo.
+Điện thoại Không bắt buộc
+Công ty Không bắt buộc
+Lời nhắn của quý vị Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+Gửi câu hỏi
+Chưa cần tài liệu nào ở giai đoạn này.
+
+========================================================================
+STATE: short-invalid
+========================================================================
+
+LIÊN HỆ
+Câu hỏi chung
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+CÂU HỎI CHUNG
+Đổi hướng
+Chúng tôi có thể giúp gì?
+Hãy cho chúng tôi biết quý vị là ai và cần gì. Chúng tôi sẽ chuyển đến đúng đối tác.
+!
+3 mục cần được xem lại. Hãy sửa các mục được đánh dấu bên dưới, rồi gửi lại câu hỏi.
+Đây là về việc gì?
+Chọn một mục
+Một câu hỏi về AxisPoint
+Nhà cung cấp hoặc đơn vị dịch vụ
+Việc làm
+Báo chí hoặc truyền thông
+Việc khác
+!
+Hãy chọn phương án mô tả đúng nhất câu hỏi của quý vị.
+Họ và tên
+!
+Hãy nhập tên chúng tôi nên hỏi khi gọi điện.
+Email
+!
+Địa chỉ này thiếu phần sau dấu @. Hãy nhập địa chỉ đầy đủ, ví dụ name@company.com.
+Điện thoại Không bắt buộc
+Công ty Không bắt buộc
+Lời nhắn của quý vị Không bắt buộc
+Ngôn ngữ khi liên hệ lại Không bắt buộc
+Giống trang này, tiếng Việt
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Cứ để nguyên và chúng tôi sẽ trả lời bằng ngôn ngữ của trang này.
+Gửi câu hỏi
+Chưa cần tài liệu nào ở giai đoạn này.
+
+========================================================================
+STATE: confirmation-pm
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ĐÃ GỬI THÔNG TIN BẤT ĐỘNG SẢN
+Cảm ơn there. Chúng tôi đã nhận thông tin bất động sản của quý vị.
+Zachary hoặc Ethaniel sẽ xem lại thông tin và liên hệ trực tiếp.
+NHỮNG GÌ QUÝ VỊ ĐÃ GỬI
+Bất động sản
+Không có thông tin
+Tình huống
+Không có thông tin
+Mức độ tham gia
+Không có thông tin
+Quay lại AxisPoint
+
+========================================================================
+STATE: confirmation-short
+========================================================================
+
+LIÊN HỆ
+Câu hỏi chung
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ĐÃ GỬI CÂU HỎI
+Cảm ơn there. Câu hỏi của quý vị đã đến với chúng tôi.
+Zachary hoặc Ethaniel sẽ xem lại và liên hệ trực tiếp qua your email.
+NHỮNG GÌ QUÝ VỊ ĐÃ GỬI
+Hướng
+Câu hỏi chung
+Chủ đề
+Không có thông tin
+Ngôn ngữ liên hệ lại
+English
+Quay lại AxisPoint
+
+========================================================================
+STATE: booking-picker
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+BƯỚC TIẾP THEO KHÔNG BẮT BUỘC
+Đặt cuộc gọi 30 phút
+Thông tin bất động sản của quý vị đã được gửi. Chỉ chọn giờ nếu điều đó hữu ích với quý vị.
+Chọn ngày
+Thứ Ba, 11 tháng 8
+Thứ Tư, 12 tháng 8
+Thứ Năm, 13 tháng 8
+Thứ Sáu, 14 tháng 8
+Thứ Hai, 17 tháng 8
+Thứ Ba, 18 tháng 8
+Thứ Tư, 19 tháng 8
+Thứ Năm, 20 tháng 8
+Thứ Sáu, 21 tháng 8
+Thứ Hai, 24 tháng 8
+Thứ Ba, 25 tháng 8
+Thứ Tư, 26 tháng 8
+Thứ Năm, 27 tháng 8
+Thứ Sáu, 28 tháng 8
+Thứ Hai, 31 tháng 8
+Thứ Ba, 1 tháng 9
+Thứ Tư, 2 tháng 9
+Thứ Năm, 3 tháng 9
+Thứ Sáu, 4 tháng 9
+Thứ Hai, 7 tháng 9
+Thứ Ba, 8 tháng 9
+Thứ Tư, 9 tháng 9
+Thứ Năm, 10 tháng 9
+Thứ Sáu, 11 tháng 9
+Thứ Hai, 14 tháng 9
+Thứ Ba, 15 tháng 9
+Thứ Tư, 16 tháng 9
+Thứ Năm, 17 tháng 9
+Thứ Sáu, 18 tháng 9
+Thứ Hai, 21 tháng 9
+Thứ Ba, 22 tháng 9
+Thứ Tư, 23 tháng 9
+Thứ Năm, 24 tháng 9
+Thứ Sáu, 25 tháng 9
+Thứ Hai, 28 tháng 9
+Thứ Ba, 29 tháng 9
+Thứ Tư, 30 tháng 9
+Thứ Năm, 1 tháng 10
+Thứ Sáu, 2 tháng 10
+Thứ Hai, 5 tháng 10
+Thứ Ba, 6 tháng 10
+Thứ Tư, 7 tháng 10
+Thứ Năm, 8 tháng 10
+Thứ Sáu, 9 tháng 10
+Thời gian hiển thị theo Giờ Miền Trung, Houston. Tình trạng còn trống được xác nhận khi quý vị đặt lịch.
+Chọn giờ
+Hãy chọn ngày để xem các khung giờ.
+Quý vị muốn trao đổi theo hình thức nào?
+Gọi điện thoại
+Họp trực tuyến
+Đã chọn
+Hãy chọn ngày, giờ và hình thức trao đổi
+Xác nhận giờ này
+→
+
+========================================================================
+STATE: booking-selected
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+BƯỚC TIẾP THEO KHÔNG BẮT BUỘC
+Đặt cuộc gọi 30 phút
+Thông tin bất động sản của quý vị đã được gửi. Chỉ chọn giờ nếu điều đó hữu ích với quý vị.
+Chọn ngày
+Thứ Ba, 11 tháng 8
+Thứ Tư, 12 tháng 8
+Thứ Năm, 13 tháng 8
+Thứ Sáu, 14 tháng 8
+Thứ Hai, 17 tháng 8
+Thứ Ba, 18 tháng 8
+Thứ Tư, 19 tháng 8
+Thứ Năm, 20 tháng 8
+Thứ Sáu, 21 tháng 8
+Thứ Hai, 24 tháng 8
+Thứ Ba, 25 tháng 8
+Thứ Tư, 26 tháng 8
+Thứ Năm, 27 tháng 8
+Thứ Sáu, 28 tháng 8
+Thứ Hai, 31 tháng 8
+Thứ Ba, 1 tháng 9
+Thứ Tư, 2 tháng 9
+Thứ Năm, 3 tháng 9
+Thứ Sáu, 4 tháng 9
+Thứ Hai, 7 tháng 9
+Thứ Ba, 8 tháng 9
+Thứ Tư, 9 tháng 9
+Thứ Năm, 10 tháng 9
+Thứ Sáu, 11 tháng 9
+Thứ Hai, 14 tháng 9
+Thứ Ba, 15 tháng 9
+Thứ Tư, 16 tháng 9
+Thứ Năm, 17 tháng 9
+Thứ Sáu, 18 tháng 9
+Thứ Hai, 21 tháng 9
+Thứ Ba, 22 tháng 9
+Thứ Tư, 23 tháng 9
+Thứ Năm, 24 tháng 9
+Thứ Sáu, 25 tháng 9
+Thứ Hai, 28 tháng 9
+Thứ Ba, 29 tháng 9
+Thứ Tư, 30 tháng 9
+Thứ Năm, 1 tháng 10
+Thứ Sáu, 2 tháng 10
+Thứ Hai, 5 tháng 10
+Thứ Ba, 6 tháng 10
+Thứ Tư, 7 tháng 10
+Thứ Năm, 8 tháng 10
+Thứ Sáu, 9 tháng 10
+Thời gian hiển thị theo Giờ Miền Trung, Houston. Tình trạng còn trống được xác nhận khi quý vị đặt lịch.
+Chọn giờ
+11:00
+11:30
+12:00
+12:30
+13:00
+13:30
+14:00
+14:30
+15:00
+15:30
+16:00
+16:30
+Quý vị muốn trao đổi theo hình thức nào?
+Gọi điện thoại
+Họp trực tuyến
+Đã chọn
+Thứ Ba, 11 tháng 8 lúc 11:00, Phone call
+Xác nhận giờ này
+→
+
+========================================================================
+STATE: booking-scheduled
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ĐÃ XÁC NHẬN CUỘC GỌI
+Quý vị đã có trong lịch.
+Thời gian
+, Central
+Hình thức
+Thời lượng
+30 phút
+Với
+AxisPoint Partners
+Lời mời lịch sẽ được gửi tới your email. Hãy trả lời lời mời đó nếu quý vị cần đổi giờ.
+Bản xem trước dành cho phát triển. Lệnh đặt lịch chạy trên trình mô phỏng, nên không có sự kiện lịch nào được tạo và không có lời mời nào được gửi.
+Back to AxisPoint
+
+========================================================================
+STATE: booking-skipped
+========================================================================
+
+LIÊN HỆ
+Quản lý bất động sản
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ĐÃ GỬI THÔNG TIN BẤT ĐỘNG SẢN
+Chưa đặt cuộc gọi nào. Quý vị không cần làm gì thêm.
+Thông tin bất động sản của quý vị đang ở chỗ Zachary và Ethaniel, và họ sẽ liên hệ qua your email. Quý vị vẫn có thể chọn giờ nếu sau này thấy cần.
+Đặt cuộc gọi 30 phút
+→
+Quay lại AxisPoint

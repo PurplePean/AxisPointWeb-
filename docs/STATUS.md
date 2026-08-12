@@ -3,14 +3,14 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-11 (Multilingual Content Rollout, PR 3 of 5)_
+_Last updated: 2026-08-11 (Multilingual Content Rollout, PR 4 of 5)_
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | **Multilingual Content Rollout, in progress. PRs 1 and 2 merged; PR 3 of 5 is open and deliberately unmerged.** All nine locales are built in this one pass; there is no per-locale follow-up pass. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
+| **Current code pass** | **Multilingual Content Rollout, in progress. PRs 1 to 3 merged; PR 4 of 5 is open and deliberately unmerged.** All nine locales are built in this one pass; there is no per-locale follow-up pass. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
 | **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
 | **Next pass** | Staging, planned in [`staging-provisioning.md`](staging-provisioning.md) and not yet provisioned. Every V2 surface is connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
 
@@ -80,6 +80,50 @@ visitor moved away from.
 real calendar was contacted and no Google resource exists.
 
 ## Multilingual Content Rollout (in progress)
+
+**PR 4 of 5 is open and held unmerged for review: the contact page, intake, validation,
+submission states, and booking, in all nine languages.** 108 new keys, taking the catalog to
+**366**, with all eight audit catalogs at full 366/366 parity. It is the highest-risk PR of
+the pass, because visible labels must change per locale while stored tokens, request meaning,
+retry identity, and booking instants stay fixed.
+
+- **A deterministic 20-state English baseline was captured BEFORE any edit** and is committed
+  at `apps/web/tests/baseline-intake/`. It covers the gateway, all three proposal steps, both
+  short pathways, validation, sending, failed, blocked, both confirmations, the booking
+  picker, a selected booking, scheduled, and skipped. `intake-states.mjs` drives a real
+  browser because step 2, `blocked`, and the booking selection cannot be reached by URL. It
+  **freezes the clock** at 2026-08-11T15:00:00Z, without which the booking candidates would
+  make the committed baseline rot within a day. Rendered English is identical across all 20
+  states after the migration.
+- **Display text and stored values stay separate.** Nothing migrated here is ever stored,
+  sent, or used as a lookup key; the wire still carries stable snake_case tokens. The existing
+  suite already proved this and still passes: a synthetic catalog changes every visible label
+  and leaves the submitted envelope byte-identical, an unmapped label throws rather than being
+  sent, and the backend actively rejects a display string.
+- **One interpolation helper, seven declared placeholders.** `interpolate` substitutes
+  `{name} {email} {count} {day} {time} {mode} {language}` and deliberately leaves an unknown
+  token visible rather than blanking it, so a bad translation fails loudly. Tests assert every
+  placeholder is declared, that each interpolated key carries the same placeholders in all
+  nine locales, and that no locale resolves to a leftover brace.
+- **The booking instant is locale-independent while its label is not.** All nine locales
+  select the same 11:00 slot and render it as `11:00 AM`, `11:00`, `上午11:00`, or `11:00 am`.
+  That difference is the requirement, not a defect.
+- **`Select a date` and `Select a time` are now translated `aria-label`s**, so the browser
+  review locates the pickers structurally by position rather than by their English text. A
+  text-keyed selector would have silently no-opped in eight of nine locales.
+
+**Per-locale intake review artifacts** are committed at `apps/web/tests/preview-intake/`, one
+file per locale, 640 lines each, covering sixteen states in reading order.
+
+### PR 4 browser review
+
+189 observations across nine locales and two widths, in the same isolated headless Chrome
+(unique profile, unique port, frozen clock, cleanup verified). **Zero console errors, zero
+page exceptions, and zero non-font off-origin requests**, confirming no submission, email,
+calendar, or external service was contacted; the dev build compiles in no endpoint and the
+shared client simulates. No state fell back to English, no unresolved placeholder reached a
+screen, Urdu was the only RTL locale, and no locale introduced overflow beyond the documented
+3px chrome case.
 
 **PRs 1 and 2 are merged. PR 3 of 5 is open and held unmerged for review.** PR 1 built the
 catalog infrastructure and the first 92 keys in all nine languages; PR 2 migrated the site

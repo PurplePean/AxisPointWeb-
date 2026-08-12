@@ -1,0 +1,15 @@
+CONTACT
+General inquiry
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+INQUIRY SENT
+Thank you, there. Your inquiry is with us.
+Zachary or Ethaniel will review it and follow up directly at your email.
+WHAT YOU SENT
+Pathway
+General inquiry
+Topic
+Not specified
+Follow-up language
+English
+Back to AxisPoint

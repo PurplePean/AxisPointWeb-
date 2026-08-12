@@ -3,6 +3,15 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-08-11 (Multilingual Content Rollout, PR 4 of 5)
+
+- **feat(web): the contact page, intake, validation, submission states, and booking are catalog-driven in all nine languages.** 108 new keys, catalog now 366, all eight audit catalogs at full parity. Rendered English is identical across a 20-state baseline and all seven routes.
+- **feat(infra): a deterministic 20-state intake baseline, captured before any edit.** `intake-states.mjs` drives a real browser because step 2, `blocked`, and the booking selection cannot be reached by URL, and it **freezes the clock** at a fixed instant, without which booking candidates would make the committed baseline rot within a day. Two harness defects were caught by spot-checking rather than trusted: a `:nth-of-type` selector that clicked the date group twice and left the booking unselected while looking plausible, and the un-frozen clock.
+- **feat(web): one interpolation helper with seven declared placeholders.** `interpolate` substitutes `{name} {email} {count} {day} {time} {mode} {language}` and leaves an unknown token visible rather than blanking it, so a bad translation fails loudly instead of rendering a gap. Tests assert placeholder declaration, cross-locale placeholder parity, and that no locale resolves to a leftover brace.
+- **verify(web): the booking instant is locale-independent while its label is not.** All nine locales select the same 11:00 slot and render it as `11:00 AM`, `11:00`, `上午11:00`, or `11:00 am`. An earlier version of the check compared labels directly and failed; that was the check being wrong, since localising the label is the requirement.
+- **feat(web): `Select a date` and `Select a time` are translated `aria-label`s**, so the browser review locates the pickers structurally rather than by English text, which would have silently no-opped in eight of nine locales.
+- **verify(web): 189-observation nine-locale intake review** at two widths. Zero console errors, zero page exceptions, zero non-font off-origin requests, no English fallback, no unresolved placeholders, Urdu the only RTL locale, and no overflow beyond the documented 3px chrome case. Per-locale review artifacts committed at `apps/web/tests/preview-intake/`.
+
 ## 2026-08-11 (Multilingual Content Rollout, PR 3 of 5)
 
 - **feat(web): the five marketing pages are catalog-driven in all nine languages.** Home, Property Management, Asset Management, Investor Services, and Partners, plus the page titles and meta descriptions that originate in those components. 143 new keys, catalog now 258, all eight audit catalogs at full parity. Rendered English is byte-identical to the committed baseline.

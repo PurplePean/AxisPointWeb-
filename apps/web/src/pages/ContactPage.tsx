@@ -3,6 +3,8 @@ import { useDocumentMeta } from '../lib/meta';
 import { Eyebrow, GUTTER, MEASURE } from '../components/PageParts';
 import Intake from '../intake/Intake';
 import { isIntentToken, type IntentToken } from '../intake/model';
+import { useMessages } from '../i18n/LocaleProvider';
+import type { Messages } from '../i18n/messages';
 
 /**
  * Contact, built from the approved shell in `AxisPoint System Studies.dc.html` with
@@ -25,56 +27,49 @@ import { isIntentToken, type IntentToken } from '../intake/model';
  * Submission stays simulated and local in both framings.
  */
 
+/**
+ * Catalog KEYS, not copy. The pathway label reuses the chrome's service-name keys where the
+ * concept is the same one, and the meta pair is per pathway because each describes a
+ * different page.
+ */
 const PATHWAY_INTRO: Record<
   IntentToken,
-  { label: string; meta: { title: string; description: string } }
+  { labelKey: keyof Messages; titleKey: keyof Messages; descKey: keyof Messages }
 > = {
   'property-management': {
-    label: 'Property Management',
-    meta: {
-      title: 'Request a Management Proposal | AxisPoint Partners',
-      description:
-        'Send the property, the current management situation, and the change you are considering. A partner reads it and responds.',
-    },
+    labelKey: 'navPropertyManagement',
+    titleKey: 'contactPmMetaTitle',
+    descKey: 'contactPmMetaDescription',
   },
   'asset-management': {
-    label: 'Property Management and Asset Management',
-    meta: {
-      title: 'Request a Management Proposal with Asset Management | AxisPoint Partners',
-      description:
-        'Start the management proposal with asset management interest identified, so the operating work and the investment view are handled by the same team.',
-    },
+    labelKey: 'contactPathwayPmAm',
+    titleKey: 'contactAmMetaTitle',
+    descKey: 'contactAmMetaDescription',
   },
   'investor-services': {
-    label: 'Investor Services',
-    meta: {
-      title: 'Investor Services Inquiry | AxisPoint Partners',
-      description:
-        'Tell us where you are in the process. A partner responds with an operating read and what management would look like.',
-    },
+    labelKey: 'navInvestorServices',
+    titleKey: 'contactIsMetaTitle',
+    descKey: 'contactIsMetaDescription',
   },
   general: {
-    label: 'General inquiry',
-    meta: {
-      title: 'Contact AxisPoint | AxisPoint Partners',
-      description: 'Tell us who you are and what you need. We will route it to the right partner.',
-    },
+    labelKey: 'gatewayGeneralTitle',
+    titleKey: 'contactGeneralMetaTitle',
+    descKey: 'contactGeneralMetaDescription',
   },
-};
-
-const GENERIC_META = {
-  title: 'Contact AxisPoint | AxisPoint Partners',
-  description:
-    'Reach AxisPoint directly from Houston, Texas, serving owners statewide. Choose the path that matches your situation, or write to info@axispoint.llc.',
 };
 
 function ContactPage() {
   const [params] = useSearchParams();
+  const t = useMessages();
   const rawIntent = params.get('intent');
   const intent = isIntentToken(rawIntent) ? rawIntent : null;
   const pathway = intent ? PATHWAY_INTRO[intent] : null;
 
-  useDocumentMeta({ ...(pathway ? pathway.meta : GENERIC_META), path: '/contact' });
+  useDocumentMeta({
+    title: pathway ? t[pathway.titleKey] : t.contactMetaTitle,
+    description: pathway ? t[pathway.descKey] : t.contactMetaDescription,
+    path: '/contact',
+  });
 
   if (pathway) {
     /* Compact framing. One line of context, then straight into the intake, whose
@@ -86,9 +81,9 @@ function ContactPage() {
             className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
             style={{ marginBottom: 20 }}
           >
-            <Eyebrow className="text-v2-teal">Contact</Eyebrow>
+            <Eyebrow className="text-v2-teal">{t.contactEyebrow}</Eyebrow>
             <span className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 14 }}>
-              {pathway.label}
+              {t[pathway.labelKey]}
             </span>
           </div>
           <Intake headingLevel={1} />
@@ -105,7 +100,7 @@ function ContactPage() {
       >
         <div className={MEASURE}>
           <Eyebrow className="text-v2-teal" style={{ marginBottom: 18 }}>
-            Contact
+            {t.contactEyebrow}
           </Eyebrow>
           <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 lg:gap-20 items-end">
             <h1
@@ -117,7 +112,7 @@ function ContactPage() {
                 textWrap: 'pretty',
               }}
             >
-              Contact AxisPoint
+              {t.contactHeroTitle}
             </h1>
             <p
               className="m-0 text-[rgba(28,22,40,0.7)]"
@@ -128,8 +123,7 @@ function ContactPage() {
                 textWrap: 'pretty',
               }}
             >
-              Partner-led from Houston, serving owners across Texas. Tell us what you need and a
-              partner reads it.
+              {t.contactHeroLead}
             </p>
           </div>
         </div>
