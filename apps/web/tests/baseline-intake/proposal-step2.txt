@@ -1,0 +1,42 @@
+CONTACT
+Property Management
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+PROPERTY MANAGEMENT
+Change path
+01
+Property
+Type, location, and scale
+02
+Situation
+What needs to change
+03
+Contact
+How we follow up
+What needs to change?
+Current situation
+Replace current management
+Move away from self-management
+Recently acquired or under contract
+Lease-up or turnaround
+Operations or reporting problems
+Exploring management options
+Something else
+Where would you like AxisPoint involved?
+Property Management
+Run the property day to day.
+Property Management + Asset Management
+Run the property and help direct the investment strategy.
+Not Sure
+Help me determine the appropriate level of involvement.
+Timing
+Select a timeframe
+Immediately
+Within 30 days
+30 to 60 days
+60 to 90 days
+Still exploring
+What should we understand before speaking? Optional
+←
+Back
+Continue
+→

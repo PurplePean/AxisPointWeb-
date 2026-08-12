@@ -1,0 +1,16 @@
+CONTACT
+Property Management
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+CALL CONFIRMED
+You are on the calendar.
+When
+, Central
+Format
+Length
+30 minutes
+With
+AxisPoint Partners
+A calendar invitation goes to your email. Reply to it if you need to move the time.
+Development preview. The booking command ran against the simulator, so no calendar event was created and no invitation was sent.
+Back to AxisPoint

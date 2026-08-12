@@ -1,0 +1,10 @@
+CONTACT
+Property Management
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+PROPERTY DETAILS SENT
+No call scheduled. Nothing more is needed from you.
+Your property details are with Zachary and Ethaniel, and they will reach you at your email. You can still pick a time if it becomes useful.
+Schedule a 30-Minute Call
+→
+Back to AxisPoint

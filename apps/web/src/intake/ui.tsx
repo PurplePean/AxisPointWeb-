@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useMessages } from '../i18n/LocaleProvider';
 
 /**
  * Intake field primitives, built to the approved component and state system in
@@ -40,6 +41,7 @@ export function FieldLabel({
   children: React.ReactNode;
   optional?: boolean;
 }) {
+  const t = useMessages();
   return (
     <label
       htmlFor={htmlFor}
@@ -48,7 +50,9 @@ export function FieldLabel({
     >
       {children}
       {optional && (
-        <span className="font-medium text-[rgba(28,22,40,0.55)]"> Optional</span>
+        /* The leading space stays in the JSX, not in the catalog: a translator should not
+           have to preserve invisible leading whitespace to keep the spacing right. */
+        <span className="font-medium text-[rgba(28,22,40,0.55)]"> {t.fieldOptional}</span>
       )}
     </label>
   );

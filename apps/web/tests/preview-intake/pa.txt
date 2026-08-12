@@ -1,0 +1,640 @@
+pa intake and booking review
+Model-generated audit candidate unless the locale is English. Not reviewed, not approved.
+Placeholders are substituted with sample values; proper nouns are intentionally untranslated.
+
+========================================================================
+STATE: gateway
+========================================================================
+
+ਸੰਪਰਕ
+AxisPoint ਨਾਲ ਸੰਪਰਕ ਕਰੋ
+ਹਿਊਸਟਨ ਤੋਂ ਭਾਈਵਾਲਾਂ ਦੀ ਅਗਵਾਈ ਵਿੱਚ, ਪੂਰੇ ਟੈਕਸਾਸ ਦੇ ਮਾਲਕਾਂ ਦੀ ਸੇਵਾ। ਦੱਸੋ ਤੁਹਾਨੂੰ ਕੀ ਚਾਹੀਦਾ ਹੈ ਅਤੇ ਇੱਕ ਭਾਈਵਾਲ ਇਸਨੂੰ ਪੜ੍ਹਦਾ ਹੈ।
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਤੁਸੀਂ ਕਿਸ ਬਾਰੇ ਗੱਲ ਕਰਨੀ ਚਾਹੋਗੇ?
+ਉਹ ਵਿਕਲਪ ਚੁਣੋ ਜੋ ਤੁਹਾਡੀ ਸਥਿਤੀ ਨਾਲ ਸਭ ਤੋਂ ਵੱਧ ਮੇਲ ਖਾਂਦਾ ਹੈ। ਤੁਸੀਂ ਬਾਅਦ ਵਿੱਚ ਬਦਲ ਸਕਦੇ ਹੋ।
+ਬਹੁਤੇ ਮਾਲਕ ਇੱਥੋਂ ਹੀ ਸ਼ੁਰੂ ਕਰਦੇ ਹਨ
+ਜਾਇਦਾਦ ਦੇ ਮਾਲਕ
+ਮੇਰੇ ਕੋਲ ਜਾਇਦਾਦ ਹੈ ਜਾਂ ਮੈਂ ਇਸ ਦੀ ਦੇਖਭਾਲ ਕਰਦਾ ਹਾਂ ਅਤੇ ਮੈਨੂੰ ਪ੍ਰਬੰਧਨ ਦੀ ਲੋੜ ਹੈ।
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਸ਼ੁਰੂ ਕਰੋ
+→
+ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ
+→
+ਮੇਰੇ ਕੋਲ ਜਾਇਦਾਦ ਹੈ ਅਤੇ ਮੈਨੂੰ ਰਣਨੀਤੀ, ਕਾਰਗੁਜ਼ਾਰੀ ਅਤੇ ਰਿਪੋਰਟਿੰਗ ਦੀ ਦਿਸ਼ਾ ਤੈਅ ਕਰਨ ਵਿੱਚ ਮਦਦ ਚਾਹੀਦੀ ਹੈ।
+ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ
+→
+ਮੈਂ ਵਪਾਰਕ ਜਾਇਦਾਦ ਖਰੀਦਣ ਦੀ ਤਿਆਰੀ ਕਰ ਰਿਹਾ ਹਾਂ ਅਤੇ ਮੈਨੂੰ ਸੰਚਾਲਨ ਟੀਮ ਚਾਹੀਦੀ ਹੈ।
+ਆਮ ਪੁੱਛਗਿੱਛ
+→
+ਕੁਝ ਹੋਰ। ਵਿਕਰੇਤਾ, ਪ੍ਰੈਸ, ਰੁਜ਼ਗਾਰ ਜਾਂ ਕੋਈ ਸਵਾਲ।
+ਈਮੇਲ ਵੱਧ ਪਸੰਦ ਹੈ? ਲਿਖੋ info@axispoint.llc
+
+========================================================================
+STATE: proposal-step1
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਆਪਣੀ ਜਾਇਦਾਦ ਬਾਰੇ ਦੱਸੋ।
+ਕੁਝ ਵੇਰਵੇ ਸਾਨੂੰ ਸਮਝਣ ਵਿੱਚ ਮਦਦ ਕਰਨਗੇ ਕਿ ਤੁਹਾਡੇ ਕੋਲ ਕੀ ਹੈ, ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ, ਅਤੇ ਕੀ AxisPoint ਸਹੀ ਸੰਚਾਲਨ ਭਾਈਵਾਲ ਹੈ।
+ਅਸੀਂ ਕਿਸ ਬਾਰੇ ਗੱਲ ਕਰ ਰਹੇ ਹਾਂ?
+ਜਾਇਦਾਦ ਦੀ ਕਿਸਮ
+ਬਹੁ-ਪਰਿਵਾਰਕ
+ਪਰਚੂਨ
+ਮਿਸ਼ਰਤ ਪੋਰਟਫੋਲੀਓ
+ਹੋਰ ਕਿਸਮ ਦੀ ਜਾਇਦਾਦ
+ਜਾਇਦਾਦ ਦਾ ਦਾਇਰਾ
+ਇੱਕ ਜਾਇਦਾਦ
+ਪੋਰਟਫੋਲੀਓ
+ਜਾਇਦਾਦ ਕਿੱਥੇ ਸਥਿਤ ਹੈ?
+ਫ਼ਿਲਹਾਲ ਸ਼ਹਿਰ ਜਾਂ ਬਾਜ਼ਾਰ ਕਾਫ਼ੀ ਹੈ। ਪੂਰਾ ਪਤਾ ਲੋੜੀਂਦਾ ਨਹੀਂ।
+ਅੰਦਾਜ਼ਨ ਆਕਾਰ
+ਪੱਕਾ ਪਤਾ ਨਹੀਂ
+ਉੱਪਰ ਜਾਇਦਾਦ ਦੀ ਕਿਸਮ ਚੁਣੋ, ਇਹ ਸਹੀ ਮਾਪ ਅਨੁਸਾਰ ਬਦਲ ਜਾਵੇਗਾ।
+ਜਾਰੀ ਰੱਖੋ
+→
+ਪੜਾਅ 1 ਵਿੱਚੋਂ 3। ਕੁੱਲ ਮਿਲਾ ਕੇ ਲਗਭਗ 60 ਤੋਂ 90 ਸਕਿੰਟ।
+
+========================================================================
+STATE: proposal-step2
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ?
+ਮੌਜੂਦਾ ਹਾਲਾਤ
+ਮੌਜੂਦਾ ਪ੍ਰਬੰਧਨ ਬਦਲਣਾ
+ਆਪ ਪ੍ਰਬੰਧਨ ਕਰਨਾ ਛੱਡਣਾ
+ਹਾਲ ਹੀ ਵਿੱਚ ਖਰੀਦੀ ਜਾਂ ਸਮਝੌਤੇ ਅਧੀਨ
+ਕਿਰਾਏ ਦੀ ਸ਼ੁਰੂਆਤ ਜਾਂ ਕਾਰਗੁਜ਼ਾਰੀ ਸੁਧਾਰ
+ਸੰਚਾਲਨ ਜਾਂ ਰਿਪੋਰਟਿੰਗ ਦੀਆਂ ਸਮੱਸਿਆਵਾਂ
+ਪ੍ਰਬੰਧਨ ਦੇ ਵਿਕਲਪ ਵੇਖ ਰਹੇ ਹਾਂ
+ਕੁਝ ਹੋਰ
+ਤੁਸੀਂ AxisPoint ਦੀ ਸ਼ਮੂਲੀਅਤ ਕਿੱਥੇ ਚਾਹੋਗੇ?
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਜਾਇਦਾਦ ਦਾ ਰੋਜ਼ਾਨਾ ਸੰਚਾਲਨ।
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ + ਸੰਪਤੀ ਪ੍ਰਬੰਧਨ
+ਜਾਇਦਾਦ ਦਾ ਸੰਚਾਲਨ ਅਤੇ ਨਿਵੇਸ਼ ਰਣਨੀਤੀ ਤੈਅ ਕਰਨ ਵਿੱਚ ਮਦਦ।
+ਪੱਕਾ ਪਤਾ ਨਹੀਂ
+ਢੁਕਵਾਂ ਪੱਧਰ ਤੈਅ ਕਰਨ ਵਿੱਚ ਮੇਰੀ ਮਦਦ ਕਰੋ।
+ਸਮਾਂ
+ਇੱਕ ਸਮਾਂ-ਸੀਮਾ ਚੁਣੋ
+ਤੁਰੰਤ
+30 ਦਿਨਾਂ ਵਿੱਚ
+30 ਤੋਂ 60 ਦਿਨ
+60 ਤੋਂ 90 ਦਿਨ
+ਅਜੇ ਵਿਚਾਰ ਕਰ ਰਹੇ ਹਾਂ
+ਗੱਲ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਸਾਨੂੰ ਕੀ ਸਮਝ ਲੈਣਾ ਚਾਹੀਦਾ ਹੈ? ਵਿਕਲਪਿਕ
+←
+ਪਿੱਛੇ
+ਜਾਰੀ ਰੱਖੋ
+→
+
+========================================================================
+STATE: proposal-step3
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ?
+ਪੂਰਾ ਨਾਮ
+ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਅਸੀਂ ਤੁਹਾਨੂੰ ਕਿਸ ਨਾਮ ਨਾਲ ਸੰਬੋਧਿਤ ਕਰੀਏ।
+ਈਮੇਲ
+ਜਿੱਥੇ ਅਸੀਂ ਆਪਣਾ ਜਵਾਬ ਅਤੇ ਅੱਗੇ ਦੀ ਜਾਣਕਾਰੀ ਭੇਜਾਂਗੇ।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਸਿੱਧੀ ਕਾਲ ਪਸੰਦ ਹੋਵੇ ਤਾਂ ਨੰਬਰ ਸ਼ਾਮਲ ਕਰੋ।
+ਕੰਪਨੀ ਜਾਂ ਮਾਲਕੀ ਸਮੂਹ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+AxisPoint ਇਸ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਦੀ ਸਮੀਖਿਆ ਕਰਨ ਅਤੇ ਸਿੱਧਾ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਕਰੇਗਾ।
+←
+ਪਿੱਛੇ
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜੋ
+
+========================================================================
+STATE: proposal-step3-invalid
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ?
+!
+ਦੋ ਖਾਨਿਆਂ ਵੱਲ ਧਿਆਨ ਚਾਹੀਦਾ ਹੈ। ਆਪਣਾ ਪੂਰਾ ਨਾਮ ਅਤੇ ਇੱਕ ਈਮੇਲ ਪਤਾ ਸ਼ਾਮਲ ਕਰੋ ਜਿਸ ਤੇ ਅਸੀਂ ਜਵਾਬ ਦੇ ਸਕੀਏ, ਫਿਰ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਦੁਬਾਰਾ ਭੇਜੋ।
+ਪੂਰਾ ਨਾਮ
+!
+ਉਹ ਨਾਮ ਦਰਜ ਕਰੋ ਜੋ ਸਾਨੂੰ ਕਾਲ ਕਰਨ ਵੇਲੇ ਪੁੱਛਣਾ ਚਾਹੀਦਾ ਹੈ।
+ਈਮੇਲ
+!
+ਇਸ ਪਤੇ ਵਿੱਚ @ ਨਿਸ਼ਾਨ ਤੋਂ ਬਾਅਦ ਵਾਲਾ ਹਿੱਸਾ ਨਹੀਂ ਹੈ। ਪੂਰਾ ਪਤਾ ਦਰਜ ਕਰੋ, ਉਦਾਹਰਨ ਲਈ name@company.com।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਸਿੱਧੀ ਕਾਲ ਪਸੰਦ ਹੋਵੇ ਤਾਂ ਨੰਬਰ ਸ਼ਾਮਲ ਕਰੋ।
+ਕੰਪਨੀ ਜਾਂ ਮਾਲਕੀ ਸਮੂਹ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+AxisPoint ਇਸ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਦੀ ਸਮੀਖਿਆ ਕਰਨ ਅਤੇ ਸਿੱਧਾ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਕਰੇਗਾ।
+←
+ਪਿੱਛੇ
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜੋ
+
+========================================================================
+STATE: proposal-step3-sending
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ?
+ਪੂਰਾ ਨਾਮ
+ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਅਸੀਂ ਤੁਹਾਨੂੰ ਕਿਸ ਨਾਮ ਨਾਲ ਸੰਬੋਧਿਤ ਕਰੀਏ।
+ਈਮੇਲ
+ਜਿੱਥੇ ਅਸੀਂ ਆਪਣਾ ਜਵਾਬ ਅਤੇ ਅੱਗੇ ਦੀ ਜਾਣਕਾਰੀ ਭੇਜਾਂਗੇ।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਸਿੱਧੀ ਕਾਲ ਪਸੰਦ ਹੋਵੇ ਤਾਂ ਨੰਬਰ ਸ਼ਾਮਲ ਕਰੋ।
+ਕੰਪਨੀ ਜਾਂ ਮਾਲਕੀ ਸਮੂਹ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+AxisPoint ਇਸ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਦੀ ਸਮੀਖਿਆ ਕਰਨ ਅਤੇ ਸਿੱਧਾ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਕਰੇਗਾ।
+←
+ਪਿੱਛੇ
+ਭੇਜਿਆ ਜਾ ਰਿਹਾ ਹੈ
+
+========================================================================
+STATE: proposal-step3-failed
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+ਰਾਹ ਬਦਲੋ
+01
+ਜਾਇਦਾਦ
+ਕਿਸਮ, ਥਾਂ ਅਤੇ ਆਕਾਰ
+02
+ਹਾਲਾਤ
+ਕੀ ਬਦਲਣ ਦੀ ਲੋੜ ਹੈ
+03
+ਸੰਪਰਕ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ
+ਅਸੀਂ ਕਿਵੇਂ ਸੰਪਰਕ ਕਰੀਏ?
+!
+ਅਸੀਂ ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਨਹੀਂ ਭੇਜ ਸਕੇ। Your answers are still here. Try again or contact AxisPoint directly.
+Try again
+→
+info@axispoint.llc
+ਪੂਰਾ ਨਾਮ
+ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਅਸੀਂ ਤੁਹਾਨੂੰ ਕਿਸ ਨਾਮ ਨਾਲ ਸੰਬੋਧਿਤ ਕਰੀਏ।
+ਈਮੇਲ
+ਜਿੱਥੇ ਅਸੀਂ ਆਪਣਾ ਜਵਾਬ ਅਤੇ ਅੱਗੇ ਦੀ ਜਾਣਕਾਰੀ ਭੇਜਾਂਗੇ।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਸਿੱਧੀ ਕਾਲ ਪਸੰਦ ਹੋਵੇ ਤਾਂ ਨੰਬਰ ਸ਼ਾਮਲ ਕਰੋ।
+ਕੰਪਨੀ ਜਾਂ ਮਾਲਕੀ ਸਮੂਹ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+AxisPoint ਇਸ ਜਾਣਕਾਰੀ ਦੀ ਵਰਤੋਂ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਦੀ ਸਮੀਖਿਆ ਕਰਨ ਅਤੇ ਸਿੱਧਾ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਕਰੇਗਾ।
+←
+ਪਿੱਛੇ
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜੋ
+
+========================================================================
+STATE: short-investor
+========================================================================
+
+ਸੰਪਰਕ
+ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਨਿਵੇਸ਼ਕ ਸੇਵਾਵਾਂ
+ਰਾਹ ਬਦਲੋ
+ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ ਕਿੱਥੇ ਹੋ।
+ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਛੋਟਾ ਜਿਹਾ ਨੋਟ ਕਾਫ਼ੀ ਹੈ। ਗੱਲਬਾਤ ਤੈਅ ਕਰਨ ਲਈ ਅਸੀਂ ਸੰਪਰਕ ਕਰਾਂਗੇ।
+ਤੁਸੀਂ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ ਕਿੱਥੇ ਹੋ?
+ਇੱਕ ਚੁਣੋ
+ਆਪਣੀ ਪਹਿਲੀ ਖਰੀਦ ਬਾਰੇ ਵਿਚਾਰ ਕਰ ਰਿਹਾ ਹਾਂ
+ਇਸ ਵੇਲੇ ਸਮਝੌਤੇ ਅਧੀਨ
+ਸਰਗਰਮੀ ਨਾਲ ਲੱਭ ਰਹੇ ਹਾਂ
+ਜਾਇਦਾਦ ਹੈ, ਸੰਚਾਲਨ ਟੀਮ ਚਾਹੀਦੀ ਹੈ
+ਕੁਝ ਹੋਰ
+ਪੂਰਾ ਨਾਮ
+ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਅਸੀਂ ਤੁਹਾਨੂੰ ਕਿਸ ਨਾਮ ਨਾਲ ਸੰਬੋਧਿਤ ਕਰੀਏ।
+ਈਮੇਲ
+ਜਿੱਥੇ ਅਸੀਂ ਆਪਣਾ ਜਵਾਬ ਅਤੇ ਅੱਗੇ ਦੀ ਜਾਣਕਾਰੀ ਭੇਜਾਂਗੇ।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਕੰਪਨੀ ਵਿਕਲਪਿਕ
+ਤੁਸੀਂ ਕਿਸ ਬਾਰੇ ਵਿਚਾਰ ਕਰ ਰਹੇ ਹੋ? ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+ਪੁੱਛਗਿੱਛ ਭੇਜੋ
+ਇਸ ਪੜਾਅ ਤੇ ਕਿਸੇ ਦਸਤਾਵੇਜ਼ ਦੀ ਲੋੜ ਨਹੀਂ।
+
+========================================================================
+STATE: short-general
+========================================================================
+
+ਸੰਪਰਕ
+ਆਮ ਪੁੱਛਗਿੱਛ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਆਮ ਪੁੱਛਗਿੱਛ
+ਰਾਹ ਬਦਲੋ
+ਅਸੀਂ ਕਿਸ ਵਿੱਚ ਮਦਦ ਕਰ ਸਕਦੇ ਹਾਂ?
+ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਕੌਣ ਹੋ ਅਤੇ ਤੁਹਾਨੂੰ ਕੀ ਚਾਹੀਦਾ ਹੈ। ਅਸੀਂ ਇਸਨੂੰ ਸਹੀ ਭਾਈਵਾਲ ਤੱਕ ਪਹੁੰਚਾਵਾਂਗੇ।
+ਇਹ ਕਿਸ ਬਾਰੇ ਹੈ?
+ਇੱਕ ਚੁਣੋ
+AxisPoint ਬਾਰੇ ਇੱਕ ਸਵਾਲ
+ਵਿਕਰੇਤਾ ਜਾਂ ਸੇਵਾ ਪ੍ਰਦਾਤਾ
+ਰੁਜ਼ਗਾਰ
+ਪ੍ਰੈਸ ਜਾਂ ਮੀਡੀਆ
+ਕੁਝ ਹੋਰ
+ਪੂਰਾ ਨਾਮ
+ਤੁਸੀਂ ਚਾਹੁੰਦੇ ਹੋ ਕਿ ਅਸੀਂ ਤੁਹਾਨੂੰ ਕਿਸ ਨਾਮ ਨਾਲ ਸੰਬੋਧਿਤ ਕਰੀਏ।
+ਈਮੇਲ
+ਜਿੱਥੇ ਅਸੀਂ ਆਪਣਾ ਜਵਾਬ ਅਤੇ ਅੱਗੇ ਦੀ ਜਾਣਕਾਰੀ ਭੇਜਾਂਗੇ।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਕੰਪਨੀ ਵਿਕਲਪਿਕ
+ਤੁਹਾਡਾ ਸੁਨੇਹਾ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+ਪੁੱਛਗਿੱਛ ਭੇਜੋ
+ਇਸ ਪੜਾਅ ਤੇ ਕਿਸੇ ਦਸਤਾਵੇਜ਼ ਦੀ ਲੋੜ ਨਹੀਂ।
+
+========================================================================
+STATE: short-invalid
+========================================================================
+
+ਸੰਪਰਕ
+ਆਮ ਪੁੱਛਗਿੱਛ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਆਮ ਪੁੱਛਗਿੱਛ
+ਰਾਹ ਬਦਲੋ
+ਅਸੀਂ ਕਿਸ ਵਿੱਚ ਮਦਦ ਕਰ ਸਕਦੇ ਹਾਂ?
+ਦੱਸੋ ਕਿ ਤੁਸੀਂ ਕੌਣ ਹੋ ਅਤੇ ਤੁਹਾਨੂੰ ਕੀ ਚਾਹੀਦਾ ਹੈ। ਅਸੀਂ ਇਸਨੂੰ ਸਹੀ ਭਾਈਵਾਲ ਤੱਕ ਪਹੁੰਚਾਵਾਂਗੇ।
+!
+3 ਖਾਨਿਆਂ ਵੱਲ ਧਿਆਨ ਚਾਹੀਦਾ ਹੈ। ਹੇਠਾਂ ਨਿਸ਼ਾਨਬੱਧ ਖਾਨੇ ਠੀਕ ਕਰੋ, ਫਿਰ ਪੁੱਛਗਿੱਛ ਦੁਬਾਰਾ ਭੇਜੋ।
+ਇਹ ਕਿਸ ਬਾਰੇ ਹੈ?
+ਇੱਕ ਚੁਣੋ
+AxisPoint ਬਾਰੇ ਇੱਕ ਸਵਾਲ
+ਵਿਕਰੇਤਾ ਜਾਂ ਸੇਵਾ ਪ੍ਰਦਾਤਾ
+ਰੁਜ਼ਗਾਰ
+ਪ੍ਰੈਸ ਜਾਂ ਮੀਡੀਆ
+ਕੁਝ ਹੋਰ
+!
+ਉਹ ਵਿਕਲਪ ਚੁਣੋ ਜੋ ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਨੂੰ ਸਭ ਤੋਂ ਵਧੀਆ ਦੱਸਦਾ ਹੈ।
+ਪੂਰਾ ਨਾਮ
+!
+ਉਹ ਨਾਮ ਦਰਜ ਕਰੋ ਜੋ ਸਾਨੂੰ ਕਾਲ ਕਰਨ ਵੇਲੇ ਪੁੱਛਣਾ ਚਾਹੀਦਾ ਹੈ।
+ਈਮੇਲ
+!
+ਇਸ ਪਤੇ ਵਿੱਚ @ ਨਿਸ਼ਾਨ ਤੋਂ ਬਾਅਦ ਵਾਲਾ ਹਿੱਸਾ ਨਹੀਂ ਹੈ। ਪੂਰਾ ਪਤਾ ਦਰਜ ਕਰੋ, ਉਦਾਹਰਨ ਲਈ name@company.com।
+ਫ਼ੋਨ ਵਿਕਲਪਿਕ
+ਕੰਪਨੀ ਵਿਕਲਪਿਕ
+ਤੁਹਾਡਾ ਸੁਨੇਹਾ ਵਿਕਲਪਿਕ
+ਸੰਪਰਕ ਲਈ ਭਾਸ਼ਾ ਵਿਕਲਪਿਕ
+ਇਸ ਪੰਨੇ ਵਾਂਗ, ਪੰਜਾਬੀ
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+ਇਸਨੂੰ ਇਵੇਂ ਹੀ ਰਹਿਣ ਦਿਓ ਅਤੇ ਅਸੀਂ ਇਸ ਪੰਨੇ ਦੀ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।
+ਪੁੱਛਗਿੱਛ ਭੇਜੋ
+ਇਸ ਪੜਾਅ ਤੇ ਕਿਸੇ ਦਸਤਾਵੇਜ਼ ਦੀ ਲੋੜ ਨਹੀਂ।
+
+========================================================================
+STATE: confirmation-pm
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜ ਦਿੱਤੇ
+ਧੰਨਵਾਦ, there। ਸਾਨੂੰ ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਮਿਲ ਗਏ ਹਨ।
+Zachary ਜਾਂ Ethaniel ਜਾਣਕਾਰੀ ਵੇਖ ਕੇ ਸਿੱਧਾ ਸੰਪਰਕ ਕਰਨਗੇ।
+ਤੁਸੀਂ ਕੀ ਭੇਜਿਆ
+ਜਾਇਦਾਦ
+ਨਹੀਂ ਦੱਸਿਆ ਗਿਆ
+ਹਾਲਾਤ
+ਨਹੀਂ ਦੱਸਿਆ ਗਿਆ
+ਸ਼ਮੂਲੀਅਤ
+ਨਹੀਂ ਦੱਸਿਆ ਗਿਆ
+AxisPoint ਤੇ ਵਾਪਸ
+
+========================================================================
+STATE: confirmation-short
+========================================================================
+
+ਸੰਪਰਕ
+ਆਮ ਪੁੱਛਗਿੱਛ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ਪੁੱਛਗਿੱਛ ਭੇਜ ਦਿੱਤੀ
+ਧੰਨਵਾਦ, there। ਤੁਹਾਡੀ ਪੁੱਛਗਿੱਛ ਸਾਡੇ ਕੋਲ ਹੈ।
+Zachary ਜਾਂ Ethaniel ਇਸਨੂੰ ਵੇਖ ਕੇ ਸਿੱਧਾ your email ਤੇ ਸੰਪਰਕ ਕਰਨਗੇ।
+ਤੁਸੀਂ ਕੀ ਭੇਜਿਆ
+ਰਾਹ
+ਆਮ ਪੁੱਛਗਿੱਛ
+ਵਿਸ਼ਾ
+ਨਹੀਂ ਦੱਸਿਆ ਗਿਆ
+ਸੰਪਰਕ ਦੀ ਭਾਸ਼ਾ
+English
+AxisPoint ਤੇ ਵਾਪਸ
+
+========================================================================
+STATE: booking-picker
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਵਿਕਲਪਿਕ ਅਗਲਾ ਕਦਮ
+30 ਮਿੰਟ ਦੀ ਕਾਲ ਤੈਅ ਕਰੋ
+ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਪਹਿਲਾਂ ਹੀ ਭੇਜੇ ਜਾ ਚੁੱਕੇ ਹਨ। ਸਮਾਂ ਤਾਂ ਹੀ ਚੁਣੋ ਜੇ ਇਹ ਤੁਹਾਡੇ ਲਈ ਲਾਭਦਾਇਕ ਹੋਵੇ।
+ਤਾਰੀਖ਼ ਚੁਣੋ
+M08 11, Tue
+M08 12, Wed
+M08 13, Thu
+M08 14, Fri
+M08 17, Mon
+M08 18, Tue
+M08 19, Wed
+M08 20, Thu
+M08 21, Fri
+M08 24, Mon
+M08 25, Tue
+M08 26, Wed
+M08 27, Thu
+M08 28, Fri
+M08 31, Mon
+M09 1, Tue
+M09 2, Wed
+M09 3, Thu
+M09 4, Fri
+M09 7, Mon
+M09 8, Tue
+M09 9, Wed
+M09 10, Thu
+M09 11, Fri
+M09 14, Mon
+M09 15, Tue
+M09 16, Wed
+M09 17, Thu
+M09 18, Fri
+M09 21, Mon
+M09 22, Tue
+M09 23, Wed
+M09 24, Thu
+M09 25, Fri
+M09 28, Mon
+M09 29, Tue
+M09 30, Wed
+M10 1, Thu
+M10 2, Fri
+M10 5, Mon
+M10 6, Tue
+M10 7, Wed
+M10 8, Thu
+M10 9, Fri
+ਸਮਾਂ ਸੈਂਟਰਲ ਟਾਈਮ, ਹਿਊਸਟਨ ਵਿੱਚ ਦਿਖਾਇਆ ਗਿਆ ਹੈ। ਉਪਲਬਧਤਾ ਦੀ ਪੁਸ਼ਟੀ ਬੁਕਿੰਗ ਵੇਲੇ ਹੁੰਦੀ ਹੈ।
+ਸਮਾਂ ਚੁਣੋ
+ਸਮੇਂ ਵੇਖਣ ਲਈ ਪਹਿਲਾਂ ਤਾਰੀਖ਼ ਚੁਣੋ।
+ਅਸੀਂ ਕਿਸ ਤਰ੍ਹਾਂ ਗੱਲ ਕਰੀਏ?
+ਫ਼ੋਨ ਕਾਲ
+ਵੀਡੀਓ ਮੀਟਿੰਗ
+ਚੁਣਿਆ ਗਿਆ
+ਤਾਰੀਖ਼, ਸਮਾਂ ਅਤੇ ਗੱਲ ਕਰਨ ਦਾ ਤਰੀਕਾ ਚੁਣੋ
+ਇਹ ਸਮਾਂ ਪੱਕਾ ਕਰੋ
+→
+
+========================================================================
+STATE: booking-selected
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ਵਿਕਲਪਿਕ ਅਗਲਾ ਕਦਮ
+30 ਮਿੰਟ ਦੀ ਕਾਲ ਤੈਅ ਕਰੋ
+ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਪਹਿਲਾਂ ਹੀ ਭੇਜੇ ਜਾ ਚੁੱਕੇ ਹਨ। ਸਮਾਂ ਤਾਂ ਹੀ ਚੁਣੋ ਜੇ ਇਹ ਤੁਹਾਡੇ ਲਈ ਲਾਭਦਾਇਕ ਹੋਵੇ।
+ਤਾਰੀਖ਼ ਚੁਣੋ
+M08 11, Tue
+M08 12, Wed
+M08 13, Thu
+M08 14, Fri
+M08 17, Mon
+M08 18, Tue
+M08 19, Wed
+M08 20, Thu
+M08 21, Fri
+M08 24, Mon
+M08 25, Tue
+M08 26, Wed
+M08 27, Thu
+M08 28, Fri
+M08 31, Mon
+M09 1, Tue
+M09 2, Wed
+M09 3, Thu
+M09 4, Fri
+M09 7, Mon
+M09 8, Tue
+M09 9, Wed
+M09 10, Thu
+M09 11, Fri
+M09 14, Mon
+M09 15, Tue
+M09 16, Wed
+M09 17, Thu
+M09 18, Fri
+M09 21, Mon
+M09 22, Tue
+M09 23, Wed
+M09 24, Thu
+M09 25, Fri
+M09 28, Mon
+M09 29, Tue
+M09 30, Wed
+M10 1, Thu
+M10 2, Fri
+M10 5, Mon
+M10 6, Tue
+M10 7, Wed
+M10 8, Thu
+M10 9, Fri
+ਸਮਾਂ ਸੈਂਟਰਲ ਟਾਈਮ, ਹਿਊਸਟਨ ਵਿੱਚ ਦਿਖਾਇਆ ਗਿਆ ਹੈ। ਉਪਲਬਧਤਾ ਦੀ ਪੁਸ਼ਟੀ ਬੁਕਿੰਗ ਵੇਲੇ ਹੁੰਦੀ ਹੈ।
+ਸਮਾਂ ਚੁਣੋ
+11:00 AM
+11:30 AM
+12:00 PM
+12:30 PM
+1:00 PM
+1:30 PM
+2:00 PM
+2:30 PM
+3:00 PM
+3:30 PM
+4:00 PM
+4:30 PM
+ਅਸੀਂ ਕਿਸ ਤਰ੍ਹਾਂ ਗੱਲ ਕਰੀਏ?
+ਫ਼ੋਨ ਕਾਲ
+ਵੀਡੀਓ ਮੀਟਿੰਗ
+ਚੁਣਿਆ ਗਿਆ
+M08 11, Tue ਨੂੰ 11:00 AM ਵਜੇ, Phone call
+ਇਹ ਸਮਾਂ ਪੱਕਾ ਕਰੋ
+→
+
+========================================================================
+STATE: booking-scheduled
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ਕਾਲ ਪੱਕੀ ਹੋਈ
+ਤੁਸੀਂ ਕੈਲੰਡਰ ਵਿੱਚ ਹੋ।
+ਕਦੋਂ
+, Central
+ਰੂਪ
+ਮਿਆਦ
+30 ਮਿੰਟ
+ਕਿਸ ਨਾਲ
+AxisPoint Partners
+ਕੈਲੰਡਰ ਸੱਦਾ your email ਤੇ ਜਾਵੇਗਾ। ਸਮਾਂ ਬਦਲਣਾ ਹੋਵੇ ਤਾਂ ਉਸੇ ਦਾ ਜਵਾਬ ਦਿਓ।
+ਡਿਵੈਲਪਮੈਂਟ ਝਲਕ। ਬੁਕਿੰਗ ਕਮਾਂਡ ਸਿਮੂਲੇਟਰ ਤੇ ਚੱਲੀ, ਇਸ ਲਈ ਕੋਈ ਕੈਲੰਡਰ ਇਵੈਂਟ ਨਹੀਂ ਬਣਿਆ ਅਤੇ ਕੋਈ ਸੱਦਾ ਨਹੀਂ ਭੇਜਿਆ ਗਿਆ।
+Back to AxisPoint
+
+========================================================================
+STATE: booking-skipped
+========================================================================
+
+ਸੰਪਰਕ
+ਜਾਇਦਾਦ ਪ੍ਰਬੰਧਨ
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ ਭੇਜ ਦਿੱਤੇ
+ਕੋਈ ਕਾਲ ਤੈਅ ਨਹੀਂ ਹੋਈ। ਤੁਹਾਡੇ ਤੋਂ ਹੋਰ ਕੁਝ ਨਹੀਂ ਚਾਹੀਦਾ।
+ਤੁਹਾਡੀ ਜਾਇਦਾਦ ਦੇ ਵੇਰਵੇ Zachary ਅਤੇ Ethaniel ਕੋਲ ਹਨ, ਅਤੇ ਉਹ your email ਤੇ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨਗੇ। ਬਾਅਦ ਵਿੱਚ ਲਾਭਦਾਇਕ ਲੱਗੇ ਤਾਂ ਤੁਸੀਂ ਹੁਣ ਵੀ ਸਮਾਂ ਚੁਣ ਸਕਦੇ ਹੋ।
+30 ਮਿੰਟ ਦੀ ਕਾਲ ਤੈਅ ਕਰੋ
+→
+AxisPoint ਤੇ ਵਾਪਸ

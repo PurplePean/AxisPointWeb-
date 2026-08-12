@@ -364,4 +364,149 @@ export const HI: Partial<Messages> = {
   partnersClosingTitle: 'अपनी संपत्ति के बारे में किसी साझेदार से बात करें।',
   partnersClosingBody:
     'संपत्ति और स्थिति भेजें। जो साझेदार उसे पढ़ता है, वही उसके लिए जवाब देगा।',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Display text only; stored values stay stable snake_case tokens. Placeholders
+   * {name} {email} {count} {day} {time} {mode} {language} must survive exactly. */
+
+  contactEyebrow: 'संपर्क',
+  contactHeroTitle: 'AxisPoint से संपर्क करें',
+  contactHeroLead:
+    'ह्यूस्टन से साझेदारों के नेतृत्व में, पूरे टेक्सास के स्वामियों की सेवा। बताएं कि आपको क्या चाहिए और एक साझेदार उसे पढ़ता है।',
+  contactMetaTitle: 'AxisPoint से संपर्क करें | AxisPoint Partners',
+  contactMetaDescription:
+    'ह्यूस्टन, टेक्सास से सीधे AxisPoint तक पहुंचें, पूरे राज्य के स्वामियों की सेवा। अपनी स्थिति से मेल खाता रास्ता चुनें, या info@axispoint.llc पर लिखें।',
+  contactPathwayPmAm: 'संपत्ति प्रबंधन और परिसंपत्ति प्रबंधन',
+  contactPmMetaTitle: 'प्रबंधन प्रस्ताव का अनुरोध करें | AxisPoint Partners',
+  contactPmMetaDescription:
+    'संपत्ति, मौजूदा प्रबंधन की स्थिति और जो बदलाव आप सोच रहे हैं, वह भेजें। एक साझेदार उसे पढ़कर उत्तर देता है।',
+  contactAmMetaTitle:
+    'परिसंपत्ति प्रबंधन सहित प्रबंधन प्रस्ताव का अनुरोध करें | AxisPoint Partners',
+  contactAmMetaDescription:
+    'प्रबंधन प्रस्ताव में परिसंपत्ति प्रबंधन की रुचि स्पष्ट करके शुरू करें, ताकि संचालन कार्य और निवेश दृष्टिकोण एक ही टीम संभाले।',
+  contactIsMetaTitle: 'निवेशक सेवाओं की पूछताछ | AxisPoint Partners',
+  contactIsMetaDescription:
+    'बताएं कि आप प्रक्रिया में कहां हैं। एक साझेदार संचालन आकलन के साथ उत्तर देता है और बताता है कि प्रबंधन कैसा दिखेगा।',
+  contactGeneralMetaTitle: 'AxisPoint से संपर्क करें | AxisPoint Partners',
+  contactGeneralMetaDescription:
+    'बताएं कि आप कौन हैं और आपको क्या चाहिए। हम इसे सही साझेदार तक पहुंचाएंगे।',
+
+  fieldOptional: 'वैकल्पिक',
+
+  gatewayEmailPrefix: 'ईमेल पसंद है? लिखें',
+
+  ledgerChangePath: 'रास्ता बदलें',
+  labelProperty: 'संपत्ति',
+  labelPropertyEmpty: 'प्रकार, स्थान और आकार',
+  labelSituation: 'स्थिति',
+  labelSituationEmpty: 'क्या बदलना है',
+  labelContact: 'संपर्क',
+  labelContactEmpty: 'हम कैसे संपर्क करें',
+  labelInvolvement: 'भागीदारी',
+  labelPathway: 'रास्ता',
+  labelTopic: 'विषय',
+  labelFollowUpLanguage: 'संपर्क की भाषा',
+
+  confirmKickerProperty: 'संपत्ति का विवरण भेजा गया',
+  confirmKickerInquiry: 'पूछताछ भेजी गई',
+  confirmTitleProperty: 'धन्यवाद, {name}। आपकी संपत्ति का विवरण हमें मिल गया है।',
+  confirmTitleInquiry: 'धन्यवाद, {name}। आपकी पूछताछ हमारे पास है।',
+  confirmBodyProperty: 'Zachary या Ethaniel जानकारी देखेंगे और सीधे संपर्क करेंगे।',
+  confirmBodyInquiry: 'Zachary या Ethaniel इसे देखेंगे और सीधे {email} पर संपर्क करेंगे।',
+  confirmWhatYouSent: 'आपने क्या भेजा',
+  confirmScheduleCta: '30 मिनट की कॉल तय करें',
+  confirmWait: 'मैं संपर्क का इंतजार करूंगा',
+  backToAxisPoint: 'AxisPoint पर वापस',
+
+  scheduleKicker: 'वैकल्पिक अगला कदम',
+  scheduleTitle: '30 मिनट की कॉल तय करें',
+  scheduleLead:
+    'आपकी संपत्ति का विवरण पहले ही भेजा जा चुका है। समय तभी चुनें जब यह आपके लिए उपयोगी हो।',
+  scheduleSelectDate: 'तारीख चुनें',
+  scheduleSelectTime: 'समय चुनें',
+  scheduleChooseDateFirst: 'समय देखने के लिए पहले तारीख चुनें।',
+  scheduleHowMeet: 'हम किस तरह बात करें?',
+  scheduleSelectedLabel: 'चयनित',
+  scheduleSelectedSummary: '{day} को {time} बजे, {mode}',
+  scheduleSelectedEmpty: 'तारीख, समय और बात करने का तरीका चुनें',
+  scheduleConfirm: 'यह समय पक्का करें',
+  scheduleBooking: 'तय किया जा रहा है',
+
+  scheduledKicker: 'कॉल पक्की हुई',
+  scheduledTitle: 'आप कैलेंडर में हैं।',
+  labelWhen: 'कब',
+  labelFormat: 'स्वरूप',
+  labelLength: 'अवधि',
+  labelWith: 'किसके साथ',
+  // "Central" फर्म के समय क्षेत्र का नाम है और इसका अनुवाद नहीं होता: समय हमेशा
+  // America/Chicago में गिना जाता है, पाठक की भाषा चाहे जो हो।
+  scheduledWhenValue: '{day}, {time} Central',
+  scheduledInviteNote:
+    'कैलेंडर आमंत्रण {email} पर जाएगा। समय बदलना हो तो उसी का उत्तर दें।',
+  scheduledDevNote:
+    'डेवलपमेंट पूर्वावलोकन। बुकिंग कमांड सिम्युलेटर पर चली, इसलिए कोई कैलेंडर इवेंट नहीं बना और कोई आमंत्रण नहीं भेजा गया।',
+
+  skippedTitle: 'कोई कॉल तय नहीं हुई। आपसे और कुछ नहीं चाहिए।',
+  skippedBody:
+    'आपकी संपत्ति का विवरण Zachary और Ethaniel के पास है, और वे {email} पर आपसे संपर्क करेंगे। आगे उपयोगी लगे तो आप अब भी समय चुन सकते हैं।',
+
+  errorSummaryOne: 'एक फ़ील्ड पर ध्यान चाहिए।',
+  errorSummaryTwo: 'दो फ़ील्ड पर ध्यान चाहिए।',
+  errorSummaryMany: '{count} फ़ील्ड पर ध्यान चाहिए।',
+  errorSummaryFixInquiry: 'नीचे चिह्नित फ़ील्ड ठीक करें, फिर पूछताछ दोबारा भेजें।',
+  errorSummaryFixProperty:
+    'अपना पूरा नाम और एक ईमेल पता जोड़ें जिस पर हम उत्तर दे सकें, फिर संपत्ति का विवरण दोबारा भेजें।',
+  failedTitleInquiry: 'हम आपकी पूछताछ नहीं भेज सके।',
+  failedTitleProperty: 'हम आपकी संपत्ति का विवरण नहीं भेज सके।',
+  failedBody: 'आपके उत्तर अब भी यहीं हैं। फिर से प्रयास करें या सीधे AxisPoint से संपर्क करें।',
+  tryAgain: 'फिर से प्रयास करें',
+  unavailableTitle: 'अभी भेजना उपलब्ध नहीं है।',
+  unavailableBody:
+    'कुछ भी नहीं भेजा गया। आपके उत्तर अब भी यहीं हैं, और तब तक आप सीधे AxisPoint से संपर्क कर सकते हैं।',
+  blockedBody:
+    'कुछ भी नहीं भेजा गया, और दोबारा प्रयास करने से मदद नहीं मिलेगी। आपके उत्तर अब भी यहीं हैं। कृपया सीधे AxisPoint से संपर्क करें।',
+  emailAxisPoint: 'AxisPoint को ईमेल करें',
+
+  fieldFullName: 'पूरा नाम',
+  fieldEmail: 'ईमेल',
+  fieldPhone: 'फोन',
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: 'सीधे कॉल पसंद हो तो एक नंबर जोड़ें।',
+  fieldCompanyOwnership: 'कंपनी या स्वामित्व समूह',
+  fieldLanguageFollowUp: 'संपर्क के लिए भाषा',
+  followUpHelpChosen:
+    'जहां कोई साझेदार उपलब्ध होगा वहां हम {language} में उत्तर देंगे, अन्यथा अंग्रेजी में।',
+  followUpHelpDefault: 'इसे ऐसे ही छोड़ दें और हम इस पृष्ठ की भाषा में उत्तर देंगे।',
+  sending: 'भेजा जा रहा है',
+  noDocuments: 'इस चरण में किसी दस्तावेज़ की जरूरत नहीं।',
+
+  step1Title: 'अपनी संपत्ति के बारे में बताएं।',
+  step1Lead:
+    'कुछ विवरण हमें समझने में मदद करेंगे कि आपके पास क्या है, क्या बदलना है, और क्या AxisPoint सही संचालन साझेदार है।',
+  step1SubTitle: 'हम किस बारे में बात कर रहे हैं?',
+  legendPropertyType: 'संपत्ति का प्रकार',
+  legendPropertyScope: 'संपत्ति का दायरा',
+  fieldLocation: 'संपत्ति कहां स्थित है?',
+  fieldLocationPlaceholder: 'शहर या बाजार',
+  fieldLocationHelp: 'फिलहाल शहर या बाजार पर्याप्त है। पूरा पता जरूरी नहीं।',
+  fieldPropertyCount: 'संपत्तियों की संख्या',
+  fieldPropertyCountPlaceholder: 'उदाहरण के लिए 6',
+  notSure: 'निश्चित नहीं',
+  continueLabel: 'जारी रखें',
+  step1Footer: 'चरण 1, कुल 3 में से। पूरा करने में लगभग 60 से 90 सेकंड।',
+
+  step2Title: 'क्या बदलने की जरूरत है?',
+  legendCurrentSituation: 'वर्तमान स्थिति',
+  legendInvolvement: 'आप AxisPoint की भागीदारी कहां चाहेंगे?',
+  fieldTiming: 'समय',
+  fieldTimingPlaceholder: 'एक समय-सीमा चुनें',
+  fieldUnderstand: 'बात करने से पहले हमें क्या समझ लेना चाहिए?',
+  fieldUnderstandPlaceholder:
+    'संपत्ति, मौजूदा प्रबंधक या समय-सीमा के बारे में कुछ भी',
+  backLabel: 'पीछे',
+
+  step3Title: 'हम कैसे संपर्क करें?',
+  privacyNote:
+    'AxisPoint इस जानकारी का उपयोग आपकी पूछताछ की समीक्षा करने और सीधे आपसे संपर्क करने के लिए करेगा।',
+  sendPropertyDetails: 'संपत्ति का विवरण भेजें',
 };

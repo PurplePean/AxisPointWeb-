@@ -360,6 +360,158 @@ export interface Messages {
   partnersHowBody: string;
   partnersClosingTitle: string;
   partnersClosingBody: string;
+
+  /* ══ Contact page and intake (PR 4) ═════════════════════════════════════
+   *
+   * THE RULE THAT MATTERS MOST HERE: everything below is DISPLAY TEXT. Not one of these
+   * values is ever stored, sent, or used as a lookup key. Stable snake_case tokens carry
+   * the meaning to the wire, exactly as they have since the Localization Readiness pass,
+   * and the token tests prove a translated label cannot change a payload.
+   *
+   * Interpolated values use `interpolate` with the placeholders listed in `PLACEHOLDERS`. */
+
+  /* ── Contact page ── */
+  contactEyebrow: string;
+  contactHeroTitle: string;
+  contactHeroLead: string;
+  contactMetaTitle: string;
+  contactMetaDescription: string;
+  contactPathwayPmAm: string;
+  contactPmMetaTitle: string;
+  contactPmMetaDescription: string;
+  contactAmMetaTitle: string;
+  contactAmMetaDescription: string;
+  contactIsMetaTitle: string;
+  contactIsMetaDescription: string;
+  contactGeneralMetaTitle: string;
+  contactGeneralMetaDescription: string;
+
+  /* ── Field primitives ── */
+  fieldOptional: string;
+
+  /* ── Gateway ── */
+  gatewayEmailPrefix: string;
+
+  /* ── Progress ledger and summary labels ── */
+  ledgerChangePath: string;
+  labelProperty: string;
+  labelPropertyEmpty: string;
+  labelSituation: string;
+  labelSituationEmpty: string;
+  labelContact: string;
+  labelContactEmpty: string;
+  labelInvolvement: string;
+  labelPathway: string;
+  labelTopic: string;
+  labelFollowUpLanguage: string;
+
+  /* ── Confirmation ── */
+  confirmKickerProperty: string;
+  confirmKickerInquiry: string;
+  /** `{name}` */
+  confirmTitleProperty: string;
+  /** `{name}` */
+  confirmTitleInquiry: string;
+  confirmBodyProperty: string;
+  /** `{email}` */
+  confirmBodyInquiry: string;
+  confirmWhatYouSent: string;
+  confirmScheduleCta: string;
+  confirmWait: string;
+  backToAxisPoint: string;
+
+  /* ── Booking picker ── */
+  scheduleKicker: string;
+  scheduleTitle: string;
+  scheduleLead: string;
+  scheduleSelectDate: string;
+  scheduleSelectTime: string;
+  scheduleChooseDateFirst: string;
+  scheduleHowMeet: string;
+  scheduleSelectedLabel: string;
+  /** `{day}` `{time}` `{mode}` */
+  scheduleSelectedSummary: string;
+  scheduleSelectedEmpty: string;
+  scheduleConfirm: string;
+  scheduleBooking: string;
+
+  /* ── Booking confirmed ── */
+  scheduledKicker: string;
+  scheduledTitle: string;
+  labelWhen: string;
+  labelFormat: string;
+  labelLength: string;
+  labelWith: string;
+  /** `{day}` `{time}` */
+  scheduledWhenValue: string;
+  /** `{email}` */
+  scheduledInviteNote: string;
+  scheduledDevNote: string;
+
+  /* ── Booking skipped ── */
+  skippedTitle: string;
+  /** `{email}` */
+  skippedBody: string;
+
+  /* ── Validation and submission alerts ── */
+  errorSummaryOne: string;
+  errorSummaryTwo: string;
+  /** `{count}` */
+  errorSummaryMany: string;
+  errorSummaryFixInquiry: string;
+  errorSummaryFixProperty: string;
+  failedTitleInquiry: string;
+  failedTitleProperty: string;
+  failedBody: string;
+  tryAgain: string;
+  unavailableTitle: string;
+  unavailableBody: string;
+  blockedBody: string;
+  emailAxisPoint: string;
+
+  /* ── Contact fields ── */
+  fieldFullName: string;
+  fieldEmail: string;
+  fieldPhone: string;
+  fieldPhonePlaceholder: string;
+  fieldPhoneHelp: string;
+  fieldCompanyOwnership: string;
+  fieldLanguageFollowUp: string;
+  /** `{language}` */
+  followUpHelpChosen: string;
+  followUpHelpDefault: string;
+  sending: string;
+  noDocuments: string;
+
+  /* ── Management proposal, step 1 ── */
+  step1Title: string;
+  step1Lead: string;
+  step1SubTitle: string;
+  legendPropertyType: string;
+  legendPropertyScope: string;
+  fieldLocation: string;
+  fieldLocationPlaceholder: string;
+  fieldLocationHelp: string;
+  fieldPropertyCount: string;
+  fieldPropertyCountPlaceholder: string;
+  notSure: string;
+  continueLabel: string;
+  step1Footer: string;
+
+  /* ── Step 2 ── */
+  step2Title: string;
+  legendCurrentSituation: string;
+  legendInvolvement: string;
+  fieldTiming: string;
+  fieldTimingPlaceholder: string;
+  fieldUnderstand: string;
+  fieldUnderstandPlaceholder: string;
+  backLabel: string;
+
+  /* ── Step 3 ── */
+  step3Title: string;
+  privacyNote: string;
+  sendPropertyDetails: string;
 }
 
 /**
@@ -721,12 +873,189 @@ export const EN: Messages = {
   partnersClosingTitle: 'Talk to a partner about your property.',
   partnersClosingBody:
     'Send the property and the situation. The partner who reads it is the one who would answer for it.',
+
+  /* ══ Contact page and intake (PR 4) ══
+   * Transcribed from the 20-state rendered baseline in `tests/baseline-intake/`, not from
+   * the JSX and not from memory. That baseline is what proves the transcription exact. */
+
+  contactEyebrow: 'Contact',
+  contactHeroTitle: 'Contact AxisPoint',
+  contactHeroLead:
+    'Partner-led from Houston, serving owners across Texas. Tell us what you need and a partner reads it.',
+  contactMetaTitle: 'Contact AxisPoint | AxisPoint Partners',
+  contactMetaDescription:
+    'Reach AxisPoint directly from Houston, Texas, serving owners statewide. Choose the path that matches your situation, or write to info@axispoint.llc.',
+  contactPathwayPmAm: 'Property Management and Asset Management',
+  contactPmMetaTitle: 'Request a Management Proposal | AxisPoint Partners',
+  contactPmMetaDescription:
+    'Send the property, the current management situation, and the change you are considering. A partner reads it and responds.',
+  contactAmMetaTitle: 'Request a Management Proposal with Asset Management | AxisPoint Partners',
+  contactAmMetaDescription:
+    'Start the management proposal with asset management interest identified, so the operating work and the investment view are handled by the same team.',
+  contactIsMetaTitle: 'Investor Services Inquiry | AxisPoint Partners',
+  contactIsMetaDescription:
+    'Tell us where you are in the process. A partner responds with an operating read and what management would look like.',
+  /* Deliberately its OWN key even though its value equals `contactMetaTitle` today. The
+   * generic contact page and the general-inquiry pathway are different pages that happen to
+   * share a title; merging them would mean retitling one silently retitles the other. */
+  contactGeneralMetaTitle: 'Contact AxisPoint | AxisPoint Partners',
+  contactGeneralMetaDescription:
+    'Tell us who you are and what you need. We will route it to the right partner.',
+
+  fieldOptional: 'Optional',
+
+  gatewayEmailPrefix: 'Prefer email? Write to',
+
+  ledgerChangePath: 'Change path',
+  labelProperty: 'Property',
+  labelPropertyEmpty: 'Type, location, and scale',
+  labelSituation: 'Situation',
+  labelSituationEmpty: 'What needs to change',
+  labelContact: 'Contact',
+  labelContactEmpty: 'How we follow up',
+  labelInvolvement: 'Involvement',
+  labelPathway: 'Pathway',
+  labelTopic: 'Topic',
+  labelFollowUpLanguage: 'Follow-up language',
+
+  confirmKickerProperty: 'Property details sent',
+  confirmKickerInquiry: 'Inquiry sent',
+  confirmTitleProperty: 'Thank you, {name}. We have your property details.',
+  confirmTitleInquiry: 'Thank you, {name}. Your inquiry is with us.',
+  confirmBodyProperty:
+    'Zachary or Ethaniel will review the information and follow up directly.',
+  confirmBodyInquiry:
+    'Zachary or Ethaniel will review it and follow up directly at {email}.',
+  confirmWhatYouSent: 'What you sent',
+  confirmScheduleCta: 'Schedule a 30-Minute Call',
+  confirmWait: 'I’ll Wait for Follow-Up',
+  backToAxisPoint: 'Back to AxisPoint',
+
+  scheduleKicker: 'Optional next step',
+  scheduleTitle: 'Schedule a 30-minute call',
+  scheduleLead:
+    'Your property details are already sent. Pick a time only if it is useful to you.',
+  scheduleSelectDate: 'Select a date',
+  scheduleSelectTime: 'Select a time',
+  scheduleChooseDateFirst: 'Choose a date to see times.',
+  scheduleHowMeet: 'How should we meet?',
+  scheduleSelectedLabel: 'Selected',
+  scheduleSelectedSummary: '{day} at {time}, {mode}',
+  scheduleSelectedEmpty: 'Pick a date, a time, and how to meet',
+  scheduleConfirm: 'Confirm this time',
+  scheduleBooking: 'Booking',
+
+  scheduledKicker: 'Call confirmed',
+  scheduledTitle: 'You are on the calendar.',
+  labelWhen: 'When',
+  labelFormat: 'Format',
+  labelLength: 'Length',
+  labelWith: 'With',
+  /* "Central" is the firm's zone abbreviation and stays put: the INSTANT is computed in
+   * America/Chicago regardless of the reader's language, so naming another zone here would
+   * be a different meeting. */
+  scheduledWhenValue: '{day}, {time} Central',
+  scheduledInviteNote:
+    'A calendar invitation goes to {email}. Reply to it if you need to move the time.',
+  scheduledDevNote:
+    'Development preview. The booking command ran against the simulator, so no calendar event was created and no invitation was sent.',
+
+  skippedTitle: 'No call scheduled. Nothing more is needed from you.',
+  skippedBody:
+    'Your property details are with Zachary and Ethaniel, and they will reach you at {email}. You can still pick a time if it becomes useful.',
+
+  errorSummaryOne: 'One field needs attention.',
+  errorSummaryTwo: 'Two fields need attention.',
+  errorSummaryMany: '{count} fields need attention.',
+  errorSummaryFixInquiry: 'Correct the fields marked below, then send the inquiry again.',
+  errorSummaryFixProperty:
+    'Add your full name and an email address we can reply to, then send the property details again.',
+  failedTitleInquiry: 'We couldn’t send your inquiry.',
+  failedTitleProperty: 'We couldn’t send your property details.',
+  failedBody: 'Your answers are still here. Try again or contact AxisPoint directly.',
+  tryAgain: 'Try again',
+  unavailableTitle: 'Sending is unavailable right now.',
+  unavailableBody:
+    'Nothing was sent. Your answers are still here, and you can reach AxisPoint directly in the meantime.',
+  blockedBody:
+    'Nothing was sent, and trying again would not help. Your answers are still here. Please contact AxisPoint directly.',
+  emailAxisPoint: 'Email AxisPoint',
+
+  fieldFullName: 'Full name',
+  fieldEmail: 'Email',
+  fieldPhone: 'Phone',
+  /* A format example, not a real number. It stays in the Houston area-code shape because a
+   * placeholder's job is to show the expected form. */
+  fieldPhonePlaceholder: '(713) 000 0000',
+  fieldPhoneHelp: 'Add a number if you prefer a direct call.',
+  fieldCompanyOwnership: 'Company or ownership group',
+  fieldLanguageFollowUp: 'Language for follow-up',
+  followUpHelpChosen:
+    'We will reply in {language} where a partner is available, and in English otherwise.',
+  followUpHelpDefault: 'Leave this alone and we reply in the language of this page.',
+  sending: 'Sending',
+  noDocuments: 'No documents needed at this stage.',
+
+  step1Title: 'Tell us about your property.',
+  step1Lead:
+    'A few details will help us understand what you own, what needs to change, and whether AxisPoint is the right operating partner.',
+  step1SubTitle: 'What are we discussing?',
+  legendPropertyType: 'Property type',
+  legendPropertyScope: 'Property scope',
+  fieldLocation: 'Where is the property located?',
+  fieldLocationPlaceholder: 'City or market',
+  fieldLocationHelp: 'City or market is enough for now. No street address needed.',
+  fieldPropertyCount: 'Number of properties',
+  fieldPropertyCountPlaceholder: 'For example 6',
+  notSure: 'Not sure',
+  continueLabel: 'Continue',
+  step1Footer: 'Step 1 of 3. About 60 to 90 seconds in total.',
+
+  step2Title: 'What needs to change?',
+  legendCurrentSituation: 'Current situation',
+  legendInvolvement: 'Where would you like AxisPoint involved?',
+  fieldTiming: 'Timing',
+  fieldTimingPlaceholder: 'Select a timeframe',
+  fieldUnderstand: 'What should we understand before speaking?',
+  fieldUnderstandPlaceholder:
+    'Anything about the property, the current manager, or the timeline',
+  backLabel: 'Back',
+
+  step3Title: 'How should we follow up?',
+  privacyNote:
+    'AxisPoint will use this information to review your inquiry and follow up with you directly.',
+  sendPropertyDetails: 'Send Property Details',
 };
 
-/** The one interpolation in the catalog. See `languageChooseAria`. */
-export function withLanguage(template: string, language: string): string {
-  return template.replace('{language}', language);
+/**
+ * Placeholder substitution for the catalog's interpolated strings.
+ *
+ * Deliberately a literal `{name}` replace rather than a formatting library or ICU syntax.
+ * The requirement is substitution of already-formatted values, not pluralisation or
+ * gender selection, and an unfamiliar message syntax is one more thing a translator can
+ * get wrong. Where English needs a plural distinction the catalog carries two keys
+ * instead, which a translator can see and adapt.
+ *
+ * UNKNOWN PLACEHOLDERS ARE LEFT ALONE ON PURPOSE. If a translation invents `{naam}`, this
+ * does not silently blank it: the literal survives to the screen, the browser review's
+ * unresolved-placeholder check sees it, and a test fails. Silently dropping it would hide
+ * the defect.
+ */
+export function interpolate(template: string, vars: Record<string, string>): string {
+  let out = template;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.split(`{${key}}`).join(value);
+  }
+  return out;
 }
+
+/** The language selector's one placeholder. See `languageChooseAria`. */
+export function withLanguage(template: string, language: string): string {
+  return interpolate(template, { language });
+}
+
+/** Every placeholder token the catalog is allowed to contain. Asserted by the test suite. */
+export const PLACEHOLDERS = ['{language}', '{name}', '{email}', '{count}', '{day}', '{time}', '{mode}'] as const;
 
 /**
  * THE FALLBACK RULE, now stated per key rather than per catalog.

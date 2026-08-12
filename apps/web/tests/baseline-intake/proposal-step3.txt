@@ -1,0 +1,38 @@
+CONTACT
+Property Management
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+PROPERTY MANAGEMENT
+Change path
+01
+Property
+Type, location, and scale
+02
+Situation
+What needs to change
+03
+Contact
+How we follow up
+How should we follow up?
+Full name
+As you would like us to address you.
+Email
+Where we’ll send our reply and any follow-up details.
+Phone Optional
+Add a number if you prefer a direct call.
+Company or ownership group Optional
+Language for follow-up Optional
+Same as this page, English
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Leave this alone and we reply in the language of this page.
+AxisPoint will use this information to review your inquiry and follow up with you directly.
+←
+Back
+Send Property Details

@@ -1,0 +1,640 @@
+es intake and booking review
+Model-generated audit candidate unless the locale is English. Not reviewed, not approved.
+Placeholders are substituted with sample values; proper nouns are intentionally untranslated.
+
+========================================================================
+STATE: gateway
+========================================================================
+
+CONTACTO
+Contacte con AxisPoint
+Dirigido por los socios desde Houston, al servicio de propietarios en todo Texas. Díganos qué necesita y un socio lo lee.
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+¿Qué le gustaría tratar?
+Elija la opción que mejor se ajuste a su situación. Puede cambiarla más adelante.
+LA MAYORÍA DE LOS PROPIETARIOS EMPIEZA AQUÍ
+Propietario
+Soy propietario o superviso una propiedad y necesito administración.
+Comenzar con los datos de la propiedad
+→
+Gestión de activos
+→
+Soy propietario y quiero ayuda para dirigir la estrategia, el rendimiento y los informes.
+Servicios para inversionistas
+→
+Me preparo para adquirir bienes raíces comerciales y necesito un equipo operativo.
+Consulta general
+→
+Otro asunto. Proveedores, prensa, empleo o una pregunta.
+¿Prefiere el correo? Escriba a info@axispoint.llc
+
+========================================================================
+STATE: proposal-step1
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+Cuéntenos sobre su propiedad.
+Unos pocos datos nos ayudarán a entender qué posee, qué necesita cambiar y si AxisPoint es el socio operativo adecuado.
+¿De qué estamos hablando?
+Tipo de propiedad
+Multifamiliar
+Comercial minorista
+Cartera mixta
+Otro tipo de propiedad
+Alcance de la propiedad
+Una propiedad
+Cartera
+¿Dónde está ubicada la propiedad?
+Por ahora basta con la ciudad o el mercado. No hace falta la dirección exacta.
+Escala aproximada
+No estoy seguro
+Elija un tipo de propiedad arriba y esto se adapta a la medida correcta.
+Continuar
+→
+Paso 1 de 3. Unos 60 a 90 segundos en total.
+
+========================================================================
+STATE: proposal-step2
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+¿Qué necesita cambiar?
+Situación actual
+Reemplazar la administración actual
+Dejar de autoadministrar
+Adquirida recientemente o bajo contrato
+Ocupación inicial o recuperación
+Problemas de operación o de informes
+Explorando opciones de administración
+Otra cosa
+¿Dónde le gustaría que participe AxisPoint?
+Administración de propiedades
+Operar la propiedad en el día a día.
+Administración de propiedades + Gestión de activos
+Operar la propiedad y ayudar a dirigir la estrategia de inversión.
+No estoy seguro
+Ayúdenme a determinar el nivel de participación adecuado.
+Plazo
+Seleccione un plazo
+De inmediato
+Dentro de 30 días
+De 30 a 60 días
+De 60 a 90 días
+Todavía explorando
+¿Qué deberíamos saber antes de hablar? Opcional
+←
+Atrás
+Continuar
+→
+
+========================================================================
+STATE: proposal-step3
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+¿Cómo damos seguimiento?
+Nombre completo
+Como le gustaría que nos dirijamos a usted.
+Correo electrónico
+Donde enviaremos nuestra respuesta y cualquier detalle de seguimiento.
+Teléfono Opcional
+Agregue un número si prefiere una llamada directa.
+Empresa o grupo propietario Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+AxisPoint usará esta información para revisar su consulta y darle seguimiento directamente.
+←
+Atrás
+Enviar los datos de la propiedad
+
+========================================================================
+STATE: proposal-step3-invalid
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+¿Cómo damos seguimiento?
+!
+Dos campos necesitan atención. Agregue su nombre completo y una dirección de correo a la que podamos responder, y luego envíe los datos de la propiedad de nuevo.
+Nombre completo
+!
+Indique el nombre por el que debemos preguntar cuando llamemos.
+Correo electrónico
+!
+A esta dirección le falta la parte que va después del signo @. Agregue la dirección completa, por ejemplo nombre@empresa.com.
+Teléfono Opcional
+Agregue un número si prefiere una llamada directa.
+Empresa o grupo propietario Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+AxisPoint usará esta información para revisar su consulta y darle seguimiento directamente.
+←
+Atrás
+Enviar los datos de la propiedad
+
+========================================================================
+STATE: proposal-step3-sending
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+¿Cómo damos seguimiento?
+Nombre completo
+Como le gustaría que nos dirijamos a usted.
+Correo electrónico
+Donde enviaremos nuestra respuesta y cualquier detalle de seguimiento.
+Teléfono Opcional
+Agregue un número si prefiere una llamada directa.
+Empresa o grupo propietario Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+AxisPoint usará esta información para revisar su consulta y darle seguimiento directamente.
+←
+Atrás
+Enviando
+
+========================================================================
+STATE: proposal-step3-failed
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+ADMINISTRACIÓN DE PROPIEDADES
+Cambiar de vía
+01
+Propiedad
+Tipo, ubicación y escala
+02
+Situación
+Qué necesita cambiar
+03
+Contacto
+Cómo damos seguimiento
+¿Cómo damos seguimiento?
+!
+No pudimos enviar los datos de su propiedad. Your answers are still here. Try again or contact AxisPoint directly.
+Try again
+→
+info@axispoint.llc
+Nombre completo
+Como le gustaría que nos dirijamos a usted.
+Correo electrónico
+Donde enviaremos nuestra respuesta y cualquier detalle de seguimiento.
+Teléfono Opcional
+Agregue un número si prefiere una llamada directa.
+Empresa o grupo propietario Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+AxisPoint usará esta información para revisar su consulta y darle seguimiento directamente.
+←
+Atrás
+Enviar los datos de la propiedad
+
+========================================================================
+STATE: short-investor
+========================================================================
+
+CONTACTO
+Servicios para inversionistas
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+SERVICIOS PARA INVERSIONISTAS
+Cambiar de vía
+Cuéntenos en qué punto del proceso se encuentra.
+Con una nota breve basta para empezar. Nos pondremos en contacto para concertar una conversación.
+¿En qué punto del proceso se encuentra?
+Seleccione una opción
+Explorando mi primera adquisición
+Bajo contrato ahora
+Buscando activamente
+Tengo propiedad y necesito un equipo operativo
+Otra cosa
+Nombre completo
+Como le gustaría que nos dirijamos a usted.
+Correo electrónico
+Donde enviaremos nuestra respuesta y cualquier detalle de seguimiento.
+Teléfono Opcional
+Empresa Opcional
+¿Qué está considerando? Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+Enviar consulta
+No hacen falta documentos en esta etapa.
+
+========================================================================
+STATE: short-general
+========================================================================
+
+CONTACTO
+Consulta general
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+CONSULTA GENERAL
+Cambiar de vía
+¿En qué podemos ayudarle?
+Díganos quién es y qué necesita. Lo dirigiremos al socio adecuado.
+¿De qué se trata?
+Seleccione una opción
+Una pregunta sobre AxisPoint
+Proveedor o prestador de servicios
+Empleo
+Prensa o medios
+Otra cosa
+Nombre completo
+Como le gustaría que nos dirijamos a usted.
+Correo electrónico
+Donde enviaremos nuestra respuesta y cualquier detalle de seguimiento.
+Teléfono Opcional
+Empresa Opcional
+Su mensaje Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+Enviar consulta
+No hacen falta documentos en esta etapa.
+
+========================================================================
+STATE: short-invalid
+========================================================================
+
+CONTACTO
+Consulta general
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+CONSULTA GENERAL
+Cambiar de vía
+¿En qué podemos ayudarle?
+Díganos quién es y qué necesita. Lo dirigiremos al socio adecuado.
+!
+3 campos necesitan atención. Corrija los campos marcados abajo y luego envíe la consulta de nuevo.
+¿De qué se trata?
+Seleccione una opción
+Una pregunta sobre AxisPoint
+Proveedor o prestador de servicios
+Empleo
+Prensa o medios
+Otra cosa
+!
+Elija la opción que mejor describa su consulta.
+Nombre completo
+!
+Indique el nombre por el que debemos preguntar cuando llamemos.
+Correo electrónico
+!
+A esta dirección le falta la parte que va después del signo @. Agregue la dirección completa, por ejemplo nombre@empresa.com.
+Teléfono Opcional
+Empresa Opcional
+Su mensaje Opcional
+Idioma para el seguimiento Opcional
+Igual que esta página, español
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Déjelo así y respondemos en el idioma de esta página.
+Enviar consulta
+No hacen falta documentos en esta etapa.
+
+========================================================================
+STATE: confirmation-pm
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+DATOS DE LA PROPIEDAD ENVIADOS
+Gracias, there. Tenemos los datos de su propiedad.
+Zachary o Ethaniel revisarán la información y darán seguimiento directamente.
+LO QUE ENVIÓ
+Propiedad
+No especificado
+Situación
+No especificado
+Participación
+No especificado
+Volver a AxisPoint
+
+========================================================================
+STATE: confirmation-short
+========================================================================
+
+CONTACTO
+Consulta general
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+CONSULTA ENVIADA
+Gracias, there. Su consulta está con nosotros.
+Zachary o Ethaniel la revisarán y darán seguimiento directamente a your email.
+LO QUE ENVIÓ
+Vía
+Consulta general
+Tema
+No especificado
+Idioma de seguimiento
+English
+Volver a AxisPoint
+
+========================================================================
+STATE: booking-picker
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+PASO OPCIONAL
+Programar una llamada de 30 minutos
+Los datos de su propiedad ya fueron enviados. Elija un horario solo si le resulta útil.
+Seleccione una fecha
+martes, 11 de agosto
+miércoles, 12 de agosto
+jueves, 13 de agosto
+viernes, 14 de agosto
+lunes, 17 de agosto
+martes, 18 de agosto
+miércoles, 19 de agosto
+jueves, 20 de agosto
+viernes, 21 de agosto
+lunes, 24 de agosto
+martes, 25 de agosto
+miércoles, 26 de agosto
+jueves, 27 de agosto
+viernes, 28 de agosto
+lunes, 31 de agosto
+martes, 1 de septiembre
+miércoles, 2 de septiembre
+jueves, 3 de septiembre
+viernes, 4 de septiembre
+lunes, 7 de septiembre
+martes, 8 de septiembre
+miércoles, 9 de septiembre
+jueves, 10 de septiembre
+viernes, 11 de septiembre
+lunes, 14 de septiembre
+martes, 15 de septiembre
+miércoles, 16 de septiembre
+jueves, 17 de septiembre
+viernes, 18 de septiembre
+lunes, 21 de septiembre
+martes, 22 de septiembre
+miércoles, 23 de septiembre
+jueves, 24 de septiembre
+viernes, 25 de septiembre
+lunes, 28 de septiembre
+martes, 29 de septiembre
+miércoles, 30 de septiembre
+jueves, 1 de octubre
+viernes, 2 de octubre
+lunes, 5 de octubre
+martes, 6 de octubre
+miércoles, 7 de octubre
+jueves, 8 de octubre
+viernes, 9 de octubre
+Los horarios se muestran en hora del centro, Houston. La disponibilidad se confirma al reservar.
+Seleccione una hora
+Elija una fecha para ver los horarios.
+¿Cómo prefiere que nos reunamos?
+Llamada telefónica
+Videoconferencia
+Seleccionado
+Elija una fecha, una hora y la forma de reunirse
+Confirmar este horario
+→
+
+========================================================================
+STATE: booking-selected
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+PASO OPCIONAL
+Programar una llamada de 30 minutos
+Los datos de su propiedad ya fueron enviados. Elija un horario solo si le resulta útil.
+Seleccione una fecha
+martes, 11 de agosto
+miércoles, 12 de agosto
+jueves, 13 de agosto
+viernes, 14 de agosto
+lunes, 17 de agosto
+martes, 18 de agosto
+miércoles, 19 de agosto
+jueves, 20 de agosto
+viernes, 21 de agosto
+lunes, 24 de agosto
+martes, 25 de agosto
+miércoles, 26 de agosto
+jueves, 27 de agosto
+viernes, 28 de agosto
+lunes, 31 de agosto
+martes, 1 de septiembre
+miércoles, 2 de septiembre
+jueves, 3 de septiembre
+viernes, 4 de septiembre
+lunes, 7 de septiembre
+martes, 8 de septiembre
+miércoles, 9 de septiembre
+jueves, 10 de septiembre
+viernes, 11 de septiembre
+lunes, 14 de septiembre
+martes, 15 de septiembre
+miércoles, 16 de septiembre
+jueves, 17 de septiembre
+viernes, 18 de septiembre
+lunes, 21 de septiembre
+martes, 22 de septiembre
+miércoles, 23 de septiembre
+jueves, 24 de septiembre
+viernes, 25 de septiembre
+lunes, 28 de septiembre
+martes, 29 de septiembre
+miércoles, 30 de septiembre
+jueves, 1 de octubre
+viernes, 2 de octubre
+lunes, 5 de octubre
+martes, 6 de octubre
+miércoles, 7 de octubre
+jueves, 8 de octubre
+viernes, 9 de octubre
+Los horarios se muestran en hora del centro, Houston. La disponibilidad se confirma al reservar.
+Seleccione una hora
+11:00
+11:30
+12:00
+12:30
+13:00
+13:30
+14:00
+14:30
+15:00
+15:30
+16:00
+16:30
+¿Cómo prefiere que nos reunamos?
+Llamada telefónica
+Videoconferencia
+Seleccionado
+martes, 11 de agosto a las 11:00, Phone call
+Confirmar este horario
+→
+
+========================================================================
+STATE: booking-scheduled
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+LLAMADA CONFIRMADA
+Ya está en el calendario.
+Cuándo
+, Central
+Formato
+Duración
+30 minutos
+Con
+AxisPoint Partners
+Se enviará una invitación de calendario a your email. Responda a ella si necesita cambiar el horario.
+Vista previa de desarrollo. El comando de reserva se ejecutó contra el simulador, así que no se creó ningún evento de calendario ni se envió ninguna invitación.
+Back to AxisPoint
+
+========================================================================
+STATE: booking-skipped
+========================================================================
+
+CONTACTO
+Administración de propiedades
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+✓
+DATOS DE LA PROPIEDAD ENVIADOS
+Sin llamada programada. No necesitamos nada más de usted.
+Los datos de su propiedad están con Zachary y Ethaniel, y lo contactarán en your email. Todavía puede elegir un horario si le resulta útil.
+Programar una llamada de 30 minutos
+→
+Volver a AxisPoint

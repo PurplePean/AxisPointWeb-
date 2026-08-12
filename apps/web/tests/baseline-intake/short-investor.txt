@@ -1,0 +1,35 @@
+CONTACT
+Investor Services
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+INVESTOR SERVICES
+Change path
+Tell us where you are in the process.
+A short note is enough to start. We will follow up to arrange a conversation.
+Where are you in the process?
+Select one
+Exploring my first acquisition
+Under contract now
+Actively searching
+Own property, need an operating team
+Something else
+Full name
+As you would like us to address you.
+Email
+Where we’ll send our reply and any follow-up details.
+Phone Optional
+Company Optional
+What are you looking at? Optional
+Language for follow-up Optional
+Same as this page, English
+English · English
+Español · Spanish
+简体中文 · Simplified Chinese
+繁體中文 · Traditional Chinese
+Tiếng Việt · Vietnamese
+हिन्दी · Hindi
+اردو · Urdu
+ગુજરાતી · Gujarati
+ਪੰਜਾਬੀ · Punjabi
+Leave this alone and we reply in the language of this page.
+Send Inquiry
+No documents needed at this stage.

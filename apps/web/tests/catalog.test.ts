@@ -4,7 +4,16 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { LOCALES, type LocaleCode } from '../src/i18n/locales';
-import { EN, mergeCatalog, messagesFor, resolveCatalog, missingKeys, type Messages } from '../src/i18n/messages';
+import {
+  EN,
+  PLACEHOLDERS,
+  interpolate,
+  mergeCatalog,
+  messagesFor,
+  missingKeys,
+  resolveCatalog,
+  type Messages,
+} from '../src/i18n/messages';
 import { REVIEWED_CATALOGS } from '../src/i18n/catalogs/reviewed/index';
 import { ES } from '../src/i18n/catalogs/audit/es';
 import { ZH_HANS } from '../src/i18n/catalogs/audit/zh-Hans';
@@ -182,6 +191,14 @@ test('Simplified and Traditional Chinese are genuinely different text', () => {
     'homeWhyOr', // 或者
     'pmStrengthAssignmentsItem1', // 管理方交接
     'pmStrengthAssignmentsItem2', // 招租期
+    'backToAxisPoint', // 返回 AxisPoint
+    'scheduleSelectedSummary', // {day} {time}，{mode} — placeholders plus a full-width comma
+    'labelFormat', // 形式
+    'scheduledWhenValue', // {day}，{time} Central
+    'fieldFullName', // 姓名
+    'fieldPhonePlaceholder', // (713) 000 0000 — a format example, not translated
+    'fieldPropertyCountPlaceholder', // 例如 6
+    'backLabel', // 返回
   ];
 
   const shared = EN_KEYS.filter((k) => ZH_HANS[k] === ZH_HANT[k]);
@@ -202,6 +219,99 @@ test('Simplified and Traditional Chinese are genuinely different text', () => {
     differing / EN_KEYS.length >= 0.85,
     `only ${differing} of ${EN_KEYS.length} keys differ between the two Chinese catalogs`,
   );
+});
+
+/* ── Interpolation (PR 4) ─────────────────────────────────────────────────── */
+
+test('every placeholder used in the catalog is a declared one', () => {
+  /*
+   * A translation that invents `{naam}` or drops a brace would otherwise reach a visitor as
+   * literal text. `interpolate` deliberately leaves unknown tokens alone rather than blanking
+   * them, so this is where the mistake has to be caught.
+   */
+  const declared = new Set(PLACEHOLDERS as readonly string[]);
+  const all: [string, Partial<Messages>][] = [['en', EN], ...AUDIT];
+  for (const [code, catalog] of all) {
+    for (const [key, value] of Object.entries(catalog)) {
+      for (const token of String(value).match(/\{[^}]*\}/g) ?? []) {
+        assert.ok(
+          declared.has(token),
+          `${code}.${key} uses undeclared placeholder ${token}`,
+        );
+      }
+    }
+  }
+});
+
+test('each interpolated key carries the same placeholders in every locale', () => {
+  // A dropped `{email}` is a sentence that silently loses the address it promised.
+  const interpolated = EN_KEYS.filter((k) => /\{[^}]+\}/.test(EN[k]));
+  assert.ok(interpolated.length >= 8, 'expected the interpolated keys to be found');
+
+  for (const key of interpolated) {
+    const expected = [...String(EN[key]).match(/\{[^}]+\}/g)!].sort();
+    for (const [code, catalog] of AUDIT) {
+      const actual = [...String(catalog[key] ?? '').match(/\{[^}]+\}/g) ?? []].sort();
+      assert.deepEqual(
+        actual,
+        expected,
+        `${code}.${key} placeholders differ from English`,
+      );
+    }
+  }
+});
+
+test('interpolate substitutes every declared placeholder and leaves no braces', () => {
+  const out = interpolate(EN.scheduleSelectedSummary, {
+    day: 'Tuesday, August 11',
+    time: '11:00 AM',
+    mode: 'Phone call',
+  });
+  assert.equal(out, 'Tuesday, August 11 at 11:00 AM, Phone call');
+  assert.ok(!/\{[^}]+\}/.test(out), 'no placeholder survived substitution');
+});
+
+test('interpolate leaves an unknown placeholder visible rather than blanking it', () => {
+  // The failure has to be loud. A silently emptied token looks like correct copy.
+  const out = interpolate('Hello {name}, see {unknown}.', { name: 'Robin' });
+  assert.equal(out, 'Hello Robin, see {unknown}.');
+});
+
+test('no locale resolves an interpolated string to leftover placeholders', () => {
+  const vars = {
+    name: 'Robin',
+    email: 'robin@example.test',
+    count: '3',
+    day: 'Tuesday',
+    time: '9:00 AM',
+    mode: 'Phone call',
+    language: 'Spanish',
+  };
+  const all: [string, Partial<Messages>][] = [['en', EN], ...AUDIT];
+  for (const [code, catalog] of all) {
+    for (const key of EN_KEYS) {
+      const value = catalog[key];
+      if (typeof value !== 'string') continue;
+      const out = interpolate(value, vars);
+      assert.ok(!/\{[^}]+\}/.test(out), `${code}.${key} still contains a placeholder: ${out}`);
+    }
+  }
+});
+
+/* ── The firm's time zone is never translated away ────────────────────────── */
+
+test('the booking instant label keeps the firm zone in every locale', () => {
+  /*
+   * `scheduledWhenValue` renders the time the visitor booked. The INSTANT is computed in
+   * America/Chicago regardless of the reader's language, so naming a different zone here
+   * would describe a different meeting. Translating the surrounding words is fine.
+   */
+  for (const [code, catalog] of AUDIT) {
+    assert.ok(
+      String(catalog.scheduledWhenValue).includes('Central'),
+      `${code}.scheduledWhenValue dropped the firm's zone`,
+    );
+  }
 });
 
 /* ── Every key is actually rendered ───────────────────────────────────────── */

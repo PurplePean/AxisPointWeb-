@@ -1,0 +1,21 @@
+CONTACT
+Contact AxisPoint
+Partner-led from Houston, serving owners across Texas. Tell us what you need and a partner reads it.
+Development preview. Submissions are simulated and no request leaves the browser. Append ?state= to start on a given screen, or ?submit= with a fixture name to choose the simulated response. The fixture names are the SimulatorFixture union in the shared submission client. There is no magic email address.
+What would you like to discuss?
+Choose the path that best matches your situation. You can change it later.
+MOST OWNERS START HERE
+Property Owner
+I own or oversee a property and need management.
+Start property details
+→
+Asset Management
+→
+I own property and want help directing strategy, performance, and reporting.
+Investor Services
+→
+I am preparing to acquire commercial real estate and need an operating team.
+General inquiry
+→
+Something else. Vendors, press, employment, or a question.
+Prefer email? Write to info@axispoint.llc

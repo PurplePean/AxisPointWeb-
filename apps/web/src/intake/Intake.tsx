@@ -20,6 +20,7 @@ import {
 import { BOOKING_MODES } from './booking/availability';
 import { LOCALES } from '../i18n/locales';
 import { useMessages } from '../i18n/LocaleProvider';
+import { interpolate } from '../i18n/messages';
 import {
   Alert,
   ChoiceGroup,
@@ -271,7 +272,7 @@ function Gateway({ onChoose }: { onChoose: (p: Pathway, s: ServiceScope) => void
       </div>
 
       <p className="text-[rgba(28,22,40,0.58)]" style={{ margin: '44px 0 0', fontSize: 14.5 }}>
-        Prefer email? Write to{' '}
+        {t.gatewayEmailPrefix}{' '}
         <a
           href="mailto:info@axispoint.llc"
           className="font-semibold border-b border-[rgba(28,22,40,0.3)] rounded-v2"
@@ -295,25 +296,26 @@ function Ledger({
   draft: ReturnType<typeof useIntake>['draft'];
   onChangePath: () => void;
 }) {
+  const t = useMessages();
   const rows = [
     {
       num: '01',
-      label: 'Property',
+      label: t.labelProperty,
       value: draft.property.type
         ? draft.property.type + (draft.property.location ? `, ${draft.property.location}` : '')
-        : 'Type, location, and scale',
+        : t.labelPropertyEmpty,
       done: step > 1,
     },
     {
       num: '02',
-      label: 'Situation',
-      value: draft.situation.current || 'What needs to change',
+      label: t.labelSituation,
+      value: draft.situation.current || t.labelSituationEmpty,
       done: step > 2,
     },
     {
       num: '03',
-      label: 'Contact',
-      value: draft.contact.fullName || 'How we follow up',
+      label: t.labelContact,
+      value: draft.contact.fullName || t.labelContactEmpty,
       done: false,
     },
   ];
@@ -328,7 +330,7 @@ function Ledger({
           className="font-bold uppercase text-[rgba(28,22,40,0.5)]"
           style={{ fontSize: 11.5, letterSpacing: '0.14em' }}
         >
-          Property Management
+          {t.navPropertyManagement}
         </span>
         <button
           type="button"
@@ -336,7 +338,7 @@ function Ledger({
           className="bg-transparent border-0 p-0 font-semibold text-[rgba(28,22,40,0.55)] underline cursor-pointer hover:text-v2-teal-support rounded-v2"
           style={{ fontSize: 12.5, textUnderlineOffset: 3, minHeight: 44 }}
         >
-          Change path
+          {t.ledgerChangePath}
         </button>
       </div>
       <ol className="grid grid-cols-3 lg:grid-cols-1 gap-2.5 lg:gap-0 list-none p-0 m-0">
@@ -506,7 +508,7 @@ function IntakeScreens() {
     confirmation: (
       <div style={{ maxWidth: 900 }}>
         <SuccessKicker>
-          {draft.pathway === 'management-proposal' ? 'Property details sent' : 'Inquiry sent'}
+          {draft.pathway === 'management-proposal' ? t.confirmKickerProperty : t.confirmKickerInquiry}
         </SuccessKicker>
         <ScreenTitle
           className="m-0 font-serif"
@@ -518,9 +520,10 @@ function IntakeScreens() {
             maxWidth: '20ch',
           }}
         >
-          {draft.pathway === 'management-proposal'
-            ? `Thank you, ${firstName}. We have your property details.`
-            : `Thank you, ${firstName}. Your inquiry is with us.`}
+          {interpolate(
+            draft.pathway === 'management-proposal' ? t.confirmTitleProperty : t.confirmTitleInquiry,
+            { name: firstName },
+          )}
         </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
@@ -532,8 +535,8 @@ function IntakeScreens() {
           }}
         >
           {draft.pathway === 'management-proposal'
-            ? 'Zachary or Ethaniel will review the information and follow up directly.'
-            : `Zachary or Ethaniel will review it and follow up directly at ${emailShown}.`}
+            ? t.confirmBodyProperty
+            : interpolate(t.confirmBodyInquiry, { email: emailShown })}
         </p>
 
         <div
@@ -544,26 +547,26 @@ function IntakeScreens() {
             className="font-bold uppercase text-[rgba(28,22,40,0.5)]"
             style={{ fontSize: 11.5, letterSpacing: '0.14em', marginBottom: 14 }}
           >
-            What you sent
+            {t.confirmWhatYouSent}
           </div>
           <dl className="grid grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-3.5 m-0">
             {(draft.pathway === 'management-proposal'
               ? [
                   [
-                    'Property',
+                    t.labelProperty,
                     (choiceLabel(PROPERTY_TYPE_CHOICES, draft.property.type, t) || t.notSpecified) +
                       (draft.property.location ? `, ${draft.property.location}` : ''),
                   ],
-                  ['Situation', choiceLabel(SITUATION_CHOICES, draft.situation.current, t) || t.notSpecified],
-                  ['Involvement', choiceLabel(INVOLVEMENT_CHOICES, draft.situation.involvement, t) || t.notSpecified],
+                  [t.labelSituation, choiceLabel(SITUATION_CHOICES, draft.situation.current, t) || t.notSpecified],
+                  [t.labelInvolvement, choiceLabel(INVOLVEMENT_CHOICES, draft.situation.involvement, t) || t.notSpecified],
                 ]
               : [
                   [
-                    'Pathway',
+                    t.labelPathway,
                     draft.pathway === 'investor-services' ? t.investorKicker : t.generalKicker,
                   ],
                   [
-                    'Topic',
+                    t.labelTopic,
                     choiceLabel(
                       draft.pathway === 'investor-services'
                         ? INVESTOR_TOPIC_CHOICES
@@ -572,7 +575,7 @@ function IntakeScreens() {
                       t,
                     ) || t.notSpecified,
                   ],
-                  ['Follow-up language', languageLabel(draft.contact.followUpLanguage) || 'English'],
+                  [t.labelFollowUpLanguage, languageLabel(draft.contact.followUpLanguage) || 'English'],
                 ]
             ).map(([k, v]) => (
               <div key={k}>
@@ -600,7 +603,7 @@ function IntakeScreens() {
         {m.receipt?.bookingEligible === true ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5">
             <button type="button" onClick={m.goSchedule} style={primaryButton()}>
-              Schedule a 30-Minute Call{' '}
+              {t.confirmScheduleCta}{' '}
               <span aria-hidden="true" style={{ fontSize: 16 }}>
                 &#8594;
               </span>
@@ -611,7 +614,7 @@ function IntakeScreens() {
               className="bg-transparent border-0 font-semibold border-b border-[rgba(28,22,40,0.35)] cursor-pointer hover:text-v2-teal-support rounded-v2"
               style={{ padding: '0 0 3px', fontSize: 15, minHeight: 44 }}
             >
-              I&rsquo;ll Wait for Follow-Up
+              {t.confirmWait}
             </button>
           </div>
         ) : (
@@ -620,7 +623,7 @@ function IntakeScreens() {
             className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
             style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
           >
-            Back to AxisPoint
+            {t.backToAxisPoint}
           </Link>
         )}
       </div>
@@ -632,7 +635,7 @@ function IntakeScreens() {
           className="font-bold uppercase text-[rgba(28,22,40,0.5)]"
           style={{ fontSize: 11.5, letterSpacing: '0.14em', marginBottom: 16 }}
         >
-          Optional next step
+          {t.scheduleKicker}
         </div>
         <ScreenTitle
           className="m-0 font-semibold"
@@ -643,7 +646,7 @@ function IntakeScreens() {
             maxWidth: '22ch',
           }}
         >
-          Schedule a 30-minute call
+          {t.scheduleTitle}
         </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
@@ -654,13 +657,13 @@ function IntakeScreens() {
             maxWidth: '46ch',
           }}
         >
-          Your property details are already sent. Pick a time only if it is useful to you.
+          {t.scheduleLead}
         </p>
 
         <div className="grid lg:grid-cols-[1fr_0.85fr] gap-8 lg:gap-[72px] items-start">
           <div>
             <div className="font-semibold" style={{ fontSize: 14, marginBottom: 12 }}>
-              Select a date
+              {t.scheduleSelectDate}
             </div>
             {/*
               Business days inside the backend's own horizon, computed from its rules. Not
@@ -671,7 +674,7 @@ function IntakeScreens() {
             <div
               className="grid gap-1.5"
               role="group"
-              aria-label="Select a date"
+              aria-label={t.scheduleSelectDate}
               style={{ background: '#FFFCF6', border: '1px solid rgba(28,22,40,0.2)', padding: 14, maxHeight: 320, overflowY: 'auto' }}
             >
               {days.map((d) => {
@@ -707,7 +710,7 @@ function IntakeScreens() {
 
           <div>
             <div className="font-semibold" style={{ fontSize: 14, marginBottom: 12 }}>
-              Select a time
+              {t.scheduleSelectTime}
             </div>
             {/*
               No slot is ever struck through. The browser cannot know which times are taken,
@@ -715,7 +718,7 @@ function IntakeScreens() {
               has gone by the time it is requested, the backend says so and the visitor picks
               again.
             */}
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select a time">
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label={t.scheduleSelectTime}>
               {slots.map((s) => {
                 const on = draft.booking.slotStart === s.slotStart;
                 return (
@@ -742,7 +745,7 @@ function IntakeScreens() {
               })}
               {days.length > 0 && slots.length === 0 && (
                 <p className="text-[rgba(28,22,40,0.6)]" style={{ margin: 0, fontSize: 14, gridColumn: '1 / -1' }}>
-                  Choose a date to see times.
+                  {t.scheduleChooseDateFirst}
                 </p>
               )}
             </div>
@@ -750,7 +753,7 @@ function IntakeScreens() {
             <div style={{ marginTop: 28 }}>
               {/* Labels are display strings; the value stored is the backend token. */}
               <ChoiceGroup
-                legend="How should we meet?"
+                legend={t.scheduleHowMeet}
                 columns={1}
                 options={[
                   { value: 'phone_call', label: t.bookingModePhone },
@@ -769,12 +772,16 @@ function IntakeScreens() {
                 className="text-[rgba(28,22,40,0.55)]"
                 style={{ fontSize: 12.5, marginBottom: 6 }}
               >
-                Selected
+                {t.scheduleSelectedLabel}
               </div>
               <div className="font-semibold" style={{ fontSize: 16 }}>
                 {m.bookingReady
-                  ? `${selectedDayLabel} at ${draft.booking.timeLabel}, ${selectedModeLabel}`
-                  : 'Pick a date, a time, and how to meet'}
+                  ? interpolate(t.scheduleSelectedSummary, {
+                      day: selectedDayLabel,
+                      time: draft.booking.timeLabel,
+                      mode: selectedModeLabel,
+                    })
+                  : t.scheduleSelectedEmpty}
               </div>
 
               {/*
@@ -813,7 +820,7 @@ function IntakeScreens() {
                   cursor: !m.bookingReady ? 'not-allowed' : bookingSending ? 'progress' : 'pointer',
                 }}
               >
-                {bookingSending ? 'Booking' : bookingRetryable ? 'Try again' : 'Confirm this time'}
+                {bookingSending ? t.scheduleBooking : bookingRetryable ? t.tryAgain : t.scheduleConfirm}
                 {!bookingSending && (
                   <span aria-hidden="true" style={{ fontSize: 16 }}>
                     &#8594;
@@ -828,7 +835,7 @@ function IntakeScreens() {
 
     scheduled: (
       <div style={{ maxWidth: 820 }}>
-        <SuccessKicker>Call confirmed</SuccessKicker>
+        <SuccessKicker>{t.scheduledKicker}</SuccessKicker>
         <ScreenTitle
           className="m-0 font-serif"
           style={{
@@ -838,7 +845,7 @@ function IntakeScreens() {
             maxWidth: '22ch',
           }}
         >
-          You are on the calendar.
+          {t.scheduledTitle}
         </ScreenTitle>
         <dl
           className="border-y border-[rgba(28,22,40,0.2)] grid gap-4 m-0"
@@ -847,10 +854,16 @@ function IntakeScreens() {
           {[
             // The time the visitor actually booked, not a fixture default. Confirmed only
             // reaches this screen after the backend created the calendar event.
-            ['When', `${selectedDayLabel}, ${draft.booking.timeLabel} Central`],
-            ['Format', selectedModeLabel],
-            ['Length', t.bookingDurationLabel],
-            ['With', t.bookingWithLabel],
+            [
+              t.labelWhen,
+              interpolate(t.scheduledWhenValue, {
+                day: selectedDayLabel,
+                time: draft.booking.timeLabel,
+              }),
+            ],
+            [t.labelFormat, selectedModeLabel],
+            [t.labelLength, t.bookingDurationLabel],
+            [t.labelWith, t.bookingWithLabel],
           ].map(([k, v]) => (
             <div key={k} className="grid lg:grid-cols-[120px_1fr] gap-y-2 gap-x-6">
               <dt className="text-[rgba(28,22,40,0.55)]" style={{ fontSize: 12.5 }}>
@@ -866,15 +879,14 @@ function IntakeScreens() {
           className="text-[rgba(28,22,40,0.62)]"
           style={{ margin: '0 0 30px', fontSize: 14.5, lineHeight: 1.6, maxWidth: '50ch' }}
         >
-          A calendar invitation goes to {emailShown}. Reply to it if you need to move the time.
+          {interpolate(t.scheduledInviteNote, { email: emailShown })}
         </p>
         {m.isDev && (
           <p
             className="text-[rgba(28,22,40,0.55)]"
             style={{ margin: '0 0 30px', fontSize: 13, maxWidth: '50ch' }}
           >
-            Development preview. The booking command ran against the simulator, so no
-            calendar event was created and no invitation was sent.
+            {t.scheduledDevNote}
           </p>
         )}
         <Link
@@ -889,7 +901,7 @@ function IntakeScreens() {
 
     skipped: (
       <div style={{ maxWidth: 720 }}>
-        <SuccessKicker>Property details sent</SuccessKicker>
+        <SuccessKicker>{t.confirmKickerProperty}</SuccessKicker>
         <ScreenTitle
           className="m-0 font-serif"
           style={{
@@ -899,7 +911,7 @@ function IntakeScreens() {
             maxWidth: '20ch',
           }}
         >
-          No call scheduled. Nothing more is needed from you.
+          {t.skippedTitle}
         </ScreenTitle>
         <p
           className="text-[rgba(28,22,40,0.68)]"
@@ -910,12 +922,11 @@ function IntakeScreens() {
             maxWidth: '50ch',
           }}
         >
-          Your property details are with Zachary and Ethaniel, and they will reach you at{' '}
-          {emailShown}. You can still pick a time if it becomes useful.
+          {interpolate(t.skippedBody, { email: emailShown })}
         </p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5">
           <button type="button" onClick={m.goSchedule} style={secondaryButton}>
-            Schedule a 30-Minute Call{' '}
+            {t.confirmScheduleCta}{' '}
             <span aria-hidden="true" style={{ fontSize: 16 }}>
               &#8594;
             </span>
@@ -925,7 +936,7 @@ function IntakeScreens() {
             className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
             style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
           >
-            Back to AxisPoint
+            {t.backToAxisPoint}
           </Link>
         </div>
       </div>
@@ -974,7 +985,7 @@ function IntakeScreens() {
               className="bg-transparent border-0 p-0 font-semibold text-[rgba(28,22,40,0.55)] underline cursor-pointer hover:text-v2-teal-support rounded-v2"
               style={{ fontSize: 12.5, textUnderlineOffset: 3, minHeight: 44 }}
             >
-              Change path
+              {t.ledgerChangePath}
             </button>
           </div>
           <ScreenTitle
@@ -1004,16 +1015,18 @@ function IntakeScreens() {
           {count > 0 && (
             <Alert innerRef={m.alertRef} assertive>
               <strong style={{ fontWeight: 700 }}>
-                {count === 1 ? 'One field needs attention.' : `${count} fields need attention.`}
+                {count === 1
+                  ? t.errorSummaryOne
+                  : interpolate(t.errorSummaryMany, { count: String(count) })}
               </strong>{' '}
-              Correct the fields marked below, then send the inquiry again.
+              {t.errorSummaryFixInquiry}
             </Alert>
           )}
           {failed && (
             <Alert innerRef={m.alertRef} assertive>
               <span className="block">
-                <strong style={{ fontWeight: 700 }}>We couldn&rsquo;t send your inquiry.</strong>{' '}
-                Your answers are still here. Try again or contact AxisPoint directly.
+                <strong style={{ fontWeight: 700 }}>{t.failedTitleInquiry}</strong>{' '}
+                {t.failedBody}
               </span>
               <span
                 className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
@@ -1024,7 +1037,7 @@ function IntakeScreens() {
                   onClick={m.retry}
                   style={{ ...primaryButton(), minHeight: 44, padding: '0 16px', fontSize: 14.5 }}
                 >
-                  Try again{' '}
+                  {t.tryAgain}{' '}
                   <span aria-hidden="true" style={{ fontSize: 15 }}>
                     &#8594;
                   </span>
@@ -1043,13 +1056,9 @@ function IntakeScreens() {
             <Alert innerRef={m.alertRef} assertive>
               <span className="block">
                 <strong style={{ fontWeight: 700 }}>
-                  {unavailable
-                    ? 'Sending is unavailable right now.'
-                    : 'We couldn\u2019t send your inquiry.'}
+                  {unavailable ? t.unavailableTitle : t.failedTitleInquiry}
                 </strong>{' '}
-                {unavailable
-                  ? 'Nothing was sent. Your answers are still here, and you can reach AxisPoint directly in the meantime.'
-                  : 'Nothing was sent, and trying again would not help. Your answers are still here. Please contact AxisPoint directly.'}
+                {unavailable ? t.unavailableBody : t.blockedBody}
               </span>
               <span
                 className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
@@ -1060,7 +1069,7 @@ function IntakeScreens() {
                   className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
                   style={{ fontSize: 14.5, paddingBottom: 2, minHeight: 44 }}
                 >
-                  Email AxisPoint
+                  {t.emailAxisPoint}
                 </a>
               </span>
             </Alert>
@@ -1079,7 +1088,7 @@ function IntakeScreens() {
             />
             <div className="grid sm:grid-cols-2 gap-[26px] lg:gap-x-5 lg:gap-y-8">
               <TextField
-                label="Full name"
+                label={t.fieldFullName}
                 value={draft.contact.fullName}
                 onChange={(v) => m.setContact('fullName', v)}
                 autoComplete="name"
@@ -1087,7 +1096,7 @@ function IntakeScreens() {
                 help={t.nameHelp}
               />
               <TextField
-                label="Email"
+                label={t.fieldEmail}
                 type="email"
                 value={draft.contact.email}
                 onChange={(v) => m.setContact('email', v)}
@@ -1096,13 +1105,13 @@ function IntakeScreens() {
                 help={t.emailHelp}
               />
               <TextField
-                label="Phone"
+                label={t.fieldPhone}
                 type="tel"
                 optional
                 value={draft.contact.phone}
                 onChange={(v) => m.setContact('phone', v)}
                 autoComplete="tel"
-                placeholder="(713) 000 0000"
+                placeholder={t.fieldPhonePlaceholder}
               />
               <TextField
                 label={copy.organizationLabel}
@@ -1119,7 +1128,7 @@ function IntakeScreens() {
               placeholder={copy.notePlaceholder}
             />
             <SelectField
-              label="Language for follow-up"
+              label={t.fieldLanguageFollowUp}
               optional
               maxWidth={300}
               value={draft.contact.followUpLanguage}
@@ -1128,8 +1137,8 @@ function IntakeScreens() {
               helpTone={draft.contact.followUpLanguage ? 'good' : 'help'}
               help={
                 draft.contact.followUpLanguage
-                  ? `We will reply in ${languageLabel(draft.contact.followUpLanguage)} where a partner is available, and in English otherwise.`
-                  : 'Leave this alone and we reply in the language of this page.'
+                  ? interpolate(t.followUpHelpChosen, { language: languageLabel(draft.contact.followUpLanguage) })
+                  : t.followUpHelpDefault
               }
             />
           </div>
@@ -1141,9 +1150,9 @@ function IntakeScreens() {
               disabled={sending}
               style={primaryButton(sending)}
             >
-              {sending ? 'Sending' : copy.action}
+              {sending ? t.sending : copy.action}
             </button>
-            <StepFooterNote>No documents needed at this stage.</StepFooterNote>
+            <StepFooterNote>{t.noDocuments}</StepFooterNote>
           </div>
         </div>
       </>
@@ -1173,7 +1182,7 @@ function IntakeScreens() {
                   maxWidth: '22ch',
                 }}
               >
-                Tell us about your property.
+                {t.step1Title}
               </ScreenTitle>
               <p
                 className="text-[rgba(28,22,40,0.68)]"
@@ -1184,8 +1193,7 @@ function IntakeScreens() {
                   maxWidth: '52ch',
                 }}
               >
-                A few details will help us understand what you own, what needs to change, and
-                whether AxisPoint is the right operating partner.
+                {t.step1Lead}
               </p>
               <SubTitle
                 className="m-0 font-semibold border-t-[3px] border-v2-purple"
@@ -1196,18 +1204,18 @@ function IntakeScreens() {
                   marginBottom: 22,
                 }}
               >
-                What are we discussing?
+                {t.step1SubTitle}
               </SubTitle>
 
               <div className="grid gap-[26px] lg:gap-8">
                 <ChoiceGroup
-                  legend="Property type"
+                  legend={t.legendPropertyType}
                   options={PROPERTY_TYPE_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.property.type}
                   onChange={(v) => m.setProperty('type', v)}
                 />
                 <ChoiceGroup
-                  legend="Property scope"
+                  legend={t.legendPropertyScope}
                   options={PROPERTY_SCOPE_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.property.scope}
                   onChange={(v) => m.setProperty('scope', v)}
@@ -1215,12 +1223,12 @@ function IntakeScreens() {
 
                 <div style={{ maxWidth: 480 }}>
                   <TextField
-                    label="Where is the property located?"
+                    label={t.fieldLocation}
                     value={draft.property.location}
                     onChange={(v) => m.setProperty('location', v)}
-                    placeholder="City or market"
+                    placeholder={t.fieldLocationPlaceholder}
                     autoComplete="address-level2"
-                    help="City or market is enough for now. No street address needed."
+                    help={t.fieldLocationHelp}
                   />
                 </div>
 
@@ -1233,16 +1241,16 @@ function IntakeScreens() {
                       label={scale.label}
                       value={draft.property.scaleUnknown ? '' : draft.property.scale}
                       onChange={(v) => m.setProperty('scale', v)}
-                      placeholder={draft.property.scaleUnknown ? 'Not sure' : scale.placeholder}
+                      placeholder={draft.property.scaleUnknown ? t.notSure : scale.placeholder}
                       inputMode="numeric"
                       disabled={draft.property.scaleUnknown}
                     />
                     {isPortfolio && (
                       <TextField
-                        label="Number of properties"
+                        label={t.fieldPropertyCount}
                         value={draft.property.propertyCount}
                         onChange={(v) => m.setProperty('propertyCount', v)}
-                        placeholder="For example 6"
+                        placeholder={t.fieldPropertyCountPlaceholder}
                         inputMode="numeric"
                       />
                     )}
@@ -1272,7 +1280,7 @@ function IntakeScreens() {
                       }}
                     />
                     <span className="font-medium" style={{ fontSize: 14.5 }}>
-                      Not sure
+                      {t.notSure}
                     </span>
                   </button>
                   <FieldMessage>{scale.help}</FieldMessage>
@@ -1284,12 +1292,12 @@ function IntakeScreens() {
                 style={{ marginTop: 44 }}
               >
                 <button type="button" onClick={m.next} style={primaryButton()}>
-                  Continue{' '}
+                  {t.continueLabel}{' '}
                   <span aria-hidden="true" style={{ fontSize: 16 }}>
                     &#8594;
                   </span>
                 </button>
-                <StepFooterNote>Step 1 of 3. About 60 to 90 seconds in total.</StepFooterNote>
+                <StepFooterNote>{t.step1Footer}</StepFooterNote>
               </div>
             </div>
           )}
@@ -1305,18 +1313,18 @@ function IntakeScreens() {
                   marginBottom: 22,
                 }}
               >
-                What needs to change?
+                {t.step2Title}
               </ScreenTitle>
 
               <div className="grid gap-[26px] lg:gap-8">
                 <ChoiceGroup
-                  legend="Current situation"
+                  legend={t.legendCurrentSituation}
                   options={SITUATION_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey] }))}
                   value={draft.situation.current}
                   onChange={(v) => m.setSituation('current', v)}
                 />
                 <ChoiceGroup
-                  legend="Where would you like AxisPoint involved?"
+                  legend={t.legendInvolvement}
                   columns={1}
                   options={INVOLVEMENT_CHOICES.map((c) => ({ value: c.value, label: t[c.labelKey], hint: c.hintKey ? t[c.hintKey] : undefined }))}
                   value={draft.situation.involvement}
@@ -1324,21 +1332,21 @@ function IntakeScreens() {
                 />
                 <div style={{ maxWidth: 420 }}>
                   <SelectField
-                    label="Timing"
+                    label={t.fieldTiming}
                     value={draft.situation.timing}
                     onChange={(v) => m.setSituation('timing', v)}
                     options={[
-                      { value: '', text: 'Select a timeframe' },
+                      { value: '', text: t.fieldTimingPlaceholder },
                       ...choiceOptions(TIMING_CHOICES, t),
                     ]}
                   />
                 </div>
                 <div style={{ maxWidth: 620 }}>
                   <TextArea
-                    label="What should we understand before speaking?"
+                    label={t.fieldUnderstand}
                     value={draft.situation.notes}
                     onChange={(v) => m.setSituation('notes', v)}
-                    placeholder="Anything about the property, the current manager, or the timeline"
+                    placeholder={t.fieldUnderstandPlaceholder}
                   />
                 </div>
               </div>
@@ -1351,10 +1359,10 @@ function IntakeScreens() {
                   <span aria-hidden="true" style={{ fontSize: 16 }}>
                     &#8592;
                   </span>{' '}
-                  Back
+                  {t.backLabel}
                 </button>
                 <button type="button" onClick={m.next} style={primaryButton()}>
-                  Continue{' '}
+                  {t.continueLabel}{' '}
                   <span aria-hidden="true" style={{ fontSize: 16 }}>
                     &#8594;
                   </span>
@@ -1374,14 +1382,14 @@ function IntakeScreens() {
                   marginBottom: 22,
                 }}
               >
-                How should we follow up?
+                {t.step3Title}
               </ScreenTitle>
 
               {failed && (
                 <Alert innerRef={m.alertRef} assertive>
                   <span className="block">
                     <strong style={{ fontWeight: 700 }}>
-                      We couldn&rsquo;t send your property details.
+                      {t.failedTitleProperty}
                     </strong>{' '}
                     Your answers are still here. Try again or contact AxisPoint directly.
                   </span>
@@ -1418,13 +1426,9 @@ function IntakeScreens() {
             <Alert innerRef={m.alertRef} assertive>
               <span className="block">
                 <strong style={{ fontWeight: 700 }}>
-                  {unavailable
-                    ? 'Sending is unavailable right now.'
-                    : 'We couldn\u2019t send your inquiry.'}
+                  {unavailable ? t.unavailableTitle : t.failedTitleInquiry}
                 </strong>{' '}
-                {unavailable
-                  ? 'Nothing was sent. Your answers are still here, and you can reach AxisPoint directly in the meantime.'
-                  : 'Nothing was sent, and trying again would not help. Your answers are still here. Please contact AxisPoint directly.'}
+                {unavailable ? t.unavailableBody : t.blockedBody}
               </span>
               <span
                 className="flex flex-wrap items-center gap-x-[18px] gap-y-2"
@@ -1435,7 +1439,7 @@ function IntakeScreens() {
                   className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
                   style={{ fontSize: 14.5, paddingBottom: 2, minHeight: 44 }}
                 >
-                  Email AxisPoint
+                  {t.emailAxisPoint}
                 </a>
               </span>
             </Alert>
@@ -1444,11 +1448,10 @@ function IntakeScreens() {
                 <Alert innerRef={failed ? undefined : m.alertRef} assertive>
                   <strong style={{ fontWeight: 700 }}>
                     {Object.keys(errors).length === 1
-                      ? 'One field needs attention.'
-                      : 'Two fields need attention.'}
+                      ? t.errorSummaryOne
+                      : t.errorSummaryTwo}
                   </strong>{' '}
-                  Add your full name and an email address we can reply to, then send the property
-                  details again.
+                  {t.errorSummaryFixProperty}
                 </Alert>
               )}
 
@@ -1457,7 +1460,7 @@ function IntakeScreens() {
                 style={{ maxWidth: 620 }}
               >
                 <TextField
-                  label="Full name"
+                  label={t.fieldFullName}
                   value={draft.contact.fullName}
                   onChange={(v) => m.setContact('fullName', v)}
                   autoComplete="name"
@@ -1465,7 +1468,7 @@ function IntakeScreens() {
                   help={t.nameHelp}
                 />
                 <TextField
-                  label="Email"
+                  label={t.fieldEmail}
                   type="email"
                   value={draft.contact.email}
                   onChange={(v) => m.setContact('email', v)}
@@ -1474,24 +1477,24 @@ function IntakeScreens() {
                   help={t.emailHelp}
                 />
                 <TextField
-                  label="Phone"
+                  label={t.fieldPhone}
                   type="tel"
                   optional
                   value={draft.contact.phone}
                   onChange={(v) => m.setContact('phone', v)}
                   autoComplete="tel"
-                  placeholder="(713) 000 0000"
-                  help="Add a number if you prefer a direct call."
+                  placeholder={t.fieldPhonePlaceholder}
+                  help={t.fieldPhoneHelp}
                 />
                 <TextField
-                  label="Company or ownership group"
+                  label={t.fieldCompanyOwnership}
                   optional
                   value={draft.contact.organization}
                   onChange={(v) => m.setContact('organization', v)}
                   autoComplete="organization"
                 />
                 <SelectField
-                  label="Language for follow-up"
+                  label={t.fieldLanguageFollowUp}
                   optional
                   value={draft.contact.followUpLanguage}
                   onChange={(v) => m.setContact('followUpLanguage', v)}
@@ -1499,8 +1502,8 @@ function IntakeScreens() {
                   helpTone={draft.contact.followUpLanguage ? 'good' : 'help'}
                   help={
                     draft.contact.followUpLanguage
-                      ? `We will reply in ${languageLabel(draft.contact.followUpLanguage)} where a partner is available, and in English otherwise.`
-                      : 'Leave this alone and we reply in the language of this page.'
+                      ? interpolate(t.followUpHelpChosen, { language: languageLabel(draft.contact.followUpLanguage) })
+                      : t.followUpHelpDefault
                   }
                 />
               </div>
@@ -1509,8 +1512,7 @@ function IntakeScreens() {
                 className="text-[rgba(28,22,40,0.62)]"
                 style={{ margin: '22px 0 44px', fontSize: 14.5, lineHeight: 1.6, maxWidth: '52ch' }}
               >
-                AxisPoint will use this information to review your inquiry and follow up with you
-                directly.
+                {t.privacyNote}
               </p>
 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3.5">
@@ -1518,7 +1520,7 @@ function IntakeScreens() {
                   <span aria-hidden="true" style={{ fontSize: 16 }}>
                     &#8592;
                   </span>{' '}
-                  Back
+                  {t.backLabel}
                 </button>
                 <button
                   type="button"
@@ -1526,7 +1528,7 @@ function IntakeScreens() {
                   disabled={sending}
                   style={primaryButton(sending)}
                 >
-                  {sending ? 'Sending' : 'Send Property Details'}
+                  {sending ? t.sending : t.sendPropertyDetails}
                 </button>
               </div>
             </div>
