@@ -229,5 +229,36 @@ export function shouldCycle(available: Locale[]): boolean {
  * costs a production byte. When a locale is approved for launch, add just that
  * script's family to the document head and record the weight in the changelog.
  */
+/**
+ * The single Google Fonts family a locale needs, or null when Figtree already covers it.
+ *
+ * WHY PER LOCALE RATHER THAN THE WHOLE SET. `PREVIEW_FONT_HREF` below requests all six
+ * families at once because the language MENU renders all nine native names side by side and
+ * genuinely needs them together. A page does not: a reader on the Hindi page needs Devanagari
+ * and nothing else, and loading Chinese, Gurmukhi, Gujarati and Arabic alongside it would be
+ * several hundred kilobytes of glyphs nobody on that page can read.
+ *
+ * Spanish and Vietnamese return null: Figtree covers Latin with Vietnamese diacritics, which
+ * is why the registry lists six Noto families for nine locales rather than eight.
+ *
+ * PRODUCTION LOADS NONE OF THESE TODAY, because English is the only launch-ready locale and
+ * English returns null. The production font payload is unchanged by this pass.
+ */
+export function fontHrefFor(code: LocaleCode): string | null {
+  const family = {
+    en: null,
+    es: null,
+    vi: null,
+    'zh-Hans': 'Noto+Sans+SC',
+    'zh-Hant': 'Noto+Sans+TC',
+    hi: 'Noto+Sans+Devanagari',
+    ur: 'Noto+Sans+Arabic',
+    gu: 'Noto+Sans+Gujarati',
+    pa: 'Noto+Sans+Gurmukhi',
+  }[code];
+  if (!family) return null;
+  return `https://fonts.googleapis.com/css2?family=${family}:wght@400;500;600&display=swap`;
+}
+
 export const PREVIEW_FONT_HREF =
   'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;500;600&family=Noto+Sans+Gurmukhi:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;500;600&display=swap';

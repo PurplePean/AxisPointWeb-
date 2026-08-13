@@ -11,7 +11,15 @@ import { useMessages } from '../i18n/LocaleProvider';
  * sources show the header participating in normal document flow with a hairline
  * rule beneath it, not floating over the hero with a blur.
  */
-function Layout() {
+/**
+ * `children` overrides the routed outlet.
+ *
+ * Used by the locale gate to render the not-found page INSIDE the normal chrome. Without it
+ * a refused locale prefix produced a bare 404 with no header, footer, or skip link, which the
+ * rendered-English baseline caught immediately: the existing English 404 has always carried
+ * the full chrome and had to keep doing so.
+ */
+function Layout({ children }: { children?: React.ReactNode }) {
   const { pathname, hash } = useLocation();
   const t = useMessages();
 
@@ -39,7 +47,7 @@ function Layout() {
       <Nav />
 
       <main id="main" tabIndex={-1} className="flex-1">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
 
       <Footer />

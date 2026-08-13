@@ -153,11 +153,15 @@ async function main() {
     const { LocaleProvider } = await server.ssrLoadModule('/src/i18n/LocaleProvider.tsx');
 
     for (const [name, route] of ROUTES) {
+      /*
+       * THE ROUTER WRAPS THE PROVIDER since PR 5, matching `main.tsx`. The locale now comes
+       * from the URL rather than from a prop, so English is simply the unprefixed route.
+       */
       const html = renderToStaticMarkup(
         createElement(
-          LocaleProvider,
-          { initial: 'en' },
-          createElement(MemoryRouter, { initialEntries: [route] }, createElement(App)),
+          MemoryRouter,
+          { initialEntries: [route] },
+          createElement(LocaleProvider, null, createElement(App)),
         ),
       );
       results.set(name, toText(html));

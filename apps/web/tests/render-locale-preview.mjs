@@ -122,6 +122,7 @@ async function main() {
     const { LocaleProvider } = await server.ssrLoadModule('/src/i18n/LocaleProvider.tsx');
     const messages = await server.ssrLoadModule('/src/i18n/messages.ts');
     const { LOCALES } = await server.ssrLoadModule('/src/i18n/locales.ts');
+    const { buildLocalePath } = await server.ssrLoadModule('/src/i18n/route.ts');
     const audit = await server.ssrLoadModule('/src/i18n/catalogs/audit/active.ts');
 
     if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
@@ -141,14 +142,24 @@ async function main() {
         messages.registerTestCatalog(locale.code, messages.mergeCatalog(candidate));
       }
 
-      const render = (route) =>
-        renderToStaticMarkup(
+      /*
+       * THE URL CARRIES THE LOCALE since PR 5. A non-English locale is reached by its path
+       * prefix plus the development preview gate, because the launch gate would otherwise
+       * refuse the route and render 404, which is exactly the production behaviour.
+       */
+      const render = (route) => {
+        const url =
+          locale.code === 'en'
+            ? route
+            : `${buildLocalePath(locale.code, route)}?locale-preview=all`;
+        return renderToStaticMarkup(
           createElement(
-            LocaleProvider,
-            { initial: locale.code },
-            createElement(MemoryRouter, { initialEntries: [route] }, createElement(App)),
+            MemoryRouter,
+            { initialEntries: [url] },
+            createElement(LocaleProvider, null, createElement(App)),
           ),
         );
+      };
 
       const sections = [
         [

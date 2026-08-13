@@ -88,6 +88,7 @@ async function main() {
     const { default: App } = await server.ssrLoadModule('/src/App.tsx');
     const { LocaleProvider } = await server.ssrLoadModule('/src/i18n/LocaleProvider.tsx');
     const messages = await server.ssrLoadModule('/src/i18n/messages.ts');
+    const { buildLocalePath } = await server.ssrLoadModule('/src/i18n/route.ts');
     const audit = await server.ssrLoadModule('/src/i18n/catalogs/audit/active.ts');
 
     for (const code of CHECKED) {
@@ -97,11 +98,20 @@ async function main() {
       const catalog = messages.mergeCatalog(candidate);
       if (candidate) messages.registerTestCatalog(code, catalog);
 
+      /*
+       * Router outside provider, and the locale carried by the URL, matching `main.tsx`
+       * since PR 5. A non-English locale needs its prefix and the development preview gate,
+       * or the launch gate correctly refuses the route.
+       */
+      const url =
+        code === 'en'
+          ? '/no-such-page'
+          : `${buildLocalePath(code, '/no-such-page')}?locale-preview=all`;
       const html = renderToStaticMarkup(
         createElement(
-          LocaleProvider,
-          { initial: code },
-          createElement(MemoryRouter, { initialEntries: ['/no-such-page'] }, createElement(App)),
+          MemoryRouter,
+          { initialEntries: [url] },
+          createElement(LocaleProvider, null, createElement(App)),
         ),
       );
 

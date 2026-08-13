@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { LocaleLink } from '../components/LocaleLink';
 import { useDocumentMeta } from '../lib/meta';
 import { Eyebrow, GUTTER, MEASURE, SECTION, ClosingCta, QuietLink } from '../components/PageParts';
 import { useMessages } from '../i18n/LocaleProvider';
@@ -124,7 +124,7 @@ function HomePage() {
         </div>
 
         <div className="hero-actions px-5 md:px-10 lg:px-[72px] lg:max-w-[940px]">
-          <Link
+          <LocaleLink
             to="/contact?intent=property-management"
             /* `.hero-actions` is `display: contents` on mobile, so its own padding is
                dropped and the action needs the page gutter itself. */
@@ -132,7 +132,7 @@ function HomePage() {
             style={{ minHeight: 54, padding: '0 26px', fontSize: 15 }}
           >
             {t.navCta} <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
-          </Link>
+          </LocaleLink>
           <div className="hero-quiet px-5 md:px-10 lg:px-0 pt-[22px] lg:pt-0">
             <QuietLink to="/property-management">{t.homeHeroQuietLink}</QuietLink>
           </div>
@@ -215,13 +215,13 @@ function HomePage() {
               {t.homeStrategicBody}
             </p>
             <div className="mt-6">
-              <Link
+              <LocaleLink
                 to="/asset-management"
                 className="inline-flex items-center gap-2 font-semibold text-v2-purple border-b border-[rgba(56,40,93,0.4)] rounded-v2 hover:text-v2-teal-support"
                 style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
               >
                 {t.navAssetManagement} <span aria-hidden="true">&#8594;</span>
-              </Link>
+              </LocaleLink>
             </div>
           </div>
         </div>
@@ -231,14 +231,14 @@ function HomePage() {
       <section className={`${GUTTER} py-[26px] lg:py-[38px] border-y border-[rgba(28,22,40,0.14)]`}>
         <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-3.5 lg:gap-20 items-center`}>
           <Eyebrow className="text-v2-magenta">{t.homeInvestorEyebrow}</Eyebrow>
-          <Link
+          <LocaleLink
             to="/investor-services"
             className="flex items-center justify-between gap-5 font-medium rounded-v2 hover:text-v2-teal-support"
             style={{ fontSize: 'clamp(17px,1.4vw,19px)', letterSpacing: '-0.02em', minHeight: 44 }}
           >
             <span>{t.homeInvestorBody}</span>
             <span aria-hidden="true" className="flex-none" style={{ fontSize: 20 }}>&#8594;</span>
-          </Link>
+          </LocaleLink>
         </div>
       </section>
 

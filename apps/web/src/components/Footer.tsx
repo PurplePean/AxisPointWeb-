@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { LocaleLink } from '../components/LocaleLink';
 import { Mark } from '@axispoint/brand';
 import { useMessages } from '../i18n/LocaleProvider';
 import type { Messages } from '../i18n/messages';
@@ -77,9 +77,9 @@ function Footer() {
           <ColumnHeading>{t.footerServices}</ColumnHeading>
           <div className="grid gap-2.5">
             {SERVICES.map(([labelKey, to]) => (
-              <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
+              <LocaleLink key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
                 {t[labelKey]}
-              </Link>
+              </LocaleLink>
             ))}
           </div>
         </div>
@@ -88,9 +88,9 @@ function Footer() {
           <ColumnHeading>{t.footerFirm}</ColumnHeading>
           <div className="grid gap-2.5">
             {FIRM.map(([labelKey, to]) => (
-              <Link key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
+              <LocaleLink key={to} to={to} className={linkClass} style={{ minHeight: 44 }}>
                 {t[labelKey]}
-              </Link>
+              </LocaleLink>
             ))}
           </div>
         </div>

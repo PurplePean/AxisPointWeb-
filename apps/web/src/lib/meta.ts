@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
 
+import { useLocale } from '../i18n/LocaleProvider';
+import { DEFAULT_LOCALE, launchReadyLocales, type Locale } from '../i18n/locales';
+import { buildLocalePath } from '../i18n/route';
+
 /**
  * Per-route document metadata.
  *
@@ -49,17 +53,69 @@ function upsertCanonical(href: string) {
   el.setAttribute('href', href);
 }
 
+/**
+ * Replaces the full set of `hreflang` alternates.
+ *
+ * THE LAUNCH GATE DECIDES WHAT IS ADVERTISED. Alternates are emitted only for locales that
+ * are both `enabled` and `review: 'reviewed'`, which today is English alone, so a production
+ * page carries exactly two links: `en` and `x-default`, both pointing at the unprefixed URL.
+ * An unreviewed locale must never appear here: `hreflang` is an instruction to a crawler to
+ * index that address, and the address deliberately 404s.
+ *
+ * Previous alternates are removed rather than added to, so navigating between locales cannot
+ * leave a stale set behind.
+ */
+function upsertAlternates(innerPath: string, locales: readonly Locale[]) {
+  document.head
+    .querySelectorAll('link[rel="alternate"][hreflang]')
+    .forEach((el) => el.remove());
+
+  const add = (hreflang: string, href: string) => {
+    const el = document.createElement('link');
+    el.setAttribute('rel', 'alternate');
+    el.setAttribute('hreflang', hreflang);
+    el.setAttribute('href', href);
+    document.head.appendChild(el);
+  };
+
+  for (const l of locales) {
+    add(l.code, `${SITE_URL}${buildLocalePath(l.code, innerPath)}`);
+  }
+  // English is x-default: it is the unprefixed, canonical address and the one a reader with
+  // no matching language should land on.
+  add('x-default', `${SITE_URL}${buildLocalePath(DEFAULT_LOCALE, innerPath)}`);
+}
+
+/**
+ * Per-route document metadata, locale-aware since PR 5.
+ *
+ * `path` is the INNER route, without a locale prefix. The canonical URL is built for the
+ * active locale, so `/es/contact` is canonical to itself rather than to the English page,
+ * and English stays unprefixed.
+ *
+ * A LIMITATION WORTH STATING PLAINLY: all of this is applied by JavaScript after the document
+ * loads. The initial HTML that a crawler receives carries only the static title and
+ * description from `index.html`. Crawlers that execute JavaScript will see the correct
+ * values; those that do not will not. Making metadata available in the initial response
+ * requires prerendering or server rendering, which this repository does not do and which this
+ * pass did not add. See docs/STATUS.md.
+ */
 export function useDocumentMeta({ title, description, path, ogType = 'website' }: PageMeta) {
+  const { code } = useLocale();
+  const advertised = launchReadyLocales();
+
   useEffect(() => {
-    const url = `${SITE_URL}${path}`;
+    const url = `${SITE_URL}${buildLocalePath(code, path)}`;
 
     document.title = title;
     upsertMeta('meta[name="description"]', 'name', 'description', description);
     upsertCanonical(url);
+    upsertAlternates(path, advertised);
     upsertMeta('meta[property="og:site_name"]', 'property', 'og:site_name', SITE_NAME);
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', title);
     upsertMeta('meta[property="og:description"]', 'property', 'og:description', description);
     upsertMeta('meta[property="og:url"]', 'property', 'og:url', url);
     upsertMeta('meta[property="og:type"]', 'property', 'og:type', ogType);
-  }, [title, description, path, ogType]);
+    upsertMeta('meta[property="og:locale"]', 'property', 'og:locale', code);
+  }, [title, description, path, ogType, code, advertised]);
 }
