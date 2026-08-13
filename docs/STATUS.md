@@ -81,11 +81,16 @@ real calendar was contacted and no Google resource exists.
 
 ## Multilingual Content Rollout (in progress)
 
-**PR 4 of 5 is open and held unmerged for review: the contact page, intake, validation,
-submission states, and booking, in all nine languages.** 108 new keys, taking the catalog to
-**366**, with all eight audit catalogs at full 366/366 parity. It is the highest-risk PR of
-the pass, because visible labels must change per locale while stored tokens, request meaning,
-retry identity, and booking instants stay fixed.
+**PR 5 of 5 is open and held unmerged for review: locale routing, SEO locale signals, script
+font application, and visitor-facing email localization.** PRs 1 through 4 are merged. This is
+the last PR of the pass; see "PR 5" below for what it does and for the one hosting fact that
+has to be settled before any language can be activated.
+
+**PR 4 is merged: the contact page, intake, validation, submission states, and booking, in all
+nine languages.** 108 new keys, taking the catalog to **366**, with all eight audit catalogs at
+full 366/366 parity. It was the highest-risk PR of the pass, because visible labels must change
+per locale while stored tokens, request meaning, retry identity, and booking instants stay
+fixed.
 
 - **A deterministic 20-state English baseline was captured BEFORE any edit** and is committed
   at `apps/web/tests/baseline-intake/`. It covers the gateway, all three proposal steps, both
@@ -114,6 +119,69 @@ retry identity, and booking instants stay fixed.
 
 **Per-locale intake review artifacts** are committed at `apps/web/tests/preview-intake/`, one
 file per locale, 640 lines each, covering sixteen states in reading order.
+
+### PR 5: locale routing, SEO signals, fonts, and visitor email
+
+**The URL is the only source of truth for the page locale.** English is unprefixed
+(`/contact`); every other locale is path-prefixed (`/es/contact`). Nothing is written to a
+cookie or to `localStorage`, deliberately: a stored locale can disagree with the URL, and then
+one of the two has to lose silently. `/en/...` is refused so English keeps one canonical
+address rather than two.
+
+**Only `enabled && reviewed` locales produce routes, canonicals, `hreflang`, or sitemap
+entries, which today means English alone.** A disabled prefix renders the 404 inside the normal
+site chrome. It is never rewritten to the English page: `/es/contact` today is an address that
+does not exist, and saying so is the honest answer. Redirecting would publish a URL the launch
+gate says is unavailable and would hide the gate from anyone testing it. English is
+`x-default`.
+
+**Two routing bugs were found by the committed rendered-English baseline, not by reasoning.**
+React Router ranks a dynamic segment above a splat, so `/no-such-page` matched `/:locale` and
+rendered the home page; and the refused-locale 404 first rendered with no header, footer, or
+skip link. Both are fixed and pinned by tests in `apps/web/tests/route.test.ts`.
+
+**Script fonts now reach page content, which they did not before.** The earlier approach set
+`font-family` on `body`, and the browser review showed headings ignoring it: they carry
+`font-serif` (Cormorant Garamond), which sets its own family and outranks anything inherited.
+Cormorant has no Devanagari, Gujarati, Gurmukhi, Arabic, or CJK glyphs, so those headings were
+being drawn by whatever the browser substituted. A `[lang="…"]`-scoped stylesheet now covers
+body, headings, and `.font-serif`. It is emitted **only for the six non-Latin locales**;
+Spanish and Vietnamese keep the brand serif, because Latin text renders correctly in it and
+overriding would discard the brand face to fix nothing.
+
+**One font family loads, and English loads none.** The six-family stylesheet that appears in a
+preview session belongs to the language selector and is `import.meta.env.DEV` gated, so it is
+statically unreachable in a production build; `verify:bundle` proves it. The English font
+payload is unchanged by this pass.
+
+**Visitor emails have audit-candidate translations; nothing else does.** The website
+acknowledgement and the booking confirmation have model-generated sets for the eight
+unreviewed locales, in `scripts/gas-v2/audit/visitorTemplates.js`. That path is **outside
+`src/`**, and `.claspignore` is an allowlist admitting only `appsscript.json` and `src/*.js`,
+so those templates are structurally incapable of reaching the deployed Apps Script project.
+`realTemplates(extraLocaleSets)` takes its locale sets as an argument and has no production
+caller that passes any, and `resolveOutboundLocale` only ever returns a locale in
+`LAUNCH_READY_LOCALES` (`['en']`). A visitor who asks for Urdu is **recorded** as wanting Urdu
+and **answered in English**, on purpose. Internal partner mail and the QR digest take no locale
+parameter at all, so they cannot drift out of English.
+
+Three boundaries are recorded in that file rather than hidden: row **values** (backend token
+labels) stay English while row **labels** are translated; translated paragraphs lose the
+60-column wrap in the plain-text body only; and the **booking date and time stay in English by
+design**, because the instant is produced by the one reviewed `formatInstant` path and is
+therefore provably identical in all nine languages. A translated email naming a different hour
+is a meeting somebody misses, and that risk is not worth a localized date format before review.
+
+**Hosting prerequisite, unresolved and blocking activation.** Path-prefixed URLs only work if
+the host rewrites unknown paths to `index.html`. **This repository contains no rewrite
+configuration of any kind** (no `.htaccess`, `_redirects`, `vercel.json`, `netlify.toml`, or
+`web.config`), and the frontend deploy target is FTP to Apache `public_html/`. So direct
+navigation to a prefixed URL, and a hard refresh on one, are **unproven on the real host**. All
+routing evidence in this PR comes from the dev server, where Vite serves the SPA fallback.
+In-app navigation is unaffected either way. No rewrite file was invented here, because guessing
+at the host's configuration is how a 404 reaches production. **Verifying or configuring the
+host rewrite is a prerequisite for activating any non-English locale**, and is owner work, not
+a code change. It is deliberately not attempted in this PR.
 
 ### PR 4 browser review
 
@@ -367,6 +435,15 @@ revisiting them. Everything else in this section is explicitly deferred.
 
 The copy migration itself, and all real translation, are deliberately not part of this pass.
 
+> **Superseded by the Multilingual Content Rollout (PRs 1 to 5). Read the bullets below as a
+> record of what that pass was handed, not as current state.** The rollout has since migrated
+> the marketing pages, the footer, the navigation, and the contact and intake flow; taken the
+> catalog to **366 keys**; added eight model-generated audit-candidate catalogs at full parity;
+> and implemented locale routing. See "Multilingual Content Rollout" above for what is actually
+> true now. Two things in this list have **not** changed and still hold: every non-English entry
+> is unreviewed and **native-reader review is still required before any activation**, and QR
+> Contact Exchange remains honestly English-only.
+
 - **The catalog is partial by design, and its boundary is exact.** `messages.ts` holds **92
   keys**, every one of them consumed: the six stable-token control label sets, the gateway
   cards, the two short pathways, validation messages, the review summaries, and the booking
@@ -383,11 +460,14 @@ The copy migration itself, and all real translation, are deliberately not part o
 - **No translated content exists** for any locale, and **native-reader review is still
   required** for every non-English entry in the registry, including the native words already
   in it.
-- **The locale routing decision is explicitly left open** by the owner, and neither routing
+- ~~**The locale routing decision is explicitly left open** by the owner, and neither routing
   nor persistence is implemented. Because locale state lives above the router, a chosen
   locale **survives normal in-app navigation while the application remains loaded**, and
   **resets on a full reload, a direct load, or a new tab**. `setLocale` is the seam a routing
-  decision plugs into when one is made.
+  decision plugs into when one is made.~~ **Resolved in PR 5 of the rollout, and this bullet now
+  states the opposite of the truth.** The URL is the source of truth: English unprefixed,
+  non-English path-prefixed, nothing persisted to a cookie or `localStorage`, and a locale
+  therefore survives a reload, a direct link, and a new tab.
 - **QR Contact Exchange stays honestly English-only**, per its approved design. No language
   selector was added to it.
 

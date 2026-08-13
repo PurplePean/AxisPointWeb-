@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { LocaleLink } from '../components/LocaleLink';
 import { useDocumentMeta } from '../lib/meta';
 import {
   Eyebrow,
@@ -112,13 +112,13 @@ function PropertyManagementPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-x-[26px] gap-y-3.5 mt-8 lg:mt-[52px]">
-            <Link
+            <LocaleLink
               to="/contact?intent=property-management"
               className="inline-flex items-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
               style={{ minHeight: 54, padding: '0 26px', fontSize: 15 }}
             >
               {t.navCta} <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
-            </Link>
+            </LocaleLink>
             <a
               href="#scope"
               className="inline-flex items-center gap-2 font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 hover:text-v2-teal-support"
@@ -279,22 +279,22 @@ function PropertyManagementPage() {
         <div className={`${MEASURE} grid lg:grid-cols-[0.34fr_1fr] gap-[18px] lg:gap-20 items-center`}>
           <Eyebrow style={{ color: 'rgba(56,40,93,0.85)' }}>{t.pmRelatedEyebrow}</Eyebrow>
           <div className="grid gap-3.5">
-            <Link
+            <LocaleLink
               to="/asset-management"
               className="flex items-center justify-between gap-5 font-medium border-b border-[rgba(28,22,40,0.14)] pb-3.5 rounded-v2 hover:text-v2-teal-support"
               style={{ fontSize: 'clamp(17px,1.4vw,19px)', letterSpacing: '-0.02em', minHeight: 44 }}
             >
               <span>{t.pmRelatedAsset}</span>
               <span aria-hidden="true" className="flex-none" style={{ fontSize: 20 }}>&#8594;</span>
-            </Link>
-            <Link
+            </LocaleLink>
+            <LocaleLink
               to="/investor-services"
               className="flex items-center justify-between gap-5 font-medium rounded-v2 hover:text-v2-teal-support"
               style={{ fontSize: 'clamp(17px,1.4vw,19px)', letterSpacing: '-0.02em', minHeight: 44 }}
             >
               <span>{t.pmRelatedInvestor}</span>
               <span aria-hidden="true" className="flex-none" style={{ fontSize: 20 }}>&#8594;</span>
-            </Link>
+            </LocaleLink>
           </div>
         </div>
       </section>

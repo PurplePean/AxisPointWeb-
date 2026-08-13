@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { LocaleLink } from '../components/LocaleLink';
 import {
   INVOLVEMENT_CHOICES,
   PROPERTY_SCOPE_CHOICES,
@@ -618,13 +619,13 @@ function IntakeScreens() {
             </button>
           </div>
         ) : (
-          <Link
+          <LocaleLink
             to="/"
             className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
             style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
           >
             {t.backToAxisPoint}
-          </Link>
+          </LocaleLink>
         )}
       </div>
     ),
@@ -889,13 +890,13 @@ function IntakeScreens() {
             {t.scheduledDevNote}
           </p>
         )}
-        <Link
+        <LocaleLink
           to="/"
           className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
           style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
         >
           Back to AxisPoint
-        </Link>
+        </LocaleLink>
       </div>
     ),
 
@@ -931,13 +932,13 @@ function IntakeScreens() {
               &#8594;
             </span>
           </button>
-          <Link
+          <LocaleLink
             to="/"
             className="font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 inline-flex items-center"
             style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
           >
             {t.backToAxisPoint}
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     ),

@@ -3,6 +3,17 @@
 Architecture-level changes only — one line each. Routine copy/content edits do
 **not** belong here. Dates are the merge/commit date.
 
+## 2026-08-13 (Multilingual Content Rollout, PR 5 of 5)
+
+- **feat(web): the URL is the only source of truth for page locale.** English unprefixed, every other locale path-prefixed, `/en/...` refused so English keeps one canonical address. Nothing is persisted to a cookie or `localStorage`, because a stored locale can disagree with the URL and then one of them loses silently.
+- **feat(web): only `enabled && reviewed` locales produce routes, canonicals, `hreflang`, or sitemap entries**, which today is English alone. A disabled prefix renders the 404 inside the normal chrome rather than falling back to English, so the launch gate stays visible and no unavailable URL gets published.
+- **fix(web): two routing defects caught by the committed rendered-English baseline.** React Router ranks a dynamic segment above a splat, so `/no-such-page` matched `/:locale` and rendered the home page; and the refused-locale 404 first rendered with no header, footer, or skip link.
+- **fix(web): script fonts now reach page content, not just `body`.** Headings carry `font-serif` (Cormorant Garamond), which sets its own family and outranks inheritance, and Cormorant has no Devanagari, Gujarati, Gurmukhi, Arabic, or CJK glyphs, so those headings were drawn by an arbitrary substitute. A `[lang]`-scoped stylesheet now covers headings too, emitted only for the six non-Latin locales so Spanish and Vietnamese keep the brand serif.
+- **feat(gas-v2): audit-candidate visitor email translations, structurally unable to deploy.** The acknowledgement and booking confirmation have model-generated sets for the eight unreviewed locales in `scripts/gas-v2/audit/`, outside the `.claspignore` allowlist (`appsscript.json` + `src/*.js`), so they cannot reach the Apps Script project. `resolveOutboundLocale` still only returns a locale in `LAUNCH_READY_LOCALES` (`['en']`): a visitor asking for Urdu is recorded as wanting Urdu and answered in English.
+- **verify(gas-v2): the booking instant is byte-identical in all nine locales.** The translations are applied over the one reviewed `formatInstant` output, so a localized email cannot name a different hour. Substitution is checked in both directions: a phrase that no longer exists throws, and a phrase that survives substitution throws.
+- **fix(gas-v2): plain-text emails are not the HTML with tags stripped.** `textRule` uppercases headings and `textWrap` inserts newlines mid-phrase, so the first substitution silently did nothing to the text body and would have sent English headings and paragraphs beside translated labels. Matching is now case-aware, whitespace-flexible, and word-boundary anchored.
+- **docs: path-prefixed URLs are unproven on the real host.** This repository contains no rewrite configuration of any kind and the frontend deploys by FTP to Apache `public_html/`; all routing evidence comes from the dev server's SPA fallback. Verifying or configuring the host rewrite is a prerequisite for activating any non-English locale. No rewrite file was invented.
+
 ## 2026-08-11 (Multilingual Content Rollout, PR 4 of 5)
 
 - **feat(web): the contact page, intake, validation, submission states, and booking are catalog-driven in all nine languages.** 108 new keys, catalog now 366, all eight audit catalogs at full parity. Rendered English is identical across a 20-state baseline and all seven routes.

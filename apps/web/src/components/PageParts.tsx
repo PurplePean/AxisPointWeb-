@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { LocaleLink } from '../components/LocaleLink';
 
 /**
  * Shared building blocks for the approved V2 public pages (design@2026-07-30).
@@ -185,13 +185,13 @@ export function ClosingCta({
             </p>
           )}
         </div>
-        <Link
+        <LocaleLink
           to={ctaTo}
           className="inline-flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label justify-self-start transition-colors hover:bg-white"
           style={{ minHeight: 56, padding: '0 26px', fontSize: 15 }}
         >
           {ctaLabel} <span aria-hidden="true" style={{ fontSize: 16 }}>&#8594;</span>
-        </Link>
+        </LocaleLink>
       </div>
     </section>
   );
@@ -208,12 +208,12 @@ export function QuietLink({
   className?: string;
 }) {
   return (
-    <Link
+    <LocaleLink
       to={to}
       className={`inline-flex items-center gap-2 font-semibold border-b border-[rgba(28,22,40,0.35)] rounded-v2 hover:text-v2-teal-support ${className}`}
       style={{ fontSize: 15, paddingBottom: 3, minHeight: 44 }}
     >
       {children} <span aria-hidden="true">&#8594;</span>
-    </Link>
+    </LocaleLink>
   );
 }

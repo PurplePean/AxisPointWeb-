@@ -180,6 +180,27 @@ Both apps share the **same** GAS endpoint: each deploy workflow passes
 | `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with `FORM_ENDPOINT` → FTP `./apps/web/dist/` to `./public_html/` | ❌ **failing** |
 | `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with `FORM_ENDPOINT` → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` | ❌ **failing** |
 
+### SPA rewrite: not configured, and required before any locale is activated
+
+The site is a single-page app whose routes are client-side. Deep links only work if the host
+returns `index.html` for a path that has no matching file on disk.
+
+**This repository contains no rewrite configuration of any kind.** There is no `.htaccess`, no
+`_redirects`, no `vercel.json`, no `netlify.toml`, and no `web.config` anywhere in the tree.
+The deploy target is FTP into Apache `public_html/`, so whatever rewrite exists (or does not)
+lives on the host and is not tracked here.
+
+This has not mattered so far, because the existing English routes are reached by in-app
+navigation from `/`. It starts mattering with locale prefixes: `/es/contact` typed directly, or
+hard-refreshed, is exactly the case that needs the fallback. All routing evidence gathered
+during the Multilingual Content Rollout comes from the **dev server**, where Vite supplies the
+SPA fallback automatically. That is not evidence about Apache.
+
+No rewrite file was invented to close this gap, because guessing at the host's configuration is
+how a 404 reaches production. **Verifying the host's rewrite behaviour, and configuring it if
+absent, is a prerequisite for activating any non-English locale.** It is owner work on the
+hosting account, not a code change, and no merge performs it.
+
 ### Why the two deploy workflows fail
 
 The build step succeeds; the **FTP step** fails with:

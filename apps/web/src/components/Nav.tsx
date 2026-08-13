@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { LocaleLink, LocaleNavLink } from '../components/LocaleLink';
 import { Mark } from '@axispoint/brand';
 import LanguageSelector from './LanguageSelector';
 import { useLocale } from '../i18n/LocaleProvider';
@@ -140,7 +141,7 @@ function Nav() {
         style={{ paddingTop: 20, paddingBottom: 20 }}
       >
         <div className="flex items-center justify-between gap-6 px-5 md:px-10 lg:px-[72px]">
-          <Link
+          <LocaleLink
             to="/"
             className="inline-flex items-center rounded-v2"
             /* The approved lockup is 23px, which is well under a 44px touch target.
@@ -150,7 +151,7 @@ function Nav() {
             aria-label={t.navHomeAria}
           >
             <Mark variant="fullcolor" mode="lockup" height={23} />
-          </Link>
+          </LocaleLink>
 
           {/* Desktop navigation. Below 1024px this collapses to the approved menu:
               the four labels plus the full CTA wording cannot hold their measure at
@@ -158,7 +159,7 @@ function Nav() {
               composition, so the mobile treatment carries that width. */}
           <nav aria-label={t.navPrimaryAria} className="hidden lg:flex items-center gap-[30px]">
             {LINKS.map((link) => (
-              <NavLink
+              <LocaleNavLink
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
@@ -173,18 +174,18 @@ function Nav() {
                 style={{ fontSize: 13.5, minHeight: 44, padding: '12px 0', margin: '-12px 0' }}
               >
                 {t[link.labelKey]}
-              </NavLink>
+              </LocaleNavLink>
             ))}
 
             <LanguageSelector value={locale} onChange={setLocale} />
 
-            <Link
+            <LocaleLink
               to={CTA.to}
               className="inline-flex items-center rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
               style={{ fontSize: 13, padding: '11px 18px', minHeight: 44 }}
             >
               {t[CTA.labelKey]}
-            </Link>
+            </LocaleLink>
           </nav>
 
           {/* Mobile control cluster: the approved static language label, the word
@@ -228,14 +229,14 @@ function Nav() {
             className="flex items-center justify-between gap-6 border-b border-[rgba(28,22,40,0.12)] px-5"
             style={{ paddingTop: 20, paddingBottom: 20 }}
           >
-            <Link
+            <LocaleLink
               to="/"
               className="inline-flex items-center rounded-v2"
               style={{ padding: '11px 0', margin: '-11px 0' }}
               aria-label={t.navHomeAria}
             >
               <Mark variant="fullcolor" mode="lockup" height={23} />
-            </Link>
+            </LocaleLink>
             <button
               type="button"
               onClick={() => close()}
@@ -262,7 +263,7 @@ function Nav() {
           <nav aria-label={t.navPrimaryAria} className="flex-1 overflow-y-auto px-5 py-2">
             <div className="grid border-t border-[rgba(28,22,40,0.14)]">
               {LINKS.map((link) => (
-                <NavLink
+                <LocaleNavLink
                   key={link.to}
                   to={link.to}
                   className={({ isActive }) =>
@@ -277,17 +278,17 @@ function Nav() {
                   <span aria-hidden="true" style={{ fontSize: 17, color: 'rgba(28,22,40,0.45)' }}>
                     &#8594;
                   </span>
-                </NavLink>
+                </LocaleNavLink>
               ))}
             </div>
 
-            <Link
+            <LocaleLink
               to={CTA.to}
               className="mt-6 flex items-center justify-center gap-2.5 rounded-v2 bg-v2-teal font-bold text-v2-action-label transition-colors hover:bg-v2-teal-support hover:text-white"
               style={{ minHeight: 54, fontSize: 15, padding: '0 22px' }}
             >
               {t[CTA.labelKey]}
-            </Link>
+            </LocaleLink>
           </nav>
         </div>
       )}
