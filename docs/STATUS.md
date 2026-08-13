@@ -435,6 +435,15 @@ revisiting them. Everything else in this section is explicitly deferred.
 
 The copy migration itself, and all real translation, are deliberately not part of this pass.
 
+> **Superseded by the Multilingual Content Rollout (PRs 1 to 5). Read the bullets below as a
+> record of what that pass was handed, not as current state.** The rollout has since migrated
+> the marketing pages, the footer, the navigation, and the contact and intake flow; taken the
+> catalog to **366 keys**; added eight model-generated audit-candidate catalogs at full parity;
+> and implemented locale routing. See "Multilingual Content Rollout" above for what is actually
+> true now. Two things in this list have **not** changed and still hold: every non-English entry
+> is unreviewed and **native-reader review is still required before any activation**, and QR
+> Contact Exchange remains honestly English-only.
+
 - **The catalog is partial by design, and its boundary is exact.** `messages.ts` holds **92
   keys**, every one of them consumed: the six stable-token control label sets, the gateway
   cards, the two short pathways, validation messages, the review summaries, and the booking
@@ -451,11 +460,14 @@ The copy migration itself, and all real translation, are deliberately not part o
 - **No translated content exists** for any locale, and **native-reader review is still
   required** for every non-English entry in the registry, including the native words already
   in it.
-- **The locale routing decision is explicitly left open** by the owner, and neither routing
+- ~~**The locale routing decision is explicitly left open** by the owner, and neither routing
   nor persistence is implemented. Because locale state lives above the router, a chosen
   locale **survives normal in-app navigation while the application remains loaded**, and
   **resets on a full reload, a direct load, or a new tab**. `setLocale` is the seam a routing
-  decision plugs into when one is made.
+  decision plugs into when one is made.~~ **Resolved in PR 5 of the rollout, and this bullet now
+  states the opposite of the truth.** The URL is the source of truth: English unprefixed,
+  non-English path-prefixed, nothing persisted to a cookie or `localStorage`, and a locale
+  therefore survives a reload, a direct link, and a new tab.
 - **QR Contact Exchange stays honestly English-only**, per its approved design. No language
   selector was added to it.
 
