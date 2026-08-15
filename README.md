@@ -39,32 +39,54 @@ launch independently.
 
 ### Status of the code against that model
 
-**The current `apps/web`, `apps/qr`, and `packages/brand` code predates the approved V2 design.**
-It contains V1 behavior plus an early, now superseded V2 frontend attempt. The V2 public
-frontend, intake, and QR surfaces are being rebuilt from the approved design package rather
-than evolved from what is here. Existing code is reference material and is not approved merely
-because it exists.
+**The V2 rebuild is implemented.** Site chrome, the five marketing pages, the contact intake,
+validation, submission states, booking, and locale routing are all built from the approved
+design package, across nine locale catalogs, through PR #78. English is the only reviewed and
+enabled language; the other eight are complete as review candidates and are disabled until a
+fluent reader signs each one off.
 
-Start at [`docs/design-sources.md`](docs/design-sources.md) for the authoritative design files,
-and [`docs/STATUS.md`](docs/STATUS.md) for what pass the work is on.
+This section previously said the opposite: that the current code predated the approved design
+and was still being rebuilt from it. That was accurate when it was written and went stale
+without being updated, which is precisely the drift
+[`docs/system-classification.md`](docs/system-classification.md) now exists to prevent.
+
+What is built is not the same as what is launched. Nothing here is deployed, and the V2 backend
+has not been provisioned. See **Deployment status** below.
+
+Start at [`docs/system-classification.md`](docs/system-classification.md) for what is current,
+retired, transitional, or external; [`docs/design-sources.md`](docs/design-sources.md) for the
+authoritative design files; and [`docs/STATUS.md`](docs/STATUS.md) for what pass the work is on.
 
 ## Project structure
 
-This is a pnpm monorepo:
+This is a pnpm monorepo. **[`docs/system-classification.md`](docs/system-classification.md) is
+the source of truth for what each of these is;** the notes here are orientation only and must
+not be extended into a competing copy of that classification.
 
-- **apps/web** — main website (axispoint.llc)
-- **apps/qr** — QR digital card microsite (qr.axispoint.llc)
-- **packages/brand** — shared brand tokens, team data, types, and the shared contact form
-- **content/** — markdown scaffold, currently empty
-- **scripts/gas/** — V1 Google Apps Script backend (`Code.gs`) and email template mirrors. **Deployed**
-- **scripts/gas-v2/** — V2 Apps Script backend, written and tested but connected to nothing: no project, Sheet, trigger, or deployment
+- **apps/web** — main website. Current V2, built from the approved design package
+- **apps/qr** — QR Contact Exchange microsite. **Transitional:** rewritten during the V2 passes
+  onto the shared submission client and the V2 backend contract, but on a legacy scaffold, and
+  larger than the digital contact card AxisPoint intends to operate long term. It is not part
+  of V1 retirement and is not deleted with it
+- **packages/brand** — shared brand primitives: `Mark`, `E2eBanner`, the Tailwind preset,
+  `colors.ts`, `fonts.ts`. Also still holds the retired V1 form tree under
+  `src/components/form/`, which no current surface imports
+- **packages/submission-client** — the single frontend transport boundary for V2 submissions
+- **content/** — markdown scaffold from an abandoned articles idea, no current consumers
+- **scripts/gas/** — V1 Google Apps Script backend. **Retired as a business system, not serving
+  current business traffic.** Historically deployed at production version @28. See
+  [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md)
+- **scripts/gas-v2/** — V2 Apps Script backend, written and tested but connected to nothing: no
+  project, Sheet, trigger, or deployment
 - **scripts/hosting/** — cPanel and Namecheap automation for the hosting stack
+- **scripts/test/** — shared test harnesses, including the production-bundle inspector
 - **docs/** — verified source of truth documentation
 
 ## Documentation map
 
 | File | Owns |
 |---|---|
+| [`docs/system-classification.md`](docs/system-classification.md) | **What is current V2, retired V1, transitional QR, or an external system.** Every other file points here rather than keeping its own copy |
 | [`CLAUDE.md`](CLAUDE.md) | The operating standard: git workflow, auto-merge, verification, copy and brand standards |
 | [`AGENTS.md`](AGENTS.md) | A pointer to CLAUDE.md. Deliberately not a second rulebook |
 | [`docs/design-sources.md`](docs/design-sources.md) | Approved design package, authoritative files, photography licence ledger |
@@ -75,6 +97,7 @@ This is a pnpm monorepo:
 | [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) | V2 wire contract (`schemaVersion` 1), tokens, error codes, delivery guarantee |
 | [`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md) | Exact payload shape per lead type |
 | [`docs/email-templates.md`](docs/email-templates.md) | Template inventory and the embedded constant vs mirror file pattern |
+| [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md) | The V1 deployment record, and which tags hold its full historical state |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Dated log of architecture level changes |
 
 ## Prerequisites
@@ -93,15 +116,21 @@ The frontend talks to a real backend only when you deliberately opt in. This is 
 each app's `vite.config.ts` and consumed through an injected `__FORM_ENDPOINT__` define, so a
 stray endpoint in your shell or a generic `.env` file cannot leak into a dev build.
 
-The two apps read different variables on purpose: `apps/web` reads
-`VITE_V2_SUBMISSION_ENDPOINT` (V2), `apps/qr` reads `VITE_FORM_ENDPOINT` (V1). They speak
-different payload shapes, so the V2 intake never falls back to the V1 name.
+**Both apps read `VITE_V2_SUBMISSION_ENDPOINT`.** `apps/qr` has done so since PR #70, when the
+Contact Exchange moved onto the V2 `contact_exchange` envelope. This section used to claim that
+`apps/qr` read the V1 `VITE_FORM_ENDPOINT`; it does not, and
+[`apps/qr/vite.endpoint.ts`](apps/qr/vite.endpoint.ts) is the file that settles it.
+
+`VITE_FORM_ENDPOINT` names the retired V1 deployment, which speaks a different payload shape. It
+is still recognised by both resolvers for one reason: so a lone V1 value in e2e mode produces a
+hard error that names the mistake, instead of a silent default that would post V2 envelopes at a
+V1 backend and read as a backend bug.
 
 | Command | Apps | Guarantee |
 |---|---|---|
-| `pnpm dev` | web + qr | **The real endpoint is ignored from every source.** The contact form runs its simulated success fallback. No request reaches the real backend |
+| `pnpm dev` | web + qr | **The real endpoint is ignored from every source.** The shared submission client runs its simulator. No request reaches a real backend |
 | `pnpm dev:web` / `pnpm dev:qr` | one app | Same guarantee, single app |
-| `pnpm dev:e2e` | web + qr | Loads the real production endpoint **only** from `.env.e2e.local`. A missing file or value is a **hard failure**, never a silent fallback. Prints a loud terminal warning and shows a fixed in app red banner |
+| `pnpm dev:e2e` | web + qr | Loads the real production endpoint **only** from `.env.e2e.local`. A missing file or value is a **hard failure**, never a silent fallback. Prints a loud terminal warning and shows a fixed in app red banner in **both** apps |
 | `pnpm dev:e2e:web` / `pnpm dev:e2e:qr` | one app | Same as `dev:e2e`, single app |
 
 `.env.e2e.local` is machine local and gitignored. Each machine needs its own copy, created from
@@ -121,13 +150,31 @@ interrupts whatever is running there.
 | `pnpm build` | Build all apps |
 | `pnpm build:web` / `pnpm build:qr` | Build one app |
 | `pnpm type-check` | TypeScript across the workspace |
-| `pnpm lint` | ESLint. Currently only `apps/web` defines a lint script |
+| `pnpm lint` | ESLint across all four packages |
 | `pnpm format` | Prettier |
+| `pnpm test:frontend` | The full frontend suite: submission client, web, QR |
+| `pnpm test:client` / `pnpm test:web` / `pnpm test:qr` | One suite at a time |
 | `pnpm test:gas` | Run the V1 Apps Script backend test suite (Node's built in runner, no install step) |
 | `pnpm test:gas-v2` | Run the V2 Apps Script backend test suite |
-| `pnpm gas:push` | `clasp push`. Updates the Apps Script project HEAD. **Not a deployment** |
+| `pnpm verify:baseline` | Compare every route's rendered English against the committed snapshot |
+| `pnpm verify:aria` | Assert the chrome's translated `aria-label`s off a real render |
+| `pnpm verify:intake-states` | Drive 20 intake, submission, and booking states in a headless browser. Starts and stops its own dev server; set `CHROME_PATH` to choose a binary |
+| `pnpm verify:bundle` | Inspect `apps/web/dist` after a build. For QR: `node scripts/test/inspect-bundle.mjs apps/qr/dist` |
+| `pnpm baseline:write` | Rewrite the route baseline. Review the diff |
+| `pnpm gas:push` | `clasp push` against the retired V1 project. Updates the Apps Script project HEAD. **Not a deployment** |
 
 ## Testing
+
+`pnpm test:frontend` runs the 246 frontend tests: the shared submission client's wire contract
+and transport, the web app's catalog, routing, intake, booking, and unicode coverage, and the QR
+app's endpoint resolution, exchange mapping, and e2e banner. They run under Node's built in
+runner with `--experimental-strip-types`, which needs Node 22.6 or newer.
+
+Node's type stripping erases types but does not transform JSX, so a `.tsx` file cannot be
+imported by a test directly. Anything that has to render a component uses Vite's programmatic
+SSR API instead, compiled through the same `@vitejs/plugin-react` pipeline the apps build with.
+`apps/web/tests/render-baseline.mjs` and `apps/qr/tests/e2eBanner.test.ts` are the two examples
+to copy from.
 
 `pnpm test:gas` runs the committed backend suite under `scripts/gas/tests/`. Apps Script cannot
 run outside its own runtime, but the pure logic (routing, payload transforms, template
@@ -143,8 +190,23 @@ file into one VM context supplied with only the globals Apps Script provides, re
 single shared global scope of the real runtime. A Node dependency creeping into V2 source fails
 there rather than after a push.
 
-CI runs type-check, lint, both app builds, and both GAS suites as separate steps, so a failure
-names which backend broke.
+### What CI actually runs
+
+`ci.yml` has three jobs, so a failure names what broke:
+
+| Job | Gates |
+|---|---|
+| **Type-check, lint & build** | `pnpm type-check`, `pnpm lint` across four packages, both production builds, and `inspect-bundle.mjs` against each `dist` |
+| **Frontend tests** | `pnpm test:frontend` |
+| **Rendered baselines and assertions** | `verify:baseline`, `verify:aria`, `verify:intake-states` |
+
+`test-gas.yml` runs both Apps Script suites separately.
+
+Several of these gates existed as local scripts for passes before any workflow ran them: the
+frontend suite, the bundle inspector, the rendered baselines, and the intake-state harness were
+all committed and green on somebody's laptop while CI checked only type-check, lint on one
+package, and two builds. A gate that is not in a workflow proves nothing about anybody else's
+commit. If you add one, add it to `.github/workflows/ci.yml` in the same PR.
 
 ## Deployment status
 
@@ -152,10 +214,10 @@ names which backend broke.
 
 | Surface | Status |
 |---|---|
-| **Google Apps Script backend (V1)** | **Deployed.** Production version @28, serving the current live sites |
+| **Google Apps Script backend (V1)** | **Retired as a business system.** Historically deployed at production version @28; not serving current business traffic. The external Apps Script project is untouched by anything in this repository |
 | **This repository's frontend** | **Has never successfully deployed through GitHub Actions.** The two FTP workflows fail at the FTP step because the FTP secrets are not configured |
 | **Live public sites** | A separate, older, hand uploaded build, unrelated to this repository's git history |
-| **V2 backend** | Does not exist yet |
+| **V2 backend** | Written and tested. No Apps Script project, Sheet, Script Properties, triggers, or deployment exist |
 
 **Merging to `main` deploys nothing.** It is not a release and not a staging promotion.
 Going live for the frontend is a future configuration decision (adding the FTP secrets), not a
@@ -180,7 +242,12 @@ reauth friction, not a broken script. Re-run `clasp login`, then re-run the comm
 
 ## Backend overview
 
-The form backend is `scripts/gas/Code.gs`, deployed as a Web App (execute as: me, access:
+**This section describes V1, which is retired.** It is kept because the source is still in the
+tree and the behaviour is still documented, not because it is what current work builds against.
+The current contract is [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md), implemented
+in `scripts/gas-v2`.
+
+The V1 form backend is `scripts/gas/Code.gs`, deployed as a Web App (execute as: me, access:
 anyone). It runs on a unified lead schema (`USE_UNIFIED_SCHEMA = true`), which persists the full
 collected detail set per lead type into a `Details` JSON blob.
 

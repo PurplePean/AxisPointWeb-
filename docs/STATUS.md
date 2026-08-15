@@ -3,16 +3,21 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-11 (Multilingual Content Rollout, PR 4 of 5)_
+_Last updated: 2026-08-15 (no-deletion verification and documentation safety pass)_
+
+**What is V1, V2, transitional QR, or external is settled in
+[`system-classification.md`](system-classification.md), not here.** This file records current
+blockers, decisions, and state. Where the two touch the same fact, the classification wins and
+this file is what gets corrected.
 
 ## Where things stand
 
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | **Multilingual Content Rollout, in progress. PRs 1 to 3 merged; PR 4 of 5 is open and deliberately unmerged.** All nine locales are built in this one pass; there is no per-locale follow-up pass. English remains the sole enabled and reviewed locale (no endpoint exists, nothing deployed) |
-| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected |
-| **Next pass** | Staging, planned in [`staging-provisioning.md`](staging-provisioning.md) and not yet provisioned. Every V2 surface is connected to the shared client; what remains is standing up a backend. **No endpoint exists and none has been contacted** |
+| **Current code pass** | **No-deletion verification and documentation safety pass.** CI gaps closed, the stale-documentation cluster corrected, [`system-classification.md`](system-classification.md) brought into the repository, the QR e2e banner restored. Nothing deleted |
+| **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected. **Multilingual Content Rollout, all 5 PRs merged through #78** |
+| **Next pass** | V1 retirement, per [`system-classification.md`](system-classification.md). The confirmed V1 list and the abandoned articles residue come out; `apps/qr` and the V1-endpoint rejection guards stay. After that: provision the V2 backend and stand up staging, planned in [`staging-provisioning.md`](staging-provisioning.md). **No endpoint exists and none has been contacted** |
 
 ## Routes
 
@@ -713,14 +718,16 @@ The contract now states a defensible position for each of these, so they are dec
 
 | | |
 |---|---|
-| **V1 GAS backend** | **Deployed, production version @28.** Live and serving the current sites |
+| **V1 GAS backend** | **Retired as a business system.** Historically deployed at production version @28; **not serving current business traffic**. The external Apps Script project is not touched by any repository change. Record: [`archive/deployment-v1.md`](archive/deployment-v1.md) |
 | **V2 GAS backend** | **Code exists and is tested; nothing external does.** `scripts/gas-v2` is at status `merged`. No Apps Script project, `.clasp.json`, Sheet, Script Properties, triggers, or deployment |
 | **This repository's frontend** | **Has never successfully deployed through GitHub Actions.** The two FTP workflows fail at the FTP step because FTP secrets are not configured |
 | **Live public sites** | A separate, older, hand-uploaded build unrelated to this repository's git history |
 | **Going live** | A future configuration decision (adding FTP secrets), not a git action. Merging to `main` deploys nothing |
 
-Note the distinction: the **V1 GAS backend is deployed**; the **frontend in this repository is
-not**. Those are independent facts and should not be collapsed into a single "deployed" claim.
+This table previously read "V1 GAS backend: deployed, live and serving the current sites",
+alongside a note warning against collapsing it with the frontend's status. The warning was
+right; the fact underneath it had gone stale. V1 is retired, the public site is a separate
+hand-uploaded build, and **nothing in this repository is serving anybody.**
 
 ## Deferred
 
@@ -772,6 +779,12 @@ entirely rather than printed and unkeepable.
   persist after a deploy. See [`deployment.md`](deployment.md)
 - Once FTP secrets exist, every push to `main` deploys immediately with no approval gate.
   Decide on a gate **before** adding the secrets
+- **Both deploy workflows still pass `VITE_FORM_ENDPOINT` into the build.** That is the V1
+  variable name; both apps read `VITE_V2_SUBMISSION_ENDPOINT`. A deploy would therefore
+  compile in no endpoint and ship a build that fails closed on every submission. Not urgent,
+  because neither workflow has ever succeeded, but it must be corrected in the same change
+  that adds the FTP secrets. `ci.yml` was corrected in the 2026-08-15 safety pass; the two
+  deploy workflows were deliberately left alone as deployment configuration
 - Deleting a live Google Sheet tab is not git-revertible
 - **The header overflows its viewport by 3px at 390px**, so every page scrolls horizontally
   on a small phone. Pre-existing, locale-independent, and measured in the PR 2 browser review
@@ -782,8 +795,14 @@ entirely rather than printed and unkeepable.
 
 | Anchor | Commit | Meaning |
 |---|---|---|
-| `v1-stable` | `c237a09` | Historical bookmark, harmless, retained |
+| `v1-stable` | `c237a09` | The historical final V1 state. Where V1 source is read from once it leaves `main` |
 | `pre-v2-clean-rebuild` | `d194e7e` | **Created and pushed 2026-07-30.** Annotated, present on `origin`. The baseline immediately before the clean V2 rebuild. Named this way rather than `v1-pre-rebuild` because the baseline already contains early V2 work, so it is not a pure V1 marker |
+| `pre-v1-retirement-2026-08-14` | `8a6aef1` | Present on `origin`. **The complete pre-deletion repository state.** The rollback anchor for the V1 retirement pass, and where `packages/brand/src/team.ts` and the full pre-edit `deployment.md` are preserved verbatim |
 
 To roll the frontend back to the pre-rebuild baseline, reset to `pre-v2-clean-rebuild`. Nothing
 is deployed from this repository, so a rollback here changes no running system.
+
+The historical partner contact values in `packages/brand/src/team.ts` are preserved by
+`pre-v1-retirement-2026-08-14` and are **not** to be copied into current V2 code or a tracked
+contact document without direct owner verification. They are historical, not confirmed current.
+See [`system-classification.md`](system-classification.md), "Special handling before deletion".

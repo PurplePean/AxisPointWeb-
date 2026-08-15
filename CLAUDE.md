@@ -2,11 +2,18 @@
 
 This file is read automatically by Claude Code at the start of every session in this repo. It is the standing operating standard — it applies regardless of which conversation or session invoked Claude Code.
 
+## What is V1, what is V2, what is transitional
+
+**[`docs/system-classification.md`](docs/system-classification.md) is the single source of truth for which systems are current V2, retired V1, transitional QR, or external.** Read it before deciding whether a file is current product code, and update it in the same PR as any change that moves a system from one category to another.
+
+Do not maintain a second, more detailed copy of that classification here or in any other file. Copies of a boundary drift, and the stale one is the one somebody eventually follows. The short list below is orientation only.
+
 ## Repo structure
-- apps/web — main site (axispoint.llc)
-- apps/qr — QR/digital-card microsite (qr.axispoint.llc), imports ContactForm from packages/brand directly — not a duplicate
-- packages/brand — shared components, including the Contact form and its full step logic
-- scripts/gas — V1 Apps Script backend source (Code.gs) + email template mirrors. **Deployed**
+- apps/web — main site. V2, built from the approved design package. Not deployed from this repository
+- apps/qr — QR Contact Exchange microsite. **Transitional:** V2-integrated (shared submission client, V2 backend contract) on a legacy scaffold, and slated for replacement by a smaller digital contact card as a separate pass. It does **not** import the V1 ContactForm
+- packages/brand — shared brand primitives (Mark, E2eBanner, Tailwind preset, colors, fonts). Also still holds the retired V1 form tree under src/components/form, which nothing current imports
+- packages/submission-client — the single frontend transport boundary for V2 submissions
+- scripts/gas — V1 Apps Script backend source. **Retired as a business system and not serving current business traffic.** It was deployed historically (production @28); the external Apps Script project is untouched by anything in this repository. See [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md)
 - scripts/gas-v2 — V2 Apps Script backend. Written and tested; no project, Sheet, trigger, endpoint, or deployment exists
 
 ## Before doing anything else
@@ -20,8 +27,11 @@ If this task touches backend logic, email templates, payload shapes, or deployme
 - /docs/design-sources.md — the approved V2 design package: authoritative files, required dependencies, corrections to the exported Design Index, and the photography licence ledger
 - /docs/STATUS.md — current pass, open owner decisions, deployment state, rollback anchors
 - /docs/CHANGELOG.md — dated log of architecture-level changes
+- /docs/system-classification.md — V1 / V2 / transitional QR / external boundaries
 
-**V2 implementation work is built from the approved design package, not from existing repository code.** Before writing any V2 frontend, intake, or QR code, read /docs/design-sources.md and cite the file and section you built from. Existing V1 code is reference material; it does not become approved by already existing.
+**V2 implementation work is built from the approved design package.** Before writing new V2 frontend, intake, or QR code, read /docs/design-sources.md and cite the file and section you built from.
+
+**That rebuild has happened.** The instruction above used to be followed by a claim that the current `apps/web`, `apps/qr`, and `packages/brand` code predated the approved design and was still being rebuilt from it. That was true when it was written and stopped being true through PR #78: the site chrome, the five marketing pages, the contact intake, booking, the submission states, and locale routing are all implemented from the approved package across nine locale catalogs, with English reviewed and enabled. Treat current `apps/web` as the approved implementation, not as a superseded draft. The retired V1 surfaces that still sit in the tree are listed in /docs/system-classification.md and are not reference material for anything new.
 
 If your task makes any documented fact stale, update the relevant /docs file in the same task, and add a one-line dated entry to /docs/CHANGELOG.md if the change is architecture-level (not routine content edits).
 
@@ -81,14 +91,14 @@ Never run the web or qr dev servers in the same terminal tab as a Claude Code se
 
 ## Dev vs e2e run modes (form endpoint safety)
 
-The frontend talks to the real GAS backend only when you deliberately opt in. This is enforced
+The frontend talks to a real backend only when you deliberately opt in. This is enforced
 in each app's `vite.config.ts` (mode-driven) and consumed via an injected `__FORM_ENDPOINT__`
-define, so a stray `VITE_FORM_ENDPOINT` in the shell or a generic `.env` file can never leak
+define, so a stray endpoint in the shell or a generic `.env` file can never leak
 into a dev build.
 
 | Command | Apps | Guarantee |
 |---|---|---|
-| `pnpm dev` | web + qr | **Real endpoint is IGNORED** from every source (`.env.local`, shell, any generic env). The ContactForm runs its simulated-success fallback. No request ever reaches the real backend. |
+| `pnpm dev` | web + qr | **Real endpoint is IGNORED** from every source (`.env.local`, shell, any generic env). The shared submission client runs its simulator. No request ever reaches a real backend. |
 | `pnpm dev:web` / `pnpm dev:qr` | one app | Same guarantee as `pnpm dev`, single app. |
 | `pnpm dev:e2e` | web + qr | Loads the real production endpoint **only** from `.env.e2e.local`. Missing file/value = **hard failure**, never a silent fall back to simulated success. Prints a loud terminal warning and shows a fixed in-app red banner. |
 | `pnpm dev:e2e:web` / `pnpm dev:e2e:qr` | one app | Same as `pnpm dev:e2e`, single app, for isolated testing. |
@@ -100,12 +110,23 @@ into a dev build.
   by the above; a build with no endpoint supplied compiles in no endpoint, it does not inherit
   a cached one. **A `apps/web` production build with no endpoint fails closed** (an honest
   "nothing was sent"), it does not simulate success; only a dev build can simulate.
-- **The two apps read DIFFERENT variables, on purpose.** Since Pass 10A `apps/web` reads
-  **`VITE_V2_SUBMISSION_ENDPOINT`** and never `VITE_FORM_ENDPOINT`, because the latter names
-  the **V1** deployment and the two speak different payload shapes. In e2e mode a lone V1 value
-  is a hard error that names the problem rather than a silent default. `apps/qr` still uses
-  `VITE_FORM_ENDPOINT`. Do not "unify" these without reading
-  [`docs/backend-v2-contract.md` §19](docs/backend-v2-contract.md).
+- **BOTH apps read `VITE_V2_SUBMISSION_ENDPOINT`.** `apps/web` since Pass 10A, `apps/qr` since
+  Pass 10B (PR #70). This paragraph used to say `apps/qr` "still uses `VITE_FORM_ENDPOINT`",
+  which had been wrong since that pass: the Contact Exchange submits a V2 `contact_exchange`
+  envelope, so pointing it at the V1 deployment would fail in a way that reads as a backend bug
+  rather than a configuration mistake. Verify against `apps/qr/vite.endpoint.ts`, not against
+  this file.
+- **`VITE_FORM_ENDPOINT` is now recognised only in order to be REJECTED.** It names the retired
+  V1 deployment. Each app's endpoint resolver detects a lone V1 value in e2e mode and throws
+  with a message naming the problem, rather than silently defaulting. Those `V1_ENDPOINT_VAR`
+  checks are **negative safety guards, not V1 runtime code**: keep them until the production
+  deploy workflows are corrected and verified. See
+  [`docs/backend-v2-contract.md` §19](docs/backend-v2-contract.md) and
+  [`docs/system-classification.md`](docs/system-classification.md).
+- **Both apps render the shared `<E2eBanner />` in e2e mode.** The banner is a visible warning
+  on top of the fail-closed resolver above; it does not replace it. `apps/qr` computed
+  `__E2E_MODE__` and printed the terminal warning without ever mounting the banner until the
+  2026-08-15 safety pass.
 
 ## Mobile verification
 
@@ -117,6 +138,8 @@ Any UI change must be checked at a real mobile viewport (about 390px wide), not 
 [`docs/deployment.md`](docs/deployment.md) is the authoritative home for the IDs, the mechanics, the `.claspignore` allowlist rationale, the calendar-access gotcha, and the clasp reauth behaviour. Read it before any backend or deployment task.
 
 The rule that belongs here: **any task that edits `scripts/gas/Code.gs` or the embedded email template constants must say so explicitly in its summary and flag that the manual push and deploy steps are still required. Never claim something is "live" based on a merge alone.**
+
+This rule now applies almost entirely to `scripts/gas-v2`. V1 is retired as a business system and its source is scheduled for deletion, so a task editing `scripts/gas/Code.gs` should first ask why it is editing a retired backend. [`docs/system-classification.md`](docs/system-classification.md) settles which one you are in; [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md) records what V1's deployment was.
 
 ### Backend status vocabulary
 
@@ -141,6 +164,8 @@ Apps Script can't run outside its own runtime, but pure logic (routing, payload 
 ## Verification standard
 
 Type-checks passing is necessary but not sufficient. For any task touching user-facing behavior (frontend flow, email content, payload shape), verify by actually driving the real flow (browser click-through, or a rendered output like a generated email preview) — not just reasoning about the code. If something can't be verified end-to-end (e.g. no live server available), say so explicitly rather than implying it was checked.
+
+**CI runs these gates, and a green PR means all of them passed:** workspace type-check; lint across all four packages; both production builds, each inspected by `scripts/test/inspect-bundle.mjs`; the frontend test suite (`pnpm test:frontend`); the seven-route rendered English baseline; the rendered ARIA assertions; the 20-state intake baseline driven in a real headless browser; and both Apps Script suites in `test-gas.yml`. A gate that exists as a local script but is not in a workflow proves nothing about anybody else's commit, which is exactly how the frontend suite and the bundle inspector sat unrun for several passes. If you add a gate, add it to `.github/workflows/ci.yml` in the same PR.
 
 ## Copy and brand standards
 
