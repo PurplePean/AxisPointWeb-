@@ -16,7 +16,6 @@
     "type-check": "pnpm -r type-check",
     "lint": "pnpm -r lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "test:gas": "node --test \"scripts/gas/tests/**/*.test.js\"",
     "test:gas-v2": "node --test \"scripts/gas-v2/tests/**/*.test.js\"",
     "test:client": "node --import ./scripts/test/register.mjs --test --experimental-strip-types \"packages/submission-client/tests/**/*.test.ts\"",
     "test:web": "node --import ./scripts/test/register.mjs --test --experimental-strip-types \"apps/web/tests/**/*.test.ts\"",
@@ -26,8 +25,7 @@
     "verify:baseline": "node apps/web/tests/render-baseline.mjs",
     "verify:aria": "node apps/web/tests/verify-aria.mjs",
     "verify:intake-states": "node apps/web/tests/intake-states.mjs",
-    "baseline:write": "node apps/web/tests/render-baseline.mjs --write",
-    "gas:push": "cd scripts/gas && clasp push"
+    "baseline:write": "node apps/web/tests/render-baseline.mjs --write"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.19.0",

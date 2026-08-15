@@ -6,29 +6,36 @@
 > gotchas. It does not own the V1/V2 boundary, and where the two disagree the classification
 > wins.
 >
-> **V1 is retired.** The V1 sections below are retained, unedited, for one more pass so that
-> nothing is lost before the deletion pass reads them. Their durable summary already exists at
-> [`archive/deployment-v1.md`](archive/deployment-v1.md), which also names the tags holding the
-> full historical state.
+> **V1 is retired and its source was deleted on 2026-08-15.** The V1 operating sections that
+> used to sit in this file are gone with it. Their durable summary is
+> [`archive/deployment-v1.md`](archive/deployment-v1.md), and the full historical text,
+> including the Script ID, Deployment ID, `/exec` URL, and bound Spreadsheet ID, is at the
+> `pre-v1-retirement-2026-08-14` tag: `git show pre-v1-retirement-2026-08-14:docs/deployment.md`.
+> Those identifiers were deliberately not copied forward, so that reading one is a deliberate
+> act rather than a lookup.
 
-## Two Apps Script backends exist in this repository
+## One Apps Script backend exists in this repository
 
-| | `scripts/gas` (V1) | `scripts/gas-v2` (V2) |
-|---|---|---|
-| Apps Script project | Yes, an external project. ID in the gitignored `.clasp.json` | **None.** No `.clasp.json` |
-| Deployed | Historically, production @28. **Retired: not serving current business traffic** | **No** |
-| Sheet, Script Properties, triggers | Yes, on the external project | **None created** |
-| Frontend pointed at it | **No.** Both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a lone V1 value is rejected | **No** |
-| Status | `retired` | `merged` |
+| | `scripts/gas-v2` (V2) |
+|---|---|
+| Apps Script project | **None.** No `.clasp.json` |
+| Deployed | **No** |
+| Sheet, Script Properties, triggers | **None created** |
+| Frontend pointed at it | **No.** Both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a lone V1 value is rejected |
+| Status | `merged` |
+
+There were two until 2026-08-15. `scripts/gas` (V1) was an external Apps Script project,
+historically deployed at production version @28, already retired as a business system, and its
+source is now deleted from this repository. **The external project itself is untouched.**
+Whether it is left in place, disabled, or removed is a separate owner decision and a separate
+authorized operation, and nothing in this repository performs it.
 
 **The public site at `axispoint.llc` is a separate, hand-uploaded build that was not produced
-from this repository, and it is not served by either backend above.** Retiring V1 does not
-change what a visitor sees, because nothing in this repository is what a visitor sees.
+from this repository, and it is not served by the backend above.** Retiring V1 did not change
+what a visitor sees, because nothing in this repository is what a visitor sees.
 
-The V1 material below stays accurate as a description of how that project was operated. It is
-no longer a description of anything current. V2's own rules live in
-[`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire contract in
-[`backend-v2-contract.md`](backend-v2-contract.md).
+V2's own rules live in [`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire
+contract in [`backend-v2-contract.md`](backend-v2-contract.md).
 
 ### Bringing the V2 backend up (not done, not authorized by any merge)
 
@@ -70,121 +77,80 @@ has been performed.
 
 The same `push` vs `deploy -i` distinction, and the same reauth friction, apply to V2.
 
-## Google Apps Script backend (V1)
-
-| Identifier | Value |
-|---|---|
-| **Script ID** | `1JmdCmGCrvHv5LHAxb8Vptq0jRWWuTkO3wQ0djEyeRvwNzXuJGPja6h7V` (from `scripts/gas/.clasp.json`, which is **gitignored**) |
-| **Bound Spreadsheet ID** | `1Z5Eyn9F4SoOYg4dJ0cDDorfnvqVbn_uYsUxDkPn12wY` (set by `setProperties()`, read via `getProp('SPREADSHEET_ID')`) |
-| **Deployment ID** | `AKfycbzfFHPUSP4bUc-Xu1Ma9179bk_dsprrqswaKljeV8ZUmB5Q0gOl9UVtPTqKt4IXeZgBqg` |
-| **Live `/exec` URL** | `https://script.google.com/macros/s/AKfycbzfFHPUSP4bUc-Xu1Ma9179bk_dsprrqswaKljeV8ZUmB5Q0gOl9UVtPTqKt4IXeZgBqg/exec` |
-
-The `/exec` URL embeds the deployment ID. It's stored in Script Properties as
-`SCRIPT_URL` and must also be set as the `FORM_ENDPOINT` GitHub secret so both
-front-ends POST to it.
-
-### `clasp push` vs `clasp deploy -i` — the critical distinction
+## `push` vs `deploy -i`, and why neither is part of "done"
 
 ```bash
-pnpm gas:push     # == cd scripts/gas && clasp push
+cd scripts/gas-v2 && clasp push                  # updates project HEAD
+cd scripts/gas-v2 && clasp deploy -i <deploy-id> # repoints the live /exec URL. THIS releases
 ```
 
-- **`clasp push`** (`pnpm gas:push`) uploads local `Code.gs` / `appsscript.json`
-  to the Apps Script project's **HEAD** (the editor content). It updates what you
-  see in the script editor and can immediately affect **installed triggers and
-  scheduled functions** (cold-lead sweep, daily digest, partner summary) — but it
-  **does NOT change what the live `/exec` URL serves.**
-- The live `/exec` URL is pinned to a **specific deployed version**. To make a
-  push go live you must **redeploy that deployment**:
+- **`clasp push`** uploads local source to the Apps Script project's **HEAD**, which is what the
+  script editor shows and what **installed triggers and scheduled functions execute**. It does
+  **not** change what the live `/exec` URL serves.
+- The live `/exec` URL is pinned to a **specific deployed version**. Making a push go live means
+  redeploying that deployment with `-i`. Re-using the deployment ID keeps the same `/exec` URL
+  while pointing it at a fresh version; creating a *new* deployment mints a *new* URL and
+  requires updating the `SCRIPT_URL` Script Property and the endpoint the frontend builds with.
 
-  ```bash
-  cd scripts/gas
-  clasp deploy -i AKfycbzfFHPUSP4bUc-Xu1Ma9179bk_dsprrqswaKljeV8ZUmB5Q0gOl9UVtPTqKt4IXeZgBqg
-  ```
+A backend task can be **fully complete** — written, tested, committed, merged — **without either
+command having run.** Neither is part of the definition of "done". Both are explicit operations
+you run only when you actually decide to change a running backend. Push when you intend to
+update HEAD and triggers; deploy when you intend to release the endpoint. A `clasp push` on its
+own leaves the pinned `/exec` version on old code: expected, not a bug.
 
-  Re-using the deployment ID (`-i`) keeps the same `/exec` URL while pointing it
-  at a fresh version. Creating a *new* deployment would mint a *new* URL and
-  require updating `SCRIPT_URL` + the `FORM_ENDPOINT` secret.
-
-#### Completion and deployment are separate, deliberate decisions
-
-A backend task can be **fully complete** — written, tested, committed, merged —
-**without either `clasp push` or `clasp deploy` having run.** Neither command is
-part of the definition of "done"; both are explicit, intentional operations you
-run only when you actually decide to change the running backend:
-
-- `pnpm gas:push` changes the project HEAD (and can move triggers/scheduled jobs).
-- `clasp deploy -i <deploymentId>` changes the pinned production `/exec` endpoint.
-
-Do **not** treat "I made a backend change" as automatically implying either step.
-Push when you intend to update HEAD/triggers; deploy when you intend to release the
-endpoint. A `clasp push` on its own leaves the pinned `/exec` version on old code —
-that is expected, not a bug, and going live is a subsequent deliberate `clasp deploy`.
+Neither command is runnable today, because no V2 Apps Script project exists yet. The V2 bring-up
+checklist is above.
 
 ### `.claspignore` controls what is allowed to reach Apps Script
 
-`scripts/gas/.claspignore` is an **allowlist**: only `appsscript.json`,
-`Code.gs`, and `emails/**` are pushed. Everything else under `scripts/gas/` is
-excluded by default.
+`scripts/gas-v2/.claspignore` is an **allowlist**, not a blocklist. It denies `**/**` and
+re-allows only `appsscript.json` and `src/*.js`.
 
-This is load-bearing, not tidiness. `.clasp.json` sets
-`skipSubdirectories: false` and lists `.js` in `scriptExtensions`, so without
-the allowlist clasp sweeps up **every** `.js` under `scripts/gas/` — including
-the Node test suite in `scripts/gas/tests/`. Apps Script runs every pushed
-file's top-level statements in one shared global scope on every invocation, and
-those tests open with `require('node:test')`; GAS has no `require`, so pushing
-them throws `ReferenceError: require is not defined` on **every** `doPost` and
-**every** trigger. That is a full backend outage caused entirely by files that
-are not `Code.gs`.
+This is load-bearing, not tidiness. Apps Script runs **every pushed file's top-level statements
+in one shared global scope on every invocation**. A Node test file opening with
+`require('node:test')` therefore throws `ReferenceError: require is not defined` on every
+`doPost` and every trigger: a full backend outage caused entirely by files that are not backend
+source. V1 learned this the expensive way, which is why the V2 allowlist was written **before**
+any Node-only file existed in that directory.
 
-Before any push that adds files under `scripts/gas/`, run `clasp status` and
-confirm the tracked list is exactly those 9 files. If new Node-only tooling is
-added there, it stays excluded automatically — do not convert `.claspignore`
-into a blocklist.
+`scripts/gas-v2/tests/deployability.test.js` asserts that shape on every CI run, so the
+allowlist cannot quietly become a blocklist. Do not convert it into one by hand.
 
-`scripts/gas-v2/.claspignore` follows the same rule and was written **before** any
-Node-only file existed in that directory. It denies `**/**` and re-allows only
-`appsscript.json` and `src/*.js`. `scripts/gas-v2/tests/deployability.test.js` asserts that
-shape on every CI run, so the allowlist cannot quietly become a blocklist.
+### Gotcha: the deploying account needs *edit* access to the bookings calendar
 
-### Gotcha: the deploying account needs *edit* access to `BOOKING_CALENDAR_ID`
+**This gotcha survived V1 retirement because V2 inherits the mechanism, not because it is
+history.** `scripts/gas-v2/src/GoogleServices.js` is the only file that names `CalendarApp`, and
+it reads and writes the calendar named by the `calendarId` config value.
 
-The Web App runs as `executeAs: USER_DEPLOYING`, so every `Calendar.Events.insert`
-and `Calendar.Freebusy.query` executes as the account that created the deployment —
-**not** as the visitor, and not as the calendar's owner unless they are the same
-account.
+A Web App deployed with `executeAs: USER_DEPLOYING` runs every calendar read and every event
+creation as the account that created the deployment, **not** as the visitor, and not as the
+calendar's owner unless they are the same account.
 
-`BOOKING_CALENDAR_ID` points at the dedicated shared **AxisPoint Bookings**
-calendar, which is a secondary calendar, not anyone's primary. Whether the deploying
-account can write to it depends on how it got access:
+The bookings calendar is a dedicated shared secondary calendar, not anyone's primary. Whether
+the deploying account can write to it depends on how it got access:
 
-- **The deploying account owns the calendar** → edit access is implicit. Nothing to
-  configure. This is the current arrangement.
-- **The deploying account is not the owner** → ownership does *not* propagate.
-  The owner must explicitly share the calendar with that account at the
-  **"Make changes to events"** permission level (Calendar → *Settings and sharing* →
-  *Share with specific people* ). "See all event details" is **not** sufficient —
-  free/busy reads will succeed while every event insert fails, which presents as
-  bookings that produce a confirmation email and no calendar event.
+- **The deploying account owns the calendar** → edit access is implicit, nothing to configure.
+- **The deploying account is not the owner** → ownership does *not* propagate. The owner must
+  share the calendar with that account at the **"Make changes to events"** level (Calendar →
+  *Settings and sharing* → *Share with specific people*). **"See all event details" is not
+  sufficient:** availability reads succeed while every event creation fails.
 
-This matters the moment the deploying account changes (a redeploy from a different
-Google account silently re-binds execution identity). Symptoms of getting it wrong:
+This matters the moment the deploying account changes, because a redeploy from a different
+Google account silently re-binds execution identity.
 
-| Symptom | Meaning |
-|---|---|
-| Partner email shows **"⚠ Calendar event was NOT created"** | Insert failed. Check the error line in the banner, then the sharing level. |
-| Availability always shows every slot free | `Freebusy.query` is failing or the property is unset; the frontend falls back to all-available on any error. |
-| Both of the above, with `BOOKING_CALENDAR_ID Script Property is not set` | `setProperties()` has not been re-run on this script. |
-
-`setProperties()` stores `SPREADSHEET_ID`, `SCRIPT_URL`, **and**
-`BOOKING_CALENDAR_ID`. Re-run it in the Apps Script editor after any change to those
-values; `clasp push` uploads the function, it does not execute it.
+The V2 booking command is built so that this failure is visible rather than silent.
+`scripts/gas-v2/src/Booking.js` calls the calendar synchronously and returns a final status, and
+`confirmed` is reachable from exactly one place: a successful `createEvent`. A permissions
+problem therefore surfaces as `failed`, and a missing `calendarId` as `not_configured`, instead
+of a visitor being told they are booked for a meeting that does not exist. If you see either
+status in a live check, look at the sharing level and the Script Property before looking at the
+code.
 
 ## Front-end — GitHub Actions → Namecheap FTP
 
 **The two deploy workflows still pass the V1 variable, and that is now a defect.** They set
 `VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}`, which described the world when there was
-one V1 endpoint and a shared `<ContactForm>` reading it. Neither is true now: the form is gone,
+one V1 endpoint and a single shared form component reading it. Neither is true now: the form is gone,
 both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a build given only the V1 name compiles in no
 endpoint at all. It would deploy a site that fails closed on every submission while looking
 correct.
@@ -260,7 +226,7 @@ sits *underneath* the front-end deploys documented above:
   clean directories.
 - **Namecheap** (XML API): read current DNS records.
 
-It mirrors the `scripts/gas` pattern (shared clients in `lib/`, thin runnable
+It mirrors the `scripts/gas-v2` pattern (shared clients in `lib/`, thin runnable
 scripts on top) and reads all credentials from a gitignored `scripts/hosting/.env`
 (template: `scripts/hosting/.env.example`) — nothing is hardcoded. Write actions
 (`add-subdomain`, `add-redirect`, `clean-directory`) require explicit confirmation.
@@ -331,19 +297,13 @@ yet given):
    add/overwrite afterwards. The second is safer given that the live sites are
    currently a separate hand-uploaded build.
 
-## One-time GAS setup (from `Code.gs` header)
+## One-time GAS setup
 
-1. Create the Sheet, create the Apps Script project, paste `Code.gs`.
-2. Set project time zone to `America/Chicago`.
-3. Create the shared **AxisPoint Bookings** calendar and give the deploying account
-   edit access (see the gotcha above).
-4. Run `setProperties()` once (stores `SPREADSHEET_ID`, `SCRIPT_URL`, and
-   `BOOKING_CALENDAR_ID`).
-5. Run `setupSpreadsheet()` (creates the 11 tabs).
-6. Enable the advanced **Calendar API v3** service (already declared in
-   `appsscript.json` under `enabledAdvancedServices`).
-7. Deploy → Web App, **Execute as: Me**, **Access: Anyone (anonymous)**.
-8. Run `setupTriggers()` (daily digest, weekly cold sweep, monthly summary, onEdit).
+The V1 one-time setup checklist that used to sit here described the V1 backend source, which no
+longer exists. The equivalent for the current backend is **Bringing the V2 backend up** near the
+top of this file. The historical V1 checklist is summarised in
+[`archive/deployment-v1.md`](archive/deployment-v1.md) and preserved in full at the
+`pre-v1-retirement-2026-08-14` tag.
 
 ### Gotcha: `clasp` reauth is routine, not a failure
 
@@ -353,5 +313,5 @@ within one session even after a successful `clasp login`**. A successful login d
 not immunize the next command. Re-run `clasp login`, then re-run the command.
 
 This is Google reauth friction (especially after OAuth scope changes), **not** a
-broken script and not a code bug. Do not start debugging `Code.gs` because a
+broken script and not a code bug. Do not start debugging backend source because a
 `clasp` command failed this way.

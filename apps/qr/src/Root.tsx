@@ -10,7 +10,7 @@ import App from './App';
  * `apps/qr/tests/e2eBanner.test.ts` can render the real tree and read the real output.
  * That test is the reason the banner is now provably mounted rather than assumed to be.
  *
- * WHY THE BANNER IS BACK. It was removed alongside the V1 `ContactForm` on the reasoning
+ * WHY THE BANNER IS BACK. It was removed alongside the V1 contact form on the reasoning
  * that the card "submits nothing and consumes no endpoint", so an e2e warning would have
  * described a connection that did not exist. That reasoning stopped being true when the
  * Contact Exchange was built: this app resolves `VITE_V2_SUBMISSION_ENDPOINT`, injects

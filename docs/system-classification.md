@@ -1,9 +1,13 @@
 # AxisPoint System Classification
 
 **Last verified:** August 15, 2026  
-**Verified repository commit:** `8a6aef1a4e8dee8f01dee11e98a387b7ec9918c8`  
+**Verified repository commit:** `71d345d2ba1752a1368765649a2a8ea7a00993bd`, the base of the V1 retirement pass  
 **Safety checkpoint:** `pre-v1-retirement-2026-08-14`  
-**Repository state when verified:** clean `main`, identical to the safety checkpoint and live GitHub `main`
+**Repository state when verified:** clean `main`
+
+**V1 retirement has been executed.** The section that used to list V1 as "confirmed present and
+scheduled for retirement" is now the retirement record below. Nothing in this repository is V1
+any more.
 
 ## Purpose
 
@@ -16,8 +20,8 @@ When this document disagrees with a general description elsewhere, inspect the c
 ## Business facts that govern this classification
 
 - The website currently visible at `axispoint.llc` is a separate, hand-uploaded build. It was not built from this repository.
-- The tracked V1 Apps Script backend under `scripts/gas` is not serving current business traffic.
-- V1 is permanently retired as a business system. It does not need compatibility support in current `main`.
+- V1 is permanently retired as a business system, and as of August 15, 2026 its source is deleted from this repository. It does not need compatibility support in current `main`.
+- The external V1 Apps Script project still exists and is untouched. Whether it is left in place, disabled, or removed is a separate owner decision and a separate authorized operation. No repository change performs it.
 - The nine-language product scope is confirmed: English, Spanish, Simplified Chinese, Traditional Chinese, Vietnamese, Hindi, Urdu, Gujarati and Punjabi.
 - English is the only reviewed and enabled language today. The other eight are disabled because fluent review is outstanding, not because their inclusion is undecided.
 - The current QR Contact Exchange is not the long-term QR product AxisPoint intends to operate. A smaller replacement will be scoped separately.
@@ -29,7 +33,7 @@ These systems describe the current website product and must remain during V1 ret
 
 ### Website
 
-- `apps/web`, except the historical `SharePage.tsx` route
+- `apps/web` in full. The historical `SharePage.tsx` route that this line used to carve out is deleted
 - Marketing pages and site navigation
 - Contact intake and validation
 - Booking selection and booking requests
@@ -47,7 +51,7 @@ The website is built and tested but has not been deployed from this repository.
 - Website inquiry request and response shapes
 - Booking request and response shapes
 - Current QR exchange request and response shapes, until the separate QR replacement pass
-- `refToken`, which remains an intentionally inert attribution value carried through the website and backend
+- `refToken`, which remains an intentionally inert attribution value carried through the website and backend. **It survived V1 retirement deliberately.** Its original producer, the `/share/:code` landing page, is gone, but the intake reads `?ref=` straight off the query string, so the wire field, the intake field, and the backend handling are all unchanged
 
 ### V2 backend
 
@@ -77,39 +81,60 @@ The V2 backend is written and tested. It has not been provisioned as a Google Ap
 
 These are support systems for current V2 work. Their age or location does not make them V1.
 
-## Confirmed V1 scheduled for retirement
+## Retired V1: removed from this repository
 
-These files describe the retired V1 form and backend system. They may be removed after the verification and documentation safety pass is merged.
+**Retired and deleted August 15, 2026,** on branch `chore/v1-retirement` from base commit
+`71d345d`. Everything below was present in `main` before that pass and is not present now.
 
-- All tracked files under `scripts/gas`
-- V1 `Code.gs`
-- V1 `appsscript.json`
-- V1 email template mirror files
-- V1 backend tests
-- The `test:gas` and `gas:push` package scripts
-- The V1 step in the GAS GitHub workflow
-- All 19 currently tracked files under `packages/brand/src/components/form`
-- `packages/brand/src/utils/vcard.ts`
-- `packages/brand/src/team.ts`, subject to the special handling below
-- `apps/web/src/pages/SharePage.tsx`
-- The `/share/:code` route and comments that describe it
-- V1-only operating documents after their historical state has been safely preserved
+| Removed | Detail |
+|---|---|
+| The V1 Apps Script backend | All 29 tracked files under `scripts/gas`: `Code.gs`, `appsscript.json`, `.claspignore`, the eight email template mirrors under `emails/`, and the 18 files under `tests/` (15 `.test.js` suites, two helpers, one README). The task brief said sixteen test files; the tracked count is 15 suites, verified with `git ls-tree -r HEAD` before deletion |
+| The V1 package scripts | `test:gas` and `gas:push` removed from the root `package.json` |
+| The V1 CI step | Removed from `.github/workflows/test-gas.yml`. **The workflow file itself was kept**, because it also runs the V2 suite, which was verified before the edit |
+| The V1 form tree | All 19 tracked files under `packages/brand/src/components/form`: the form itself, eleven step components, the progress and success components, the booking calendar, the market location input, the primitives, the types, and the utils |
+| `packages/brand/src/utils/vcard.ts` | The V1 vCard helper. Its directory is now empty and gone |
+| `packages/brand/src/team.ts` | Partner contact literals. **See the partner contact record below** |
+| `packages/brand/src/types.ts` | `ArticleMeta` / `ParsedArticle`, from the abandoned articles feature |
+| `apps/web/src/pages/SharePage.tsx` | The V1 referral landing page |
+| The `/share/:code` route | Removed from `App.tsx` along with the comments describing it. **Deleted outright, with no redirect**, deliberately: it was never a published address of this build |
+| `content/articles`, `content/publications` | Empty placeholder directories from the abandoned articles idea |
+| `gray-matter`, `remark`, `remark-html` | Removed from `apps/web/package.json` and from `pnpm-lock.yaml` |
+| The brand barrel | `packages/brand/src/index.ts` reduced to `Mark` and `E2eBanner`, which is what `apps/web` and `apps/qr` actually import. The `./team` and `./types` subpath exports were removed from `packages/brand/package.json`; `./colors`, `./fonts` and `./tailwind-preset` remain |
+| V1-only operating documents | `backend-architecture.md`, `email-templates.md`, `frontend-payload-schemas.md` and `UNIFIED_SCHEMA_MIGRATION_PLAN.md` moved to `docs/archive/`, each with a banner stating that it describes a deleted system. `docs/deployment.md` lost its V1 operating sections, including the V1 Script ID, Deployment ID, `/exec` URL and bound Spreadsheet ID, which now live only at the tags |
 
-The deliberate `V1_ENDPOINT_VAR = 'VITE_FORM_ENDPOINT'` checks in the current V2 applications are not V1 runtime code. They are negative safety guards that reject obsolete V1 configuration. Keep them until the production workflow is corrected and verified.
+### Where the historical state lives
 
-## Abandoned non-V1 residue scheduled for retirement
+- `v1-stable` — V1's final state. This is where V1 source is read from.
+- `pre-v1-retirement-2026-08-14` — the complete pre-deletion repository, including `team.ts` and the full pre-edit `deployment.md`.
 
-These items belong to an unfinished articles and publications idea. They are dead, but they should not be described as the V1 backend or V1 form.
+Both tags are on `origin`. Reading a V1 identifier is now a deliberate act against a tag rather
+than a lookup in the working tree, which is the intended outcome and not an accident.
 
-- `packages/brand/src/types.ts`
-- `content/articles`
-- `content/publications`
-- `gray-matter`
-- `remark`
-- `remark-html`
-- Their generated lockfile entries
+### What was deliberately NOT removed
 
-They may be removed in the same cleanup pull request as V1 because they have no current consumers.
+- **`refToken`**, on the wire, in the intake, and in the backend. Its producer is gone; the field is not.
+- **The `VITE_FORM_ENDPOINT` rejection guards** in `apps/web/vite.endpoint.ts` and `apps/qr/vite.endpoint.ts`. These are negative safety guards that reject obsolete V1 configuration, not V1 runtime code. Keep them until the production deploy workflows are corrected and verified.
+- **`apps/qr` and everything QR-specific.** The retain, retire, or rebuild decision for QR was explicitly out of scope for this pass.
+- **`scripts/gas-v2`.** Untouched.
+- **The external V1 Apps Script project**, which no repository change can reach.
+- **The gitignored `scripts/gas/.clasp.json`**, which is a machine-local file, not repository content.
+
+### Partner contact values: resolved
+
+`packages/brand/src/team.ts` held two email literals and two phone literals that this document
+previously flagged as historical rather than verified. **The owner confirmed the current values
+directly on August 15, 2026**, and they are recorded in
+[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md). That file, not `team.ts` and not the tag, is the
+reference for any future work needing partner contact information. The tagged historical values
+are superseded, not a fallback.
+
+## Abandoned non-V1 residue: also removed
+
+The articles and publications residue listed here previously (`types.ts`, `content/articles`,
+`content/publications`, `gray-matter`, `remark`, `remark-html`, and their lockfile entries) was
+removed in the same pull request, as planned. It had no current consumers. It is recorded
+separately from V1 above because it was never part of the V1 backend or the V1 form, and
+describing it as such would have been wrong.
 
 ## Transitional QR system
 
@@ -173,35 +198,21 @@ These systems are not classified as repository V1 or V2 source. They require sep
 
 A git merge does not change any of these systems.
 
-## Special handling before deletion
+## Special handling: closed
 
-### Historical partner contact values
+Both items that stood here have been carried out and are recorded above.
 
-`packages/brand/src/team.ts` currently contains two email literals and two phone literals. They are historical values, not verified current partner data.
-
-The exact file is preserved by `pre-v1-retirement-2026-08-14`. Do not print the values into logs, prompts or pull request descriptions. Do not copy them into current V2 runtime code or a tracked contact document without owner verification.
-
-Before the future QR replacement is built, obtain current partner contact details directly from the owner and record only the verified values in the replacement's intended data source.
-
-### Historical deployment record
-
-`docs/deployment.md` currently contains mixed V1 and V2 operating information. Its exact pre-retirement contents are preserved by `pre-v1-retirement-2026-08-14` and repository history.
-
-There is no separate `docs/archive` copy as of this verification. Before deleting V1-only deployment instructions, keep a concise dated retirement record in the current documentation that points to:
-
-- `v1-stable` for the historical final V1 state
-- `pre-v1-retirement-2026-08-14` for the complete pre-deletion repository state
-
-Do not copy secrets or ignored `.clasp.json` contents into the archive record.
+- **Partner contact values.** Resolved by owner confirmation and recorded in [`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md). See *Partner contact values: resolved*.
+- **The historical deployment record.** [`archive/deployment-v1.md`](archive/deployment-v1.md) exists, `docs/deployment.md` has had its V1 operating sections removed, and both tags are named in the retirement record above. No secret and no ignored `.clasp.json` content was copied into the archive.
 
 ## Current launch boundary
 
 Retiring V1 cleans the repository, but it does not launch V2.
 
-The remaining production work is:
+Steps 1 and 2 are done. The remaining production work is:
 
-1. Merge the verification and documentation safety pass.
-2. Retire confirmed V1 and abandoned residue.
+1. ~~Merge the verification and documentation safety pass.~~ Done, PR #79.
+2. ~~Retire confirmed V1 and abandoned residue.~~ Done, August 15, 2026.
 3. Provision the V2 backend.
 4. Create a staging website.
 5. Configure the V2 submission address in the build and hosting process.
@@ -218,7 +229,7 @@ Use this hierarchy for current decisions:
 
 1. Current source and passing tests define actual behavior.
 2. This document defines the V1, V2, QR and external-system boundaries.
-3. `docs/backend-v2-contract.md` defines the intended V2 backend contract.
+3. `docs/backend-v2-contract.md` defines the intended V2 backend contract. It is now the only backend contract in the repository.
 4. `docs/design-sources.md` defines approved visual and content sources.
 5. `docs/STATUS.md` records current blockers and owner decisions.
 6. `docs/deployment.md` records current deployment and external-system procedures.
@@ -230,7 +241,7 @@ Use this hierarchy for current decisions:
 
 Any pull request that changes one of these boundaries must update this document in the same pull request. Examples include:
 
-- Removing V1 from current `main`
+- ~~Removing V1 from current `main`~~ (done August 15, 2026)
 - Replacing the QR Contact Exchange
 - Provisioning the V2 backend
 - Changing which languages are enabled

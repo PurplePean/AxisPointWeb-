@@ -35,11 +35,11 @@ the meaning of "done":
 
 | Operation | What it changes | Not changed |
 |---|---|---|
-| `pnpm gas:push` (was `deploy:gas`) — `clasp push` | Apps Script project **HEAD**; can affect installed triggers / scheduled functions (cold-lead sweep, daily digest, partner summary) | The pinned production `/exec` endpoint the site POSTs to |
+| `clasp push` | Apps Script project **HEAD**; can affect installed triggers and scheduled functions | The pinned production `/exec` endpoint the site POSTs to |
 | `clasp deploy -i <prod-id>` | The pinned production `/exec` endpoint — **the actual release** | — |
 
 A backend coding task is **complete** when the code is written, tested, committed,
-and merged. Neither `gas:push` nor `clasp deploy` is part of "done." Run them only
+and merged. Neither `clasp push` nor `clasp deploy` is part of "done." Run them only
 when you actually intend to change the running backend. See
 [`deployment.md`](deployment.md) for IDs and the push-vs-deploy mechanics.
 
@@ -81,7 +81,7 @@ deploying nothing until the FTP secrets are deliberately added.
 ## When a PR may auto-merge, and when it must not
 
 Routine, self-contained, completed code merges normally once checks pass. That includes
-locally tested GAS code: a passing `pnpm test:gas` is a normal completion signal, not a reason
+locally tested GAS code: a passing `pnpm test:gas-v2` is a normal completion signal, not a reason
 to hold a PR.
 
 **Hold a PR open in exactly two cases:**

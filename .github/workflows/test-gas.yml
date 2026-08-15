@@ -1,9 +1,14 @@
 name: GAS tests
 
-# Runs both committed Apps Script backend test suites (scripts/gas/tests and
-# scripts/gas-v2/tests) on every push and PR. Additive and independent: does not
-# touch ci.yml, deploy-web.yml, or deploy-qr.yml. Neither suite has npm
-# dependencies (Node's built-in test runner), so there is no install step.
+# Runs the committed Apps Script backend test suite (scripts/gas-v2/tests) on every
+# push and PR. Additive and independent: does not touch ci.yml, deploy-web.yml, or
+# deploy-qr.yml. The suite has no npm dependencies (Node's built-in test runner), so
+# there is no install step.
+#
+# This workflow used to run two suites. The V1 suite and the V1 backend it tested were
+# deleted in the 2026-08-15 V1 retirement pass; the workflow is kept rather than deleted
+# because scripts/gas-v2 still needs it. The historical V1 suite is at the `v1-stable`
+# and `pre-v1-retirement-2026-08-14` tags.
 
 on:
   pull_request:
@@ -24,16 +29,10 @@ jobs:
           version: 10
 
       - uses: actions/setup-node@v4
-        # Node 22: the `node --test` glob (scripts/gas/tests/**/*.test.js) needs
+        # Node 22: the `node --test` glob (scripts/gas-v2/tests/**/*.test.js) needs
         # Node 21+, so this job is intentionally not pinned to the repo's Node 20.
         with:
           node-version: 22
 
-      - name: Run V1 GAS test suite
-        run: pnpm test:gas
-
-      # The V2 backend is a separate project (scripts/gas-v2) with its own suite. It
-      # runs as its own step so a failure names which backend broke, and so the V1
-      # suite keeps running unchanged while both exist.
       - name: Run V2 GAS test suite
         run: pnpm test:gas-v2

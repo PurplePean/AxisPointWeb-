@@ -15,13 +15,16 @@
  * rules: omit the action cleanly, never a disabled control, never a placeholder,
  * never a masked number.
  *
- * On the repository's existing contact values: `packages/brand/src/team.ts`,
- * `packages/brand/src/utils/vcard.ts`, and the README all carry partner phone numbers
- * and direct email addresses. They are NOT used here. The approved contact-record
- * ledger marks partner phone and partner email as "Needs verification", and
- * docs/STATUS.md lists them as open owner decisions blocking QR production
- * completion. Existing V1 values are not approved merely because they exist. Once the
- * owner confirms them, fill in `phone` and `email` below and nothing else changes.
+ * On contact values: this used to warn against `packages/brand/src/team.ts` and
+ * `packages/brand/src/utils/vcard.ts`, which carried unverified V1 partner phone numbers
+ * and email addresses. Both files were deleted in the 2026-08-15 V1 retirement pass, and
+ * the owner confirmed the current values directly in that same pass. They are recorded in
+ * `docs/PARTNER_CONTACTS.md`, which is now the one place to read them from.
+ *
+ * They are still deliberately NOT filled in below. Wiring verified contact data into this
+ * profile fixture is a decision for the QR replacement pass, not a side effect of V1
+ * retirement, and `docs/STATUS.md` still carries the surrounding open items (the permanent
+ * profile URL and the contact-file delivery method) that a printed card depends on.
  */
 
 export interface PartnerProfile {

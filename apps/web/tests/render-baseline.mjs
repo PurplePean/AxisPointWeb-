@@ -55,7 +55,8 @@ const baselineDir = path.join(here, 'baseline');
 
 const write = process.argv.includes('--write');
 
-/** The approved public routes. `/share/:code` is excluded: it is retained V1 and untouched. */
+/** The approved public routes. These are now all of them: the V1 `/share/:code` landing that
+    this list used to exclude was deleted in the 2026-08-15 V1 retirement pass. */
 const ROUTES = [
   ['home', '/'],
   ['property-management', '/property-management'],

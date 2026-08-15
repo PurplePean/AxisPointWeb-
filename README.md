@@ -69,13 +69,9 @@ not be extended into a competing copy of that classification.
   larger than the digital contact card AxisPoint intends to operate long term. It is not part
   of V1 retirement and is not deleted with it
 - **packages/brand** — shared brand primitives: `Mark`, `E2eBanner`, the Tailwind preset,
-  `colors.ts`, `fonts.ts`. Also still holds the retired V1 form tree under
-  `src/components/form/`, which no current surface imports
+  `colors.ts`, `fonts.ts`. That is now the whole package; the V1 form tree it used to hold was
+  deleted on 2026-08-15
 - **packages/submission-client** — the single frontend transport boundary for V2 submissions
-- **content/** — markdown scaffold from an abandoned articles idea, no current consumers
-- **scripts/gas/** — V1 Google Apps Script backend. **Retired as a business system, not serving
-  current business traffic.** Historically deployed at production version @28. See
-  [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md)
 - **scripts/gas-v2/** — V2 Apps Script backend, written and tested but connected to nothing: no
   project, Sheet, trigger, or deployment
 - **scripts/hosting/** — cPanel and Namecheap automation for the hosting stack
@@ -93,12 +89,10 @@ not be extended into a competing copy of that classification.
 | [`docs/STATUS.md`](docs/STATUS.md) | Current pass, open owner decisions, deployment state, rollback anchors |
 | [`docs/branching.md`](docs/branching.md) | Branching, merging, and what "going live" actually means |
 | [`docs/deployment.md`](docs/deployment.md) | Deployment IDs, `clasp push` vs `clasp deploy`, hosting inventory |
-| [`docs/backend-architecture.md`](docs/backend-architecture.md) | V1 `Code.gs` function map, lead model, schema |
-| [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) | V2 wire contract (`schemaVersion` 1), tokens, error codes, delivery guarantee |
-| [`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md) | Exact payload shape per lead type |
-| [`docs/email-templates.md`](docs/email-templates.md) | Template inventory and the embedded constant vs mirror file pattern |
-| [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md) | The V1 deployment record, and which tags hold its full historical state |
+| [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) | V2 wire contract (`schemaVersion` 1), tokens, error codes, delivery guarantee. **This is the backend document** |
+| [`docs/PARTNER_CONTACTS.md`](docs/PARTNER_CONTACTS.md) | Owner confirmed current partner email and phone values |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Dated log of architecture level changes |
+| [`docs/archive/`](docs/archive/) | V1 documents, kept as history only. Every file there carries a banner saying so |
 
 ## Prerequisites
 
@@ -154,14 +148,12 @@ interrupts whatever is running there.
 | `pnpm format` | Prettier |
 | `pnpm test:frontend` | The full frontend suite: submission client, web, QR |
 | `pnpm test:client` / `pnpm test:web` / `pnpm test:qr` | One suite at a time |
-| `pnpm test:gas` | Run the V1 Apps Script backend test suite (Node's built in runner, no install step) |
-| `pnpm test:gas-v2` | Run the V2 Apps Script backend test suite |
+| `pnpm test:gas-v2` | Run the Apps Script backend test suite (Node's built in runner, no install step) |
 | `pnpm verify:baseline` | Compare every route's rendered English against the committed snapshot |
 | `pnpm verify:aria` | Assert the chrome's translated `aria-label`s off a real render |
 | `pnpm verify:intake-states` | Drive 20 intake, submission, and booking states in a headless browser. Starts and stops its own dev server; set `CHROME_PATH` to choose a binary |
 | `pnpm verify:bundle` | Inspect `apps/web/dist` after a build. For QR: `node scripts/test/inspect-bundle.mjs apps/qr/dist` |
 | `pnpm baseline:write` | Rewrite the route baseline. Review the diff |
-| `pnpm gas:push` | `clasp push` against the retired V1 project. Updates the Apps Script project HEAD. **Not a deployment** |
 
 ## Testing
 
@@ -176,19 +168,17 @@ SSR API instead, compiled through the same `@vitejs/plugin-react` pipeline the a
 `apps/web/tests/render-baseline.mjs` and `apps/qr/tests/e2eBanner.test.ts` are the two examples
 to copy from.
 
-`pnpm test:gas` runs the committed backend suite under `scripts/gas/tests/`. Apps Script cannot
-run outside its own runtime, but the pure logic (routing, payload transforms, template
-rendering, Sheet writes against a fake Sheets harness) is tested in Node with GAS globals
-stubbed out. Prefer this over reasoning about backend changes abstractly.
+`pnpm test:gas-v2` runs the backend suite under `scripts/gas-v2/tests/`. Apps Script cannot run
+outside its own runtime, but the pure logic (routing, payload transforms, template rendering,
+Sheet writes against a fake Sheets harness) is tested in Node with GAS globals stubbed out.
+Prefer this over reasoning about backend changes abstractly.
 
-The suite also enforces template parity: every embedded `TEMPLATE_*` constant in `Code.gs` must
-match its mirror file under `scripts/gas/emails/`. Those two copies must be edited together, and
-this test is what catches it when they are not.
+It loads every `src/*.js` file into one VM context supplied with only the globals Apps Script
+provides, reproducing the single shared global scope of the real runtime. A Node dependency
+creeping into backend source fails there rather than after a push.
 
-`pnpm test:gas-v2` runs the V2 suite under `scripts/gas-v2/tests/`. It loads every `src/*.js`
-file into one VM context supplied with only the globals Apps Script provides, reproducing the
-single shared global scope of the real runtime. A Node dependency creeping into V2 source fails
-there rather than after a push.
+There was a second suite covering the V1 backend. It was deleted with V1 on 2026-08-15 and is
+at the `v1-stable` tag.
 
 ### What CI actually runs
 
@@ -200,7 +190,7 @@ there rather than after a push.
 | **Frontend tests** | `pnpm test:frontend` |
 | **Rendered baselines and assertions** | `verify:baseline`, `verify:aria`, `verify:intake-states` |
 
-`test-gas.yml` runs both Apps Script suites separately.
+`test-gas.yml` runs the Apps Script suite. It ran two until V1 retirement removed the first.
 
 Several of these gates existed as local scripts for passes before any workflow ran them: the
 frontend suite, the bundle inspector, the rendered baselines, and the intake-state harness were
@@ -214,7 +204,7 @@ commit. If you add one, add it to `.github/workflows/ci.yml` in the same PR.
 
 | Surface | Status |
 |---|---|
-| **Google Apps Script backend (V1)** | **Retired as a business system.** Historically deployed at production version @28; not serving current business traffic. The external Apps Script project is untouched by anything in this repository |
+| **Google Apps Script backend (V1)** | **Retired, and deleted from this repository on 2026-08-15.** Historically deployed at production version @28; it was already not serving current business traffic when its source was removed. The external Apps Script project is untouched by anything in this repository. Record: [`docs/archive/deployment-v1.md`](docs/archive/deployment-v1.md) |
 | **This repository's frontend** | **Has never successfully deployed through GitHub Actions.** The two FTP workflows fail at the FTP step because the FTP secrets are not configured |
 | **Live public sites** | A separate, older, hand uploaded build, unrelated to this repository's git history |
 | **V2 backend** | Written and tested. No Apps Script project, Sheet, Script Properties, triggers, or deployment exist |
@@ -228,9 +218,12 @@ with no approval gate, so the gate question has to be settled first. See
 ### Apps Script: push and deploy are two different things
 
 ```bash
-pnpm gas:push                              # updates project HEAD, can affect installed triggers
-cd scripts/gas && clasp deploy -i <prod-id>  # repoints the live /exec endpoint. THIS is the release
+cd scripts/gas-v2 && clasp push              # updates project HEAD, can affect installed triggers
+cd scripts/gas-v2 && clasp deploy -i <prod-id>  # repoints the live /exec endpoint. THIS is the release
 ```
+
+Neither is runnable today: the V2 Apps Script project does not exist yet. The root-level push
+shortcut that used to sit here pointed at V1 and was removed with it.
 
 A backend task is **done** when the code is written, tested, committed, and merged. Neither
 command is part of "done". Run them only when you actually intend to change the running
@@ -242,30 +235,17 @@ reauth friction, not a broken script. Re-run `clasp login`, then re-run the comm
 
 ## Backend overview
 
-**This section describes V1, which is retired.** It is kept because the source is still in the
-tree and the behaviour is still documented, not because it is what current work builds against.
-The current contract is [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md), implemented
-in `scripts/gas-v2`.
+The backend is `scripts/gas-v2`, and its contract is
+[`docs/backend-v2-contract.md`](docs/backend-v2-contract.md). It is written and tested but
+connected to nothing: no Apps Script project, no Sheet, no Script Properties, no triggers, no
+deployment. Read the contract for the wire shapes, tokens, error codes, and the delivery
+guarantee, rather than a summary here.
 
-The V1 form backend is `scripts/gas/Code.gs`, deployed as a Web App (execute as: me, access:
-anyone). It runs on a unified lead schema (`USE_UNIFIED_SCHEMA = true`), which persists the full
-collected detail set per lead type into a `Details` JSON blob.
-
-Key behaviors, documented in full in
-[`docs/backend-architecture.md`](docs/backend-architecture.md):
-
-- **Lead IDs** — `AXP-YYYY-XXXX`, sequential, incremented atomically under a script lock
-- **Referral codes** — `AXP-` plus 6 unambiguous characters, collision checked
-- **Deduplication** — by email, case insensitive. A match updates the existing row, appends a
-  resubmission note, notifies partners, and returns the original lead ID. No duplicate row is
-  created
-- **Concurrency** — `LockService` guards the submission path, resubmissions, and ID generation.
-  A resubmission racing the cold sweep is refused rather than writing partially
-- **Header safe writes** — rows are appended by column name, so a reordered live header still
-  receives correct values, extra human added columns are preserved, and a header missing a
-  required column refuses the write rather than guessing
-- **Scheduled triggers** — daily digest, weekly cold lead sweep, monthly referral summaries,
-  and an onEdit sync
+This section used to describe V1 instead: its single-file backend, unified lead schema, lead
+IDs, referral codes, deduplication, and its four scheduled triggers. V1 was retired and its
+source deleted on 2026-08-15. That description now lives, banner and all, in
+[`docs/archive/backend-architecture.md`](docs/archive/backend-architecture.md), and the code
+itself is at the `v1-stable` tag.
 
 ## Brand standards
 

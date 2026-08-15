@@ -3,7 +3,7 @@
 The concise state record for the V2 transition. Update it as part of each pass. If a line has
 not changed, leave it alone. This replaces re-auditing; it is not a project-management board.
 
-_Last updated: 2026-08-15 (no-deletion verification and documentation safety pass)_
+_Last updated: 2026-08-15 (V1 retirement, the deletion pass)_
 
 **What is V1, V2, transitional QR, or external is settled in
 [`system-classification.md`](system-classification.md), not here.** This file records current
@@ -15,9 +15,9 @@ this file is what gets corrected.
 | | |
 |---|---|
 | **Approved design versions** | `design@2026-07-30` (site, intake, QR), `design@2026-07-31` (language selector), `design@2026-08-01` (QR Contact Exchange), `design@2026-08-02` (QR Contact emails and digest). See [`design-sources.md`](design-sources.md) |
-| **Current code pass** | **No-deletion verification and documentation safety pass.** CI gaps closed, the stale-documentation cluster corrected, [`system-classification.md`](system-classification.md) brought into the repository, the QR e2e banner restored. Nothing deleted |
+| **Current code pass** | **V1 retirement, the deletion pass.** The V1 Apps Script backend, the V1 form tree, `vcard.ts`, `team.ts`, `types.ts`, `SharePage.tsx` and the abandoned articles residue are removed from `main`. `apps/qr`, `refToken`, and the V1-endpoint rejection guards are untouched by design. Partner contact values confirmed by the owner and recorded in [`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md) |
 | **Completed passes** | Code Pass 1 audit (read-only). Pass 0, workflow reconciliation. Pass 2, shared frontend foundations. Pass 3, public pages and routes. Pass 4, V2 intake frontend. Pass 5, V2 QR frontend. Pass 6, language-selector component. Pass 7, backend contract audit (read-only). Pass 8, backend scaffold and contract. Pass 9A, email system, daily QR digest, retention, and policy reconciliation. Pass 9B, six-tab storage model, partial-write recovery, and one booking rule. Pass 9C, booking eligibility forwarded on the success response. Pass 10A, shared submission client and website-intake connection. Pass 10B, QR Contact Exchange frontend. Pass 10C, booking command connected. **Multilingual Content Rollout, all 5 PRs merged through #78** |
-| **Next pass** | V1 retirement, per [`system-classification.md`](system-classification.md). The confirmed V1 list and the abandoned articles residue come out; `apps/qr` and the V1-endpoint rejection guards stay. After that: provision the V2 backend and stand up staging, planned in [`staging-provisioning.md`](staging-provisioning.md). **No endpoint exists and none has been contacted** |
+| **Next pass** | Provision the V2 backend and stand up staging, planned in [`staging-provisioning.md`](staging-provisioning.md). **No endpoint exists and none has been contacted.** The QR retain/retire/rebuild decision remains a separate pass |
 
 ## Routes
 
@@ -31,7 +31,11 @@ All six approved routes resolve. The Pass 2 missing-route warning is closed.
 | `/investor-services` | `AxisPoint System Studies.dc.html` | Live |
 | `/partners` | `AxisPoint System Studies.dc.html` | Live |
 | `/contact` | `AxisPoint System Studies.dc.html` | Live, V2 intake, connected to the shared submission client, see below |
-| `/share/:code` | V1 | Retained untouched, outside the site chrome |
+
+`/share/:code` was the seventh route, the V1 referral landing. It was **deleted** on 2026-08-15
+with the rest of V1, deliberately without a redirect: it was never a published address of this
+build, so a redirect would only have preserved V1 behaviour under a new name. `?ref=`
+attribution is unaffected, because the intake reads it straight off the query string.
 
 `/services` and `/team` were removed. No redirect was added: nothing in this repository is
 deployed and no external link depends on them. If that changes before launch, redirects belong
@@ -39,8 +43,8 @@ to the hosting configuration rather than to client-side routing.
 
 ## Temporary, until later passes
 
-**The visible frontend is now entirely V2.** The V1 `ContactForm` is no longer mounted in
-`apps/web`. The approved intake lives in `apps/web/src/intake`.
+**The frontend is entirely V2, and V1 is now gone from the tree as well as unmounted.** The
+approved intake lives in `apps/web/src/intake`. The V1 form tree was deleted on 2026-08-15.
 
 **The website intake now submits through the shared client, and there is still nothing to
 submit to.** `packages/submission-client` is the shared transport boundary, and since Pass
@@ -537,16 +541,14 @@ referrer, not linked to any record, not validated, and not acted upon anywhere; 
 recorded so the data exists when referral attribution is designed. Referral attribution as a
 feature remains deferred.
 
-**The V1 form code stays in `packages/brand` as unreferenced legacy code**, awaiting a
-dedicated cleanup. No application imports `ContactForm` any more, `apps/qr` included. See
-"Dead code recorded, not removed" below for the detail.
-
-**`/share/:code` is untouched and isolated.** Note for future verification: it hard-redirects
-to `https://axispoint.llc` via `window.location`, so it must not be navigated during local
-browser testing. Verify it by diff instead. Its retirement decision remains separate.
+**Superseded 2026-08-15.** Two paragraphs stood here: one recording that the V1 form code
+remained in `packages/brand` as unreferenced legacy code awaiting a dedicated cleanup, and one
+recording that `/share/:code` was untouched, isolated, and must not be navigated during local
+browser testing. That cleanup is the pass that removed both. Neither the form tree nor the
+route exists any more.
 
 **The QR app is the approved V2 card, plus the approved Contact Exchange.** `apps/qr` was
-rebuilt from `AxisPoint QR Frontend.dc.html`. It does not import the V1 `ContactForm`, embeds
+rebuilt from `AxisPoint QR Frontend.dc.html`. It does not import the V1 form, embeds
 no service intake, and generates no QR code. Save Contact is simulated and local, and the
 Management Proposal action links into the shared website intake. Pass 10B added the one
 approved additive action, "Share your details", directly under Save contact, opening the
@@ -563,18 +565,18 @@ selection uses a local, development-only preview key (`?profile=`), explicitly n
 the permanent public URL. In production an unknown or absent key resolves to the approved firm
 fallback.
 
-**Partner phone numbers and direct email addresses remain unconfigured in the QR app.**
-`packages/brand/src/team.ts`, `packages/brand/src/utils/vcard.ts`, and the README all carry
-values, but the approved contact-record ledger marks partner phone and partner email as
-"Needs verification" and they are still listed below as open owner decisions. The QR fixtures
-hold `null` and the UI follows the approved missing-data rules until the owner confirms them.
-Filling in two fields per partner is the only change required afterwards.
+**Partner phone numbers and direct email addresses are confirmed, and still not configured in
+the QR app.** The owner confirmed the current values on 2026-08-15 and they are recorded in
+[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md); the unverified V1 literals in `team.ts` and
+`vcard.ts` were deleted in the same pass. The QR fixtures still hold `null` on purpose: wiring
+verified contact data into the card is a decision for the QR replacement pass, and the
+permanent profile URL and contact-file delivery method are still open. Filling in two fields
+per partner remains the only change required once that pass runs.
 
-**Dead code recorded, not removed.** With the QR rebuild, no application imports the V1
-`ContactForm`, its step components, or `utils/vcard.ts` any more; the only remaining references
-are inside `packages/brand` itself. The code is retained deliberately: deleting it was not
-required for this pass, and it is the reference for behaviours the V2 backend contract has not
-yet replaced. Retire it in a dedicated cleanup once the backend work is settled.
+**Dead code recorded, then removed.** This paragraph recorded that the V1 form tree, its step
+components, and `utils/vcard.ts` had no importers left and were being retained deliberately
+until the backend work settled. That dedicated cleanup ran on 2026-08-15 and deleted all of
+it. The historical source is at the `v1-stable` and `pre-v1-retirement-2026-08-14` tags.
 
 **The language selector is a real control, but the site is still English-only.** The approved
 two-slot selector replaced the static English label in the header. Selecting a language changes
@@ -614,14 +616,15 @@ contract is [`backend-v2-contract.md`](backend-v2-contract.md); the project's ow
 
 **Backend status: `merged`.** Nothing beyond that. There is **no** `.clasp.json`, Apps Script
 project, Sheet, Script Property, trigger, or deployment, and neither frontend points at it. No
-`clasp push` or `clasp deploy` has been run and none is implied by the merge. V1
-(`scripts/gas/Code.gs`) is untouched and remains the deployed backend.
+`clasp push` or `clasp deploy` has been run and none is implied by the merge. It is now the
+only backend in the repository: V1's source was deleted on 2026-08-15.
 
 **Emails, the digest, retention maintenance, and Calendar are coded, locally tested,
 committed, and merged. None of them is live.** No email has been sent, no digest has run, no
 Calendar has been touched, and no trigger exists.
 
-The suite is `pnpm test:gas-v2` (412 tests), running in CI alongside the unchanged V1 suite.
+The suite is `pnpm test:gas-v2`, running in CI. It ran alongside a V1 suite until that suite
+was deleted with V1 on 2026-08-15.
 
 ### The six-tab storage model
 
@@ -743,9 +746,11 @@ system, partner titles, referral deferral, AppFolio deferral, QR scope, the repo
 decision, and the clean-rebuild decision are **not** reopened here.
 
 **QR, blocks production completion and physical-card cutover (not frontend implementation):**
-the seven unresolved values in [`design-sources.md`](design-sources.md) — partner phones,
-partner email behaviour, whether a firm phone will exist, **the permanent profile URL**,
-contact-file delivery, organization-note wording, and whether a mailing address appears.
+the unresolved values in [`design-sources.md`](design-sources.md). **Partner phones and partner
+email addresses are resolved as of 2026-08-15** and recorded in
+[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md). Still open: partner email *behaviour*, whether a
+firm phone will exist, **the permanent profile URL**, contact-file delivery, organization-note
+wording, and whether a mailing address appears.
 
 **Photography: resolved 2026-07-30.** The owner confirmed Adobe #158947695, #196537616, and
 #110458363 are licensed. #04 is the cleared Juan Nino Unsplash asset. See
@@ -797,12 +802,14 @@ entirely rather than printed and unkeepable.
 |---|---|---|
 | `v1-stable` | `c237a09` | The historical final V1 state. Where V1 source is read from once it leaves `main` |
 | `pre-v2-clean-rebuild` | `d194e7e` | **Created and pushed 2026-07-30.** Annotated, present on `origin`. The baseline immediately before the clean V2 rebuild. Named this way rather than `v1-pre-rebuild` because the baseline already contains early V2 work, so it is not a pure V1 marker |
-| `pre-v1-retirement-2026-08-14` | `8a6aef1` | Present on `origin`. **The complete pre-deletion repository state.** The rollback anchor for the V1 retirement pass, and where `packages/brand/src/team.ts` and the full pre-edit `deployment.md` are preserved verbatim |
+| `pre-v1-retirement-2026-08-14` | `8a6aef1` | Present on `origin`. **The complete pre-deletion repository state.** The rollback anchor for the V1 retirement pass, which has now run. Where the V1 backend, the V1 form tree, `team.ts`, `SharePage.tsx`, and the full pre-edit `deployment.md` (including the V1 Script ID, Deployment ID, and `/exec` URL) are preserved verbatim |
 
 To roll the frontend back to the pre-rebuild baseline, reset to `pre-v2-clean-rebuild`. Nothing
 is deployed from this repository, so a rollback here changes no running system.
 
-The historical partner contact values in `packages/brand/src/team.ts` are preserved by
-`pre-v1-retirement-2026-08-14` and are **not** to be copied into current V2 code or a tracked
-contact document without direct owner verification. They are historical, not confirmed current.
-See [`system-classification.md`](system-classification.md), "Special handling before deletion".
+**Resolved 2026-08-15.** This paragraph used to warn that the historical partner contact values
+in `team.ts` were preserved by `pre-v1-retirement-2026-08-14` and must not be copied into
+current code or a tracked document without direct owner verification. That verification
+happened: the owner supplied the current values directly, they are recorded in
+[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md), and `team.ts` was deleted. The tagged historical
+values are superseded, not a fallback. Read the tracked document, not the tag.

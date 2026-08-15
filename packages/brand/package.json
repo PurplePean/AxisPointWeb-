@@ -8,8 +8,6 @@
     ".": "./src/index.ts",
     "./colors": "./src/colors.ts",
     "./fonts": "./src/fonts.ts",
-    "./team": "./src/team.ts",
-    "./types": "./src/types.ts",
     "./tailwind-preset": "./tailwind.preset.js"
   },
   "scripts": {

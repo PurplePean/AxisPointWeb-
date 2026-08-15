@@ -21,15 +21,15 @@ required**, because no V2 frontend and no deployed V2 consumer exists to break.
 
 **Status: coded and locally tested only.** No frontend is connected. There is no Apps
 Script project, Sheet, Script Property, trigger, endpoint, or `.clasp.json`. Nothing has
-been deployed and no email, digest, or Calendar action has been sent or performed. V1
-(`scripts/gas/Code.gs`) is untouched and remains the deployed backend.
+been deployed and no email, digest, or Calendar action has been sent or performed.
 
 **Status: implemented and locally tested. Not deployed, not connected.** There is no
 Apps Script project, no Sheet, no trigger, no deployment, and neither frontend submits
 to it. See [`deployment.md`](deployment.md) for what bringing it up actually involves,
 and [`branching.md`](branching.md) for why merging this changes nothing externally.
 
-V1 (`scripts/gas/Code.gs`) is untouched and remains the deployed backend.
+V1 was retired and deleted from this repository on 2026-08-15. This is now the only backend
+contract in the repository; there is no second one to reconcile against.
 
 ---
 
