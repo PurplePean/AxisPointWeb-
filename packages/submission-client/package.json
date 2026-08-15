@@ -13,6 +13,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
+    "lint": "eslint . --ext ts",
     "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\""
   },
   "devDependencies": {

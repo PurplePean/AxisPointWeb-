@@ -1,0 +1,12 @@
+# Retired V1 surfaces, retained until the deletion pass.
+#
+# This package now carries lint coverage (it had none), and turning it on surfaced two
+# `react/no-unescaped-entities` errors in the V1 contact form's step components. Those files
+# are classified as "Confirmed V1 scheduled for retirement" in docs/system-classification.md:
+# nothing imports them from any current V2 surface, and the pass that added this lint script
+# was explicitly a no-deletion pass, so editing them would have meant touching code that is
+# about to be deleted in order to satisfy a gate that has never run on it.
+#
+# Delete these two lines, not the errors, when the V1 form tree goes.
+src/components/form/
+src/utils/vcard.ts

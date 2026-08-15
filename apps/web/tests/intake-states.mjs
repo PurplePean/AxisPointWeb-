@@ -10,27 +10,48 @@
  *
  * So this drives a real browser over the DevTools Protocol, reaching each state the way a
  * visitor does, and records the rendered text. Isolation matches the other reviews: unique
- * temporary profile, unique debugging port, headless, and cleanup limited to the process and
- * profile it creates. It reads the already-running dev server and never mutates it.
+ * temporary profile, unique debugging port, headless, and cleanup limited to the processes
+ * and profile it creates.
  *
- * NO NETWORK LEAVES THE BROWSER. `pnpm dev` compiles in no endpoint, so the shared submission
- * client simulates; `?submit=` selects which simulated answer comes back.
+ * ── IT STARTS ITS OWN SERVER, AND IT RUNS ON CI ─────────────────────────────
+ *
+ * This used to hardcode a macOS Chrome path and assume somebody had already run `pnpm dev`
+ * on port 3000. Both assumptions made it unrunnable in CI, which is why the 20 intake-state
+ * baselines sat committed but ungated for a whole pass. Now it resolves a browser on macOS
+ * and Linux, starts and stops its own Vite dev server on a port it knows is free, and picks
+ * a free DevTools port rather than a fixed one that a second concurrent run would collide
+ * with.
+ *
+ * WHY A DEV SERVER AND NOT `vite preview`. Every state below depends on a development seam:
+ * `?state=` seeds the intake, `?submit=` selects a simulator fixture, and both are gated on
+ * `import.meta.env.DEV`. A production preview has none of them by design, and
+ * `scripts/test/inspect-bundle.mjs` proves it. A preview server would therefore capture 20
+ * copies of the same first screen and call it a pass.
+ *
+ * WHY THE APP'S REAL CONFIG. Tailwind's output decides what `offsetParent !== null` reports,
+ * so a hand-rolled inline config could quietly change which buttons this harness considers
+ * visible. `mode: 'development'` also means `resolveEndpoint` returns before it reads
+ * anything: no env file is loaded and `.env.e2e.local` is never in scope.
+ *
+ * NO NETWORK LEAVES THE BROWSER. Development compiles in no endpoint, so the shared
+ * submission client simulates; `?submit=` selects which simulated answer comes back.
  *
  *   node apps/web/tests/intake-states.mjs            compare against the committed baseline
  *   node apps/web/tests/intake-states.mjs --write    rewrite it (review the diff)
+ *
+ * Set `CHROME_PATH` (or `CHROME_BIN`) to use a specific browser binary.
  */
 
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT = 9881;
-const ORIGIN = 'http://localhost:3000';
+import { createServer } from 'vite';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const webRoot = path.resolve(here, '..'); // apps/web
 const outDir = path.join(here, 'baseline-intake');
 const write = process.argv.includes('--write');
 
@@ -113,6 +134,96 @@ const FREEZE_CLOCK = `
 `;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Where a headless Chrome or Chromium is likely to be, per platform.
+ *
+ * Absolute paths first because they are unambiguous, then bare names resolved against `PATH`
+ * for installs this list does not know about. Chromium is accepted as well as Chrome: this
+ * harness uses nothing outside the DevTools Protocol, and CI images vary in which one they
+ * ship.
+ */
+const BROWSER_CANDIDATES = {
+  darwin: [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+  ],
+  linux: [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/opt/google/chrome/chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    'google-chrome',
+    'google-chrome-stable',
+    'chromium',
+    'chromium-browser',
+  ],
+};
+
+/** A bare name resolved against `PATH`, without shelling out. */
+function onPath(name) {
+  for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
+    if (!dir) continue;
+    const candidate = path.join(dir, name);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * The browser binary to drive.
+ *
+ * `CHROME_PATH` wins outright and fails loudly if it is wrong, because a configured path that
+ * silently falls back to some other browser is how a CI run ends up proving nothing. `CHROME_BIN`
+ * is accepted as the second spelling other tools use.
+ */
+function resolveBrowser() {
+  const configured = process.env.CHROME_PATH || process.env.CHROME_BIN;
+  if (configured) {
+    const resolved = configured.includes(path.sep) ? configured : onPath(configured);
+    if (resolved && existsSync(resolved)) return resolved;
+    throw new Error(
+      `CHROME_PATH is set to ${JSON.stringify(configured)} but no executable is there.\n` +
+        'Unset it to fall back to the per-platform search, or point it at a real binary.',
+    );
+  }
+
+  const candidates = BROWSER_CANDIDATES[process.platform] ?? [];
+  for (const candidate of candidates) {
+    const resolved = candidate.includes(path.sep) ? candidate : onPath(candidate);
+    if (resolved && existsSync(resolved)) return resolved;
+  }
+
+  throw new Error(
+    `no Chrome or Chromium found on ${process.platform}. Tried:\n` +
+      candidates.map((c) => `  ${c}`).join('\n') +
+      '\nSet CHROME_PATH to the executable to use.',
+  );
+}
+
+/**
+ * A port nothing is listening on.
+ *
+ * The DevTools port used to be the constant 9881, which two concurrent runs would fight over
+ * and which a CI runner is free to have already taken. Asking the kernel for an ephemeral port
+ * and immediately releasing it leaves a theoretical race, but it is the standard approach and
+ * strictly better than a constant: the alternative, holding the socket open, is exactly what
+ * would stop the real listener from binding it.
+ */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
 
 class CDP {
   constructor(ws) {
@@ -223,27 +334,75 @@ const HELPERS = `
 `;
 
 async function main() {
-  if (!existsSync(CHROME)) throw new Error('Chrome not found');
-  const probe = await fetch(ORIGIN).catch(() => null);
-  if (!probe || !probe.ok) throw new Error(`dev server not reachable at ${ORIGIN}`);
+  const browser = resolveBrowser();
+  process.stdout.write(`browser: ${browser}\n`);
 
+  /*
+   * The app's own config, in development mode, on a port picked because it is free.
+   *
+   * `strictPort` is on deliberately: silently sliding to the next port would make ORIGIN
+   * disagree with where the server actually listens, and every navigation below would then
+   * capture a connection error that looks like a rendering change.
+   */
+  /*
+   * RUN FROM `apps/web`, the way `pnpm dev:web` does.
+   *
+   * Tailwind resolves the `content` globs in `tailwind.config.js` against the WORKING
+   * DIRECTORY, not against the config file, so from the repository root `./src/**` matches
+   * nothing. Tailwind then emits no utilities, `@apply bg-v2-surface` fails, and the page
+   * arrives unstyled. That is not a cosmetic problem here: `visibleButtons()` filters on
+   * `offsetParent !== null`, so an unstyled page changes which controls this harness can
+   * even see. Every path it writes to is absolute, so the change of directory affects
+   * nothing else.
+   */
+  process.chdir(webRoot);
+
+  const appPort = await freePort();
+  const server = await createServer({
+    configFile: path.join(webRoot, 'vite.config.ts'),
+    root: webRoot,
+    mode: 'development',
+    logLevel: 'error',
+    server: { host: '127.0.0.1', port: appPort, strictPort: true },
+  });
+  await server.listen();
+  const ORIGIN = `http://127.0.0.1:${appPort}`;
+  process.stdout.write(`dev server: ${ORIGIN}\n`);
+
+  const debugPort = await freePort();
   const profile = mkdtempSync(path.join(tmpdir(), 'axp-intake-baseline-'));
+
+  /*
+   * `--no-sandbox` is added on Linux only. Chrome's sandbox needs kernel namespaces that
+   * container-based CI runners commonly do not grant, and the failure mode is a browser that
+   * exits immediately with no DevTools endpoint. It is not added on macOS, where the sandbox
+   * works and there is no reason to give a local run less isolation than it can have.
+   */
+  const linuxCiFlags =
+    process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : [];
+
   const chrome = spawn(
-    CHROME,
+    browser,
     [
       '--headless=new',
-      `--remote-debugging-port=${PORT}`,
+      `--remote-debugging-port=${debugPort}`,
       `--user-data-dir=${profile}`,
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-extensions',
       '--disable-background-networking',
       '--hide-scrollbars',
+      ...linuxCiFlags,
       'about:blank',
     ],
     { stdio: 'ignore' },
   );
 
+  /*
+   * Synchronous cleanup, so it is still valid from an `exit` handler. The Vite server needs an
+   * await and is therefore closed in the `finally` below instead; a hard kill releases its
+   * port to the kernel anyway.
+   */
   const cleanup = () => {
     try {
       if (chrome.pid) process.kill(chrome.pid, 'SIGTERM');
@@ -261,8 +420,11 @@ async function main() {
   const captured = new Map();
 
   try {
-    await fetchJson(`http://127.0.0.1:${PORT}/json/version`);
-    const targets = await fetchJson(`http://127.0.0.1:${PORT}/json/list`);
+    const reachable = await fetch(ORIGIN).catch(() => null);
+    if (!reachable || !reachable.ok) throw new Error(`dev server did not answer at ${ORIGIN}`);
+
+    await fetchJson(`http://127.0.0.1:${debugPort}/json/version`);
+    const targets = await fetchJson(`http://127.0.0.1:${debugPort}/json/list`);
     const cdp = await CDP.connect(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
@@ -312,6 +474,8 @@ async function main() {
     }
   } finally {
     cleanup();
+    // Deterministic teardown. Without this the Vite server keeps the process alive.
+    await server.close();
   }
 
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });

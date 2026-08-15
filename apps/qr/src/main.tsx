@@ -1,15 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import Root from './Root';
 import './index.css';
 
 /**
- * The E2eBanner was removed with the V1 ContactForm. The QR card submits nothing and
- * no longer consumes a form endpoint, so an "e2e mode" warning here would describe a
- * backend connection that does not exist.
+ * Mounting only. Everything the app renders lives in `Root`, so it can be rendered by a
+ * test without a DOM. See the note there for why the e2e banner is mounted again.
  */
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Root />
   </React.StrictMode>,
 );

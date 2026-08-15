@@ -1,5 +1,13 @@
 name: CI
 
+# Three jobs, so a failure names what broke rather than "CI".
+#
+#   build            static analysis and the two production bundles, each inspected
+#   test-frontend    the 241 Node tests that existed but had never run here
+#   verify-rendered  the rendered gates: route baseline, ARIA labels, intake states
+#
+# The Apps Script suites live in test-gas.yml and are unchanged by this file.
+
 on:
   pull_request:
     branches: [main]
@@ -8,7 +16,7 @@ on:
 
 jobs:
   build:
-    name: Type-check & build
+    name: Type-check, lint & build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,21 +35,123 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Explicit workspace type-check. The build steps below also run `tsc`, but only
-      # for apps/web and apps/qr — this covers packages/brand on its own too.
+      # for apps/web and apps/qr — this covers the two packages on their own too.
       - name: Type-check workspace
         run: pnpm type-check
 
-      # Currently only apps/web defines a `lint` script, so this lints that package.
-      # Adding lint scripts to apps/qr and packages/brand would widen the coverage.
+      # All four workspace packages now define a `lint` script. apps/qr,
+      # packages/brand, and packages/submission-client had none until this pass, so
+      # `pnpm -r lint` was silently linting one package out of four.
       - name: Lint
         run: pnpm lint
 
+      # THE VARIABLE IS THE V2 ONE. Both apps have read `VITE_V2_SUBMISSION_ENDPOINT`
+      # since PR #70; `VITE_FORM_ENDPOINT` names the retired V1 deployment and is now
+      # only recognised in order to be REJECTED. Passing the V1 name here set nothing
+      # and read as though it did. Empty is the point: CI builds must compile in no
+      # endpoint and take the fail-closed path.
       - name: Build web app
         run: pnpm --filter @axispoint/web run build
         env:
-          VITE_FORM_ENDPOINT: ''
+          VITE_V2_SUBMISSION_ENDPOINT: ''
+
+      # Production-bundle inspection. Development fixtures, a compiled-in Apps Script
+      # endpoint, unreviewed locale catalogs, or the e2e warning banner reaching a
+      # deployable artifact all fail here. It has existed as `pnpm verify:bundle`
+      # since the bundle defect that motivated it, and had never run on CI.
+      - name: Inspect web production bundle
+        run: pnpm verify:bundle
 
       - name: Build QR app
         run: pnpm --filter @axispoint/qr run build
         env:
-          VITE_FORM_ENDPOINT: ''
+          VITE_V2_SUBMISSION_ENDPOINT: ''
+
+      # The same inspector against the QR bundle, spelled out rather than wrapped in a
+      # root script: `pnpm verify:bundle` is hardcoded to apps/web/dist and there is no
+      # QR equivalent. This is where the e2e banner is proven absent from what ships.
+      - name: Inspect QR production bundle
+        run: node scripts/test/inspect-bundle.mjs apps/qr/dist
+
+  test-frontend:
+    name: Frontend tests (submission-client, web, qr)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      # Node 22, not the repo's Node 20. The suite needs `--experimental-strip-types`
+      # (22.6+) and the `**` glob in `node --test` (21+). test-gas.yml is pinned to 22
+      # for the second of those reasons already.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm test:frontend` is `test:client && test:web && test:qr`. These tests were
+      # written, committed, and green locally for several passes without any CI job
+      # running them, which meant nothing stopped a regression reaching main.
+      - name: Run frontend test suite
+        run: pnpm test:frontend
+
+  verify-rendered:
+    name: Rendered baselines and assertions
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fail here, with a clear message, rather than inside the harness, if the runner
+      # image ever stops shipping a browser. `intake-states.mjs` does its own search
+      # and accepts CHROME_PATH; this step only proves the search will succeed.
+      - name: Confirm a browser is available
+        run: |
+          for candidate in /usr/bin/google-chrome /usr/bin/google-chrome-stable \
+                           /usr/bin/chromium /usr/bin/chromium-browser; do
+            if [ -x "$candidate" ]; then
+              echo "found $candidate"
+              "$candidate" --version
+              exit 0
+            fi
+          done
+          echo "No Chrome or Chromium on this runner image."
+          echo "Install one, or set CHROME_PATH for the intake-state step."
+          exit 1
+
+      # Every route's rendered English, compared byte for byte against the committed
+      # snapshot. Catches a copy change that type-checking cannot see.
+      - name: Verify seven-route English baseline
+        run: pnpm verify:baseline
+
+      # The chrome's assistive labels, read as real attributes off a real render in
+      # five locales. The baseline above compares text with attributes stripped, so
+      # neither gate covers what the other does.
+      - name: Verify rendered ARIA assertions
+        run: pnpm verify:aria
+
+      # The 20 intake, validation, submission, and booking states, driven in a real
+      # headless browser. This harness assumed a macOS Chrome path and an already-running
+      # dev server on port 3000 until this pass, which is why its committed baselines had
+      # never been checked by anything but a human running it by hand. It now starts and
+      # stops its own dev server on a free port.
+      - name: Verify intake-state baselines
+        run: pnpm verify:intake-states

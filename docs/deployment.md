@@ -1,17 +1,32 @@
 # Deployment
 
-## Two Apps Script backends now exist in this repository
+> **Which systems are current, retired, or external is settled in
+> [`system-classification.md`](system-classification.md).** This file owns *procedures*: the
+> push-versus-deploy mechanics, the provisioning checklists, the hosting inventory, and the
+> gotchas. It does not own the V1/V2 boundary, and where the two disagree the classification
+> wins.
+>
+> **V1 is retired.** The V1 sections below are retained, unedited, for one more pass so that
+> nothing is lost before the deletion pass reads them. Their durable summary already exists at
+> [`archive/deployment-v1.md`](archive/deployment-v1.md), which also names the tags holding the
+> full historical state.
+
+## Two Apps Script backends exist in this repository
 
 | | `scripts/gas` (V1) | `scripts/gas-v2` (V2) |
 |---|---|---|
-| Apps Script project | Yes, IDs below | **None.** No `.clasp.json` |
-| Deployed | **Yes, production @28.** Serving the live sites | **No** |
-| Sheet, Script Properties, triggers | Yes | **None created** |
-| Frontend pointed at it | Yes, via `FORM_ENDPOINT` | **No** |
-| Status | `deployed` | `merged` |
+| Apps Script project | Yes, an external project. ID in the gitignored `.clasp.json` | **None.** No `.clasp.json` |
+| Deployed | Historically, production @28. **Retired: not serving current business traffic** | **No** |
+| Sheet, Script Properties, triggers | Yes, on the external project | **None created** |
+| Frontend pointed at it | **No.** Both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a lone V1 value is rejected | **No** |
+| Status | `retired` | `merged` |
 
-Everything in the rest of this section is about **V1**, which is the deployed backend and
-stays that way until the V2 project is deliberately brought up. V2's own rules live in
+**The public site at `axispoint.llc` is a separate, hand-uploaded build that was not produced
+from this repository, and it is not served by either backend above.** Retiring V1 does not
+change what a visitor sees, because nothing in this repository is what a visitor sees.
+
+The V1 material below stays accurate as a description of how that project was operated. It is
+no longer a description of anything current. V2's own rules live in
 [`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire contract in
 [`backend-v2-contract.md`](backend-v2-contract.md).
 
@@ -167,18 +182,26 @@ values; `clasp push` uploads the function, it does not execute it.
 
 ## Front-end — GitHub Actions → Namecheap FTP
 
-Both apps share the **same** GAS endpoint: each deploy workflow passes
-`VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}` into the build, and the shared
-`<ContactForm>` reads that single env var. Confirmed — there is one endpoint for
-`apps/web` and `apps/qr`.
+**The two deploy workflows still pass the V1 variable, and that is now a defect.** They set
+`VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}`, which described the world when there was
+one V1 endpoint and a shared `<ContactForm>` reading it. Neither is true now: the form is gone,
+both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a build given only the V1 name compiles in no
+endpoint at all. It would deploy a site that fails closed on every submission while looking
+correct.
+
+It has not broken anything, because neither workflow has ever succeeded past its FTP step. **It
+must be corrected in the same change that adds the FTP secrets**, together with the deployment
+gate and the mirror-delete question below. It was deliberately not corrected in the 2026-08-15
+safety pass, which touched CI but left deployment configuration alone.
 
 ### Workflows
 
 | File | Trigger | What it does | Status |
 |---|---|---|---|
-| `.github/workflows/ci.yml` | PR to `main` + push to `main` | pnpm install, build web app and QR app with `VITE_FORM_ENDPOINT: ''`. Type-check + build only, no deploy. | ✅ **passing** |
-| `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with `FORM_ENDPOINT` → FTP `./apps/web/dist/` to `./public_html/` | ❌ **failing** |
-| `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with `FORM_ENDPOINT` → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` | ❌ **failing** |
+| `.github/workflows/ci.yml` | PR to `main` + push to `main` | Three jobs. **build:** type-check, lint across all four packages, both production builds with `VITE_V2_SUBMISSION_ENDPOINT: ''`, and `inspect-bundle.mjs` against each `dist`. **test-frontend:** `pnpm test:frontend`. **verify-rendered:** route baseline, ARIA assertions, and the 20-state intake baseline in a headless browser. No deploy. | ✅ **passing** |
+| `.github/workflows/test-gas.yml` | PR to `main` + push to `main` | Both Apps Script suites, as separate steps | ✅ **passing** |
+| `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with the **wrong (V1) variable** → FTP `./apps/web/dist/` to `./public_html/` | ❌ **failing** |
+| `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with the **wrong (V1) variable** → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` | ❌ **failing** |
 
 ### SPA rewrite: not configured, and required before any locale is activated
 
@@ -220,7 +243,7 @@ only.)
 
 | Secret | Used by | Purpose |
 |---|---|---|
-| `FORM_ENDPOINT` | both deploy workflows | GAS Web App `/exec` URL → `VITE_FORM_ENDPOINT` |
+| `FORM_ENDPOINT` | both deploy workflows | The **V1** GAS Web App `/exec` URL, piped into the V1 variable name. Both apps ignore it. See the defect noted above |
 | `FTP_SERVER` | deploy-web | main-site FTP host |
 | `FTP_USERNAME` | deploy-web | main-site FTP user |
 | `FTP_PASSWORD` | deploy-web | main-site FTP password |

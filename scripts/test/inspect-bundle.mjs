@@ -118,6 +118,18 @@ const FORBIDDEN = [
   // The preview-only webfont bundle for unreviewed scripts. Production ships English only,
   // so loading six Noto families would be pure cost for a language nobody can read yet.
   'PREVIEW_FONT_HREF',
+
+  /*
+   * The e2e warning banner's copy.
+   *
+   * `__E2E_MODE__` is false for every `vite build`, so `E2eBanner` folds to `return null`
+   * and its text should be eliminated. Checked rather than assumed, because the failure is
+   * ugly and public: a real visitor told the site is wired to a test backend. The banner
+   * text legitimately survives in the adjacent `.map`, which is why this list is checked
+   * against DELIVERABLE files only. See `apps/qr/tests/e2eBanner.test.ts`, which asserts
+   * this same sentence is PRESENT when the flag is on, so the pair covers both directions.
+   */
+  'E2E MODE: a real backend is enabled',
 ];
 
 /** Must be present: the honest failure path a production build depends on. */

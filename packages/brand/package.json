@@ -13,7 +13,8 @@
     "./tailwind-preset": "./tailwind.preset.js"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --ext ts,tsx"
   },
   "devDependencies": {
     "@types/react": "^18.2.48",
