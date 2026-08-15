@@ -1,5 +1,21 @@
 # Unified Schema Migration Plan
 
+> # ARCHIVED — describes a system that no longer exists in this repository
+>
+> This document describes **V1**, which was fully retired on **2026-08-15**. The source it
+> was verified against, `scripts/gas/**` and `packages/brand/src/components/form/**`, has
+> been deleted from `main`. Nothing here describes current behaviour of anything that runs.
+>
+> It is kept because V1 ran real business traffic for months and the reasoning recorded here
+> (schema decisions, template gotchas, defect history) is worth reading before anyone rebuilds
+> a comparable system. Read it as history, never as a description of current `main`.
+>
+> - Current system boundaries: [`docs/system-classification.md`](../system-classification.md)
+> - Current backend contract: [`docs/backend-v2-contract.md`](../backend-v2-contract.md)
+> - V1's deployment identity record: [`deployment-v1.md`](deployment-v1.md)
+> - The complete V1 source: git tag `v1-stable`
+> - The complete pre-deletion repository: git tag `pre-v1-retirement-2026-08-14`
+
 **Status:** CUTOVER IN PROGRESS. Created 2026-07-12. All 9 stages shipped 2026-07-14.
 **Switch flipped in code 2026-07-15** (`USE_UNIFIED_SCHEMA = true`) — §8 Phase B step 4.
 **Not yet live:** the manual `setupSpreadsheetUnified()` run (§8 Phase A) and the deploy

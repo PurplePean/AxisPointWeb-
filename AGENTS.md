@@ -19,9 +19,14 @@ one somebody follows. So there is exactly one copy now.
 | Deployment IDs, `clasp push` vs `clasp deploy`, hosting, and every external mutation | [`docs/deployment.md`](docs/deployment.md) |
 | Approved V2 design package and its authoritative source files | [`docs/design-sources.md`](docs/design-sources.md) |
 | Current pass, open owner decisions, deployment state, rollback anchors | [`docs/STATUS.md`](docs/STATUS.md) |
-| Backend function map, lead model, schema | [`docs/backend-architecture.md`](docs/backend-architecture.md) |
-| Payload shapes | [`docs/frontend-payload-schemas.md`](docs/frontend-payload-schemas.md) |
-| Email templates and the embedded-constant vs mirror-file pattern | [`docs/email-templates.md`](docs/email-templates.md) |
+| Backend function map, payload shapes, wire contract | [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) |
+| Verified current partner contact values | [`docs/PARTNER_CONTACTS.md`](docs/PARTNER_CONTACTS.md) |
+
+V1 was fully retired on 2026-08-15. The V1 backend, the V1 form tree, and the V1 email system
+are gone from this repository, and the documents that described them (`backend-architecture.md`,
+`email-templates.md`, `frontend-payload-schemas.md`, `UNIFIED_SCHEMA_MIGRATION_PLAN.md`) moved to
+[`docs/archive/`](docs/archive/) with a banner saying so. Do not read any of them as current
+behaviour, and do not build anything from them.
 
 If you are about to add a workflow rule, add it to the file that owns that topic above. Do not
 add it here.

@@ -13,7 +13,7 @@ import { createElement } from 'react';
  *
  * WHY THIS TEST EXISTS. `apps/qr/vite.config.ts` has always computed `__E2E_MODE__` and
  * printed the terminal warning, but `main.tsx` stopped rendering `<E2eBanner />` when the
- * V1 `ContactForm` was removed. The reasoning recorded at the time was that the card
+ * V1 contact form was removed. The reasoning recorded at the time was that the card
  * "submits nothing and consumes no endpoint", which was true then and stopped being true
  * when the Contact Exchange was built: this app now resolves a real V2 endpoint and posts a
  * real `contact_exchange` envelope. So half the warning was live and half was silently

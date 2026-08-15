@@ -5,7 +5,7 @@ A small, dependency-free library for read/write access to the hosting stack:
 - **cPanel** (subdomains, redirects, file cleanup) via UAPI + API 2
 - **Namecheap** (read DNS records) via the XML API
 
-Same spirit as `scripts/gas`: shared client(s) in `lib/`, thin runnable scripts
+Same spirit as `scripts/gas-v2`: shared client(s) in `lib/`, thin runnable scripts
 on top. Runs on plain `node` (repo requires Node >= 20) — no npm install needed.
 
 > **Out of scope by design:** nothing here touches domain **registration,

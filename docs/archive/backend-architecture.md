@@ -1,5 +1,21 @@
 # Backend Architecture — `scripts/gas/Code.gs`
 
+> # ARCHIVED — describes a system that no longer exists in this repository
+>
+> This document describes **V1**, which was fully retired on **2026-08-15**. The source it
+> was verified against, `scripts/gas/**` and `packages/brand/src/components/form/**`, has
+> been deleted from `main`. Nothing here describes current behaviour of anything that runs.
+>
+> It is kept because V1 ran real business traffic for months and the reasoning recorded here
+> (schema decisions, template gotchas, defect history) is worth reading before anyone rebuilds
+> a comparable system. Read it as history, never as a description of current `main`.
+>
+> - Current system boundaries: [`docs/system-classification.md`](../system-classification.md)
+> - Current backend contract: [`docs/backend-v2-contract.md`](../backend-v2-contract.md)
+> - V1's deployment identity record: [`deployment-v1.md`](deployment-v1.md)
+> - The complete V1 source: git tag `v1-stable`
+> - The complete pre-deletion repository: git tag `pre-v1-retirement-2026-08-14`
+
 Single-file Google Apps Script Web App that backs the contact form for both
 `apps/web` and `apps/qr`. It logs leads to a Google Sheet CRM, sends
 transactional email, syncs Google Contacts, creates Calendar booking events,
@@ -7,7 +23,7 @@ and runs three time-based digests plus an installable edit trigger.
 
 **This file describes V1 only.** V1 is the deployed backend. The separate V2 backend in
 `scripts/gas-v2` shares no code with it and has its own contract in
-[`backend-v2-contract.md`](backend-v2-contract.md); nothing in V2 is deployed or connected.
+[`backend-v2-contract.md`](../backend-v2-contract.md); nothing in V2 is deployed or connected.
 
 All facts below are verified against `scripts/gas/Code.gs` as of this commit.
 

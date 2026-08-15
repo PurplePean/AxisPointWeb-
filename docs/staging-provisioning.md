@@ -24,10 +24,11 @@ wrong id gets pasted into the wrong field.
 | Time zone | `America/Chicago` |
 | Local config | new `scripts/gas-v2/.clasp.json`, gitignored, never committed |
 
-**Separation from live V1.** V2 staging gets its own project, its own spreadsheet, its own
-calendar, and its own deployment. It is standalone rather than container-bound, so it has no
-handle on V1's spreadsheet. Nothing in provisioning touches `scripts/gas`, whose `Code.gs`
-remains byte-identical.
+**Separation from the historical V1 project.** V2 staging gets its own project, its own
+spreadsheet, its own calendar, and its own deployment. It is standalone rather than
+container-bound, so it has no handle on the V1 spreadsheet. V1's source was deleted from this
+repository on 2026-08-15 and its external Apps Script project is untouched by provisioning or
+by anything else here.
 
 ---
 

@@ -46,6 +46,11 @@ Thumbs.db
 # clasp (contains the Apps Script ID)
 # These are literal paths, not a pattern — a new GAS project needs its own line here
 # BEFORE the directory is created, or its script ID gets committed on the first add.
+#
+# The first line outlives the V1 source deleted on 2026-08-15, on purpose: developer
+# machines that worked on V1 still hold that file, it still carries the live Script ID
+# of the external Apps Script project, and dropping the line would surface it as an
+# untracked file waiting to be committed by accident.
 scripts/gas/.clasp.json
 scripts/gas-v2/.clasp.json
 

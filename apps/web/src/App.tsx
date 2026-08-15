@@ -8,7 +8,6 @@ import AssetManagementPage from './pages/AssetManagementPage';
 import InvestorServicesPage from './pages/InvestorServicesPage';
 import PartnersPage from './pages/PartnersPage';
 import ContactPage from './pages/ContactPage';
-import SharePage from './pages/SharePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 /**
@@ -21,8 +20,11 @@ import NotFoundPage from './pages/NotFoundPage';
  * language would require a full document reload instead of a navigation. Sharing one
  * `children` fragment keeps the two trees from drifting.
  *
- * `/share/:code` stays exactly as it was, outside the site chrome and outside localisation,
- * with its untouched V1 referral behaviour.
+ * There used to be a seventh route, the V1 referral landing at `/share/:code`, sitting
+ * outside the chrome and outside localisation. It was deleted in the 2026-08-15 V1
+ * retirement pass and deliberately NOT replaced with a redirect: it was never a published
+ * address of this build, so a redirect would only preserve V1 behaviour under a new name.
+ * `?ref=` attribution is unaffected — the intake reads it straight off the query string.
  */
 
 /** The page routes themselves, identical under both trees. */
@@ -73,9 +75,6 @@ function LocaleGate() {
 function App() {
   return (
     <Routes>
-      {/* Standalone share landing, no site chrome, not localised. */}
-      <Route path="/share/:code" element={<SharePage />} />
-
       <Route path="/" element={<Layout />}>
         {pageRoutes}
       </Route>

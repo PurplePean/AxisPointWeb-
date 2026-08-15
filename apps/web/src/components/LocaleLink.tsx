@@ -15,8 +15,9 @@ import { useLocalePath } from '../i18n/LocaleProvider';
  * applied here. English resolves to the unchanged path, so English hrefs are byte-identical
  * to what they were.
  *
- * External links, `mailto:` and the untouched `/share/:code` route deliberately keep the
- * plain `Link` or `<a>`: none of them is a localised page.
+ * External links and `mailto:` deliberately keep the plain `Link` or `<a>`: neither is a
+ * localised page. The V1 `/share/:code` route was a third such case until it was deleted in
+ * the 2026-08-15 V1 retirement pass.
  */
 
 export function LocaleLink({ to, ...rest }: Omit<LinkProps, 'to'> & { to: string }) {
