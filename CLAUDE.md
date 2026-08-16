@@ -22,7 +22,7 @@ Do not maintain a second, more detailed copy of that classification here or in a
 If this task touches backend logic, email templates, payload shapes, or deployment: read the relevant file(s) in /docs first. Do not assume or guess architecture — /docs is verified, current, and the single source of truth:
 - /docs/backend-v2-contract.md — the backend contract: wire shapes, tokens, error codes, delivery guarantee. This is the backend document
 - /docs/PARTNER_CONTACTS.md — owner-confirmed current partner email and phone values
-- /docs/deployment.md — GAS script/deployment IDs, clasp push vs deploy distinction, GitHub Actions status, and every other external mutation
+- /docs/deployment.md — clasp push vs deploy mechanics, provisioning checklists, hosting inventory, GitHub Actions status, and every other external mutation. **It does not hold deployment identifiers.** V1's Script ID, Deployment ID, `/exec` URL, and bound Spreadsheet ID were deliberately not carried forward when V1 was retired and exist only at the `pre-v1-retirement-2026-08-14` tag (`git show pre-v1-retirement-2026-08-14:docs/deployment.md`). V2 has none to hold: no Apps Script project, `.clasp.json`, or deployment exists yet
 - /docs/branching.md — the full branching/merging model and what "going live" actually means
 - /docs/design-sources.md — the approved V2 design package: authoritative files, required dependencies, corrections to the exported Design Index, and the photography licence ledger
 - /docs/STATUS.md — current pass, open owner decisions, deployment state, rollback anchors
@@ -135,7 +135,7 @@ Any UI change must be checked at a real mobile viewport (about 390px wide), not 
 ## GAS deployment — the operative rule
 
 `clasp push` updates the Apps Script project's HEAD. `clasp deploy -i <prod-id>` updates the live `/exec` endpoint. They are two separate steps and neither is part of "done."
-[`docs/deployment.md`](docs/deployment.md) is the authoritative home for the IDs, the mechanics, the `.claspignore` allowlist rationale, the calendar-access gotcha, and the clasp reauth behaviour. Read it before any backend or deployment task.
+[`docs/deployment.md`](docs/deployment.md) is the authoritative home for the mechanics, the `.claspignore` allowlist rationale, the calendar-access gotcha, and the clasp reauth behaviour. Read it before any backend or deployment task. **It is not the home for the IDs, and no tracked file is:** V1's were stripped out at retirement and survive only at the `pre-v1-retirement-2026-08-14` tag, and V2 has no project or deployment to have IDs for. `<prod-id>` above is a placeholder, not a value you can look up in this repository.
 
 The rule that belongs here: **any task that edits `scripts/gas-v2` source or its email templates must say so explicitly in its summary and flag that the manual push and deploy steps are still required. Never claim something is "live" based on a merge alone.**
 
