@@ -16,7 +16,7 @@ one somebody follows. So there is exactly one copy now.
 | **What is V1, V2, transitional QR, or external** | [`docs/system-classification.md`](docs/system-classification.md) |
 | Operating standard: git workflow, auto-merge, verification, copy and brand standards, known gotchas | [`CLAUDE.md`](CLAUDE.md) |
 | Branching, merging, and what "going live" actually means | [`docs/branching.md`](docs/branching.md) |
-| Deployment IDs, `clasp push` vs `clasp deploy`, hosting, and every external mutation | [`docs/deployment.md`](docs/deployment.md) |
+| `clasp push` vs `clasp deploy`, hosting, and every external mutation | [`docs/deployment.md`](docs/deployment.md). **It does not hold deployment identifiers:** V1's were stripped at retirement and survive only at the `pre-v1-retirement-2026-08-14` tag, and V2 has no project or deployment to have them |
 | Approved V2 design package and its authoritative source files | [`docs/design-sources.md`](docs/design-sources.md) |
 | Current pass, open owner decisions, deployment state, rollback anchors | [`docs/STATUS.md`](docs/STATUS.md) |
 | Backend function map, payload shapes, wire contract | [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) |

@@ -1,7 +1,7 @@
 # AxisPoint System Classification
 
-**Last verified:** August 15, 2026  
-**Verified repository commit:** `71d345d2ba1752a1368765649a2a8ea7a00993bd`, the base of the V1 retirement pass  
+**Last verified:** August 16, 2026  
+**Verified repository commit:** `775caa4b61ea72eca396fd4f66e1b9df80cc6482`, the head of `main` after PRs #81, #82, #83, and #84  
 **Safety checkpoint:** `pre-v1-retirement-2026-08-14`  
 **Repository state when verified:** clean `main`
 
@@ -160,7 +160,7 @@ Until that replacement is designed, built and approved:
 - Keep QR-specific branches in `packages/submission-client`
 - Keep QR-specific branches in `scripts/gas-v2`
 - Keep current QR tests
-- Restore only the missing E2E warning banner during the verification safety pass
+- The missing E2E warning banner has been restored: `apps/qr` mounts the shared `<E2eBanner />` in `src/Root.tsx`, as `apps/web` already did. Done in the 2026-08-15 safety pass, nothing further is required
 - Do not make QR retirement part of V1 retirement
 
 ## Confirmed language scope

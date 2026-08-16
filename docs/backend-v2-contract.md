@@ -19,13 +19,13 @@ policy: the value was computed at intake, stored on the Lead, and returned by th
 layer, and only the transport layer was dropping it. **No response schema-version bump is
 required**, because no V2 frontend and no deployed V2 consumer exists to break.
 
-**Status: coded and locally tested only.** No frontend is connected. There is no Apps
-Script project, Sheet, Script Property, trigger, endpoint, or `.clasp.json`. Nothing has
-been deployed and no email, digest, or Calendar action has been sent or performed.
-
-**Status: implemented and locally tested. Not deployed, not connected.** There is no
-Apps Script project, no Sheet, no trigger, no deployment, and neither frontend submits
-to it. See [`deployment.md`](deployment.md) for what bringing it up actually involves,
+**Status: implemented and locally tested. Not deployed.** Both frontends, `apps/web` and
+`apps/qr`, are wired to this contract through
+[`packages/submission-client`](../packages/submission-client/) and build real request
+envelopes. What does not exist is anything for those envelopes to reach: no Apps Script
+project, no Sheet, no Script Property, no trigger, no endpoint, and no `.clasp.json`.
+Nothing has been deployed, and no email, digest, or Calendar action has been sent or
+performed. See [`deployment.md`](deployment.md) for what bringing it up actually involves,
 and [`branching.md`](branching.md) for why merging this changes nothing externally.
 
 V1 was retired and deleted from this repository on 2026-08-15. This is now the only backend
@@ -815,9 +815,9 @@ A refused booking also carries `bookingStatus` alongside its code, so a client c
 
 | Not implemented | Why | Observable behaviour |
 |---|---|---|
-| Frontend wiring | Scoped to a later pass. | No app sends anything. No endpoint exists. |
+| A reachable endpoint | No Apps Script project or deployment has been created yet. | Both frontends are wired through `packages/submission-client` and build real envelopes; there is nothing for them to reach. The wiring is not what is missing. |
 | Google People sync | Scoped to a later pass. | `contactSyncStatus: not_configured`; no contacts scope requested. |
-| Automated reply ingestion | The correction and removal promise is a manual human procedure. | The promise is gated on configuration and omitted when it cannot be kept. |
+| Automated reply ingestion | There is no correction and removal promise left to ingest replies against. | The promise and the two Script Properties that gated it were **removed** on 2026-08-15, not left gated. No acknowledgement offers correction or removal. See §13. |
 | Automated deletion | As above, and see section 13A. | Manual only. |
 | Referral resolution | Inert by contract. | `refToken` stored, used for nothing. |
 | Origin enforcement | Impossible in an Apps Script web app. | Documented, not faked. |

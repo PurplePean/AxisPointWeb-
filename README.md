@@ -88,7 +88,7 @@ not be extended into a competing copy of that classification.
 | [`docs/design-sources.md`](docs/design-sources.md) | Approved design package, authoritative files, photography licence ledger |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current pass, open owner decisions, deployment state, rollback anchors |
 | [`docs/branching.md`](docs/branching.md) | Branching, merging, and what "going live" actually means |
-| [`docs/deployment.md`](docs/deployment.md) | Deployment IDs, `clasp push` vs `clasp deploy`, hosting inventory |
+| [`docs/deployment.md`](docs/deployment.md) | `clasp push` vs `clasp deploy`, provisioning checklists, hosting inventory. **Not deployment identifiers** — V1's exist only at the `pre-v1-retirement-2026-08-14` tag, and V2 has none |
 | [`docs/backend-v2-contract.md`](docs/backend-v2-contract.md) | V2 wire contract (`schemaVersion` 1), tokens, error codes, delivery guarantee. **This is the backend document** |
 | [`docs/PARTNER_CONTACTS.md`](docs/PARTNER_CONTACTS.md) | Owner confirmed current partner email and phone values |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Dated log of architecture level changes |
@@ -228,8 +228,13 @@ shortcut that used to sit here pointed at V1 and was removed with it.
 
 A backend task is **done** when the code is written, tested, committed, and merged. Neither
 command is part of "done". Run them only when you actually intend to change the running
-backend. The deployment ID and the full mechanics are in
-[`docs/deployment.md`](docs/deployment.md).
+backend. The full mechanics are in [`docs/deployment.md`](docs/deployment.md); the
+identifiers are not, in that file or any other tracked file. `<prod-id>` above is a
+placeholder. V1's Script ID, Deployment ID, `/exec` URL, and bound Spreadsheet ID were
+deliberately not carried forward at retirement and exist only at the
+`pre-v1-retirement-2026-08-14` tag
+(`git show pre-v1-retirement-2026-08-14:docs/deployment.md`), and V2 has no project or
+deployment to have any.
 
 If a `clasp` command fails with `invalid_grant` or `invalid_rapt`, that is routine Google
 reauth friction, not a broken script. Re-run `clasp login`, then re-run the command.

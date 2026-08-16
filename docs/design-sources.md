@@ -342,19 +342,20 @@ comps, which is consistent with licensing having happened, but the archive canno
 Production delivery rules (AVIF → WebP → JPEG, `srcset`, desktop and mobile crops, weight
 budgets) are in the archive's `image-slot-spec.md`.
 
-## QR: seven unresolved values
+## QR: six unresolved values
 
-The QR design is complete and approved. These seven values are unresolved **by design** and are
-listed in the board's own §q13. They **block production completion and physical-card cutover.
-They do not block frontend implementation.**
+The QR design is complete and approved. The board's own §q13 lists seven values as unresolved
+**by design**. One of them, a verified phone for each partner, was resolved on 2026-08-15 by
+[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md), which carries owner-confirmed current phone and
+email values for both partners. The remaining six **block production completion and
+physical-card cutover. They do not block frontend implementation.**
 
-1. A verified phone for each partner, or a decision to omit Call
-2. Verified email behaviour for each partner, or a decision to route Email to `info@axispoint.llc` with disclosure
-3. Whether a firm phone will ever exist
-4. The final permanent profile URL — **printed on the physical card and unrevisable after printing**
-5. The contact-file generation and delivery method
-6. Whether the organization note is set, and its exact wording
-7. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
+1. Verified email behaviour for each partner, or a decision to route Email to `info@axispoint.llc` with disclosure
+2. Whether a firm phone will ever exist
+3. The final permanent profile URL — **printed on the physical card and unrevisable after printing**
+4. The contact-file generation and delivery method
+5. Whether the organization note is set, and its exact wording
+6. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
 
 A QR implementation pass may proceed using **configurable local fixture data and simulated
 contact-download behaviour.** It must not silently select a permanent public URL or a

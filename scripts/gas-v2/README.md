@@ -1,11 +1,13 @@
 # scripts/gas-v2 — V2 Apps Script backend
 
-The clean-slate V2 backend. It shares nothing with `scripts/gas` (V1), which stays in
-place, untouched, and still deployed.
+The V2 backend, and the only backend in this repository. V1 was fully retired and deleted
+on 2026-08-15; its source survives only at the `v1-stable` and
+`pre-v1-retirement-2026-08-14` tags.
 
 **Nothing here is connected to anything.** There is no `.clasp.json`, no Apps Script
-project, no Sheet, no trigger, no deployment, and neither frontend points at it. The
-code is written, tested, and reviewable; bringing it up is a separate, separately
+project, no Sheet, no trigger, and no deployment. Both frontends are wired to this
+contract and build real request envelopes, but there is no endpoint for them to reach.
+The code is written, tested, and reviewable; bringing it up is a separate, separately
 authorized operation. See [`docs/deployment.md`](../../docs/deployment.md).
 
 ## What is here
@@ -110,10 +112,10 @@ deliberately demonstrates the duplicate, so nobody later upgrades the wording.
 
 | Not implemented | Why | What the code does instead |
 |---|---|---|
-| Frontend wiring | Scoped to a later pass. | No app sends anything, and no endpoint exists. |
+| A reachable endpoint | No Apps Script project or deployment has been created yet. | Both frontends are wired through `packages/submission-client` and build real envelopes; there is nothing for them to reach. The wiring is not what is missing. |
 | Google People sync | Scoped to a later pass. | `contactSyncStatus` is `not_configured`. No contacts scope is requested in the manifest. |
 | Trigger installation | Every schedule is a deliberate external operation. | The worker, digest, and retention handlers are callable and unscheduled. See [`docs/deployment.md`](../../docs/deployment.md). |
-| Automated reply ingestion and deletion | Correction and removal are manual human procedures. | The promise is gated on two configuration flags and omitted when it cannot be kept. |
+| Automated reply ingestion and deletion | There is no correction and removal promise left to ingest replies against. | The promise and the two Script Properties that gated it were **removed** on 2026-08-15, not left gated. No acknowledgement offers correction or removal. |
 | Referral resolution | `refToken` is carried but inert by contract. | Stored verbatim; never resolved, linked, or reported on. |
 | A business-record purge | Business records have no automatic expiry. | `planRetention` has no key for one, asserted by test. |
 
