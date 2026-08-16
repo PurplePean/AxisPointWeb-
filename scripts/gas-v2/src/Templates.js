@@ -33,36 +33,17 @@ function firstNameOf(fullName) {
   return n.split(' ')[0];
 }
 
-/**
- * The correction and removal block.
+/*
+ * THE QR ACKNOWLEDGEMENT MAKES NO CORRECTION OR REMOVAL PROMISE, AND MUST NOT.
  *
- * RENDERED ONLY WHEN BOTH FLAGS ARE SET. Its copy promises that a reply reaches a human
- * who will correct or delete someone's record. With no monitored mailbox and no written
- * procedure behind it, printing it tells a real person something untrue, so it is
- * omitted entirely rather than softened. `configHealth` reports both as launch blockers.
+ * It used to carry a gated block saying a reply would update or delete someone's record,
+ * rendered only when two Script Properties confirmed a monitored mailbox and a written
+ * procedure existed. Neither is offered as a feature, so the promise, its two gates, and
+ * the reply invitation in the footer were removed outright rather than left switchable.
+ * Do not reintroduce copy inviting a reply to correct or remove a record without a real
+ * procedure behind it: the reason the gate existed is the reason the copy is gone.
  */
-function canPromiseReply(config) {
-  return config.replyToMonitored === true && config.removalProcedureConfigured === true;
-}
-
-function replyPromiseHtml(config) {
-  if (!canPromiseReply(config)) return '';
-  return para('If your details need correcting, reply to this message and we will update them.') +
-    para('If you did not submit this, reply and we will remove your information.');
-}
-
-function replyPromiseText(config) {
-  if (!canPromiseReply(config)) return '';
-  return '\n' + textWrap('If your details need correcting, reply to this message and we will update them.') +
-    '\n\n' + textWrap('If you did not submit this, reply and we will remove your information.') + '\n';
-}
-
-/** Footer legal line. Drops the reply invitation when no one is reading replies. */
-function footerLegalFor(config) {
-  return canPromiseReply(config)
-    ? 'Sent from Houston, Texas. You can reply to this message at any time.'
-    : 'Sent from Houston, Texas.';
-}
+var QR_ACK_FOOTER_LEGAL = 'Sent from Houston, Texas.';
 
 /**
  * Who the acknowledgement says has the details.
@@ -161,7 +142,6 @@ function renderQrAcknowledgement(contact, config) {
     block(panel(identity.isPartner ? 'Who you connected with' : 'Who has your details', identityRows(identity)), 'padding-top:16px;') +
     block(callout('info', '', 'This is not a mailing list',
       'Sharing your details from a card does not subscribe you to anything. They are used only to follow up on the conversation you had.'), 'padding-top:16px;') +
-    (replyPromiseHtml(config) ? block(replyPromiseHtml(config)) : '') +
     block(signatureHtml(identity), 'padding-top:20px;');
 
   var subject = identity.name + ' has your contact details';
@@ -181,7 +161,6 @@ function renderQrAcknowledgement(contact, config) {
     '',
     textRule('This is not a mailing list'),
     textWrap('Sharing your details from a card does not subscribe you to anything. They are used only to follow up on the conversation you had.'),
-    replyPromiseText(config),
     '--',
     identity.name,
     identity.title,
@@ -199,10 +178,10 @@ function renderQrAcknowledgement(contact, config) {
     htmlBody: shell({
       title: subject,
       headerMeta: 'Contact exchange',
-      preheader: 'Your contact details were received. Reply if anything needs correcting.',
+      preheader: 'Your contact details were received.',
       body: body,
       footerNote: 'You are receiving this because you shared your details from an AxisPoint card.',
-      footerLegal: footerLegalFor(config),
+      footerLegal: QR_ACK_FOOTER_LEGAL,
       logoUrl: config.logoUrl
     }),
     textBody: text

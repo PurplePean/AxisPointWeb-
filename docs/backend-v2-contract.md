@@ -720,24 +720,27 @@ property fails closed.
 | `AXP_FIRM_PHONE` | Firm phone. The row is omitted entirely rather than shown empty |
 | `AXP_WEBSITE_URL` | Public website, printed as a word rather than a bare URL |
 | `AXP_LOGO_URL` | Logo PNG. Both emails are complete without it |
-| `AXP_REPLY_TO_MONITORED` | `true` only when the reply-to address reaches a monitored human mailbox |
-| `AXP_REMOVAL_PROCEDURE_CONFIGURED` | `true` only when a written correction/removal procedure with a named owner exists |
 | `AXP_RUN_MODE` | `live` or `dry_run`; anything else is `dry_run` |
 
-### Configuration health, and the two launch blockers
+### Configuration health
 
 `doGet` reports `health`, which separates two different questions: whether a capability
 **can** run, and whether the copy it would send is currently **true**.
 
-The QR acknowledgement's approved copy says "reply to this message and we will update
-them" and "reply and we will remove your information". Printing that with nobody reading
-the mailbox tells a real person something untrue. So the block renders **only** when both
-`AXP_REPLY_TO_MONITORED` and `AXP_REMOVAL_PROCEDURE_CONFIGURED` are `true`, and both are
-reported as launch **blockers** until they are. Unset means false; an unset flag is never
-read as "yes, somebody is watching".
+`blockers` is the second list, and it is **currently empty**: no outbound copy makes a
+promise that configuration has to make true. `promisesKeepable` is therefore `true`. The
+list and the field are kept in the response shape so the next piece of copy that promises
+something has somewhere honest to report it.
 
-Neither automated reply ingestion nor automated deletion is implemented. Correction and
-removal are manual procedures performed by a person.
+Two blockers used to live here. The QR acknowledgement said "reply to this message and we
+will update them" and "reply and we will remove your information", rendered only when
+`AXP_REPLY_TO_MONITORED` and `AXP_REMOVAL_PROCEDURE_CONFIGURED` were both `true`. On
+2026-08-15 that copy was deleted and both properties removed: correction and removal on
+request are not offered, so the honest fix was to stop promising it rather than to gate
+it. Neither property is read anywhere; setting either one has no effect.
+
+Neither automated reply ingestion nor automated deletion is implemented, and the
+acknowledgement no longer invites a reply for either purpose.
 
 An unset run mode is **`dry_run`**, not `live`. Nothing leaves the project until
 somebody says so explicitly.

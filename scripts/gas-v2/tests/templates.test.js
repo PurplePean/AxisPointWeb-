@@ -10,8 +10,8 @@
  *  - The QR acknowledgement echoing the submitted record. The address has not been
  *    verified as belonging to the person who typed it, so mailing their phone number
  *    back mails it to whoever actually owns that inbox.
- *  - A promise nobody can keep. The correction and removal lines say a reply reaches a
- *    human. With no monitored mailbox behind them they are untrue.
+ *  - A promise nobody can keep. The acknowledgement once offered correction and removal
+ *    on request. That is not offered, so no configuration may render that copy at all.
  *  - An invented value. A placeholder phone or address in a transactional email is a
  *    real number that belongs to somebody else.
  *
@@ -125,45 +125,39 @@ test('the acknowledgement offers no Save Contact action', () => {
   assert.equal(/save contact|\.vcf|add to contacts/i.test(out.htmlBody), false);
 });
 
-/* ── The promise gate ─────────────────────────────────────────────────────── */
+/* ── No correction or removal promise, under any configuration ────────────── */
 
-test('the correction and removal lines render when a monitored mailbox is configured', () => {
+test('the acknowledgement never promises correction or removal', () => {
+  // AxisPoint does not offer correction or removal on request, so no configuration may
+  // produce this copy. The two keys below are DEAD: `AXP_REPLY_TO_MONITORED` and
+  // `AXP_REMOVAL_PROCEDURE_CONFIGURED` once gated the promise and no longer exist in
+  // `Config.js`. They are passed here deliberately, at their most permissive value, so
+  // that a reintroduced gate reading either one fails this test instead of quietly
+  // rendering the promise again on a project where somebody set them years ago.
   const lead = storedLead(fx.qrSubmission(8, 'zachary-russell'));
-  const out = ctx.renderQrAcknowledgement(lead, renderConfig());
-
-  assert.match(out.htmlBody, /reply to this message and we will update them/);
-  assert.match(out.htmlBody, /reply and we will remove your information/);
-  // The text part hard-wraps at 62 columns, so the sentence is matched after
-  // normalizing whitespace rather than across a line break that is correct behaviour.
-  assert.match(out.textBody.replace(/\s+/g, ' '), /reply and we will remove your information/);
-});
-
-test('they are omitted entirely when no one is reading replies', () => {
-  // Promising a real person that a reply will delete their record, with nobody watching
-  // the mailbox, is a lie. It is omitted rather than softened.
-  const lead = storedLead(fx.qrSubmission(9, 'zachary-russell'));
-  const out = ctx.renderQrAcknowledgement(lead, renderConfig({ replyToMonitored: false }));
-
-  assert.equal(/we will update them/.test(out.htmlBody), false);
-  assert.equal(/we will remove your information/.test(out.htmlBody), false);
-  assert.equal(/reply to this message at any time/.test(out.htmlBody), false);
-});
-
-test('they are omitted when the removal procedure is undocumented', () => {
-  const lead = storedLead(fx.qrSubmission(10, 'zachary-russell'));
-  const out = ctx.renderQrAcknowledgement(lead, renderConfig({ removalProcedureConfigured: false }));
-  assert.equal(/we will remove your information/.test(out.htmlBody), false);
-});
-
-test('config health names both gates as blockers when they are unset', () => {
-  const health = ctx.configHealth(fakeConfig({
-    replyToMonitored: false,
-    removalProcedureConfigured: false,
+  const out = ctx.renderQrAcknowledgement(lead, renderConfig({
+    replyToMonitored: true,
+    removalProcedureConfigured: true,
   }));
 
-  assert.equal(health.promisesKeepable, false);
-  const issues = Array.from(health.blockers).map((b) => b.issue).sort();
-  assert.deepEqual(issues, ['removal_procedure_undocumented', 'reply_to_not_monitored']);
+  // The text part hard-wraps at 62 columns, so it is checked with whitespace normalized
+  // rather than letting a correct line break hide a sentence from the assertion.
+  const text = out.textBody.replace(/\s+/g, ' ');
+  [out.htmlBody, text].forEach((body) => {
+    assert.equal(/we will update them/.test(body), false);
+    assert.equal(/we will remove your information/.test(body), false);
+    assert.equal(/needs? correcting/i.test(body), false);
+    assert.equal(/reply to this message at any time/.test(body), false);
+  });
+});
+
+test('config health reports no promise blockers, because no promise is made', () => {
+  const health = ctx.configHealth(fakeConfig());
+
+  // Length, not deepEqual: the array is constructed inside the loaded GAS context, so it
+  // has a different Array prototype and a strict structural compare rejects it.
+  assert.equal(health.blockers.length, 0);
+  assert.equal(health.promisesKeepable, true);
 });
 
 /* ── Missing values disappear, nothing is invented ────────────────────────── */

@@ -55,12 +55,12 @@ has been performed.
    Email identity: `AXP_PARTNER_DIRECT_EMAIL_MAP`, `AXP_PARTNER_DIRECT_PHONE_MAP`,
    `AXP_FIRM_EMAIL`, `AXP_FIRM_PHONE`, `AXP_WEBSITE_URL`, `AXP_LOGO_URL`.
 
-   **Two launch blockers:** `AXP_REPLY_TO_MONITORED` and
-   `AXP_REMOVAL_PROCEDURE_CONFIGURED`. The QR acknowledgement's approved copy promises
-   that a reply reaches a human who will correct or remove a record. Until a monitored
-   mailbox and a written procedure with a named accountable person exist, set neither
-   flag: the email then omits those lines rather than promising something nobody will
-   keep. `doGet` reports both by name.
+   **There are no promise flags to set.** `AXP_REPLY_TO_MONITORED` and
+   `AXP_REMOVAL_PROCEDURE_CONFIGURED` were removed on 2026-08-15 along with the QR
+   acknowledgement copy they gated: correction and removal on request are not offered, so
+   the email no longer promises them and there is nothing left to configure. If either
+   name turns up in an older runbook or an already-provisioned project, it is stale;
+   setting it does nothing.
 4. `cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
    `appsscript.json` and the `src/*.js` files. The `.claspignore` allowlist is the only thing
    keeping the Node test suite out, and pushing it would take the backend down.

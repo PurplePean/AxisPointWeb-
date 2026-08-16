@@ -372,11 +372,6 @@ function fakeConfig(overrides = {}) {
     replyTo: 'reply@example.test',
     fromName: 'AxisPoint',
 
-    // Both TRUE here so the default fixture renders the approved correction and removal
-    // lines. Tests that care about the promise gate blank them explicitly.
-    replyToMonitored: true,
-    removalProcedureConfigured: true,
-
     partnerDirectEmail: {
       zachary_russell: 'zr.direct@example.test',
       ethaniel_vu: 'ev.direct@example.test',
