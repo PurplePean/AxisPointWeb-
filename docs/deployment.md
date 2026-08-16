@@ -168,7 +168,7 @@ safety pass, which touched CI but left deployment configuration alone.
 | File | Trigger | What it does | Status |
 |---|---|---|---|
 | `.github/workflows/ci.yml` | PR to `main` + push to `main` | Three jobs. **build:** type-check, lint across all four packages, both production builds with `VITE_V2_SUBMISSION_ENDPOINT: ''`, and `inspect-bundle.mjs` against each `dist`. **test-frontend:** `pnpm test:frontend`. **verify-rendered:** route baseline, ARIA assertions, and the 20-state intake baseline in a headless browser. No deploy. | ✅ **passing** |
-| `.github/workflows/test-gas.yml` | PR to `main` + push to `main` | Both Apps Script suites, as separate steps | ✅ **passing** |
+| `.github/workflows/test-gas.yml` | PR to `main` + push to `main` | One step, `pnpm test:gas-v2`. It used to run two suites; the V1 step was removed with the V1 backend at retirement | ✅ **passing** |
 | `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with the **wrong (V1) variable** → FTP `./apps/web/dist/` to `./public_html/` | ❌ **failing** |
 | `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with the **wrong (V1) variable** → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` | ❌ **failing** |
 
