@@ -44,8 +44,8 @@ has been performed.
 
 1. Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).
 2. Create the Sheet with the four tabs `Leads`, `Contacts`, `Log`, `Work`, header rows per
-   `expectedTabLayout()` in `src/SheetRepository.js`.
-3. Set the Script Properties named in `src/Config.js`. **No value for any of these exists
+   `expectedTabLayout()` in `src/platform/SheetRepository.js`.
+3. Set the Script Properties named in `src/platform/Config.js`. **No value for any of these exists
    in this repository.** Leave `AXP_RUN_MODE` unset or `dry_run` until a live send is
    intended; an unset mode is `dry_run`, never `live`.
 
@@ -62,7 +62,7 @@ has been performed.
    name turns up in an older runbook or an already-provisioned project, it is stale;
    setting it does nothing.
 4. `cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
-   `appsscript.json` and the `src/*.js` files. The `.claspignore` allowlist is the only thing
+   `appsscript.json` and the source files under `src/`. The `.claspignore` allowlist is the only thing
    keeping the Node test suite out, and pushing it would take the backend down.
 5. Install the time-driven triggers. **This repository installs none of them**, and none
    of the handlers has ever run:
@@ -104,7 +104,9 @@ checklist is above.
 ### `.claspignore` controls what is allowed to reach Apps Script
 
 `scripts/gas-v2/.claspignore` is an **allowlist**, not a blocklist. It denies `**/**` and
-re-allows only `appsscript.json` and `src/*.js`.
+re-allows only `appsscript.json` and `src/**/*.js`. The allow rule is recursive because `src`
+is grouped into `entrypoints/`, `core/`, `platform/`, `scheduled/`, `emails/`, and `shared/`;
+a single-segment `src/*.js` would now match nothing and push a project with no code in it.
 
 This is load-bearing, not tidiness. Apps Script runs **every pushed file's top-level statements
 in one shared global scope on every invocation**. A Node test file opening with
@@ -119,7 +121,7 @@ allowlist cannot quietly become a blocklist. Do not convert it into one by hand.
 ### Gotcha: the deploying account needs *edit* access to the bookings calendar
 
 **This gotcha survived V1 retirement because V2 inherits the mechanism, not because it is
-history.** `scripts/gas-v2/src/GoogleServices.js` is the only file that names `CalendarApp`, and
+history.** `scripts/gas-v2/src/platform/GoogleServices.js` is the only file that names `CalendarApp`, and
 it reads and writes the calendar named by the `calendarId` config value.
 
 A Web App deployed with `executeAs: USER_DEPLOYING` runs every calendar read and every event
@@ -139,7 +141,7 @@ This matters the moment the deploying account changes, because a redeploy from a
 Google account silently re-binds execution identity.
 
 The V2 booking command is built so that this failure is visible rather than silent.
-`scripts/gas-v2/src/Booking.js` calls the calendar synchronously and returns a final status, and
+`scripts/gas-v2/src/core/Booking.js` calls the calendar synchronously and returns a final status, and
 `confirmed` is reachable from exactly one place: a successful `createEvent`. A permissions
 problem therefore surfaces as `failed`, and a missing `calendarId` as `not_configured`, instead
 of a visitor being told they are booked for a meeting that does not exist. If you see either

@@ -82,7 +82,7 @@ var CALENDAR_SERVICE_PORT = [
  * Message rendering.
  *
  * IMPLEMENTED as of Pass 9A, from the approved communications design. `realTemplates()`
- * in Templates.js is the production implementation; the port stays because it is what
+ * in emails/Registry.js is the production implementation; the port stays because it is what
  * lets every handler be tested against a fake renderer without asserting on markup.
  *
  * `notImplementedTemplates()` is retained for the tests that prove a permanent render

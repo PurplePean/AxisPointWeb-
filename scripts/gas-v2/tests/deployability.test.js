@@ -54,7 +54,27 @@ test('.claspignore re-allows only the deployable set', () => {
     .map((l) => l.trim())
     .filter((l) => l.startsWith('!'));
 
-  assert.deepEqual(allows.sort(), ['!appsscript.json', '!src/*.js']);
+  assert.deepEqual(allows.sort(), ['!appsscript.json', '!src/**/*.js']);
+});
+
+test('the allow rule reaches every grouped source file, at every depth', () => {
+  /*
+   * The grouping into entrypoints/, core/, platform/, scheduled/, emails/, and shared/ is
+   * exactly the change that would break a single-segment `src/*.js` rule: it matches
+   * nothing nested, so a push would upload the manifest and no code at all, and every
+   * doPost would 404 rather than fail loudly. Assert the rule is recursive AND that the
+   * source it has to cover really is nested, so this cannot pass by both sides going flat.
+   */
+  const allows = readRoot('.claspignore')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('!'));
+
+  assert.ok(allows.indexOf('!src/**/*.js') !== -1, 'the source allow must be recursive');
+  assert.ok(
+    SOURCES.every((file) => file.indexOf('/') !== -1),
+    'every source file is expected to live in a group folder under src',
+  );
 });
 
 test('the tests directory is not reachable through any allow rule', () => {
@@ -163,7 +183,7 @@ test('only the adapter files name a Google service', () => {
     // The People advanced service is covered by its own test, which matches the call
     // form rather than the bare word so prose about it does not trip this check.
   ];
-  const allowed = { 'GoogleServices.js': true, 'Entry.js': true };
+  const allowed = { 'platform/GoogleServices.js': true, 'entrypoints/Entry.js': true };
 
   SOURCES.forEach((file) => {
     if (allowed[file]) return;

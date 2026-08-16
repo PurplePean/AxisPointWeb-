@@ -14,7 +14,7 @@ import type { ContactCategory } from '@axispoint/submission-client';
 /**
  * The seven approved categories, in approved order.
  *
- * The tokens are the backend's `CONTACT_CATEGORIES` verbatim (`scripts/gas-v2/src/Tokens.js`),
+ * The tokens are the backend's `CONTACT_CATEGORIES` verbatim (`scripts/gas-v2/src/core/Tokens.js`),
  * not values inferred from these labels. The labels are the approved visible strings.
  */
 export const CONTACT_CATEGORIES: ReadonlyArray<{ value: ContactCategory; label: string }> = [
@@ -68,8 +68,8 @@ export const MESSAGE = {
  * only authority. They are matched to `scripts/gas-v2` so the browser catches what the
  * server would reject, rather than sending something it already knows is invalid:
  *
- *   email  EMAIL_RE in Contract.js
- *   phone  validatePhone in Util.js, 7 to 20 digits and approved punctuation only
+ *   email  EMAIL_RE in core/Contract.js
+ *   phone  validatePhone in shared/Util.js, 7 to 20 digits and approved punctuation only
  *
  * The design records the seven-digit floor as provisional frontend guidance and defers the
  * final contract to the backend, which is what these follow. The 20-digit ceiling is the

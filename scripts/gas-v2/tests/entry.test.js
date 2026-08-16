@@ -159,7 +159,7 @@ test('eligibility is not computed at the transport boundary', () => {
   // Entry.js must forward, never derive. If it derived, blanking the stored value would
   // not change the replay response.
   const source = require('node:fs').readFileSync(
-    require('node:path').join(__dirname, '..', 'src', 'Entry.js'),
+    require('node:path').join(__dirname, '..', 'src', 'entrypoints', 'Entry.js'),
     'utf8',
   );
   // Matched as a CALL, not as a word: the comment above the forward legitimately names

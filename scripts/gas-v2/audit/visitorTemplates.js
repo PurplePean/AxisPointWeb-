@@ -8,7 +8,7 @@
  * them. They are not approved, not professionally translated, and not production-ready.
  *
  * WHY IT LIVES OUTSIDE src/. `scripts/gas-v2/.claspignore` is an allowlist: only
- * `appsscript.json` and `src/*.js` are ever pushed to Apps Script. Putting these here means
+ * `appsscript.json` and the source under `src/` are ever pushed to Apps Script. Putting these here means
  * they are structurally incapable of reaching the deployed project, which is the same kind of
  * guarantee the web audit catalogs get from the Vite alias. Nothing needs to remember to
  * exclude them.

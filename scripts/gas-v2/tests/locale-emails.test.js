@@ -524,7 +524,7 @@ test('the acknowledgement row labels are translated too', () => {
 test('a stale phrase table fails loudly instead of half-translating', () => {
   /*
    * The regression this file most needs to survive. If someone edits an English phrase in
-   * Templates.js and a locale table still names the old wording, an unchecked replace would
+   * a renderer in src/emails and a locale table still names the old wording, an unchecked replace would
    * quietly send a message that is English in one place and translated everywhere else. This
    * proves it throws instead.
    */

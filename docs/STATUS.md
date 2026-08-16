@@ -166,7 +166,7 @@ payload is unchanged by this pass.
 **Visitor emails have audit-candidate translations; nothing else does.** The website
 acknowledgement and the booking confirmation have model-generated sets for the eight
 unreviewed locales, in `scripts/gas-v2/audit/visitorTemplates.js`. That path is **outside
-`src/`**, and `.claspignore` is an allowlist admitting only `appsscript.json` and `src/*.js`,
+`src/`**, and `.claspignore` is an allowlist admitting only `appsscript.json` and `src/**/*.js`,
 so those templates are structurally incapable of reaching the deployed Apps Script project.
 `realTemplates(extraLocaleSets)` takes its locale sets as an argument and has no production
 caller that passes any, and `resolveOutboundLocale` only ever returns a locale in
@@ -774,7 +774,7 @@ documented correction and removal procedure with a named accountable person.~~ *
 correction or removal on request, so the copy that promised it was deleted from the QR
 acknowledgement, and with it the two Script Properties that gated it,
 `AXP_REPLY_TO_MONITORED` and `AXP_REMOVAL_PROCEDURE_CONFIGURED`. Neither property exists in
-`src/Config.js` any more, neither is provisioned, and `configHealth` reports no promise
+`src/platform/Config.js` any more, neither is provisioned, and `configHealth` reports no promise
 blockers because nothing outbound makes a promise that configuration has to make true.
 
 **These are resolved, not deferred, and the resolution is not a mailbox or a procedure.** No

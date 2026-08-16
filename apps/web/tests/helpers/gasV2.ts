@@ -10,6 +10,11 @@
  * concatenates every file into one global scope. So the files are evaluated, in order,
  * into a single VM context, exactly as the backend's own test loader does.
  *
+ * The walk RECURSES, because `scripts/gas-v2/src` is grouped into entrypoints/, core/,
+ * platform/, scheduled/, emails/, and shared/. Those folders organize the source for
+ * human readers; Apps Script still flattens all of it into one scope, so every file at
+ * every depth has to be evaluated here or this loader silently loads nothing.
+ *
  * This is READ-ONLY. Nothing here modifies `scripts/gas-v2`, and no test using it may.
  */
 
@@ -20,6 +25,17 @@ import vm from 'node:vm';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = path.resolve(HERE, '../../../../scripts/gas-v2/src');
+
+/** Every `.js` under `src`, at any depth, as a forward-slash path relative to `src`. */
+function listSourceFiles(dir: string, prefix = ''): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...listSourceFiles(path.join(dir, entry.name), rel));
+    else if (entry.name.endsWith('.js')) out.push(rel);
+  }
+  return out;
+}
 
 export interface ParseResult {
   ok: boolean;
@@ -47,7 +63,7 @@ export function loadGasV2Contract(): GasV2Contract {
   };
 
   const context = vm.createContext(sandbox);
-  const files = readdirSync(SRC_DIR).filter((f) => f.endsWith('.js')).sort();
+  const files = listSourceFiles(SRC_DIR).sort();
 
   if (files.length === 0) throw new Error('no backend source files found');
 

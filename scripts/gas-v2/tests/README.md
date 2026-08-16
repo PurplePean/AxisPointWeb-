@@ -8,10 +8,16 @@ pnpm test:gas-v2
 
 ## How loading works
 
-`helpers/load.js` reads every `src/*.js` file and evaluates it in ONE VM context. That
-reproduces the Apps Script runtime, which concatenates all pushed files into a single
-global scope with no modules and no imports. Loading each file into its own sandbox
-would test a structure that does not exist in production.
+`helpers/load.js` walks `src` RECURSIVELY and evaluates every `.js` file it finds in ONE
+VM context. That reproduces the Apps Script runtime, which concatenates all pushed files
+into a single global scope with no modules and no imports. Loading each file into its own
+sandbox would test a structure that does not exist in production.
+
+The recursion is load-bearing. `src` is grouped into `entrypoints/`, `core/`, `platform/`,
+`scheduled/`, `emails/`, and `shared/`, and those folders are a reading aid for humans
+only: Apps Script still flattens them. A non-recursive read of `src` would find no files
+at all, so `listSourceFiles` returns paths relative to `src` (`emails/Registry.js`) and
+`load()` throws when the set comes back empty.
 
 The context is supplied with only the globals Apps Script provides. `require`,
 `module`, `process`, and `Buffer` are deliberately absent, so a Node dependency

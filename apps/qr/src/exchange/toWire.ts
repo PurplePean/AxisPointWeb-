@@ -5,12 +5,12 @@ import type { ExchangeDraft } from './model';
  * Maps the exchange draft onto the V2 wire contract.
  *
  * Built from `AxisPoint QR Contact Exchange.dc.html` §x11 (approved frontend contract) and
- * verified against `scripts/gas-v2/src/Contract.js` `validateContactExchange`, which is the
+ * verified against `scripts/gas-v2/src/core/Contract.js` `validateContactExchange`, which is the
  * only authority. Nothing here is inferred from a UI label.
  *
  * ATTRIBUTION IS THE SUBTLE PART. The browser sends only where the scan came from:
  * `sourceCategory: 'qr'` and `sourceDetail`, the card slug. The backend derives the rest and
- * keeps two facts deliberately apart (`scripts/gas-v2/src/Attribution.js`):
+ * keeps two facts deliberately apart (`scripts/gas-v2/src/core/Attribution.js`):
  *
  *   acquisitionSource / scannedPartner   which card produced this person. IMMUTABLE.
  *   ownerPartner                         who is responsible now. Starts EMPTY for everyone.
@@ -25,7 +25,7 @@ import type { ExchangeDraft } from './model';
  * Card slugs the backend resolves.
  *
  * These are the QR profile keys, which already match `SLUG_TO_PARTNER` in
- * `scripts/gas-v2/src/Tokens.js` exactly. The firm card has no profile key (it is the
+ * `scripts/gas-v2/src/core/Tokens.js` exactly. The firm card has no profile key (it is the
  * `null` fallback), so it maps to the backend's `FIRM_SLUG`.
  *
  * An unrecognised slug is NOT corrected here. The backend resolves anything it does not
