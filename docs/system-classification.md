@@ -1,7 +1,7 @@
 # AxisPoint System Classification
 
 **Last verified:** August 16, 2026  
-**Verified repository commit:** `775caa4b61ea72eca396fd4f66e1b9df80cc6482`, the head of `main` after PRs #81, #82, #83, and #84  
+**Verified repository commit:** `68e830325043bbb57c4dd7c479a04f039d7cb4bb`, the head of `main` after PRs #81 through #87  
 **Safety checkpoint:** `pre-v1-retirement-2026-08-14`  
 **Repository state when verified:** clean `main`
 
@@ -24,7 +24,7 @@ When this document disagrees with a general description elsewhere, inspect the c
 - The external V1 Apps Script project still exists and is untouched. Whether it is left in place, disabled, or removed is a separate owner decision and a separate authorized operation. No repository change performs it.
 - The nine-language product scope is confirmed: English, Spanish, Simplified Chinese, Traditional Chinese, Vietnamese, Hindi, Urdu, Gujarati and Punjabi.
 - English is the only reviewed and enabled language today. The other eight are disabled because fluent review is outstanding, not because their inclusion is undecided.
-- The current QR Contact Exchange is not the long-term QR product AxisPoint intends to operate. A smaller replacement will be scoped separately.
+- The QR Contact Exchange keeps its full functionality, and that is settled. A smaller digital contact card is planned as a separate future pass; it is not in progress and it does not reduce what ships today. See [`STATUS.md` §3](STATUS.md).
 - Repository changes do not deploy, provision or modify any external system.
 
 ## Current V2 core
@@ -50,7 +50,7 @@ The website is built and tested but has not been deployed from this repository.
 - `packages/submission-client`
 - Website inquiry request and response shapes
 - Booking request and response shapes
-- Current QR exchange request and response shapes, until the separate QR replacement pass
+- QR exchange request and response shapes
 - `refToken`, which remains an intentionally inert attribution value carried through the website and backend. **It survived V1 retirement deliberately.** Its original producer, the `/share/:code` landing page, is gone, but the intake reads `?ref=` straight off the query string, so the wire field, the intake field, and the backend handling are all unchanged
 
 ### V2 backend
@@ -62,7 +62,7 @@ The website is built and tested but has not been deployed from this repository.
 - Booking confirmation email
 - Internal website notification email
 - Delivery tracking and retry behavior
-- Current QR-specific handling, storage, acknowledgement, digest and matching, until the separate QR replacement pass
+- QR-specific handling, storage, acknowledgement, digest and matching
 - Audit-only visitor email translations outside the deployable source allowlist
 
 The V2 backend is written and tested. It has not been provisioned as a Google Apps Script project, connected to a production Sheet, given production settings, assigned triggers or deployed to a public submission address.
@@ -117,7 +117,25 @@ than a lookup in the working tree, which is the intended outcome and not an acci
 - **`apps/qr` and everything QR-specific.** The retain, retire, or rebuild decision for QR was explicitly out of scope for this pass.
 - **`scripts/gas-v2`.** Untouched.
 - **The external V1 Apps Script project**, which no repository change can reach.
-- **The gitignored `scripts/gas/.clasp.json`**, which is a machine-local file, not repository content.
+
+### The machine-local V1 clasp config: relocated August 16, 2026
+
+This list previously ended with the gitignored `scripts/gas/.clasp.json`, described as
+deliberately not removed because it was a machine-local file rather than repository content.
+That is no longer where it lives. Because it was gitignored, `git rm` never touched it during
+V1 retirement, so it survived on disk in an otherwise empty `scripts/gas/` directory, still
+carrying the live Script ID of the retired V1 project. A clasp command run from that directory
+would still have resolved it.
+
+**On August 16, 2026 it was moved out of the repository tree to
+`~/Desktop/axispoint-v1-clasp-quarantine/` and renamed
+`clasp.json.v1-retired-DO-NOT-USE`**, since clasp only recognises a file named exactly
+`.clasp.json`. `scripts/gas/` no longer exists on disk. The file is not deleted, because the
+external V1 Apps Script project it points at was retired rather than deleted; it should be
+deleted once that project is gone. It must not be copied back into the repository.
+
+The `scripts/gas/.clasp.json` line stays in `.gitignore` regardless, so that the path cannot be
+committed by accident if a copy reappears on any machine.
 
 ### Partner contact values: resolved
 
@@ -142,9 +160,31 @@ The current QR Contact Exchange is a V2-integrated evolution built on a legacy a
 
 Its current behavior was substantially rewritten during the V2 passes. It uses the shared V2 submission client and V2 backend contract. Therefore it must not be deleted or simplified as part of V1 retirement.
 
-At the same time, the current product is larger than AxisPoint intends to operate long term. It collects visitor information, stores Contact records, sends acknowledgement emails, performs matching, prepares digests and runs scheduled backend work.
+### Scope: full functionality, settled
 
-The confirmed future direction is a separate minimal digital contact card with:
+**`apps/qr` retains its full Contact Exchange.** The form, storage, the acknowledgement email,
+the daily digest, and matching all remain and are exercised by tests. This was settled on
+2026-08-15 and is recorded in [`STATUS.md` §3](STATUS.md), which is the operative statement of
+current QR scope. This section previously described the current product as larger than AxisPoint
+intends to operate and treated its behavior as provisional, which read as though a reduction was
+pending. It is not. The only thing removed in that pass was the correction and removal promise in
+the QR acknowledgement, along with the two Script Properties that gated it.
+
+So there is no "until the replacement" qualifier on anything below. These are current, supported
+V2 surfaces:
+
+- `apps/qr`
+- QR-specific branches in `packages/submission-client`
+- QR-specific branches in `scripts/gas-v2`
+- The current QR tests
+- `apps/qr` mounts the shared `<E2eBanner />` in `src/Root.tsx`, as `apps/web` already did. Done in the 2026-08-15 safety pass, nothing further is required
+
+Do not make QR retirement part of V1 retirement, and do not reduce QR functionality on the basis
+of the future direction below.
+
+### Future direction: a separate card, planned but not in progress
+
+A separate minimal digital contact card remains the intended long-term QR product:
 
 - A verified partner profile
 - Verified contact information
@@ -152,16 +192,13 @@ The confirmed future direction is a separate minimal digital contact card with:
 - Links to the main website
 - One permanent address suitable for printed QR codes and email signatures
 
-The replacement will not collect visitor information, submit to the backend, send acknowledgement emails, create Contact records, perform matching, produce digests or require scheduled processing.
+That card would not collect visitor information, submit to the backend, send acknowledgement
+emails, create Contact records, perform matching, produce digests or require scheduled
+processing.
 
-Until that replacement is designed, built and approved:
-
-- Keep `apps/qr`
-- Keep QR-specific branches in `packages/submission-client`
-- Keep QR-specific branches in `scripts/gas-v2`
-- Keep current QR tests
-- The missing E2E warning banner has been restored: `apps/qr` mounts the shared `<E2eBanner />` in `src/Root.tsx`, as `apps/web` already did. Done in the 2026-08-15 safety pass, nothing further is required
-- Do not make QR retirement part of V1 retirement
+**It is planned, not in progress.** It is a separate product pass, it is blocked on the six
+unresolved QR values listed in [`design-sources.md`](design-sources.md), and it changes nothing
+about what `apps/qr` does today.
 
 ## Confirmed language scope
 
@@ -221,7 +258,7 @@ Steps 1 and 2 are done. The remaining production work is:
 8. Review the final English website on desktop and mobile.
 9. Review and activate the other eight languages individually.
 
-The simple QR replacement is a separate product pass and should not delay the main website unless printed cards or email signatures are required for the same launch date.
+The simple QR card is a separate product pass, planned rather than in progress, and should not delay the main website unless printed cards or email signatures are required for the same launch date. The existing Contact Exchange ships as it is and needs nothing from that pass.
 
 ## Documentation authority
 

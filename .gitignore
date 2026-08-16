@@ -56,3 +56,10 @@ scripts/gas-v2/.clasp.json
 
 # hosting-automation credentials (cPanel + Namecheap) — never commit
 scripts/hosting/.env
+
+# Claude Code machine-local state. Holds settings.local.json and, more importantly,
+# `worktrees/`, where Claude Code checks out full copies of the repository at other
+# commits. Those copies are real working trees, sometimes at pre-retirement commits,
+# and they are not repository content. Ignoring the directory keeps a broad `git add`
+# or a recursive grep for retired code from picking them up.
+.claude/
