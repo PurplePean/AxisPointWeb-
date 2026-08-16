@@ -11,6 +11,13 @@
  * WHY THE FILE LIST IS DISCOVERED, NOT HARD-CODED. A hard-coded list silently stops
  * covering a new module the moment someone adds one. The loader reads the directory
  * and asserts the set is non-empty.
+ *
+ * WHY THE WALK RECURSES. src is grouped into entrypoints/, core/, platform/, scheduled/,
+ * emails/, and shared/. Those folders are a reading aid for humans only: Apps Script
+ * still flattens everything into one global scope, so the loader must reach every file at
+ * every depth. A non-recursive read would silently load nothing and report an empty set.
+ * Returned names are paths relative to src, with forward slashes, so a caller can print
+ * `emails/Templates.js` rather than an ambiguous bare `Templates.js`.
  */
 
 const fs = require('node:fs');
@@ -19,11 +26,14 @@ const vm = require('node:vm');
 
 const SRC_DIR = path.join(__dirname, '..', '..', 'src');
 
-function listSourceFiles() {
-  return fs
-    .readdirSync(SRC_DIR)
-    .filter((f) => f.endsWith('.js'))
-    .sort();
+function listSourceFiles(dir = SRC_DIR, prefix = '') {
+  const out = [];
+  fs.readdirSync(dir, { withFileTypes: true }).forEach((entry) => {
+    const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...listSourceFiles(path.join(dir, entry.name), rel));
+    else if (entry.name.endsWith('.js')) out.push(rel);
+  });
+  return out.sort();
 }
 
 /**

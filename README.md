@@ -173,8 +173,9 @@ outside its own runtime, but the pure logic (routing, payload transforms, templa
 Sheet writes against a fake Sheets harness) is tested in Node with GAS globals stubbed out.
 Prefer this over reasoning about backend changes abstractly.
 
-It loads every `src/*.js` file into one VM context supplied with only the globals Apps Script
-provides, reproducing the single shared global scope of the real runtime. A Node dependency
+It walks `scripts/gas-v2/src` recursively and loads every `.js` file into one VM context supplied
+with only the globals Apps Script provides, reproducing the single shared global scope of the
+real runtime. A Node dependency
 creeping into backend source fails there rather than after a push.
 
 There was a second suite covering the V1 backend. It was deleted with V1 on 2026-08-15 and is

@@ -31,7 +31,7 @@ const gas = loadGasV2Contract();
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BOOKING_SRC = readFileSync(
-  path.resolve(HERE, '../../../scripts/gas-v2/src/Booking.js'),
+  path.resolve(HERE, '../../../scripts/gas-v2/src/core/Booking.js'),
   'utf8',
 );
 

@@ -5,8 +5,12 @@
 # GAS has no definition for, and every doPost and every trigger then throws. That
 # is a full backend outage caused entirely by files that are not source.
 #
+# src is grouped into entrypoints/, core/, platform/, scheduled/, emails/, and shared/.
+# The allow rule therefore has to be recursive; a single-segment `src/*.js` would match
+# nothing after the grouping and push a project with no code in it.
+#
 # Deny everything, then re-allow only the deployable set.
 **/**
 
 !appsscript.json
-!src/*.js
+!src/**/*.js

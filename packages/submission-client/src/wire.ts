@@ -1,7 +1,7 @@
 /**
  * The canonical V2 wire contract, in TypeScript.
  *
- * EVERY TOKEN BELOW WAS READ OUT OF `scripts/gas-v2/src/Tokens.js`, not inferred from a
+ * EVERY TOKEN BELOW WAS READ OUT OF `scripts/gas-v2/src/core/Tokens.js`, not inferred from a
  * visible label. The backend rejects approved display strings as wire values with their
  * own error code precisely so the copy deck can never become the contract, and a type
  * declared from what a button says would defeat that on the first copy edit.

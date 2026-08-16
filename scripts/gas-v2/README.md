@@ -11,41 +11,58 @@ authorized operation. See [`docs/deployment.md`](../../docs/deployment.md).
 ## What is here
 
 ```
-.claspignore       allowlist: deny everything, re-allow appsscript.json and src/*.js
+.claspignore       allowlist: deny everything, re-allow appsscript.json and src/**/*.js
 appsscript.json    manifest (V8, project time zone, OAuth scopes)
 src/               the deployable source, one shared global scope
 tests/             Node test suite; never pushed
 tools/             local-only utilities; never pushed
+audit/             local-only locale audit input; never pushed
 ```
 
-### src, in dependency order
+### src, grouped
+
+**The folders are a reading aid, not a module system.** Apps Script has no imports: it
+concatenates every pushed file into ONE global scope, so `core/Domain.js` calls a function
+declared in `shared/Util.js` by bare name, exactly as it did when both sat flat in `src/`.
+Nothing in the layout changes evaluation order, which Apps Script still controls, so the
+load-order rule below applies across folders exactly as it did within one.
+
+| Folder | What belongs in it |
+|---|---|
+| `entrypoints/` | The functions Apps Script itself calls by name. |
+| `core/` | Business rules. Plain JavaScript, no Google service, no email markup. |
+| `platform/` | Configuration, ports, wiring, and the Google adapter. |
+| `scheduled/` | Work driven by a trigger rather than by a request. |
+| `emails/` | Rendering only. One pure function per message. |
+| `shared/` | Pure helpers with no domain and no integration. |
 
 | File | Responsibility |
 |---|---|
-| `Tokens.js` | The stable snake_case wire vocabulary for `schemaVersion` 1. |
-| `Labels.js` | Wire value to human label. No email ever prints a token. |
-| `Util.js` | Ids, ISO time, normalization, redaction. No Google service. |
-| `Config.js` | Script Property names, worker bounds, business hours, SLA targets. |
-| `Contract.js` | Envelope parsing and validation. The boundary. |
-| `Attribution.js` | Attribution flattening, partner-slug resolution, locale records. |
-| `Domain.js` | Lead and Contact builders, merge rules, row projection. |
-| `Html.js` | Email-safe HTML primitives and escaping. |
-| `Templates.js` | The five approved templates, one pure function each. |
-| `Digest.js` | The daily QR Contact digest: eligibility, routing, splitting, delivery-bound state. |
-| `Retention.js` | Retention selection and the callable maintenance handler. |
-| `Matching.js` | Identity suggestions. Suggests; never merges. |
-| `Sla.js` | Business-hours due-time arithmetic. |
-| `Spam.js` | Screening. Flags; never discards. |
-| `Routing.js` | Who gets notified, and who provisionally owns the lead. |
-| `Worker.js` | The bounded at-least-once work-queue state machine. |
-| `Notifications.js` | Acknowledgement and partner-notification handlers. |
-| `Booking.js` | The post-submission booking command and its queued calendar write. |
-| `Intake.js` | Submission orchestration: store, then queue, then return. |
-| `Ports.js` | Every outside-world interface, plus the not-configured stubs. |
-| `SheetRepository.js` | Sheet-backed repositories, resolved by header name. |
-| `GoogleServices.js` | The only file that calls a Google service. |
-| `Runtime.js` | Production wiring. |
-| `Entry.js` | `doPost`, `doGet`, `runWorkerTrigger`, response shaping. |
+| `core/Tokens.js` | The stable snake_case wire vocabulary for `schemaVersion` 1. |
+| `emails/Labels.js` | Wire value to human label. No email ever prints a token. |
+| `shared/Util.js` | Ids, ISO time, normalization, redaction. No Google service. |
+| `platform/Config.js` | Script Property names, worker bounds, business hours, SLA targets. |
+| `core/Contract.js` | Envelope parsing and validation. The boundary. |
+| `core/Attribution.js` | Attribution flattening, partner-slug resolution, locale records. |
+| `core/Domain.js` | Lead and Contact builders, merge rules, row projection. |
+| `core/Records.js` | The immutable Submission and the mutable Delivery. |
+| `emails/Html.js` | Email-safe HTML primitives and escaping. |
+| `emails/Templates.js` | The five approved templates, one pure function each. |
+| `scheduled/Digest.js` | The daily QR Contact digest: eligibility, routing, splitting, delivery-bound state. |
+| `scheduled/Retention.js` | Retention selection and the callable maintenance handler. |
+| `core/Matching.js` | Identity suggestions. Suggests; never merges. |
+| `core/Sla.js` | Business-hours due-time arithmetic. |
+| `core/Spam.js` | Screening. Flags; never discards. |
+| `core/Routing.js` | Who gets notified, and who provisionally owns the lead. |
+| `scheduled/Worker.js` | The bounded at-least-once work-queue state machine. |
+| `core/Notifications.js` | Acknowledgement and partner-notification handlers. |
+| `core/Booking.js` | The post-submission booking command and its queued calendar write. |
+| `core/Intake.js` | Submission orchestration: store, then queue, then return. |
+| `platform/Ports.js` | Every outside-world interface, plus the not-configured stubs. |
+| `platform/SheetRepository.js` | Sheet-backed repositories, resolved by header name. |
+| `platform/GoogleServices.js` | The only file that calls a Google service. |
+| `platform/Runtime.js` | Production wiring. |
+| `entrypoints/Entry.js` | `doPost`, `doGet`, `runWorkerTrigger`, response shaping. |
 
 ## The rules this project is built on
 
@@ -54,7 +71,7 @@ every pushed file's top-level statements in one shared global scope on every
 invocation. A pushed Node test file opens with `require()`, which GAS has no
 definition for, and from that moment every `doPost` and every trigger throws. That is
 a full backend outage caused by files that are not source. So the file denies `**/**`
-first and re-allows only `appsscript.json` and `src/*.js`. `tests/deployability.test.js`
+first and re-allows only `appsscript.json` and `src/**/*.js`. `tests/deployability.test.js`
 asserts it stays that way.
 
 **No file reads another file's value at load time.** Apps Script decides evaluation
@@ -62,9 +79,9 @@ order, not this repository, so a top-level `var X = SOME_CONSTANT_FROM_ANOTHER_F
 throws for every request if the order is not what the author assumed. Cross-file
 values are read inside function bodies. A test loads `src` in reverse order to prove it.
 
-**Google services live behind ports.** `GoogleServices.js` is the only file that names
+**Google services live behind ports.** `platform/GoogleServices.js` is the only file that names
 `SpreadsheetApp`, `MailApp`, `CalendarApp`, `LockService`, or `PropertiesService`
-(`Entry.js` additionally uses `ContentService` to shape its response). Everything else
+(`entrypoints/Entry.js` additionally uses `ContentService` to shape its response). Everything else
 is plain JavaScript, which is why the suite runs the real decision code under Node
 rather than a parallel reimplementation of it.
 
@@ -100,9 +117,9 @@ deliberately demonstrates the duplicate, so nobody later upgrades the wording.
 pnpm test:gas-v2
 ```
 
-Node's built-in runner, no dependencies. The suite loads every `src/*.js` file into
-one VM context supplied with only the globals Apps Script provides, so a Node
-dependency creeping into `src` fails here instead of after a push.
+Node's built-in runner, no dependencies. The suite walks `src` recursively and loads
+every `.js` file it finds into one VM context supplied with only the globals Apps Script
+provides, so a Node dependency creeping into `src` fails here instead of after a push.
 
 See [`tests/README.md`](tests/README.md) for what each suite guards.
 

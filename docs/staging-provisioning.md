@@ -36,7 +36,7 @@ by anything else here.
 
 One new spreadsheet, `AxisPoint V2 CRM STAGING`.
 
-Tab names are case-sensitive (`TAB_NAMES`, `src/SheetRepository.js`). Header text is matched
+Tab names are case-sensitive (`TAB_NAMES`, `src/platform/SheetRepository.js`). Header text is matched
 case- and whitespace-insensitively but **must occupy row 1**.
 
 | Tab | Columns |

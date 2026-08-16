@@ -752,7 +752,7 @@ live Sheet breaks nothing. See §10 for what each holds and which are mutable.
 
 `Submissions`, `Deliveries`, `Leads`, `Contacts`, `Work`, `Log`.
 
-`expectedTabLayout()` in `src/SheetRepository.js` declares the header row for each. It is
+`expectedTabLayout()` in `src/platform/SheetRepository.js` declares the header row for each. It is
 read by a provisioning operator; nothing in this repository creates a tab.
 
 ---
@@ -859,7 +859,7 @@ silently changed:
 
 ## 17. Email templates
 
-One canonical renderer in `scripts/gas-v2/src/Templates.js`. **There is no
+One canonical renderer in `scripts/gas-v2/src/emails/Templates.js`. **There is no
 embedded-constant-versus-mirror-file duplication**; that V1 pattern kept every template
 twice and the two drifted silently until a parity test was written to catch it. Each V2
 template is one pure function returning `{ ok, subject, htmlBody, textBody }`, and the
@@ -962,7 +962,7 @@ connect the client to a backend.
 
 | Concern | Where | Rule |
 |---|---|---|
-| Wire tokens | `src/wire.ts` | Mirrors `scripts/gas-v2/src/Tokens.js`. Tokens are read from the backend source, never inferred from a UI label |
+| Wire tokens | `src/wire.ts` | Mirrors `scripts/gas-v2/src/core/Tokens.js`. Tokens are read from the backend source, never inferred from a UI label |
 | Attempt identity | `src/attempt.ts` | One `submissionId` per attempt, preserved across retries |
 | Error classification | `src/errors.ts` | Backend code to `ok` / `retryable` / `permanent` / `not_configured` |
 | Transport selection | `src/transport.ts` | Simulator, network, or fail-closed |
