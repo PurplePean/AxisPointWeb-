@@ -7,6 +7,11 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-16 (V1 clasp config quarantined, `.claude/` ignored)
+
+- **chore(infra): the machine-local V1 `.clasp.json` was moved out of the repository tree.** Because it was gitignored, V1 retirement's `git rm` never touched it, so it survived on disk in an otherwise empty `scripts/gas/` directory, still carrying the live Script ID of the retired V1 project, and a clasp command run from there would still have resolved it. It now sits at `~/Desktop/axispoint-v1-clasp-quarantine/clasp.json.v1-retired-DO-NOT-USE`, renamed because clasp only recognises the exact name `.clasp.json`. `scripts/gas/` no longer exists on disk. The `.gitignore` line stays, so the path cannot be committed if a copy reappears on another machine.
+- **chore(infra): `.claude/` is gitignored.** It holds Claude Code's machine-local settings and `worktrees/`, where full repository copies are checked out at other commits, including pre-retirement ones. Ignoring it keeps a broad `git add` or a recursive search for retired code from picking those copies up. One stale worktree, locked by a dead process and holding work already merged as #84, was removed in the same pass.
+
 ## 2026-08-16 (gas-v2 source layout: six folders under `src`)
 
 - **refactor(gas-v2): `scripts/gas-v2/src` is grouped into `entrypoints/`, `core/`, `platform/`, `scheduled/`, `emails/`, and `shared/`.** Twenty-five files that sat flat in one directory now sit in six, moved with `git mv` so history follows them. **The folders are a reading aid, not a module system.** Apps Script has no imports and still concatenates every pushed file into ONE global scope, so every cross-file call is still a bare global name and evaluation order is still Apps Script's to choose. No behaviour, no copy, and no wire shape changed.

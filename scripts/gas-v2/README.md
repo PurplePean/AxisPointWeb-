@@ -1,8 +1,9 @@
 # scripts/gas-v2 — V2 Apps Script backend
 
 The V2 backend, and the only backend in this repository. V1 was fully retired and deleted
-on 2026-08-15; its source survives only at the `v1-stable` and
-`pre-v1-retirement-2026-08-14` tags.
+on 2026-08-15. Its source is no longer reachable from `main` and is read from a tag
+instead: `v1-stable` is the canonical one, and `pre-v1-retirement-2026-08-14` and
+`pre-v2-clean-rebuild` each also contain the complete V1 backend and form tree.
 
 **Nothing here is connected to anything.** There is no `.clasp.json`, no Apps Script
 project, no Sheet, no trigger, and no deployment. Both frontends are wired to this
