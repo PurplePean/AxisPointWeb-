@@ -43,8 +43,9 @@ Each of these is a separate external mutation. None is implied by merging V2 cod
 has been performed.
 
 1. Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).
-2. Create the Sheet with the four tabs `Leads`, `Contacts`, `Log`, `Work`, header rows per
-   `expectedTabLayout()` in `src/platform/SheetRepository.js`.
+2. Create the Sheet with the six tabs `Submissions`, `Deliveries`, `Leads`, `Contacts`, `Log`,
+   `Work`, tab names and header rows exactly as `expectedTabLayout()` returns them in
+   `src/platform/SheetRepository.js`.
 3. Set the Script Properties named in `src/platform/Config.js`. **No value for any of these exists
    in this repository.** Leave `AXP_RUN_MODE` unset or `dry_run` until a live send is
    intended; an unset mode is `dry_run`, never `live`.

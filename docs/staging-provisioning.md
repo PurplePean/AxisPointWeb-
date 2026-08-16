@@ -8,9 +8,11 @@ trigger, deployment, endpoint, email, or calendar event exists. Every value belo
 recorded so provisioning is one reviewed decision rather than a sequence of small ones.
 
 **Live V1 identifiers are deliberately not repeated here.** The V1 script id, bound
-spreadsheet id, deployment id, and `/exec` URL live in [`deployment.md`](deployment.md).
-Copying them into a planning document that describes creating a parallel system is how the
-wrong id gets pasted into the wrong field.
+spreadsheet id, deployment id, and `/exec` URL are not in any tracked file. They exist only at
+the `pre-v1-retirement-2026-08-14` tag
+(`git show pre-v1-retirement-2026-08-14:docs/deployment.md`). Copying them into a planning
+document that describes creating a parallel system is how the wrong id gets pasted into the
+wrong field.
 
 ---
 
@@ -287,7 +289,8 @@ separately authorized.
 | Abandon staging | delete the staging project, spreadsheet, and calendar |
 
 **V1 is unaffected by all of them.** Separate script, spreadsheet, calendar, and deployment.
-Its identifiers are in [`deployment.md`](deployment.md) and are not repeated here.
+Its identifiers are not in any tracked file; they exist only at the
+`pre-v1-retirement-2026-08-14` tag.
 
 ---
 
@@ -296,12 +299,11 @@ Its identifiers are in [`deployment.md`](deployment.md) and are not repeated her
 1. Apps Script project `AxisPoint V2 STAGING`
 2. Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above
 3. Calendar `AxisPoint Booking STAGING`
-4. 15 Script Properties per §3
+4. 13 Script Properties per §3
 5. 3 time-driven triggers per §5
 6. 1 Web app deployment
 7. Local `scripts/gas-v2/.clasp.json`, gitignored
 
 ## Open before provisioning
 
-Nothing blocks provisioning. Both flags are `false`, the acknowledgement omits the two
-promise lines, and every other capability works.
+Nothing blocks provisioning.
