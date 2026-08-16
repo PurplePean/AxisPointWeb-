@@ -145,12 +145,6 @@ Deviations from the drawn specimens, recorded rather than silently taken:
    into two numbered parts rather than fitting one email. Splitting is the approved
    behaviour above the ceiling; nothing is truncated and nothing clips.
 
-Unresolved production variables from m12 remain unresolved and are read from Script
-Properties by name. Two are **launch blockers** and are reported by the backend's own
-health check: a monitored Reply-To mailbox, and a documented removal procedure with a
-named accountable person. Until both are configured the correction and removal lines are
-omitted from the email entirely.
-
 ### Language selector, `design@2026-07-31`
 
 | | |
