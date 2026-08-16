@@ -39,8 +39,6 @@ function config(overrides = {}) {
   return {
     replyTo: 'reply@example.test',
     fromName: 'AxisPoint Partners',
-    replyToMonitored: true,
-    removalProcedureConfigured: true,
     partnerDirectEmail: {
       zachary_russell: 'zachary@example.test',
       ethaniel_vu: 'ethaniel@example.test',
@@ -178,9 +176,6 @@ add('qr-ack-firm-fallback', 'QR acknowledgement, card did not resolve',
 
 add('qr-ack-no-partner-phone', 'QR acknowledgement, unverified partner phone: row omitted',
   ctx.renderQrAcknowledgement(qrLead(), config({ partnerDirectPhone: {} })));
-
-add('qr-ack-promise-withheld', 'QR acknowledgement, no monitored mailbox: promise lines omitted',
-  ctx.renderQrAcknowledgement(qrLead(), config({ replyToMonitored: false })));
 
 add('qr-ack-long-name', 'QR acknowledgement, long submitted display name',
   ctx.renderQrAcknowledgement(

@@ -26,18 +26,12 @@ var PROP_KEYS = {
   FROM_NAME: 'AXP_FROM_NAME',
 
   /*
-   * The two properties below exist because the QR acknowledgement PROMISES SOMETHING.
-   * Its approved copy says "reply and we will update them" and "reply and we will
-   * remove your information". Printing that without a monitored mailbox behind it and a
-   * documented human procedure is a promise to a real person that nothing will keep.
-   * So the promise is a rendered block gated on both flags, not a constant, and the
-   * health report names them as launch blockers until they are set.
+   * There are deliberately NO reply-monitored or removal-procedure flags here. Two
+   * properties used to gate a QR acknowledgement block promising that a reply would
+   * correct or remove somebody's record. AxisPoint does not offer that, so the copy was
+   * deleted and the gates with it. A flag is the wrong answer to a promise nobody
+   * intends to keep; not making the promise is.
    */
-
-  /** 'true' when AXP_REPLY_TO reaches a monitored human mailbox. */
-  REPLY_TO_MONITORED: 'AXP_REPLY_TO_MONITORED',
-  /** 'true' when a written correction/removal procedure with a named owner exists. */
-  REMOVAL_PROCEDURE_CONFIGURED: 'AXP_REMOVAL_PROCEDURE_CONFIGURED',
 
   /** JSON keyed by partner token: the direct address printed in a QR acknowledgement. */
   PARTNER_DIRECT_EMAIL_MAP: 'AXP_PARTNER_DIRECT_EMAIL_MAP',
@@ -132,12 +126,6 @@ function readConfig(reader) {
     replyTo: get(PROP_KEYS.REPLY_TO),
     fromName: get(PROP_KEYS.FROM_NAME),
 
-    // Both default FALSE. An unset flag must never be read as "yes, a human is
-    // watching that mailbox", because the whole point of the flag is to stop the
-    // acknowledgement promising a reply nobody reads.
-    replyToMonitored: isTrue(get(PROP_KEYS.REPLY_TO_MONITORED)),
-    removalProcedureConfigured: isTrue(get(PROP_KEYS.REMOVAL_PROCEDURE_CONFIGURED)),
-
     partnerDirectEmail: parsePartnerEmailMap(get(PROP_KEYS.PARTNER_DIRECT_EMAIL_MAP)),
     partnerDirectPhone: parsePartnerEmailMap(get(PROP_KEYS.PARTNER_DIRECT_PHONE_MAP)),
     firmEmail: get(PROP_KEYS.FIRM_EMAIL),
@@ -147,10 +135,6 @@ function readConfig(reader) {
 
     runMode: runMode === RUN_MODE_LIVE ? RUN_MODE_LIVE : RUN_MODE_DRY_RUN
   };
-}
-
-function isTrue(value) {
-  return String(value).toLowerCase() === 'true';
 }
 
 /**
@@ -230,27 +214,14 @@ function isConfigured(config, capability) {
  *
  * `ready` says whether the capability can run at all. `promises` is the separate and
  * more important question: whether the copy this system is about to send is currently
- * TRUE. A QR acknowledgement that renders "reply and we will remove your information"
- * with nobody reading the mailbox is a lie to a real person, so those two flags are
- * surfaced by name as launch blockers instead of being buried in a boolean.
+ * TRUE. Two blockers used to live here, gating a QR acknowledgement block that promised
+ * a reply would correct or remove a record; that copy was deleted, so nothing outbound
+ * makes a promise that configuration has to make true and the list is empty. It is kept
+ * as a list, and reported, because the next piece of copy that promises something needs
+ * somewhere honest to say so.
  */
 function configHealth(config) {
   var blockers = [];
-
-  if (!config.replyToMonitored) {
-    blockers.push({
-      key: PROP_KEYS.REPLY_TO_MONITORED,
-      issue: 'reply_to_not_monitored',
-      effect: 'The QR acknowledgement omits the correction and removal lines.'
-    });
-  }
-  if (!config.removalProcedureConfigured) {
-    blockers.push({
-      key: PROP_KEYS.REMOVAL_PROCEDURE_CONFIGURED,
-      issue: 'removal_procedure_undocumented',
-      effect: 'The QR acknowledgement omits the correction and removal lines.'
-    });
-  }
 
   var warnings = [];
   if (!config.logoUrl) {

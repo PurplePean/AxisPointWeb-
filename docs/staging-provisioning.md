@@ -108,7 +108,7 @@ logId, at, level, event, submissionId, leadId, detail
 
 ## 3. Script Properties
 
-**15 properties.** `AXP_FIRM_PHONE` and `AXP_LOGO_URL` are deliberately left unset, and both
+**13 properties.** `AXP_FIRM_PHONE` and `AXP_LOGO_URL` are deliberately left unset, and both
 are warnings rather than blockers: the firm phone row is omitted rather than shown empty,
 and emails render the wordmark as text.
 
@@ -125,16 +125,15 @@ and emails render the wordmark as text.
 | `AXP_PARTNER_DIRECT_PHONE_MAP` | `{"zachary_russell":"832-580-2815","ethaniel_vu":"832-499-8389"}` | settled |
 | `AXP_FIRM_EMAIL` | `info@axispoint.llc` | settled |
 | `AXP_WEBSITE_URL` | `https://axispoint.llc` | live site |
-| `AXP_REPLY_TO_MONITORED` | **`false`** | pending owner approval |
-| `AXP_REMOVAL_PROCEDURE_CONFIGURED` | **`false`** | pending owner approval |
 | `AXP_FIRM_PHONE` | **unset** | not supplied |
 | `AXP_LOGO_URL` | **unset** | optional |
 
-**Both flags are provisioned as `false` and stay false in this pass.**
-
-While either is false the QR acknowledgement omits its correction and removal lines, so
-nothing is displayed or sent promising that information will be corrected or removed. That
-is the intended behaviour here, not a gap to close.
+**There are no promise flags to provision.** `AXP_REPLY_TO_MONITORED` and
+`AXP_REMOVAL_PROCEDURE_CONFIGURED` were listed here as `false` pending owner approval. On
+2026-08-15 the QR acknowledgement copy they gated was removed, and both properties with it:
+correction and removal on request are not offered. Do not set either name on a staging or
+production project; nothing reads it. The acknowledgement displays and sends nothing
+promising that information will be corrected or removed.
 
 ### Operational note
 

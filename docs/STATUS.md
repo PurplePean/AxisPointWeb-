@@ -487,12 +487,15 @@ ever shown, most importantly `https://mail.google.com/`, which grants full read,
 delete access to the deploying account's mailbox where only send is needed. The unused
 advanced Calendar service was removed with them. `deployability.test.js` pins the exact set.
 
-**`AXP_REMOVAL_PROCEDURE_CONFIGURED` and `AXP_REPLY_TO_MONITORED` are both `false`**, so the
-QR acknowledgement omits its correction and removal lines and nothing is displayed or sent
-promising that information will be corrected or removed. AxisPoint retains voluntarily
-submitted business information for normal operations, and any rare information request is
-handled manually by Zach on a case-by-case basis. **This is not an approved legal-compliance
-policy**, and no automated removal system exists or is planned.
+**The QR acknowledgement makes no correction or removal promise, and there are no flags left
+that could turn one on.** It used to carry those lines behind
+`AXP_REMOVAL_PROCEDURE_CONFIGURED` and `AXP_REPLY_TO_MONITORED`, both provisioned `false`; on
+2026-08-15 the copy and both properties were removed outright, because AxisPoint is not
+offering correction or removal as a feature. Nothing is displayed or sent promising that
+information will be corrected or removed. AxisPoint retains voluntarily submitted business
+information for normal operations, and any rare information request is handled manually by
+Zach on a case-by-case basis. **This is not an approved legal-compliance policy**, and no
+automated removal system exists or is planned.
 
 **The QR Contact Exchange is implemented and connected to the shared client (Pass 10B).**
 `apps/qr/src/exchange` submits `submissionKind: 'contact_exchange'` through
@@ -765,15 +768,19 @@ link expiry.
 the positions in the table above, and decide the Sheet, calendar, and notification addresses
 that the Script Properties will hold.
 
-**Two hard launch blockers for the QR acknowledgement**, reported by the backend's own health
-check and enforced in the template rather than assumed:
+~~**Two hard launch blockers for the QR acknowledgement**: a monitored Reply-To mailbox, and a
+documented correction and removal procedure with a named accountable person.~~ **Both resolved
+2026-08-15, by removing the promise rather than by satisfying it.** AxisPoint is not offering
+correction or removal on request, so the copy that promised it was deleted from the QR
+acknowledgement, and with it the two Script Properties that gated it,
+`AXP_REPLY_TO_MONITORED` and `AXP_REMOVAL_PROCEDURE_CONFIGURED`. Neither property exists in
+`src/Config.js` any more, neither is provisioned, and `configHealth` reports no promise
+blockers because nothing outbound makes a promise that configuration has to make true.
 
-1. A **monitored Reply-To mailbox**. The approved copy promises that a reply reaches a human.
-2. A **documented correction and removal procedure with a named accountable person**. Removal
-   is manual; no automated system exists or is designed.
-
-Until both are configured, the correction and removal lines are omitted from the email
-entirely rather than printed and unkeepable.
+**These are resolved, not deferred, and the resolution is not a mailbox or a procedure.** No
+monitored Reply-To mailbox was set up and no removal procedure was written. If correction or
+removal is ever offered, it needs the procedure and the accountable person first, and the copy
+second; do not restore the copy or a flag that switches it on.
 
 ## Known risks
 

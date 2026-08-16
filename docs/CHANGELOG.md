@@ -7,6 +7,13 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-15 (QR acknowledgement: the correction and removal promise deleted)
+
+- **fix(gas-v2): the QR acknowledgement no longer promises that a reply will correct or remove a record, and the two Script Properties that gated that promise are gone.** `AXP_REPLY_TO_MONITORED` and `AXP_REMOVAL_PROCEDURE_CONFIGURED` existed only to keep those two sentences unrendered until a monitored mailbox and a written procedure existed. AxisPoint is not offering correction or removal as a feature, so the copy was deleted outright and the gates with it: `canPromiseReply`, `replyPromiseHtml`, `replyPromiseText`, `footerLegalFor`, both `PROP_KEYS` entries, both config fields, `isTrue`, and both `configHealth` blockers. The rendered email is byte-identical to what the flags-false configuration already produced, apart from the preheader, which said "Reply if anything needs correcting" unconditionally and now says only that the details were received.
+- **`configHealth` keeps `blockers` and `promisesKeepable` with an empty list.** Nothing outbound now makes a promise configuration has to make true. The shape is kept, and reported by `doGet`, so the next piece of copy that promises something has somewhere honest to say so.
+- **docs: both hard QR launch blockers in [`STATUS.md`](STATUS.md) are resolved by removal, not by provisioning.** No monitored Reply-To mailbox was set up and no removal procedure was written. `deployment.md`, `staging-provisioning.md` (now 13 staging properties, not 15), and `backend-v2-contract.md` §13 no longer list either property as something to set.
+- **Scope: nothing else in QR changed.** The form, the Contacts tab, storage, the daily digest, and the matching logic are untouched.
+
 ## 2026-08-15 (V1 retirement, the deletion pass)
 
 - **V1 is fully retired. There is no V1 backend, no V1 form, and no V1 email system left in this repository.** This is the deletion pass that PR #79 was written to make safe, executed from base commit `71d345d`. 78 tracked files removed, about 17,000 lines. The full inventory, with counts, is the retirement record in [`system-classification.md`](system-classification.md); this entry is the summary.
