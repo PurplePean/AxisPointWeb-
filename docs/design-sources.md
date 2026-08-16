@@ -361,9 +361,16 @@ A QR implementation pass may proceed using **configurable local fixture data and
 contact-download behaviour.** It must not silently select a permanent public URL or a
 production delivery architecture.
 
-**V2 QR has no embedded intake.** "Request a Management Proposal" is a normal link into the
-shared website intake. `apps/qr` should not consume `VITE_FORM_ENDPOINT`. Any future vCard
-delivery endpoint is a separate, undecided contract.
+**The board designed V2 QR with no embedded intake. The shipped app has one, by a later
+owner-confirmed decision.** "Request a Management Proposal" is still a normal link into the
+shared website intake, exactly as the board specified, and that link is unchanged. Alongside
+it, `apps/qr` retains its full Contact Exchange intake: the form, storage, the acknowledgement
+email, the daily digest, and matching all remain. It submits a `contact_exchange` envelope
+through `packages/submission-client` and resolves `VITE_V2_SUBMISSION_ENDPOINT`, never
+`VITE_FORM_ENDPOINT`, which names the retired V1 deployment and is now recognised only in
+order to be rejected. See [`system-classification.md`](system-classification.md) for the QR
+system's current classification. Any future vCard delivery endpoint is a separate, undecided
+contract.
 
 ## Recording future design revisions
 
