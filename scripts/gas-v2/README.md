@@ -47,7 +47,13 @@ load-order rule below applies across folders exactly as it did within one.
 | `core/Domain.js` | Lead and Contact builders, merge rules, row projection. |
 | `core/Records.js` | The immutable Submission and the mutable Delivery. |
 | `emails/Html.js` | Email-safe HTML primitives and escaping. |
-| `emails/Templates.js` | The five approved templates, one pure function each. |
+| `emails/EmailHelpers.js` | Firm identity, name and row helpers, human date formatting. |
+| `emails/QrAcknowledgement.js` | To the person who shared details from a scanned card. |
+| `emails/WebsiteAcknowledgement.js` | To the person who submitted a website inquiry. |
+| `emails/InternalNotification.js` | To the partners, immediately, on a website inquiry. |
+| `emails/QrDigestEmail.js` | The daily QR Contact digest, rendering only. |
+| `emails/BookingConfirmation.js` | Sent only after Calendar confirmed the event exists. |
+| `emails/Registry.js` | Locale sets, the per-renderer fallback rule, and the templates port. |
 | `scheduled/Digest.js` | The daily QR Contact digest: eligibility, routing, splitting, delivery-bound state. |
 | `scheduled/Retention.js` | Retention selection and the callable maintenance handler. |
 | `core/Matching.js` | Identity suggestions. Suggests; never merges. |

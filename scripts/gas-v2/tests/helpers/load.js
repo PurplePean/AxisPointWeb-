@@ -17,7 +17,7 @@
  * still flattens everything into one global scope, so the loader must reach every file at
  * every depth. A non-recursive read would silently load nothing and report an empty set.
  * Returned names are paths relative to src, with forward slashes, so a caller can print
- * `emails/Templates.js` rather than an ambiguous bare `Templates.js`.
+ * `emails/Registry.js` rather than an ambiguous bare `Registry.js`.
  */
 
 const fs = require('node:fs');
