@@ -12,7 +12,7 @@ Do not maintain a second, more detailed copy of that classification here or in a
 
 ## Repo structure
 - apps/web — main site. V2, built from the approved design package. Not deployed from this repository
-- apps/qr — QR Contact Exchange microsite. **Transitional:** V2-integrated (shared submission client, V2 backend contract) on a legacy scaffold, and slated for replacement by a smaller digital contact card as a separate pass
+- apps/qr — QR Contact Exchange microsite. **Transitional:** V2-integrated (shared submission client, V2 backend contract) on a legacy scaffold. It retains its full Contact Exchange — form, storage, acknowledgement email, daily digest, matching — and that scope is settled
 - packages/brand — shared brand primitives (Mark, E2eBanner, Tailwind preset, colors, fonts). That is the whole package; the V1 form tree it used to hold was deleted on 2026-08-15
 - packages/submission-client — the single frontend transport boundary for V2 submissions
 - scripts/gas-v2 — the Apps Script backend, and the only one. Written and tested; no project, Sheet, trigger, endpoint, or deployment exists

@@ -24,7 +24,7 @@ When this document disagrees with a general description elsewhere, inspect the c
 - The external V1 Apps Script project still exists and is untouched. Whether it is left in place, disabled, or removed is a separate owner decision and a separate authorized operation. No repository change performs it.
 - The nine-language product scope is confirmed: English, Spanish, Simplified Chinese, Traditional Chinese, Vietnamese, Hindi, Urdu, Gujarati and Punjabi.
 - English is the only reviewed and enabled language today. The other eight are disabled because fluent review is outstanding, not because their inclusion is undecided.
-- The QR Contact Exchange keeps its full functionality, and that is settled. A smaller digital contact card is planned as a separate future pass; it is not in progress and it does not reduce what ships today. See [`STATUS.md` §3](STATUS.md).
+- The QR Contact Exchange keeps its full functionality, and that is settled. See [`STATUS.md` §3](STATUS.md).
 - Repository changes do not deploy, provision or modify any external system.
 
 ## Current V2 core
@@ -160,17 +160,15 @@ The current QR Contact Exchange is a V2-integrated evolution built on a legacy a
 
 Its current behavior was substantially rewritten during the V2 passes. It uses the shared V2 submission client and V2 backend contract. Therefore it must not be deleted or simplified as part of V1 retirement.
 
-### Scope: full functionality, settled
-
 **`apps/qr` retains its full Contact Exchange.** The form, storage, the acknowledgement email,
 the daily digest, and matching all remain and are exercised by tests. This was settled on
 2026-08-15 and is recorded in [`STATUS.md` §3](STATUS.md), which is the operative statement of
-current QR scope. This section previously described the current product as larger than AxisPoint
+current QR scope. This document previously described the current product as larger than AxisPoint
 intends to operate and treated its behavior as provisional, which read as though a reduction was
 pending. It is not. The only thing removed in that pass was the correction and removal promise in
 the QR acknowledgement, along with the two Script Properties that gated it.
 
-So there is no "until the replacement" qualifier on anything below. These are current, supported
+So there is no provisional qualifier on anything below. These are current, supported
 V2 surfaces:
 
 - `apps/qr`
@@ -179,26 +177,7 @@ V2 surfaces:
 - The current QR tests
 - `apps/qr` mounts the shared `<E2eBanner />` in `src/Root.tsx`, as `apps/web` already did. Done in the 2026-08-15 safety pass, nothing further is required
 
-Do not make QR retirement part of V1 retirement, and do not reduce QR functionality on the basis
-of the future direction below.
-
-### Future direction: a separate card, planned but not in progress
-
-A separate minimal digital contact card remains the intended long-term QR product:
-
-- A verified partner profile
-- Verified contact information
-- A downloadable vCard
-- Links to the main website
-- One permanent address suitable for printed QR codes and email signatures
-
-That card would not collect visitor information, submit to the backend, send acknowledgement
-emails, create Contact records, perform matching, produce digests or require scheduled
-processing.
-
-**It is planned, not in progress.** It is a separate product pass, it is blocked on the six
-unresolved QR values listed in [`design-sources.md`](design-sources.md), and it changes nothing
-about what `apps/qr` does today.
+Do not make QR retirement part of V1 retirement, and do not reduce QR functionality.
 
 ## Confirmed language scope
 
@@ -258,7 +237,7 @@ Steps 1 and 2 are done. The remaining production work is:
 8. Review the final English website on desktop and mobile.
 9. Review and activate the other eight languages individually.
 
-The simple QR card is a separate product pass, planned rather than in progress, and should not delay the main website unless printed cards or email signatures are required for the same launch date. The existing Contact Exchange ships as it is and needs nothing from that pass.
+The existing QR Contact Exchange ships as it is and does not gate any step above.
 
 ## Documentation authority
 

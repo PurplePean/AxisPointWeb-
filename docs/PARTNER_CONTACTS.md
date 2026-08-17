@@ -31,9 +31,10 @@ than recovering literals out of a git tag.
 
 Any future V2 work that needs current partner contact information should read it here:
 
-- The planned QR replacement, the minimal digital contact card described in
+- The QR Contact Exchange described in
   [`system-classification.md`](system-classification.md) → *Transitional QR system*. Its
-  verified profile and downloadable vCard are the immediate consumer.
+  partner profile and contact-file delivery are the immediate consumer, once the unresolved
+  values in [`design-sources.md`](design-sources.md) are decided.
 - Email signatures.
 - Footer and contact-page content, if partner-level contact detail is ever surfaced there.
   The current `apps/web` contact page does not surface it.
