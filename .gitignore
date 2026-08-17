@@ -55,7 +55,7 @@ scripts/gas/.clasp.json
 scripts/gas-v2/.clasp.json
 
 # hosting-automation credentials (cPanel + Namecheap) — never commit
-scripts/hosting/.env
+hosting/.env
 
 # Claude Code machine-local state. Holds settings.local.json and, more importantly,
 # `worktrees/`, where Claude Code checks out full copies of the repository at other
