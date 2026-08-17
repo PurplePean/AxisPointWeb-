@@ -3,12 +3,12 @@
 // Requires explicit confirmation (--yes flag, or type "yes" at the prompt).
 //
 // Usage:
-//   node scripts/hosting/add-redirect.js <source-path> <destination-url> \
+//   node hosting/add-redirect.js <source-path> <destination-url> \
 //        [--domain=axispoint.llc] [--type=permanent|temporary] [--wildcard] [--yes]
 //
 // Examples:
-//   node scripts/hosting/add-redirect.js /old-page https://axispoint.llc/new-page
-//   node scripts/hosting/add-redirect.js / https://qr.axispoint.llc --type=temporary --yes
+//   node hosting/add-redirect.js /old-page https://axispoint.llc/new-page
+//   node hosting/add-redirect.js / https://qr.axispoint.llc --type=temporary --yes
 //
 // Notes on cPanel semantics:
 //   - `src` is the path portion to match, e.g. "/old-page" (or "/" for the root).
@@ -49,7 +49,7 @@ async function main() {
 
   if (!src || !destination) {
     console.error(
-      'Usage: node scripts/hosting/add-redirect.js <source-path> <destination-url> ' +
+      'Usage: node hosting/add-redirect.js <source-path> <destination-url> ' +
         '[--domain=axispoint.llc] [--type=permanent|temporary] [--wildcard] [--yes]'
     );
     process.exit(1);

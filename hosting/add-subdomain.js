@@ -3,12 +3,12 @@
 // Requires explicit confirmation (--yes flag, or type "yes" at the prompt).
 //
 // Usage:
-//   node scripts/hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]
+//   node hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]
 //
 // Examples:
-//   node scripts/hosting/add-subdomain.js book
-//   node scripts/hosting/add-subdomain.js book public_html/book --yes
-//   node scripts/hosting/add-subdomain.js promo --domain=example.com
+//   node hosting/add-subdomain.js book
+//   node hosting/add-subdomain.js book public_html/book --yes
+//   node hosting/add-subdomain.js promo --domain=example.com
 
 const { uapi } = require('./lib/cpanel');
 const { confirm } = require('./lib/confirm');
@@ -33,7 +33,7 @@ async function main() {
 
   if (!subdomain) {
     console.error(
-      'Usage: node scripts/hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]'
+      'Usage: node hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]'
     );
     process.exit(1);
   }

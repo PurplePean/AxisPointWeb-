@@ -1,9 +1,9 @@
 // Dependency-free .env loader for the hosting scripts.
 //
-// Reads scripts/hosting/.env (if present) into a plain object and exposes a
+// Reads hosting/.env (if present) into a plain object and exposes a
 // small getEnv() helper. We deliberately avoid pulling in `dotenv` so this
 // library has zero npm dependencies and can be run with a bare `node` — see
-// scripts/hosting/README.md.
+// hosting/README.md.
 
 const fs = require('fs');
 const path = require('path');
@@ -52,8 +52,8 @@ function getEnv(name, { required = true } = {}) {
   const value = env[name];
   if ((value === undefined || value === '') && required) {
     throw new Error(
-      `Missing required env var ${name}. Copy scripts/hosting/.env.example to ` +
-        `scripts/hosting/.env and fill it in (see scripts/hosting/README.md).`
+      `Missing required env var ${name}. Copy hosting/.env.example to ` +
+        `hosting/.env and fill it in (see hosting/README.md).`
     );
   }
   return value;

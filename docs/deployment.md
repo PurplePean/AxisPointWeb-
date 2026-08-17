@@ -220,50 +220,25 @@ only.)
 | `FTP_USERNAME_QR` | deploy-qr | QR FTP user |
 | `FTP_PASSWORD_QR` | deploy-qr | QR FTP password |
 
-## Hosting automation — `scripts/hosting`
+## Hosting automation and hosting inventory
 
-A dependency-free Node library for read/write access to the hosting stack that
-sits *underneath* the front-end deploys documented above:
+The cPanel + Namecheap automation library, its credentials, per-command usage, and
+the live hosting inventory (server, cPanel account, subdomain document roots, A
+records) all live in [`hosting/README.md`](../hosting/README.md).
 
-- **cPanel** (UAPI + API 2): list subdomains, add subdomains, add redirects, and
-  clean directories.
-- **Namecheap** (XML API): read current DNS records.
+### ⚠️ NEVER MODIFY — Google email/verification DNS records
 
-It mirrors the `scripts/gas-v2` pattern (shared clients in `lib/`, thin runnable
-scripts on top) and reads all credentials from a gitignored `scripts/hosting/.env`
-(template: `scripts/hosting/.env.example`) — nothing is hardcoded. Write actions
-(`add-subdomain`, `add-redirect`, `clean-directory`) require explicit confirmation.
+**8 DNS records must never be changed, deleted, or touched** under any
+circumstances, regardless of any other hosting cleanup: the 5 Google MX records,
+TXT `_dmarc`, TXT `google._domainkey`, and the two TXT `@` records (SPF and
+`google-site-verification`). Breaking any of them breaks `@axispoint.llc` email
+or Search Console ownership.
 
-By design it does **not** touch domain registration, renewal, or transfer — those
-stay manual. See [`scripts/hosting/README.md`](../scripts/hosting/README.md) for
-credentials and per-command usage.
-
-## Hosting inventory (as of live scan via `scripts/hosting`)
-
-Server: `premium171.web-hosting.com`, IP `162.0.209.114`, cPanel account: `axisipak`
-
-Current cPanel subdomains:
-
-- `qr.axispoint.llc` — document root: `/home/axisipak/public_html/qr` (nested inside `public_html` — this is a known issue, see Migration Plan below)
-- `crm.axispoint.llc` — document root: `/home/axisipak/crm.axispoint.llc` — OLD/STALE project, safe to wipe when reset
-
-DNS records for `axispoint.llc` — 7 A records tied to hosting (all safe to
-repoint/reuse during migration, no DNS changes needed, only file content
-changes): `@`, `api`, `crm`, `qr`, `staging`, `www`, `www.crm` — all currently
-point to `162.0.209.114`. Note: `api` and `staging` already have DNS A records
-but **NO** corresponding cPanel subdomain/folder yet — DNS is pre-provisioned,
-hosting is not.
-
-### NEVER MODIFY — Google email/verification records
-
-These 8 DNS records must never be changed, deleted, or touched under any
-circumstances, regardless of any other hosting cleanup:
-
-- 5x MX records (`ASPMX.L.GOOGLE.COM` + 4 alternates) — powers `@axispoint.llc` email
-- TXT `_dmarc` — DMARC policy
-- TXT `google._domainkey` — DKIM signing
-- TXT `@` (`v=spf1...`) — SPF
-- TXT `@` (`google-site-verification=...`) — Search Console ownership
+The exact record list is in
+[`hosting/README.md` § NEVER MODIFY](../hosting/README.md#never-modify--google-emailverification-dns-records).
+This pointer is deliberately kept here as well: the constraint is the
+highest-stakes fact in either document and must stay visible to anyone reading
+about deployment, not only to whoever opens the hosting scripts.
 
 ## Production migration plan (not yet executed — current site is still in active use)
 
