@@ -72,9 +72,10 @@ not be extended into a competing copy of that classification.
   `colors.ts`, `fonts.ts`. That is now the whole package; the V1 form tree it used to hold was
   deleted on 2026-08-15
 - **packages/submission-client** — the single frontend transport boundary for V2 submissions
+- **hosting/** — cPanel and Namecheap automation for the hosting stack, plus the live hosting
+  inventory and the never-modify DNS records
 - **scripts/gas-v2/** — V2 Apps Script backend, written and tested but connected to nothing: no
   project, Sheet, trigger, or deployment
-- **scripts/hosting/** — cPanel and Namecheap automation for the hosting stack
 - **scripts/test/** — shared test harnesses, including the production-bundle inspector
 - **docs/** — verified source of truth documentation
 

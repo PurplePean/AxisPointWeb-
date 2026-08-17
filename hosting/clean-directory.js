@@ -8,11 +8,11 @@
 // Fileman::list_files.
 //
 // Usage:
-//   node scripts/hosting/clean-directory.js <target-path> [--yes]
+//   node hosting/clean-directory.js <target-path> [--yes]
 //
 // Examples:
-//   node scripts/hosting/clean-directory.js public_html/staging
-//   node scripts/hosting/clean-directory.js public_html/old-deploy --yes
+//   node hosting/clean-directory.js public_html/staging
+//   node hosting/clean-directory.js public_html/old-deploy --yes
 //
 // <target-path> is interpreted by cPanel relative to the account home directory
 // (e.g. "public_html/staging"), matching how the File Manager shows paths.
@@ -25,7 +25,7 @@ async function main() {
   const target = process.argv.slice(2).find((a) => !a.startsWith('-'));
 
   if (!target) {
-    console.error('Usage: node scripts/hosting/clean-directory.js <target-path> [--yes]');
+    console.error('Usage: node hosting/clean-directory.js <target-path> [--yes]');
     process.exit(1);
   }
 

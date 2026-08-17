@@ -75,7 +75,7 @@ The V2 backend is written and tested. It has not been provisioned as a Google Ap
 - Accessibility assertions
 - Locale preview and review artifacts
 - Production bundle inspection
-- `scripts/hosting`
+- `hosting`
 - `scripts/generate-logos.py`
 - Current brand primitives, including `Mark`, `E2eBanner`, the Tailwind preset, `colors.ts` and `fonts.ts`
 

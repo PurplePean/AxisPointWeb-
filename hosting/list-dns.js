@@ -2,8 +2,8 @@
 // READ-ONLY. Lists the current Namecheap DNS records for a domain.
 //
 // Usage:
-//   node scripts/hosting/list-dns.js            # defaults to axispoint.llc
-//   node scripts/hosting/list-dns.js example.com
+//   node hosting/list-dns.js            # defaults to axispoint.llc
+//   node hosting/list-dns.js example.com
 
 const { call, splitDomain } = require('./lib/namecheap');
 const { printTable } = require('./lib/table');

@@ -5,7 +5,7 @@
 // TLS on :2083) before any write script is trusted.
 //
 // Usage:
-//   node scripts/hosting/list-subdomains.js
+//   node hosting/list-subdomains.js
 
 const { api2 } = require('./lib/cpanel');
 const { printTable } = require('./lib/table');

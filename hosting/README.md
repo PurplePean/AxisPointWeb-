@@ -1,4 +1,4 @@
-# scripts/hosting — cPanel + Namecheap automation
+# hosting — cPanel + Namecheap automation
 
 A small, dependency-free library for read/write access to the hosting stack:
 
@@ -11,15 +11,50 @@ on top. Runs on plain `node` (repo requires Node >= 20) — no npm install neede
 > **Out of scope by design:** nothing here touches domain **registration,
 > renewal, or transfer**. Those stay manual. Do not add scripts for them.
 
+## NEVER MODIFY — Google email/verification DNS records
+
+**Read this before running anything that writes.** These 8 DNS records must never
+be changed, deleted, or touched under any circumstances, regardless of any other
+hosting cleanup:
+
+- 5x MX records (`ASPMX.L.GOOGLE.COM` + 4 alternates), powers `@axispoint.llc` email
+- TXT `_dmarc`, DMARC policy
+- TXT `google._domainkey`, DKIM signing
+- TXT `@` (`v=spf1...`), SPF
+- TXT `@` (`google-site-verification=...`), Search Console ownership
+
+Nothing in this library writes DNS (Namecheap access here is read-only), so no
+script can remove them by itself. The risk is a human editing the Namecheap
+dashboard while cleaning up hosting records that a script has just listed.
+
+## Hosting inventory (as of live scan via these scripts)
+
+Server: `premium171.web-hosting.com`, IP `162.0.209.114`, cPanel account: `axisipak`
+
+Current cPanel subdomains:
+
+- `qr.axispoint.llc`, document root `/home/axisipak/public_html/qr` (nested inside
+  `public_html`, a known issue, see the production migration plan in
+  [`/docs/deployment.md`](../docs/deployment.md))
+- `crm.axispoint.llc`, document root `/home/axisipak/crm.axispoint.llc`, OLD/STALE
+  project, safe to wipe when reset
+
+DNS records for `axispoint.llc`: 7 A records tied to hosting (all safe to
+repoint/reuse during migration, no DNS changes needed, only file content
+changes): `@`, `api`, `crm`, `qr`, `staging`, `www`, `www.crm`, all currently
+point to `162.0.209.114`. Note: `api` and `staging` already have DNS A records
+but **NO** corresponding cPanel subdomain/folder yet, DNS is pre-provisioned,
+hosting is not.
+
 ## Setup
 
 1. Copy the template and fill in real values:
 
    ```bash
-   cp scripts/hosting/.env.example scripts/hosting/.env
+   cp hosting/.env.example hosting/.env
    ```
 
-2. `scripts/hosting/.env` is **gitignored** (root `.gitignore`) and must never be
+2. `hosting/.env` is **gitignored** (root `.gitignore`) and must never be
    committed. No credentials are hardcoded anywhere in this library — every value
    is read from the environment at runtime.
 
@@ -39,14 +74,14 @@ on top. Runs on plain `node` (repo requires Node >= 20) — no npm install neede
 - `NAMECHEAP_USERNAME` is optional and defaults to `NAMECHEAP_API_USER`.
 
 Related infra facts (GAS backend, FTP deploy secrets) live in
-[`/docs/deployment.md`](../../docs/deployment.md).
+[`/docs/deployment.md`](../docs/deployment.md).
 
 ## First thing to run
 
 Verify real access before trusting any write script:
 
 ```bash
-node scripts/hosting/list-subdomains.js
+node hosting/list-subdomains.js
 ```
 
 If that prints your subdomains, your cPanel host/token/TLS are good.
@@ -57,12 +92,12 @@ If that prints your subdomains, your cPanel host/token/TLS are good.
 
 | Command | What it does |
 |---|---|
-| `node scripts/hosting/list-subdomains.js` | Lists subdomains + document roots (cPanel API 2 `SubDomain::listsubdomains` — no UAPI equivalent). |
-| `node scripts/hosting/list-dns.js [domain]` | Lists DNS records — type, host, value, TTL (Namecheap `domains.dns.getHosts`). Defaults to `axispoint.llc`. |
+| `node hosting/list-subdomains.js` | Lists subdomains + document roots (cPanel API 2 `SubDomain::listsubdomains` — no UAPI equivalent). |
+| `node hosting/list-dns.js [domain]` | Lists DNS records — type, host, value, TTL (Namecheap `domains.dns.getHosts`). Defaults to `axispoint.llc`. |
 
 ```bash
-node scripts/hosting/list-dns.js
-node scripts/hosting/list-dns.js example.com
+node hosting/list-dns.js
+node hosting/list-dns.js example.com
 ```
 
 ### Write actions (require confirmation)
@@ -74,22 +109,22 @@ With no TTY and no `--yes`, they fail closed and change nothing.
 **`add-subdomain.js`** — create a subdomain (UAPI `SubDomain::addsubdomain`).
 
 ```bash
-node scripts/hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]
+node hosting/add-subdomain.js <subdomain> [document-root] [--domain=axispoint.llc] [--yes]
 
 # examples
-node scripts/hosting/add-subdomain.js book
-node scripts/hosting/add-subdomain.js book public_html/book --yes
+node hosting/add-subdomain.js book
+node hosting/add-subdomain.js book public_html/book --yes
 ```
 
 **`add-redirect.js`** — create a redirect (UAPI `Redirects::add_redirect`).
 
 ```bash
-node scripts/hosting/add-redirect.js <source-path> <destination-url> \
+node hosting/add-redirect.js <source-path> <destination-url> \
      [--domain=axispoint.llc] [--type=permanent|temporary] [--wildcard] [--yes]
 
 # examples
-node scripts/hosting/add-redirect.js /old-page https://axispoint.llc/new-page
-node scripts/hosting/add-redirect.js / https://qr.axispoint.llc --type=temporary --yes
+node hosting/add-redirect.js /old-page https://axispoint.llc/new-page
+node hosting/add-redirect.js / https://qr.axispoint.llc --type=temporary --yes
 ```
 
 `type` maps to `permanent` (301) or `temporary` (302); default `permanent`.
@@ -98,11 +133,11 @@ node scripts/hosting/add-redirect.js / https://qr.axispoint.llc --type=temporary
 what it found first**, then requires confirmation before deleting anything.
 
 ```bash
-node scripts/hosting/clean-directory.js <target-path> [--yes]
+node hosting/clean-directory.js <target-path> [--yes]
 
 # examples
-node scripts/hosting/clean-directory.js public_html/staging
-node scripts/hosting/clean-directory.js public_html/old-deploy --yes
+node hosting/clean-directory.js public_html/staging
+node hosting/clean-directory.js public_html/old-deploy --yes
 ```
 
 Listing uses UAPI `Fileman::list_files`; deletion uses cPanel **API 2**
@@ -136,7 +171,7 @@ File Manager shows paths.
   (production), not `xml.api` or a sandbox host. A wrong path returns a generic
   HTML 404 instead of the usual XML error envelope. To see the exact request URL
   a Namecheap script builds (API key redacted), run it with `DEBUG=namecheap`,
-  e.g. `DEBUG=namecheap node scripts/hosting/list-dns.js`.
+  e.g. `DEBUG=namecheap node hosting/list-dns.js`.
 - **Namecheap IP whitelist:** a valid-looking request can still fail if the IP in
   `NAMECHEAP_CLIENT_IP` doesn't exactly match a whitelisted IP under
   Namecheap > Profile > Tools > API Access. Confirm your current public IP
