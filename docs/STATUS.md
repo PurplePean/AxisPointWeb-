@@ -69,9 +69,8 @@ copy, not by building the mailbox and procedure behind it. **If it is ever offer
 procedure and a named accountable person come first and the copy second: do not restore the
 copy, or a flag that switches it on.**
 
-`apps/qr` remains transitional, a V2-integrated app on a legacy scaffold, and is still slated
-for replacement by a smaller digital contact card in a separate pass. That replacement is
-planned, not in progress, and it does not reduce what ships today.
+`apps/qr` remains transitional, a V2-integrated app on a legacy scaffold. That is a statement
+about how it was built, not a signal that its scope is provisional.
 
 ## 4. Open owner decisions
 
@@ -135,5 +134,4 @@ Pointers, not plans. The detailed scope belongs in the task that does the work.
   reconcile the QR document root. Doing any one of these alone ships a broken deploy.
 - **Verify and configure the host's SPA rewrite**, before any non-English locale is activated.
 - **Fluent review of the eight unreviewed locale catalogs**, one language at a time.
-- **The QR replacement card**, a separate pass, once its unresolved values are decided.
 - **Fix the 3px mobile overflow** in the header's mobile control cluster.

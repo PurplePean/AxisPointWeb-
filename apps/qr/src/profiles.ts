@@ -22,9 +22,9 @@
  * `docs/PARTNER_CONTACTS.md`, which is now the one place to read them from.
  *
  * They are still deliberately NOT filled in below. Wiring verified contact data into this
- * profile fixture is a decision for the QR replacement pass, not a side effect of V1
- * retirement, and `docs/STATUS.md` still carries the surrounding open items (the permanent
- * profile URL and the contact-file delivery method) that a printed card depends on.
+ * profile fixture is its own decision, not a side effect of V1 retirement, and
+ * `docs/STATUS.md` still carries the surrounding open items (the permanent profile URL and
+ * the contact-file delivery method) that a printed card depends on.
  */
 
 export interface PartnerProfile {
