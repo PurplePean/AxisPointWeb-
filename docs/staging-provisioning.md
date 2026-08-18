@@ -41,14 +41,17 @@ One new spreadsheet, `AxisPoint V2 CRM STAGING`.
 Tab names are case-sensitive (`TAB_NAMES`, `src/platform/SheetRepository.js`). Header text is matched
 case- and whitespace-insensitively but **must occupy row 1**.
 
-| Tab | Columns |
-|---|---|
-| `Submissions` | 48 |
-| `Deliveries` | 8 |
-| `Leads` | 47 |
-| `Contacts` | 28 |
-| `Work` | 9 |
-| `Log` | 7 |
+Listed in the order `expectedTabLayout()` returns them
+(`src/platform/SheetRepository.js:444-453`).
+
+| Tab | Columns | Header constant |
+|---|---|---|
+| `Submissions` | 48 | `SUBMISSION_HEADERS`, `src/core/Records.js:31` |
+| `Deliveries` | 8 | `DELIVERY_HEADERS`, `src/core/Records.js:78` |
+| `Leads` | 47 | `LEAD_HEADERS`, `src/core/Domain.js:60` |
+| `Contacts` | 28 | `CONTACT_HEADERS`, `src/core/Domain.js:93` |
+| `Log` | 7 | `LOG_HEADERS`, `src/core/Domain.js:112` |
+| `Work` | 11 | `WORK_HEADERS` + 2, `src/core/Domain.js:124` |
 
 **Submissions**
 
@@ -94,41 +97,72 @@ possibleMatches, contactSyncStatus, externalContactResourceName, externalContact
 externalContactSyncedAt
 ```
 
-**Work**
-
-```
-workId, createdAt, kind, subjectId, state, attempts, nextAttemptAt, lastError, completedAt
-```
-
 **Log**
 
 ```
 logId, at, level, event, submissionId, leadId, detail
 ```
 
+**Work**
+
+```
+workId, createdAt, kind, subjectId, state, attempts, nextAttemptAt, lastError,
+completedAt, idempotencyKey, payload
+```
+
+`Work` is the one tab whose header row is **not** just its `_HEADERS` constant.
+`expectedTabLayout()` returns `WORK_HEADERS.concat(['idempotencyKey', 'payload'])`
+(`src/platform/SheetRepository.js:451`), because those two columns are what the queue
+serializes rather than fields of the domain record. Provisioning eleven columns here and
+nine there is the difference between a queue that dedupes and one that sends twice:
+`appendRecord` silently skips any field whose column is absent
+(`src/platform/SheetRepository.js:83-84`), so a nine-column `Work` tab drops the
+idempotency key without erroring. Asserted by `tests/sheet-repository.test.js:453-457`.
+
 ---
 
 ## 3. Script Properties
 
-**13 properties.** `AXP_FIRM_PHONE` and `AXP_LOGO_URL` are deliberately left unset, and both
-are warnings rather than blockers: the firm phone row is omitted rather than shown empty,
-and emails render the wordmark as text.
+**13 properties**, and exactly 13: `PROP_KEYS` in `src/platform/Config.js:14-55` names
+these and nothing else. Eleven are set at provisioning; `AXP_FIRM_PHONE` and `AXP_LOGO_URL`
+are deliberately left unset.
 
-| Property | Staging value | Source |
-|---|---|---|
-| `AXP_SHEET_ID` | new staging spreadsheet id | created in §2 |
-| `AXP_CALENDAR_ID` | new staging calendar id | created in §4 |
-| `AXP_RUN_MODE` | `dry_run` | flipped to `live` only for the §8 window |
-| `AXP_REPLY_TO` | `info@axispoint.llc` | settled |
-| `AXP_FROM_NAME` | `AxisPoint Partners` | brand |
-| `AXP_PARTNER_NOTIFY_TO` | `Zach@axispoint.llc,Ethaniel@axispoint.llc` | settled |
-| `AXP_PARTNER_EMAIL_MAP` | `{"zachary_russell":"Zach@axispoint.llc","ethaniel_vu":"Ethaniel@axispoint.llc"}` | tokens from `PARTNERS` |
-| `AXP_PARTNER_DIRECT_EMAIL_MAP` | same mapping as above | settled |
-| `AXP_PARTNER_DIRECT_PHONE_MAP` | `{"zachary_russell":"832-580-2815","ethaniel_vu":"832-499-8389"}` | settled |
-| `AXP_FIRM_EMAIL` | `info@axispoint.llc` | settled |
-| `AXP_WEBSITE_URL` | `https://axispoint.llc` | live site |
-| `AXP_FIRM_PHONE` | **unset** | not supplied |
-| `AXP_LOGO_URL` | **unset** | optional |
+The **Status** column is not a preference. It is what `missingConfigFor()`
+(`src/platform/Config.js:177-206`) and `configHealth()` (`src/platform/Config.js:223-255`)
+actually do with an absent value:
+
+- **Blocker** — named by `missingConfigFor()`, so the listed capability reports itself
+  unconfigured and refuses to run rather than half-running.
+- **Warning** — never named by `missingConfigFor()`; `configHealth()` records a warning and
+  the feature degrades in a defined way.
+- **Fails safe** — absence is not an error at all, because the safe value is the default.
+
+| Property | Staging value | Status | Source |
+|---|---|---|---|
+| `AXP_SHEET_ID` | new staging spreadsheet id | Blocker — `intake` | created in §2 |
+| `AXP_CALENDAR_ID` | new staging calendar id | Blocker — `booking` | created in §4 |
+| `AXP_RUN_MODE` | `dry_run` | Fails safe — anything but `live` is `dry_run` | flipped to `live` only for the §8 window |
+| `AXP_REPLY_TO` | `info@axispoint.llc` | Blocker — `acknowledge`, `qr_acknowledge` | settled |
+| `AXP_FROM_NAME` | `AxisPoint Partners [STAGING]` | Blocker — all four sending capabilities | brand + §7.4 test label; drop the suffix for production |
+| `AXP_PARTNER_NOTIFY_TO` | `Zach@axispoint.llc,Ethaniel@axispoint.llc` | Blocker — `notify` | settled |
+| `AXP_PARTNER_EMAIL_MAP` | `{"zachary_russell":"Zach@axispoint.llc","ethaniel_vu":"Ethaniel@axispoint.llc"}` | Blocker — `digest` | tokens from `PARTNERS` |
+| `AXP_FIRM_EMAIL` | `info@axispoint.llc` | Blocker — `qr_acknowledge` | settled |
+| `AXP_WEBSITE_URL` | `https://axispoint.llc` | Blocker — `qr_acknowledge` | live site |
+| `AXP_PARTNER_DIRECT_EMAIL_MAP` | same mapping as above | Warning — that partner's acknowledgement falls back to the firm address | settled |
+| `AXP_PARTNER_DIRECT_PHONE_MAP` | `{"zachary_russell":"832-580-2815","ethaniel_vu":"832-499-8389"}` | Warning — the phone row is omitted | settled |
+| `AXP_FIRM_PHONE` | **unset** | Warning — the firm phone row is omitted rather than shown empty | not supplied |
+| `AXP_LOGO_URL` | **unset** | Warning — emails render the wordmark as text | optional |
+
+`AXP_RUN_MODE` is the one property whose absence is harmless and whose *mis*-setting is
+not: `readConfig` coerces every value other than the exact string `live` to `dry_run`
+(`src/platform/Config.js:136`), so a typo cannot accidentally start sending. It can only
+accidentally stop it, which is the correct direction to fail.
+
+The four **Warning** rows are the ones a reader is most likely to get wrong, because two of
+them are set here anyway. Setting them is a quality decision, not a requirement:
+`missingConfigFor()` never names `AXP_PARTNER_DIRECT_EMAIL_MAP` or
+`AXP_PARTNER_DIRECT_PHONE_MAP`, so leaving either out degrades an acknowledgement rather
+than blocking one.
 
 **There are no promise flags to provision.** `AXP_REPLY_TO_MONITORED` and
 `AXP_REMOVAL_PROCEDURE_CONFIGURED` were listed here as `false` pending owner approval. On
@@ -158,17 +192,42 @@ One shared calendar remains the model: `AXP_CALENDAR_ID` is a single property, u
 
 ## 5. Triggers and permissions
 
-**There is no trigger installer in the code** (`ScriptApp` appears nowhere in `src/`). All
-three are created by hand in the Apps Script UI.
+**There is no trigger installer in the code** (`ScriptApp` appears nowhere in `src/`,
+verified: 0 occurrences). All three are created by hand in the Apps Script UI.
 
-| Trigger | Function | Schedule |
-|---|---|---|
-| Work queue | `runWorkerTrigger` | every 5 minutes |
-| QR digest | `runDailyQrDigestTrigger` | daily, 8:00 AM Central |
-| Retention | `runRetentionMaintenanceTrigger` | daily, off-peak |
+**Three triggers, not four.** Each row below is a real, callable top-level function in
+`src/entrypoints/Entry.js`; nothing else in the repository is trigger-shaped.
 
-Queue bounds: 20 items per cycle, 4 attempts, backoff 5/15/60 minutes. Operational records
-are retained 90 days.
+| Trigger | Function | Schedule | Defined at |
+|---|---|---|---|
+| Work queue | `runWorkerTrigger` | every 5 minutes | `src/entrypoints/Entry.js:192` |
+| QR digest | `runDailyQrDigestTrigger` | daily, 8:00 AM Central | `src/entrypoints/Entry.js:204` |
+| Retention | `runRetentionMaintenanceTrigger` | daily, off-peak | `src/entrypoints/Entry.js:214` |
+
+**Retry is not a fourth trigger, and looking for one is a provisioning mistake.** Retry
+happens *inside* the work-queue cycle: a failed item is written back with
+`nextAttemptAt = now + backoff` (`src/scheduled/Worker.js:98`) and is simply claimed again
+by a later run of the same 5-minute trigger, via `claimDue`
+(`src/scheduled/Worker.js:117`). Installing a separate "retry" trigger would run a second
+concurrent worker over the same queue, which is how one acknowledgement gets sent twice.
+
+Queue bounds, all from `src/platform/Config.js:63-68`: 20 items per cycle
+(`WORKER_MAX_ITEMS_PER_RUN`), 4 attempts (`WORKER_MAX_ATTEMPTS`), backoff 5/15/60 minutes
+(`WORKER_BACKOFF_MINUTES = [0, 5, 15, 60]`, indexed by attempts already made). The digest's
+intended hour is `DIGEST_HOUR_LOCAL = 8` (`src/platform/Config.js:87`). Operational records
+are retained 90 days (`OPERATIONAL_RETENTION_DAYS`, `src/platform/Config.js:107`); business
+records never expire automatically and `selectExpired` will not return one under any input
+(`src/scheduled/Retention.js:1-26`).
+
+**The retention trigger should be run once by hand with `{ dryRun: true }` before it is
+scheduled**, against real staging data — `runRetentionMaintenanceTrigger` accepts that
+option (`src/entrypoints/Entry.js:214`).
+
+**QR is fully retained and all three triggers matter to it.** The QR path writes a Contact,
+queues an acknowledgement the worker sends, and is swept into the next morning's digest.
+Skipping the digest trigger does not disable a nice-to-have; it silently strips the QR
+path of its only internal notification, since a Contact Exchange produces no Lead and
+therefore no partner notification.
 
 ### OAuth scopes
 
@@ -214,21 +273,122 @@ Sequence: `clasp push`, then **Deploy → New deployment → Web app**, then rec
 Afterwards `clasp deploy -i <staging-deployment-id>` updates the pinned version. `push`
 alone does not change what `/exec` serves.
 
+### What `clasp push` is allowed to send
+
+`clasp` runs from `scripts/gas-v2/`, against a gitignored `scripts/gas-v2/.clasp.json`
+(`.gitignore:55`). The manifest pushed is `scripts/gas-v2/appsscript.json`.
+
+**The source is nested, not flat.** `src/` is grouped into six directories:
+
+```
+src/entrypoints/   Entry.js — doGet, doPost, and the three trigger functions
+src/core/          domain logic: Intake, Domain, Records, Booking, Matching, Routing, ...
+src/platform/      Config, GoogleServices, SheetRepository, Ports, Runtime
+src/scheduled/     Worker, Digest, Retention
+src/emails/        the templates and their registry
+src/shared/        Util.js
+```
+
+**`.claspignore` is an allowlist, and the allow rule is recursive.** It denies `**/**`
+first, then re-allows exactly two patterns:
+
+```
+!appsscript.json
+!src/**/*.js
+```
+
+The recursion is load-bearing and is the detail most likely to be got wrong. A
+single-segment `!src/*.js` matched every file back when `src/` was flat, and matches
+**nothing** now that the files sit one level down — which would push a project containing
+a manifest and no code at all. The web app would then return an error for every request
+while `clasp push` reported success. `tests/deployability.test.js:51-73` pins both the
+deny-first ordering and the recursive form, so a regression to `src/*.js` fails the suite
+rather than the deployment.
+
+The allowlist direction matters just as much. Apps Script evaluates every pushed file's
+top-level statements in one shared global scope on every invocation, so a single pushed
+Node test file — opening with `require()`, which GAS does not define — makes every
+`doPost` and every trigger throw. That is a full backend outage caused by files that are
+not source.
+
+**Verify after the first push:** run `clasp status` and confirm it lists exactly
+`appsscript.json` plus the `src/**` files, and no `tests/`, `tools/`, `audit/`, or
+`README.md`.
+
 ---
 
-## 7. Safe staging recipients
+## 7. Rehearsal guardrails
 
-The visitor acknowledgement goes to **whatever address the submission contains**. The
-binding rule for all testing:
+Four independent guardrails. They are independent on purpose: each one alone is a single
+point of failure, and the one most likely to fail is the human.
+
+### 7.1 Recipients — only addresses you control
+
+The visitor acknowledgement goes to **whatever address the submission contains**
+(`src/platform/GoogleServices.js:92-98` sends to `message.to`; nothing filters or
+allowlists it). There is no recipient allowlist in the code, so this rule is the only
+thing standing between a rehearsal and a real person receiving a test email:
 
 > **Only ever submit an address you control.** Never a client, never a colleague, never a
 > plausible invented address that might belong to a real person.
 
-With `AXP_RUN_MODE=dry_run`, `MailApp.sendEmail`, `createEvent`, and `deleteEvent` each stop
-at the boundary and return `{ok: true, status: 'dry_run'}`. Records are written and the
-queue runs; nothing leaves the project and no calendar event is created.
+"Plausible invented" is the one that actually bites. `firstname.lastname@gmail.com` typed
+as a placeholder is very likely somebody's real mailbox. Use only `Zach@axispoint.llc`,
+`Ethaniel@axispoint.llc`, or a `+tag` alias on one of them.
 
-Reply-To is `info@axispoint.llc` on every outbound message.
+### 7.2 Run mode — the boundary is in the code
+
+With `AXP_RUN_MODE=dry_run`, three calls stop at the boundary and return without touching
+Google:
+
+| Call | Dry-run return | Guard |
+|---|---|---|
+| `MailApp.sendEmail` | `{ok: true, status: 'dry_run'}` | `src/platform/GoogleServices.js:87-89` |
+| `createEvent` | `{ok: true, status: 'dry_run', eventId: ''}` | `src/platform/GoogleServices.js:142-143` |
+| `deleteEvent` | `{ok: true, status: 'dry_run'}` | `src/platform/GoogleServices.js:166` |
+
+Records are still written and the queue still runs, so Phase 1 exercises the real logic.
+Nothing leaves the project and no calendar event is created. Note that `createEvent`
+returns an **empty** `eventId` in dry run, so a dry-run booking cannot be cancelled by id —
+that is expected, not a defect to chase.
+
+### 7.3 Calendar — a dedicated staging calendar, never a personal one
+
+Rehearsal bookings land on `AxisPoint Booking STAGING` (§4), never on a partner's personal
+calendar and never on a production booking calendar. This is enforced by one property,
+`AXP_CALENDAR_ID`, read per call (`src/platform/GoogleServices.js:146`,
+`src/platform/GoogleServices.js:168`).
+
+The point is bulk cleanup. A test event on a dedicated calendar can be deleted by
+selecting everything on that calendar; a test event on a personal calendar has to be
+picked out from real appointments by hand, and one missed event is a partner being held at
+a time nobody booked. **Before Phase 2, confirm `AXP_CALENDAR_ID` is the staging calendar
+id and not a personal one** — the code cannot tell the difference and will use whatever it
+is given.
+
+### 7.4 Labels — every test artifact must be identifiable as a test
+
+The failure this prevents is a rehearsal record surviving into production data and being
+worked as a real lead. Labelling is **not automatic**: nothing in the code marks a record,
+email, or event as a test, so it has to be carried in the fields a tester controls.
+
+| Artifact | How to label it | Why it works this way |
+|---|---|---|
+| Sheet rows | Put `TEST` in `fullName` — e.g. `TEST Zach Russell` | Written verbatim; submitted values are never reformatted (`src/core/Records.js:31-40`) |
+| Organization | Set `organization` to `TEST — staging rehearsal` | Same; also appears in the internal notification body |
+| Outbound email | Set `AXP_FROM_NAME` to `AxisPoint Partners [STAGING]` for the whole rehearsal | Subjects are template-built and not tester-controlled, but the From name is a property and labels **every** outbound message at once |
+| Calendar event | Comes free from `fullName` | The title is built as `'AxisPoint call' + ' with ' + attendeeName` (`src/platform/GoogleServices.js:149-151`), and `attendeeName` is `lead.fullName` (`src/core/Booking.js:119`) |
+
+**Do not try to label the subject line.** Email subjects are built by the templates
+(`src/emails/*.js`, each returning `subject: escSubject(subject)`) and no Script Property
+overrides them. `AXP_FROM_NAME` is the one lever that marks every message, which is why it
+carries the label rather than the subject.
+
+**Reset `AXP_FROM_NAME` to `AxisPoint Partners` before production.** It carries the
+`[STAGING]` suffix in §3 because this is the staging plan; shipping that suffix to a real
+visitor is the obvious way this guardrail turns into an embarrassment.
+
+Reply-To is `info@axispoint.llc` on every outbound message (`AXP_REPLY_TO`, §3).
 
 ---
 
@@ -304,13 +464,59 @@ Its identifiers are not in any tracked file; they exist only at the
 ## What provisioning will create
 
 1. Apps Script project `AxisPoint V2 STAGING`
-2. Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above
+2. Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above — 48, 8, 47, 28, 7, and
+   **11** columns respectively
 3. Calendar `AxisPoint Booking STAGING`
-4. 13 Script Properties per §3
+4. **11** Script Properties set per §3, of the 13 names that exist; `AXP_FIRM_PHONE` and
+   `AXP_LOGO_URL` are deliberately left unset
 5. 3 time-driven triggers per §5
 6. 1 Web app deployment
 7. Local `scripts/gas-v2/.clasp.json`, gitignored
 
 ## Open before provisioning
 
-Nothing blocks provisioning.
+### There is no reusable provisioning function, and every step above is manual
+
+**This is the one real gap.** Nothing in this repository can create or verify the structure
+described above against a given Sheet id. Provisioning is, today, entirely hand-typing:
+six tab names, 149 header cells, and 11 Script Properties, done once for the rehearsal
+Sheet and then done *again* for the production Sheet.
+
+What exists is a **declaration**, not an application:
+
+- `expectedTabLayout()` (`src/platform/SheetRepository.js:444-453`) returns the six tabs
+  and their header rows. Its own comment is explicit: *"Header rows a provisioning run
+  would write. Declared here, never applied here."*
+- `requireSheet()` (`src/platform/SheetRepository.js:104-108`) **throws** `missing tab:`
+  on an absent tab. It never creates one.
+- `insertSheet` appears **nowhere** in `src/`.
+- `makePropertyReader()` (`src/platform/GoogleServices.js:13-21`) exposes `get` only.
+  `setProperty` and `setProperties` appear **nowhere** in `src/`; the property layer is
+  read-only by construction.
+- No function named `provision`, `ensure`, `bootstrap`, `install`, or `scaffold` exists.
+
+So the answer to "could one function run against a rehearsal Sheet now and an empty
+production Sheet later, guaranteeing both are structurally identical" is **no**. The
+declaration that would make such a function trivial is already there and already
+test-pinned; only the writer is missing.
+
+**Why this matters before rehearsal rather than after.** Doing it twice by hand is not
+merely tedious, it is unverifiable: two hand-built Sheets that differ by one column are
+structurally different in a way nothing detects. `appendRecord` skips any field whose
+column is absent without erroring (`src/platform/SheetRepository.js:83-84`), so a
+production Sheet missing `idempotencyKey` would pass a rehearsal that used a correct one
+and then silently lose queue deduplication in production. That is the exact failure mode
+§2 describes, and hand-provisioning twice is how it arrives.
+
+**Not built in this pass — scoped as its own task.** Roughly: one function taking a target
+Sheet id, idempotent (create-if-absent, verify-and-report-if-present, never destructive to
+existing data rows), driven by `expectedTabLayout()` so the headers cannot drift from the
+constants; a companion that reports which of the 13 `PROP_KEYS` are set, missing, or
+blocking; and a dry-run/report mode so it can be pointed at a Sheet before it writes
+anything. It needs the `SpreadsheetApp` write path and a `setProperty` capability that
+`GoogleServices.js` does not currently expose, so it is a real code change with real
+tests, not a script.
+
+### Everything else
+
+Nothing else blocks provisioning.
