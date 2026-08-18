@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Mark } from '@axispoint/brand';
 import { FIRM, PARTNERS, type PartnerProfile } from './profiles';
 import { WEB_LINKS } from './webLinks';
-import { useSaveContact } from './useSaveContact';
+import { SaveContactButton } from './SaveContactButton';
 import { ContactExchange } from './exchange/ContactExchange';
 
 /**
@@ -141,8 +141,6 @@ function PartnerBlock({ partner }: { partner: PartnerProfile }) {
 }
 
 export default function Profile() {
-  const save = useSaveContact();
-
   /*
    * The Contact Exchange is a full screen, not a sheet over the card (approved §x2): six
    * controls plus a category list is 470px of content at 320px wide, and a partial sheet
@@ -153,17 +151,13 @@ export default function Profile() {
    */
   const [exchangeOpen, setExchangeOpen] = useState(false);
 
-  const failed = save.state === 'failed';
-  const preparing = save.state === 'preparing';
-  const handedOff = save.state === 'handoffMobile' || save.state === 'handoffWide';
-
   /*
    * The exchange replaces the card rather than layering over it. Rendering it in place of
    * the card, instead of hiding the card with CSS, keeps a single focusable surface: a
    * visually hidden card underneath would still be reachable by Tab and by a screen reader.
    */
   if (exchangeOpen) {
-    return <ContactExchange onClose={() => setExchangeOpen(false)} onSaveContact={save.save} />;
+    return <ContactExchange onClose={() => setExchangeOpen(false)} />;
   }
 
   return (
@@ -221,39 +215,30 @@ export default function Profile() {
 
           {/* ── Actions ── */}
           <div className="grid gap-3" style={{ marginTop: 24 }}>
-            <button
-              type="button"
-              onClick={save.save}
-              disabled={preparing}
-              aria-busy={preparing || undefined}
-              aria-label="Save both partners as contacts"
-              className="inline-flex items-center justify-center gap-2.5 rounded-[2px] font-bold transition-colors"
-              style={{
-                minHeight: 54,
-                padding: '0 22px',
-                fontSize: 16,
-                border: handedOff ? '1px solid #24A5BC' : 'none',
-                background: handedOff ? '#FFFFFF' : preparing ? '#1B8DA2' : '#24A5BC',
-                color: handedOff ? '#1C1628' : preparing ? '#FFFFFF' : '#0F1F27',
-                cursor: preparing ? 'progress' : 'pointer',
-              }}
-            >
-              {/* Address card with a person and a plus, per the board. Never a download arrow. */}
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" aria-hidden="true">
-                <rect x="2.5" y="2.5" width="12" height="15" rx="1.5" />
-                <path d="M2.5 6.5h-1.6M2.5 10h-1.6M2.5 13.5h-1.6" />
-                <circle cx="8.5" cy="8" r="2.1" />
-                <path d="M5.4 14c0.5-1.7 1.7-2.5 3.1-2.5s2.6 0.8 3.1 2.5" />
-                <path d="M16 8.5v5M13.5 11h5" />
-              </svg>
-              {save.label}
-            </button>
+            {/*
+              ONE SAVE ACTION PER PARTNER, owner-directed 2026-08-18.
+
+              A single action delivering one file with both records cannot produce iOS
+              Safari's "Add All 2 Contacts" flow: Safari ignores the `download` attribute on a
+              `blob:` URL, so it never treats the file as a named `.vcf` and previews a single
+              card instead. That was established on real devices, it is a platform limit
+              rather than a bug in the file, and the answer is to ask the visitor which person
+              they want and hand over one record at a time — the delivery shape that worked
+              for this project's entire life before 2026-08-17.
+
+              Mapped over `PARTNERS` rather than written out twice, so a third partner is a
+              data change. Each button owns its own state; see `SaveContactButton`.
+            */}
+            {PARTNERS.map((p) => (
+              <SaveContactButton key={p.key} partner={p} />
+            ))}
 
             {/*
-              The approved additive action (§x1): directly under Save, because the exchange
-              is the reciprocal half of the same gesture. Outlined rather than filled at
-              52px, so Save remains the only teal fill and the only 54px control on the card.
-              It is not a route row: those all leave for the website, this one stays inside.
+              The approved additive action (§x1): directly under the Save controls, because
+              the exchange is the reciprocal half of the same gesture. Outlined rather than
+              filled at 52px, so the two teal fills on the card are the two Save actions and
+              nothing else competes with them. It is not a route row: those all leave for the
+              website, this one stays inside.
             */}
             <button
               type="button"
@@ -270,60 +255,14 @@ export default function Profile() {
             >
               Share your details
             </button>
-
-            {/* One live region carries every handoff and failure message. Polite for a
-                handoff, assertive for a failure. Neither ever asserts a completed save. */}
-            <p
-              role="status"
-              aria-live={failed ? 'assertive' : 'polite'}
-              className={failed ? 'font-semibold' : ''}
-              style={{
-                margin: 0,
-                fontSize: failed ? 14.5 : 13,
-                lineHeight: 1.5,
-                color: failed ? '#1C1628' : 'rgba(28,22,40,0.6)',
-              }}
-            >
-              {save.message}
-            </p>
           </div>
 
-          {/* Recoverable failure. Page state, scroll position, and focus are preserved, and
-              only owner-confirmed details are printed, as selectable text, so the visitor
-              can still reach either partner when the file could not be built. */}
-          {failed && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: '12px 14px',
-                background: 'rgba(159,50,140,0.07)',
-                borderInlineStart: '3px solid #9F328C',
-                fontSize: 13.5,
-                lineHeight: 1.6,
-                color: 'rgba(28,22,40,0.78)',
-              }}
-            >
-              <p className="font-bold m-0" style={{ marginBottom: 6 }}>Verified details</p>
-              {PARTNERS.map((p) => (
-                <p className="m-0" key={p.key} style={{ marginBottom: 6 }}>
-                  {p.displayName}, {p.title}
-                  {p.phone && (
-                    <>
-                      <br />
-                      {p.phone.display}
-                    </>
-                  )}
-                  <br />
-                  {p.email ?? FIRM.email}
-                </p>
-              ))}
-              <p className="m-0">
-                {FIRM.name}, {FIRM.locality}
-                <br />
-                {FIRM.website}
-              </p>
-            </div>
-          )}
+          {/*
+            The status line and the recoverable-failure block moved into `SaveContactButton`
+            with the split. Each is now scoped to the partner whose file it describes, because
+            a page-level message cannot say WHICH of two saves was handed over or failed, and
+            one partner's failure should not print the other's fallback details.
+          */}
 
           {/* ── Both partners, on the one page ── */}
           <section aria-label="Partner contact details" style={{ marginTop: 26 }}>

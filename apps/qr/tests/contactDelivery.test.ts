@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 
 import {
   deliverContactFile,
-  CONTACT_FILENAME,
+  contactFilename,
   REVOKE_DELAY_MS,
   type DeliveryPort,
 } from '../src/useSaveContact';
+import { PARTNERS } from '../src/profiles';
 
 /*
  * THE OBJECT URL MUST OUTLIVE THE CLICK THAT CONSUMES IT.
@@ -75,12 +76,16 @@ function recorder(): Recorder {
 
 const CARD = 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Test\r\nEND:VCARD\r\n';
 
+/* One partner's real filename, so these tests exercise the names the app actually offers. */
+const FILENAME = contactFilename(PARTNERS[0]);
+const OTHER_FILENAME = contactFilename(PARTNERS[1]);
+
 /* ── The regression itself ────────────────────────────────────────────────── */
 
 test('no object URL is revoked synchronously with the click', () => {
   const r = recorder();
 
-  const url = deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  const url = deliverContactFile(CARD, FILENAME, r.port);
 
   assert.equal(r.created.length, 1, 'exactly one object URL should be created');
   assert.deepEqual(
@@ -94,11 +99,11 @@ test('no object URL is revoked synchronously with the click', () => {
 test('the download is triggered before anything schedules a revoke', () => {
   const r = recorder();
 
-  deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  deliverContactFile(CARD, FILENAME, r.port);
 
   assert.deepEqual(r.events, [
     'create blob:test/0',
-    `download blob:test/0 as ${CONTACT_FILENAME}`,
+    `download blob:test/0 as ${FILENAME}`,
     `schedule ${REVOKE_DELAY_MS}`,
   ]);
 });
@@ -108,7 +113,7 @@ test('the download is triggered before anything schedules a revoke', () => {
 test('the revoke is deferred by a window wide enough to be a fix', () => {
   const r = recorder();
 
-  deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  deliverContactFile(CARD, FILENAME, r.port);
 
   assert.equal(r.scheduled.length, 1, 'exactly one revoke should be scheduled');
   // A deferral of a few milliseconds would satisfy "not synchronous" while leaving the bug
@@ -125,18 +130,29 @@ test('the revoke is deferred by a window wide enough to be a fix', () => {
 test('the scheduled revoke releases exactly the URL that was handed out', () => {
   const r = recorder();
 
-  const url = deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  const url = deliverContactFile(CARD, FILENAME, r.port);
   r.elapse();
 
   assert.deepEqual(r.revoked, [url], 'the delayed cleanup must still happen, and on that URL');
 });
 
-test('two saves each get their own URL and each one is released', () => {
+test('saving both partners gives each file its own URL, and each one is released', () => {
+  /*
+   * THIS IS THE ORDINARY CASE NOW, not an edge case. The owner-directed split of 2026-08-18
+   * gives the card two save actions, so a visitor who wants both partners presses twice,
+   * seconds apart, and two reads overlap inside the forty-second window by design.
+   */
   const r = recorder();
 
-  const first = deliverContactFile(CARD, CONTACT_FILENAME, r.port);
-  const second = deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  const first = deliverContactFile(CARD, FILENAME, r.port);
+  const second = deliverContactFile(CARD, OTHER_FILENAME, r.port);
   assert.notEqual(first, second, 'precondition: a second save creates a second object URL');
+  assert.notEqual(FILENAME, OTHER_FILENAME, 'precondition: each partner has its own filename');
+  assert.deepEqual(
+    r.events.filter((e) => e.startsWith('download')),
+    [`download ${first} as ${FILENAME}`, `download ${second} as ${OTHER_FILENAME}`],
+    'each save must offer its own partner file, not the other one twice',
+  );
 
   // Both revokes are still pending here, which is the case a shared cancelling timer list
   // would break: the second save would drop the first file's cleanup on the floor.
@@ -146,15 +162,21 @@ test('two saves each get their own URL and each one is released', () => {
   assert.deepEqual(r.revoked.slice().sort(), [first, second].sort(), 'both URLs must be released');
 });
 
-/* ── The visitor-facing filename is unchanged by this refactor ────────────── */
+/* ── The file is offered under the name its caller asked for ──────────────── */
 
-test('the download is offered under the contact filename', () => {
+test('the download is offered under the filename it was given', () => {
+  /*
+   * `deliverContactFile` no longer defaults the filename: there is no single "the" contact
+   * file any more, so the caller names the partner whose record it is delivering. Asserting
+   * the name is passed through is what keeps the two save actions from both offering one
+   * partner's file.
+   */
   const r = recorder();
 
-  deliverContactFile(CARD, CONTACT_FILENAME, r.port);
+  deliverContactFile(CARD, FILENAME, r.port);
 
   assert.ok(
-    r.events.includes(`download blob:test/0 as ${CONTACT_FILENAME}`),
-    'the download must be offered under CONTACT_FILENAME',
+    r.events.includes(`download blob:test/0 as ${FILENAME}`),
+    'the download must be offered under the filename passed in',
   );
 });

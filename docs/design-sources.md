@@ -342,10 +342,10 @@ comps, which is consistent with licensing having happened, but the archive canno
 Production delivery rules (AVIF → WebP → JPEG, `srcset`, desktop and mobile crops, weight
 budgets) are in the archive's `image-slot-spec.md`.
 
-## QR: four unresolved values
+## QR: three unresolved values
 
 The QR design is complete and approved. The board's own §q13 lists seven values as unresolved
-**by design**. Three have since been resolved by owner decision:
+**by design**. Four have since been resolved by owner decision:
 
 - **A verified phone for each partner**, resolved 2026-08-15 by
   [`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md), which carries owner-confirmed current phone
@@ -357,14 +357,21 @@ The QR design is complete and approved. The board's own §q13 lists seven values
 - **The final permanent profile URL**, no longer three URLs to decide. One page needs one
   address, so what remains is a hosting question rather than a design one. It is tracked as a
   launch item in [`STATUS.md`](STATUS.md), not as an unresolved design value.
+- **Whether the organization note is set, and its exact wording**, resolved 2026-08-18. The
+  owner approved: *"Property management for multifamily and retail owners across Texas, based
+  in Houston."* It is written as `NOTE` into both partners' records, the same firm-level
+  sentence in each, and it lives in `FIRM.organizationNote` in `apps/qr/src/profiles.ts`.
+  Escaped and prefixed it is 91 octets, past the specifications' 75-octet line limit, so the
+  contact-file builder now folds long lines per RFC 2426 §2.6 rather than emitting one that is
+  too long. Changing the wording changes what lands in real people's address books: change
+  this file and `profiles.ts` together.
 
-The remaining four **block production completion and physical-card cutover. They do not block
+The remaining three **block production completion and physical-card cutover. They do not block
 frontend implementation.**
 
 1. Whether a firm phone will ever exist
 2. The contact-file generation and delivery method
-3. Whether the organization note is set, and its exact wording
-4. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
+3. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
 
 A QR implementation pass may proceed using **configurable local fixture data and simulated
 contact-download behaviour.** It must not silently select a permanent public URL or a
@@ -401,7 +408,7 @@ belong.
 |---|---|---|
 | Pages | One template, three states, selected by `?profile=` | **One combined page.** No parameter, no states, nothing to select |
 | Identity | One partner per scan, or a firm fallback for a card that did not resolve | **Both partners together**, each with name, title, direct line, and direct address |
-| Save action | One contact record, the scanned partner or the firm | **Exactly two records, Zachary and Ethaniel individually.** No third combined or firm-level record |
+| Save action | One contact record, the scanned partner or the firm | **Two separate save actions, one per partner** ("Save Zachary's contact", "Save Ethaniel's contact"), each delivering a file containing **exactly one record**. No combined and no firm-level record. See the 2026-08-18 split below: this row said "one action, two records" for one day |
 | Attribution | Per-partner: a scan of Zachary's card recorded `zachary_russell` | **Firm-level only.** Every exchange sends `axispoint-partners` |
 
 ### Why, and what it cost
@@ -429,22 +436,69 @@ this and assumes it was an oversight:
 ### What did not change
 
 No new component, colour, spacing, or type style was invented. The header, the 480px measure,
-the single column with no second breakpoint, the teal-filled Save control as the only 54px
-control, the outlined "Share your details" action, the quiet route rows, the footer, and the
-approved missing-data rules are all the board's, unchanged. The missing-data rules are still
+the single column with no second breakpoint, the teal-filled Save control, the outlined
+"Share your details" action, the quiet route rows, the footer, and the approved missing-data
+rules are all the board's, unchanged. (The Save control is now rendered twice, once per
+partner — see the 2026-08-18 split below — so it is no longer the *only* 54px control on the
+card, but it is still the only teal fill and still the board's control.) The missing-data rules are still
 implemented rather than assumed away: a null phone omits its Call row, a null email falls back
 to the firm inbox with that disclosed. Both branches are currently unreachable, because both
 partners have confirmed values, which is the correct reason for a state to be unreachable.
 
-### Not verified on a real device
+## QR save-contact split, owner-directed deviation, 2026-08-18
 
-The Save action builds the two-record file in memory and hands it to the browser as a `blob:`
-URL through a synthetic anchor click. **That delivery path has never been exercised on a real
-iPhone or a real Android handset, not even for the single-record case it replaces**, and a
-multi-record file adds a second unverified behaviour: some contact importers read only the
-first record in a stream. `apps/qr/tests/vcard.test.ts` pins the bytes of the file and says
-nothing about what a phone does with it. This is an open manual verification, tracked in
-[`STATUS.md`](STATUS.md), and it is a launch blocker rather than a finished item.
+**One action delivering two records lasted one day. It was replaced by two actions, each
+delivering one record, because the original could not work on this app's delivery path.** This
+amends the row in the table above rather than reversing the single-page collapse: the card is
+still one page carrying both partners, and both partners' details are still on it.
+
+### What real-device testing established
+
+The card hands a file to the browser as a `blob:` URL through a synthetic anchor click.
+**iOS Safari ignores the `download` attribute on a `blob:` URL.** It therefore never sees a
+real, named `.vcf`, never recognises the payload as a contact file it can import wholesale,
+and never offers the **"Add All 2 Contacts"** flow that a two-record file exists to trigger.
+What it offers instead is a single-item Quick Look preview, which imports one card.
+
+**This is a platform limitation, not a defect in the file, and it has no fix inside the
+blob-delivery approach.** That distinction matters for anyone reading this later: the bytes
+were correct, `apps/qr/tests/vcard.test.ts` was passing throughout, and every assertion in it
+was true. A test suite that pins file contents cannot see this class of failure, which is
+exactly why it went a day undetected.
+
+### What ships instead
+
+Two separate, clearly labelled actions, mapped over `PARTNERS`:
+
+| | 2026-08-17 | Shipped since 2026-08-18 |
+|---|---|---|
+| Actions | One, "Save our contacts" | **Two: "Save Zachary's contact", "Save Ethaniel's contact"** |
+| File | One file, two records, `AxisPoint-Partners.vcf` | **One file per action, exactly one record**, `AxisPoint-Zachary-Russell.vcf` and `AxisPoint-Ethaniel-Vu.vcf` |
+| Delivery | `blob:` URL, synthetic anchor click | **Unchanged.** Single-record delivery over this exact path is what the project shipped for its whole life before the collapse |
+| State | One state machine for the page | **One per action.** One partner's failure or handoff says nothing about the other's |
+
+Each record is unchanged in content: name, title, that partner's own direct line and direct
+address, `ORG`, the firm URL fallback, the Houston/TX locality-only `ADR`, and the approved
+`NOTE`. There is still no combined and no firm-level record. PR #92's deferred object-URL
+revoke is preserved exactly, and the split makes it more load-bearing rather than less: a
+visitor who wants both partners now presses Save twice, so two blob reads overlapping inside
+the forty-second window is the expected case rather than an edge case. Each hook instance
+keeps its own timers, so neither save can cancel the other's cleanup.
+
+### The cost, accepted
+
+**A visitor who wants both partners now presses two buttons instead of one.** That is the
+deliberate trade: two presses that work beat one press that produces one contact and no
+indication that the second was dropped.
+
+### Still to verify on a real device
+
+Real-device testing established what does NOT work. **The two-action flow itself has not yet
+been walked end to end on a real iPhone and a real Android handset**, because it did not exist
+until this change. `apps/qr/tests/vcard.test.ts` pins the bytes of both files — including an
+explicit assertion that each contains exactly one `VCARD` block — and says nothing about what a
+phone does with them. Tracked in [`STATUS.md`](STATUS.md) as a narrowed launch item rather than
+a finished one.
 
 ## Recording future design revisions
 

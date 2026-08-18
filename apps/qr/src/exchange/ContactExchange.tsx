@@ -1,7 +1,8 @@
 import { useId } from 'react';
 
 import { useExchange } from './useExchange';
-import { SAVE_ACTION_LABEL } from '../useSaveContact';
+import { SaveContactButton } from '../SaveContactButton';
+import { PARTNERS } from '../profiles';
 import {
   CONTACT_CATEGORIES,
   COPY,
@@ -69,14 +70,7 @@ function ErrorText({ id, children }: { id: string; children: React.ReactNode }) 
   );
 }
 
-export function ContactExchange({
-  onClose,
-  onSaveContact,
-}: {
-  onClose: () => void;
-  /** The approved success primary action: the card's own Save action. */
-  onSaveContact: () => void;
-}) {
+export function ContactExchange({ onClose }: { onClose: () => void }) {
   const m = useExchange();
   const ids = useId();
   const fid = (name: string) => `${ids}-${name}`;
@@ -112,9 +106,18 @@ export function ContactExchange({
             {COPY.successBody}
           </p>
 
-          <button type="button" onClick={onSaveContact} style={primaryButton()} className="w-full">
-            {SAVE_ACTION_LABEL}
-          </button>
+          {/*
+            The approved success primary action (§x10) is the card's own Save action, and the
+            card now has two of them, one per partner (owner-directed split of 2026-08-18).
+            The whole control is rendered here rather than a bare button wearing its label, so
+            the success screen cannot drift from the card: same wording, same states, same
+            honesty about what a handoff does and does not prove.
+          */}
+          <div className="grid gap-3 text-left">
+            {PARTNERS.map((p) => (
+              <SaveContactButton key={p.key} partner={p} />
+            ))}
+          </div>
 
           <p style={{ margin: '18px 0 0', fontSize: 13, lineHeight: 1.5, color: 'rgba(28,22,40,0.55)' }}>
             {COPY.successFoot}
