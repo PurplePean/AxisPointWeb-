@@ -155,8 +155,12 @@ export const COPY = {
     'Nothing was lost. Everything you entered is still here. Try again, or use the Email action on the card.',
   successHeading: `Your details were shared with ${FIRM.name}.`,
   /* Merges the two approved variants: the firm line's "so you have us too" and the partner
-     line's "both sides of the exchange", now that one action saves both partners. */
-  successBody: `${FIRM.name} has your contact information. Save our contacts so you have both sides of the exchange.`,
+     line's "both sides of the exchange".
+
+     "Save our contacts" became "Save either partner" with the 2026-08-18 split. The old
+     wording named an action that no longer exists — there are two now, one per partner — and
+     a sentence pointing at a button nobody can find is worse than a slightly longer one. */
+  successBody: `${FIRM.name} has your contact information. Save either partner below so you have both sides of the exchange.`,
   successFoot: 'Nothing else was sent and you were not added to any mailing list.',
   close: 'Close',
   open: 'Share your details',

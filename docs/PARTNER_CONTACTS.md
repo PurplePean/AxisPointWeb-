@@ -33,8 +33,9 @@ Any future V2 work that needs current partner contact information should read it
 
 - **`apps/qr/src/profiles.ts`, which carries these values as of 2026-08-17.** No longer a
   future consumer: the QR card is now one page showing both partners, it displays both direct
-  numbers and both direct addresses to anyone who scans it, and it writes them into the
-  two-record contact file that visitors save. **This document stays the source of record**,
+  numbers and both direct addresses to anyone who scans it, and it writes each partner's
+  values into that partner's own single-record contact file. There are two save actions and
+  two files, one per partner, as of 2026-08-18. **This document stays the source of record**,
   and a change updates it and `profiles.ts` in the same pull request.
 - Email signatures.
 - Footer and contact-page content, if partner-level contact detail is ever surfaced there.
