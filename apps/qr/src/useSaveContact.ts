@@ -21,7 +21,7 @@ import { FIRM, PARTNERS, type PartnerProfile } from './profiles';
  * delivery method remains an unresolved owner value (`docs/design-sources.md`). No hosted
  * `.vcf` is fetched, no GAS endpoint is called, nothing is uploaded. The file is built in
  * memory from owner-confirmed values and handed to the browser as an object URL, which is
- * then revoked. When the real architecture is decided, `prepare()` is the single function to
+ * then revoked on a delay. When the real architecture is decided, `prepare()` is the single function to
  * replace.
  *
  * NOT VERIFIED ON A REAL DEVICE. The delivery mechanism below is a synthetic anchor click on
@@ -148,6 +148,89 @@ export function buildContactCard(partners: readonly PartnerProfile[] = PARTNERS)
   return partners.map(buildPartnerRecord).join('\r\n') + '\r\n';
 }
 
+/**
+ * How long the object URL outlives the click that consumed it.
+ *
+ * WHY THIS IS NOT ZERO, WHICH IS WHAT IT USED TO BE. `a.click()` only STARTS the download; the
+ * browser reads the blob asynchronously afterwards. Revoking on the next line is therefore a
+ * race, and it is a race iOS Safari loses in practice: the URL is already dead when the read
+ * reaches it, and the visitor gets an empty file or no file at all. That is the single
+ * most-reported failure of the synthetic-anchor download, and the synthetic-anchor download is
+ * exactly the path this app takes.
+ *
+ * WHY FORTY SECONDS AND NOT FOUR HUNDRED MILLISECONDS. No event reports "the browser has
+ * finished reading", so the only honest choice is a window longer than any plausible read
+ * rather than a number tuned to one device. Forty seconds is FileSaver.js's long-standing
+ * value, chosen against the same browsers for the same reason. Overshooting costs one ~1 KB
+ * blob held a moment longer; undershooting costs the bug above, silently, on the device class
+ * a QR card is most often scanned with.
+ */
+export const REVOKE_DELAY_MS = 40_000;
+
+/**
+ * The browser operations that delivering a file needs, named so a test can supply its own.
+ *
+ * The defect this seam exists to hold shut is one of ORDERING and TIMING, and neither is
+ * observable through the real `URL` and `document` globals from a node test. Injecting them is
+ * what turns "the revoke does not happen synchronously" into an assertion rather than a
+ * comment somebody has to keep believing.
+ */
+export interface DeliveryPort {
+  createObjectURL: (blob: Blob) => string;
+  revokeObjectURL: (url: string) => void;
+  /** Puts the file in front of the visitor: a download on wide screens, a sheet on phones. */
+  triggerDownload: (url: string, filename: string) => void;
+  /** Schedules the deferred revoke. */
+  schedule: (run: () => void, delayMs: number) => void;
+}
+
+/** The real browser. Built on demand, so a test that injects a port never touches a global. */
+function browserDelivery(): DeliveryPort {
+  return {
+    createObjectURL: (blob) => URL.createObjectURL(blob),
+    revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    triggerDownload: (url, filename) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    },
+    schedule: (run, delayMs) => {
+      window.setTimeout(run, delayMs);
+    },
+  };
+}
+
+/**
+ * Hands one prepared contact file to the browser, then releases its object URL later.
+ *
+ * THE REVOKE TIMER IS DELIBERATELY NOT ONE OF THE HOOK'S TIMERS. `useSaveContact` keeps a list
+ * of timers it cancels at the start of every save, which is correct for the state timers: a
+ * second press must not be governed by the first press's clock. Putting the revoke in that
+ * list would mean a visitor who presses Save twice inside forty seconds cancels the first
+ * file's cleanup and leaks that URL for the life of the document. Leaving it a plain window
+ * timer keeps each file's cleanup tied to that file. The callback closes over a string and
+ * touches no React state, so it is safe after an unmount, and a real page teardown releases
+ * every outstanding object URL regardless.
+ *
+ * Returns the URL it created, so a caller can name it in an assertion.
+ */
+export function deliverContactFile(
+  card: string,
+  filename: string = CONTACT_FILENAME,
+  port: DeliveryPort = browserDelivery(),
+): string {
+  const blob = new Blob([card], { type: 'text/vcard;charset=utf-8' });
+  const url = port.createObjectURL(blob);
+  port.triggerDownload(url, filename);
+  // Ordering is the whole point: the click is issued first, and the revoke is scheduled, never
+  // performed, on this line.
+  port.schedule(() => port.revokeObjectURL(url), REVOKE_DELAY_MS);
+  return url;
+}
+
 /** Wide screens download a file; small screens open a contact sheet. */
 function deliveredAsDownload(): boolean {
   return window.matchMedia('(min-width: 700px)').matches;
@@ -199,15 +282,7 @@ export function useSaveContact() {
         timers.current.push(t);
       });
 
-      const blob = new Blob([card], { type: 'text/vcard;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = CONTACT_FILENAME;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      deliverContactFile(card);
 
       window.clearTimeout(cap);
       // Chosen by how the file was delivered, not by guessing the device.
