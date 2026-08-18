@@ -72,6 +72,19 @@ copy, or a flag that switches it on.**
 `apps/qr` remains transitional, a V2-integrated app on a legacy scaffold. That is a statement
 about how it was built, not a signal that its scope is provisional.
 
+**The card is one page showing both partners, as of 2026-08-17.** The `?profile=` three-state
+template (Zachary, Ethaniel, firm fallback) was collapsed into a single combined page carrying
+both partners' owner-confirmed direct numbers and addresses, and Save produces exactly two
+contact records rather than one. This was an owner-directed deviation from the approved board
+and is recorded as such in [`design-sources.md`](design-sources.md), which holds the full
+before/after and the reasoning. Two consequences were accepted explicitly and are not defects:
+**per-partner digest attribution is gone** (every exchange now sends the firm slug and lands
+in the digest's shared section, delivered to both partners), and **the firm fallback state and
+its copy are gone with it**. No backend, digest, or contract change was made or needed; the
+shared-section routing path already existed and was already tested.
+
+**The two-record contact file has not been tested on a real device.** See section 5.
+
 ## 4. Open owner decisions
 
 **None that block current work.** The two that were open here are settled:
@@ -82,8 +95,10 @@ about how it was built, not a signal that its scope is provisional.
   original reasoning, so no approval gate is to be built. This is a standing decision, not a
   pending question.
 
-The only genuinely undecided values left in the project are the **six unresolved QR values**
-listed in [`design-sources.md`](design-sources.md). They block production completion and
+The only genuinely undecided values left in the project are the **four unresolved QR values**
+listed in [`design-sources.md`](design-sources.md), down from six: the 2026-08-17 single-page
+collapse settled verified partner email behaviour, and left one page needing one address
+rather than a permanent per-partner URL to choose. They block production completion and
 physical-card cutover; they do not block frontend implementation or anything currently in
 flight. They are not re-listed here, so that the list has one home.
 
@@ -100,6 +115,7 @@ Each of these was verified against code or an authoritative document on the date
 | **Both deploy workflows still pass `VITE_FORM_ENDPOINT`** | That is the retired V1 variable name. A deploy today would compile in **no endpoint** and ship a build that fails closed on every submission while looking correct. Must be corrected in the same change that adds the FTP secrets |
 | **No SPA rewrite is configured, and none is tracked here** | Deep links depend on the host returning `index.html`. All routing evidence comes from the dev server, which supplies the fallback automatically; that is not evidence about Apache. **Verifying and configuring the host's rewrite is a prerequisite for activating any non-English locale** |
 | **No V2 Apps Script project exists** | The backend cannot run until a project, Sheet, Script Properties, calendar, and triggers are created. Nothing blocks doing it; it simply has not been done |
+| **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** The card builds a two-record vCard in memory and delivers it by a synthetic anchor click on a `blob:` URL. That path has never been exercised on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts) — **not even for the single-record case that preceded it** — and multi-record files add a known real-world risk that some importers read only the first record. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is a prompt to add 2 contacts, and both records saving with the right name, title, direct number, and direct address |
 | **The QR subdomain's document root does not match the deploy target** | `qr.axispoint.llc` serves `/home/axisipak/public_html/qr`, while `deploy-qr.yml` targets `./qr.axispoint.llc/`. These must be reconciled at launch or the first deploy lands in the wrong place |
 | **Deploys add and overwrite but never delete** | `dangerous-clean-slate` is not passed, so stale files from the current hand-uploaded site would persist alongside a new build. The strategy is a cutover-time choice, recorded in [`deployment.md`](deployment.md) |
 | **The header overflows 390px by 3px on all seven routes** | Re-measured in a headless browser at 390x844 on 2026-08-16: `scrollWidth` 393 against `clientWidth` 390 on every route. The culprit is the mobile control cluster in `apps/web/src/components/Nav.tsx:193`. Every page therefore scrolls horizontally on a small phone |
@@ -132,6 +148,8 @@ Pointers, not plans. The detailed scope belongs in the task that does the work.
 - **Fix the deploy path as one change**: correct both workflows to
   `VITE_V2_SUBMISSION_ENDPOINT`, add the FTP secrets, settle the mirror-delete strategy, and
   reconcile the QR document root. Doing any one of these alone ships a broken deploy.
+- **Test the QR contact file on a real iPhone and a real Android handset**, per the launch
+  blocker in section 5. It needs a person and two phones, not a commit.
 - **Verify and configure the host's SPA rewrite**, before any non-English locale is activated.
 - **Fluent review of the eight unreviewed locale catalogs**, one language at a time.
 - **Fix the 3px mobile overflow** in the header's mobile control cluster.

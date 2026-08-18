@@ -29,7 +29,7 @@ export interface ExchangeReceipt {
   contactId: string | null;
 }
 
-export function useExchange(context: { profileKey: string | null }) {
+export function useExchange() {
   const [draft, setDraft] = useState<ExchangeDraft>(emptyDraft);
   const [screen, setScreen] = useState<ExchangeScreen>('form');
   const [sendState, setSendState] = useState<SendState>('idle');
@@ -169,7 +169,6 @@ export function useExchange(context: { profileKey: string | null }) {
     let envelopeDraft;
     try {
       envelopeDraft = toEnvelopeDraft(draft, {
-        profileKey: context.profileKey,
         landingPage: typeof window === 'undefined' ? undefined : window.location.href,
         clientSignals: { fillSeconds: Math.round((Date.now() - startedAt.current) / 1000) },
       });
@@ -182,7 +181,7 @@ export function useExchange(context: { profileKey: string | null }) {
     }
 
     applyResult(await getSubmissionClient().submit(envelopeDraft));
-  }, [applyResult, context.profileKey, draft, requestAnnounce]);
+  }, [applyResult, draft, requestAnnounce]);
 
   /** §x5 and contract §12: the same attempt, same id, same envelope. Never a fresh one. */
   const retry = useCallback(async () => {

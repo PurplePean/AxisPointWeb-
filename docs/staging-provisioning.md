@@ -253,9 +253,16 @@ Reply-To is `info@axispoint.llc` on every outbound message.
 | # | Case | Real effect |
 |---|---|---|
 | 10 | Inquiry to Zach's address | one acknowledgement, one partner notification |
-| 11 | QR exchange to Ethaniel's address | one acknowledgement; digest next morning |
+| 11 | QR exchange to Ethaniel's address | one acknowledgement; digest next morning, **in the shared section** |
 | 12 | Booking | one real event on the staging calendar |
 | 13 | Slot-taken refusal | see below |
+
+**Case 11 lands in the digest's shared section, not in a partner's own group.** Since the
+2026-08-17 single-page collapse the QR card sends the firm slug for every exchange, so the
+Contact resolves to `acquisitionSource: 'firm'` and both partners receive it identically. A
+verifier expecting to see it under "Gathered through Ethaniel Vu" would read correct behaviour
+as a bug. See [`design-sources.md`](design-sources.md) for why per-partner attribution was
+given up.
 
 **Case 13 requires a deliberately seeded event.** The backend returns `SLOT_UNAVAILABLE`
 only when `listBusy` reports the slot occupied, so the refusal cannot be produced by the

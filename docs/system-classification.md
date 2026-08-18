@@ -168,6 +168,16 @@ intends to operate and treated its behavior as provisional, which read as though
 pending. It is not. The only thing removed in that pass was the correction and removal promise in
 the QR acknowledgement, along with the two Script Properties that gated it.
 
+**The card surface is one combined page as of 2026-08-17.** The `?profile=` three-state
+template (Zachary, Ethaniel, firm fallback) was collapsed by owner direction into a single
+page showing both partners with their confirmed direct numbers and addresses, and its Save
+action produces two contact records. This is a **frontend-only** change:
+`scripts/gas-v2` was not touched, `SLUG_TO_PARTNER` still resolves both partner slugs, and the
+per-partner attribution the frontend no longer sends is an accepted loss rather than a
+regression. [`design-sources.md`](design-sources.md) records the full deviation and
+[`STATUS.md` §3](STATUS.md) the current state. This does not reduce QR functionality; it
+changes which of it is reachable from one scan.
+
 So there is no provisional qualifier on anything below. These are current, supported
 V2 surfaces:
 

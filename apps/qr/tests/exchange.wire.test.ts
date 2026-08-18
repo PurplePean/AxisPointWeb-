@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { loadGasV2Contract } from './helpers/gasV2';
-import { toEnvelopeDraft, toContactExchangePayload, cardSlug, FIRM_SLUG } from '../src/exchange/toWire';
+import { toEnvelopeDraft, toContactExchangePayload, FIRM_SLUG } from '../src/exchange/toWire';
 import { CONTACT_CATEGORIES, emptyDraft, validateDraft, MESSAGE, type ExchangeDraft } from '../src/exchange/model';
 
 /*
@@ -16,9 +16,16 @@ import { CONTACT_CATEGORIES, emptyDraft, validateDraft, MESSAGE, type ExchangeDr
 
 const gas = loadGasV2Contract();
 
-/** Wraps a draft the way the shared client will: it owns id, version, and timestamp. */
-function envelopeFor(draft: ExchangeDraft, profileKey: string | null = 'zachary-russell') {
-  const d = toEnvelopeDraft(draft, { profileKey });
+/**
+ * Wraps a draft the way the shared client will: it owns id, version, and timestamp.
+ *
+ * There is no profile key to pass any more. The single-page collapse of 2026-08-17 left the
+ * app with one card and therefore one slug, so `toEnvelopeDraft` takes no attribution input
+ * from the caller and the tests below cannot construct a per-partner envelope even if they
+ * wanted one. That is the point: the loss is structural, not a value somebody forgot to set.
+ */
+function envelopeFor(draft: ExchangeDraft) {
+  const d = toEnvelopeDraft(draft);
   return {
     schemaVersion: 1,
     submissionId: '3f7d1b2a-4c5e-4a6b-9c8d-0e1f2a3b4c5d',
@@ -129,25 +136,18 @@ test('a QR exchange produces a Contact and no Lead in the real domain layer', ()
 
 /* ── Attribution: gathered-through, kept apart from ownership ─────────────── */
 
-test('a partner card records that partner as the immutable acquisition source', () => {
-  const parsed = parse(envelopeFor(validDraft(), 'zachary-russell'));
-  assert.equal(parsed.ok, true);
+test('every exchange now sends the firm slug, and it is the backend value verbatim', () => {
+  // Read from the backend rather than restated, so a rename on either side fails here.
+  assert.equal(FIRM_SLUG, gas.FIRM_SLUG);
 
-  const buildContact = gas.buildContact as (e: unknown, c: unknown) => Record<string, unknown>;
-  const contact = buildContact(parsed.value, {
-    contactId: 'c-1', leadId: '', receivedAt: '2026-08-05T18:00:00.000Z', screening: {}, possibleMatches: [],
-  });
-
-  assert.equal(contact.acquisitionSource, 'zachary_russell');
-  assert.equal(contact.scannedPartner, 'zachary_russell');
-  // A scan gives a partner a name, not a claim. Ownership starts unassigned for everyone.
-  assert.equal(contact.ownerPartner, '');
+  const envelope = envelopeFor(validDraft());
+  assert.equal((envelope.attribution as { sourceDetail: string }).sourceDetail, FIRM_SLUG);
+  assert.equal(parse(envelope).ok, true);
 });
 
-test('the firm card is an acquisition source but never an assignable partner', () => {
-  const parsed = parse(envelopeFor(validDraft(), null));
+test('the firm slug is an acquisition source but never an assignable partner', () => {
+  const parsed = parse(envelopeFor(validDraft()));
   assert.equal(parsed.ok, true);
-  assert.equal((parsed.value?.attribution as { sourceDetail: string }).sourceDetail, FIRM_SLUG);
 
   const buildContact = gas.buildContact as (e: unknown, c: unknown) => Record<string, unknown>;
   const contact = buildContact(parsed.value, {
@@ -156,28 +156,59 @@ test('the firm card is an acquisition source but never an assignable partner', (
 
   assert.equal(contact.acquisitionSource, 'firm');
   assert.equal(contact.scannedPartner, '');
+  // A scan gives a partner a name, not a claim. Ownership starts unassigned for everyone.
+  assert.equal(contact.ownerPartner, '');
 });
 
-test('an unrecognised card slug resolves to unknown and is not rewritten to the firm', () => {
-  // A card that did not resolve is evidence a printed card is wrong. Hiding it inside
-  // "firm" would destroy exactly the signal worth having.
-  const parsed = parse(envelopeFor(validDraft(), 'demo-missing-email'));
-  assert.equal(parsed.ok, true);
-
+/*
+ * THE ACCEPTED COST OF THE SINGLE-PAGE COLLAPSE, PINNED AS A TEST.
+ *
+ * Owner-directed decision, 2026-08-17: per-partner attribution in the daily digest is
+ * accepted as lost, because the frontend no longer has a partner-specific identifier to
+ * send. This asserts the consequence deliberately rather than leaving it as an absence
+ * somebody later reads as a bug. If a future pass restores per-partner cards, this test is
+ * the one that should fail and be rewritten.
+ */
+test('a QR contact is no longer attributable to an individual partner', () => {
+  const parsed = parse(envelopeFor(validDraft()));
   const buildContact = gas.buildContact as (e: unknown, c: unknown) => Record<string, unknown>;
   const contact = buildContact(parsed.value, {
     contactId: 'c-1', leadId: '', receivedAt: '2026-08-05T18:00:00.000Z', screening: {}, possibleMatches: [],
   });
 
-  assert.equal(contact.acquisitionSource, 'unknown');
-  assert.equal(contact.scannedPartner, '');
+  const partners = Array.from(gas.SLUG_TO_PARTNER ? Object.values(gas.SLUG_TO_PARTNER as object) : []);
+  assert.equal(partners.includes(contact.acquisitionSource as string), false);
 });
 
-test('both partner slugs match the backend map exactly', () => {
+test('the backend still resolves per-partner slugs, so nothing there had to change', () => {
+  /*
+   * The collapse is a frontend change only. `SLUG_TO_PARTNER` keeps both partner slugs and
+   * the shared-section routing path is the one that already existed and was already tested.
+   * Asserting the backend map is intact proves this pass did not quietly narrow it.
+   */
   const map = gas.SLUG_TO_PARTNER as unknown as Record<string, string>;
-  assert.equal(cardSlug('zachary-russell') in map, true);
-  assert.equal(cardSlug('ethaniel-vu') in map, true);
-  assert.equal(cardSlug(null), gas.FIRM_SLUG);
+  assert.equal(map['zachary-russell'], 'zachary_russell');
+  assert.equal(map['ethaniel-vu'], 'ethaniel_vu');
+});
+
+test('the firm source is the one the digest delivers to both partners', () => {
+  /*
+   * `scripts/gas-v2/src/scheduled/Digest.js` splits its shared section on
+   * `acquisitionSource === 'firm' || === 'unknown'`. This pins the frontend to the 'firm'
+   * half of that condition, which is the routing the owner accepted: contacts land in the
+   * shared section both partners receive, not in either partner's own group.
+   */
+  const parsed = parse(envelopeFor(validDraft()));
+  const buildContact = gas.buildContact as (e: unknown, c: unknown) => Record<string, unknown>;
+  const contact = buildContact(parsed.value, {
+    contactId: 'c-1', leadId: '', receivedAt: '2026-08-05T18:00:00.000Z', screening: {}, possibleMatches: [],
+  });
+
+  const shared = contact.acquisitionSource === 'firm' || contact.acquisitionSource === 'unknown';
+  assert.equal(shared, true, 'a QR contact must reach the digest section both partners get');
+  // 'firm' specifically, not 'unknown': an unresolved card is a different fact and would be
+  // evidence of a broken printed card rather than of the intended shared routing.
+  assert.equal(contact.acquisitionSource, 'firm');
 });
 
 test('the browser never sends an owner, and the backend would reject one if it did', () => {

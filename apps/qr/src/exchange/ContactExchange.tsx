@@ -1,20 +1,24 @@
 import { useId } from 'react';
 
 import { useExchange } from './useExchange';
+import { SAVE_ACTION_LABEL } from '../useSaveContact';
 import {
   CONTACT_CATEGORIES,
   COPY,
   categoryLabel,
   summaryTitle,
   type ExchangeField,
-  type ExchangeSubject,
 } from './model';
 
 /**
  * The Contact Exchange screen, built from `AxisPoint QR Contact Exchange.dc.html`
- * (design@2026-08-01): §x2 full screen not a sheet, §x3 form states, §x4 success including
- * the firm variant, §x5 failure and recovery, §x6 responsive widths, §x7 validation,
- * §x8 accessibility, §x10 the exact visible copy.
+ * (design@2026-08-01): §x2 full screen not a sheet, §x3 form states, §x4 success,
+ * §x5 failure and recovery, §x6 responsive widths, §x7 validation, §x8 accessibility,
+ * §x10 the exact visible copy.
+ *
+ * §x4's per-subject success variants are gone with the owner-directed single-page collapse
+ * of 2026-08-17. There is one page and therefore one subject, so the copy is constant and
+ * this component takes no subject prop and no profile key.
  *
  * ONE SCREEN, NOT A WIZARD. No steps, no progress indicator, no next button. Everything
  * required is visible before the visitor commits to anything.
@@ -66,18 +70,14 @@ function ErrorText({ id, children }: { id: string; children: React.ReactNode }) 
 }
 
 export function ContactExchange({
-  subject,
-  profileKey,
   onClose,
   onSaveContact,
 }: {
-  subject: ExchangeSubject;
-  profileKey: string | null;
   onClose: () => void;
-  /** The approved success primary action: the card's own Save contact. */
+  /** The approved success primary action: the card's own Save action. */
   onSaveContact: () => void;
 }) {
-  const m = useExchange({ profileKey });
+  const m = useExchange();
   const ids = useId();
   const fid = (name: string) => `${ids}-${name}`;
 
@@ -106,14 +106,14 @@ export function ContactExchange({
             className="font-bold"
             style={{ margin: '0 0 12px', fontSize: 21, lineHeight: 1.25, letterSpacing: '-0.02em', color: INK }}
           >
-            {COPY.successHeading(subject)}
+            {COPY.successHeading}
           </h3>
           <p style={{ margin: '0 0 24px', fontSize: 15, lineHeight: 1.55, color: 'rgba(28,22,40,0.72)' }}>
-            {COPY.successBody(subject)}
+            {COPY.successBody}
           </p>
 
           <button type="button" onClick={onSaveContact} style={primaryButton()} className="w-full">
-            {subject.saveLabel}
+            {SAVE_ACTION_LABEL}
           </button>
 
           <p style={{ margin: '18px 0 0', fontSize: 13, lineHeight: 1.5, color: 'rgba(28,22,40,0.55)' }}>
@@ -129,7 +129,7 @@ export function ContactExchange({
   return (
     <Shell onClose={onClose} headingRef={m.headingRef} title={COPY.heading}>
       <p style={{ margin: '0 0 22px', fontSize: 15, lineHeight: 1.55, color: 'rgba(28,22,40,0.72)' }}>
-        {COPY.supporting(subject)}
+        {COPY.supporting}
       </p>
 
       {/* §x5: the failure banner. Values survive, and the submit label becomes Try again. */}

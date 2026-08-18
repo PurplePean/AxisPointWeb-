@@ -1,58 +1,45 @@
 /**
- * Local fixture registry for the QR business card (design@2026-07-30).
+ * The partner and firm values shown on the QR card.
  *
- * This is a CONFIGURABLE LOCAL FIXTURE, not a data contract and not a public URL
- * contract. The approved board leaves five values unresolved and this pass does not
- * invent any of them:
+ * ONE PAGE, BOTH PARTNERS. This module used to be a three-state fixture registry: a
+ * `?profile=` query parameter selected Zachary, Ethaniel, or an unresolved-card firm
+ * fallback, and the page rendered one of them. That is gone. **Owner-directed decision,
+ * 2026-08-17:** one scan resolves to one combined page that shows both partners together,
+ * so there is no profile to select, no fallback state to reach, and no per-partner URL to
+ * print. `docs/design-sources.md` records this as a deliberate, documented departure from
+ * the approved board rather than a silent overwrite of it.
  *
- *   1. a verified phone for each partner, or a decision to omit Call
- *   2. verified email behaviour for each partner, or a decision to route to the firm
- *   3. whether a firm phone will ever exist
- *   4. the final permanent profile URL, printed on the card and unrevisable after print
- *   5. the contact-file generation and delivery method
+ * CONTACT VALUES ARE THE OWNER-CONFIRMED ONES. They are read from
+ * `docs/PARTNER_CONTACTS.md`, confirmed by the owner on 2026-08-15, and that document names
+ * this surface as its own immediate consumer. They were NOT recovered from the deleted V1
+ * `packages/brand/src/team.ts`, which carried unverified literals.
  *
- * Anything unresolved is `null` here, and the UI follows the approved missing-data
- * rules: omit the action cleanly, never a disabled control, never a placeholder,
- * never a masked number.
- *
- * On contact values: this used to warn against `packages/brand/src/team.ts` and
- * `packages/brand/src/utils/vcard.ts`, which carried unverified V1 partner phone numbers
- * and email addresses. Both files were deleted in the 2026-08-15 V1 retirement pass, and
- * the owner confirmed the current values directly in that same pass. They are recorded in
- * `docs/PARTNER_CONTACTS.md`, which is now the one place to read them from.
- *
- * They are still deliberately NOT filled in below. Wiring verified contact data into this
- * profile fixture is its own decision, not a side effect of V1 retirement, and
- * `docs/STATUS.md` still carries the surrounding open items (the permanent profile URL and
- * the contact-file delivery method) that a printed card depends on.
+ * `docs/PARTNER_CONTACTS.md` stays the source of record and carries the maintenance rule:
+ * these are real people's details, they go stale in the world rather than in a diff, and a
+ * change updates that file and this one together.
  */
 
 export interface PartnerProfile {
-  /** Local fixture key. NOT the permanent public URL. */
+  /** Stable local identifier. Not a URL, not a wire value, not sent anywhere. */
   key: string;
   displayName: string;
   /** Approved: both partners are titled Partner only. */
   title: 'Partner';
-  /** Verified direct line, or null. Null omits the Call action entirely. */
+  /** Owner-confirmed direct line, or null. Null omits that partner's Call action entirely. */
   phone: { href: string; display: string } | null;
-  /** Verified direct address, or null. Null routes Email to the firm inbox. */
+  /** Owner-confirmed direct address, or null. Null falls back to the firm inbox. */
   email: string | null;
   /**
-   * Permanent public profile URL. Unresolved, so null. The contact record falls back
-   * to the firm site address rather than printing a placeholder.
+   * Permanent public profile URL. Still unresolved, so null. The contact record falls back
+   * to the firm site address rather than writing a placeholder into somebody's address book.
    */
   profileUrl: string | null;
-  /**
-   * Where Save Contact would fetch a hosted contact file. Unresolved, so null.
-   * This pass prepares the card locally instead; see `contact-file.ts`.
-   */
-  vCardUrl: string | null;
 }
 
 /** Values the approved ledger records as Confirmed or Approved. */
 export const FIRM = {
   name: 'AxisPoint Partners',
-  /** "Approved" in the ledger, and the one approved address on the board. */
+  /** "Approved" in the ledger, and the one approved firm address on the board. */
   email: 'info@axispoint.llc',
   /** "Confirmed" in the ledger. */
   website: 'axispoint.llc',
@@ -61,103 +48,63 @@ export const FIRM = {
   locality: 'Houston, Texas',
   /** No verified firm phone exists, so no firm Call action is ever shown. */
   phone: null as { href: string; display: string } | null,
-  /** Firm-level description, shared by both partner profiles. */
+  /** Firm-level description, shown once at the top of the combined page. */
   description:
     'AxisPoint manages multifamily and retail properties for owners across Texas, with an asset management layer when the property calls for it.',
   /**
-   * Owner-directed copy correction, 2026-07-31. A deliberate deviation from the
-   * approved board, which reads "This card did not resolve to a partner profile.
-   * Reach the firm directly and we will route you to the right partner." The
-   * replacement drops the mention of an unresolved card and leads with the action.
-   */
-  fallbackDescription: 'Connect directly with the firm. We will route your inquiry to the right partner.',
-  partnersLine: 'Partner-led from Houston by Zachary Russell and Ethaniel Vu.',
-  /**
    * Organization note for the contact record. The board records its wording as
-   * "Needs approval", so nothing is written into the card until it is approved.
+   * "Needs approval", so nothing is written into either card until it is approved.
    */
   organizationNote: null as string | null,
 } as const;
 
-export const PARTNERS: PartnerProfile[] = [
+/**
+ * Both partners, in the order they appear on the page and in the saved contact file.
+ *
+ * This list is the whole model now. There is no fallback entry and no dev-only fixture set:
+ * the fallback existed only for a card that did not resolve to a partner, and nothing
+ * resolves any more because nothing is selected. The dev fixtures existed to exercise the
+ * approved missing-data states, which both partners' confirmed values no longer reach.
+ *
+ * The missing-data RULES are still implemented, in `Profile.tsx` and in the contact-card
+ * builder: a null phone or email omits its action cleanly rather than rendering a disabled
+ * control or a placeholder. They are simply unreachable with today's values, which is the
+ * correct reason for a state to be unreachable.
+ */
+export const PARTNERS: readonly PartnerProfile[] = [
   {
     key: 'zachary-russell',
     displayName: 'Zachary Russell',
     title: 'Partner',
-    phone: null,
-    email: null,
+    phone: { href: 'tel:+18325802815', display: '832-580-2815' },
+    email: 'zach@axispoint.llc',
     profileUrl: null,
-    vCardUrl: null,
   },
   {
     key: 'ethaniel-vu',
     displayName: 'Ethaniel Vu',
     title: 'Partner',
-    phone: null,
-    email: null,
+    phone: { href: 'tel:+18324998389', display: '832-499-8389' },
+    email: 'ethaniel@axispoint.llc',
     profileUrl: null,
-    vCardUrl: null,
   },
 ];
 
 /**
- * Development-only fixtures used to exercise the approved missing-data states that
- * the real fixtures cannot currently reach, since both partners have every optional
- * value unresolved.
+ * Vite's injected environment, read once and defensively.
  *
- * The phone numbers below are in the 555-01xx range, reserved for fictional use. They
- * are never presented as AxisPoint contact details, are labelled on screen as a state
- * demo, and are stripped from production builds because `import.meta.env.DEV` gates
- * every use.
- */
-export const DEV_STATE_FIXTURES: PartnerProfile[] = [
-  {
-    key: 'demo-phone-and-email',
-    displayName: 'State demo, both values present',
-    title: 'Partner',
-    phone: { href: 'tel:+15550100', display: '(555) 010-0000' },
-    email: 'demo@example.com',
-    profileUrl: null,
-    vCardUrl: null,
-  },
-  {
-    key: 'demo-missing-phone',
-    displayName: 'State demo, no verified phone',
-    title: 'Partner',
-    phone: null,
-    email: 'demo@example.com',
-    profileUrl: null,
-    vCardUrl: null,
-  },
-  {
-    key: 'demo-missing-email',
-    displayName: 'State demo, no verified email',
-    title: 'Partner',
-    phone: { href: 'tel:+15550101', display: '(555) 010-0001' },
-    email: null,
-    profileUrl: null,
-    vCardUrl: null,
-  },
-];
-
-export function allSelectableProfiles(): PartnerProfile[] {
-  return import.meta.env.DEV ? [...PARTNERS, ...DEV_STATE_FIXTURES] : PARTNERS;
-}
-
-/**
- * Resolve a profile from the local preview key.
+ * WHY THE FALLBACK. This module is now imported by `exchange/model.ts`, so it is loaded by
+ * the Node test runner as plain source, and Node has no `import.meta.env` at all. Reading it
+ * through a nullish fallback keeps one module usable by both the bundler and the tests
+ * without a build step or a test-only shim. Vite still substitutes its env object here, so
+ * a production build resolves the same values it always did.
  *
- * This is a DEVELOPMENT PREVIEW MECHANISM ONLY. It is deliberately not presented as
- * the permanent public URL contract: the real card will resolve one printed URL per
- * partner, and that route is an unresolved owner decision. An unknown, absent, or
- * dev-only key in production resolves to the firm fallback, which is the approved
- * behaviour for an unresolved card.
+ * `import.meta.env.DEV` is deliberately left in its literal form everywhere it gates code
+ * OUT of a production bundle (see `useSaveContact.ts` and `exchange/submissionClient.ts`):
+ * that static form is what lets the bundler drop the branch, and it must not be routed
+ * through a variable.
  */
-export function resolveProfile(key: string | null): PartnerProfile | null {
-  if (!key) return null;
-  const pool = allSelectableProfiles();
-  return pool.find((p) => p.key === key) ?? null;
-}
+const ENV: Record<string, string | boolean | undefined> = import.meta.env ?? {};
 
 /**
  * The website base URL is configurable so the local web preview can be used during
@@ -165,8 +112,8 @@ export function resolveProfile(key: string | null): PartnerProfile | null {
  * `VITE_WEB_BASE_URL` overrides it; otherwise production points at the firm site.
  */
 export const WEB_BASE_URL: string =
-  (import.meta.env.VITE_WEB_BASE_URL as string | undefined) ??
-  (import.meta.env.DEV ? 'http://localhost:3000' : FIRM.websiteUrl);
+  (ENV.VITE_WEB_BASE_URL as string | undefined) ??
+  (ENV.DEV ? 'http://localhost:3000' : FIRM.websiteUrl);
 
 /** The approved quiet routes out to the shared website. */
 export const WEB_LINKS = {
