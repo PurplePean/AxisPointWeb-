@@ -90,34 +90,11 @@ export const PARTNERS: readonly PartnerProfile[] = [
   },
 ];
 
-/**
- * Vite's injected environment, read once and defensively.
+/*
+ * NOTHING IN THIS FILE READS `import.meta.env`, DELIBERATELY.
  *
- * WHY THE FALLBACK. This module is now imported by `exchange/model.ts`, so it is loaded by
- * the Node test runner as plain source, and Node has no `import.meta.env` at all. Reading it
- * through a nullish fallback keeps one module usable by both the bundler and the tests
- * without a build step or a test-only shim. Vite still substitutes its env object here, so
- * a production build resolves the same values it always did.
- *
- * `import.meta.env.DEV` is deliberately left in its literal form everywhere it gates code
- * OUT of a production bundle (see `useSaveContact.ts` and `exchange/submissionClient.ts`):
- * that static form is what lets the bundler drop the branch, and it must not be routed
- * through a variable.
+ * It is imported by `exchange/model.ts`, so the Node test runner loads it as plain source,
+ * and Node has no `import.meta.env` to read. The website links that do need it live in
+ * `webLinks.ts`, where that comment explains why reading the env object through a variable
+ * is not an acceptable workaround.
  */
-const ENV: Record<string, string | boolean | undefined> = import.meta.env ?? {};
-
-/**
- * The website base URL is configurable so the local web preview can be used during
- * development without asserting the permanent QR-host routing contract.
- * `VITE_WEB_BASE_URL` overrides it; otherwise production points at the firm site.
- */
-export const WEB_BASE_URL: string =
-  (ENV.VITE_WEB_BASE_URL as string | undefined) ??
-  (ENV.DEV ? 'http://localhost:3000' : FIRM.websiteUrl);
-
-/** The approved quiet routes out to the shared website. */
-export const WEB_LINKS = {
-  managementProposal: `${WEB_BASE_URL}/contact?intent=property-management`,
-  propertyManagement: `${WEB_BASE_URL}/property-management`,
-  home: `${WEB_BASE_URL}/`,
-};

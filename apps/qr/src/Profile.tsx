@@ -1,7 +1,8 @@
 import { useState } from 'react';
 
 import { Mark } from '@axispoint/brand';
-import { FIRM, PARTNERS, WEB_LINKS, type PartnerProfile } from './profiles';
+import { FIRM, PARTNERS, type PartnerProfile } from './profiles';
+import { WEB_LINKS } from './webLinks';
 import { useSaveContact } from './useSaveContact';
 import { ContactExchange } from './exchange/ContactExchange';
 
