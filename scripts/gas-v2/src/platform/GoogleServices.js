@@ -20,6 +20,22 @@ function makePropertyReader() {
   };
 }
 
+/**
+ * Property writer adapter for provisionProperties / setProperties.
+ *
+ * Returns an object with setProperty(key, value) backed by the real Script
+ * Properties store. Pass this to setProperties() to write provisioning values.
+ * Tests inject a fake writer instead of calling this.
+ */
+function makePropertyWriter() {
+  var props = PropertiesService.getScriptProperties();
+  return {
+    setProperty: function (key, value) {
+      props.setProperty(key, String(value));
+    }
+  };
+}
+
 function makeClock() {
   return { now: function () { return new Date(); } };
 }

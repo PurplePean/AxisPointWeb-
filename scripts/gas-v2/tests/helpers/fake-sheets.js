@@ -91,10 +91,19 @@ class FakeSheet {
 class FakeSpreadsheet {
   constructor(sheets) {
     this.sheets = sheets || {};
+    this.insertedSheets = [];
   }
 
   getSheetByName(name) {
     return this.sheets[name] || null;
+  }
+
+  /** Creates a new empty tab and returns it. Matches the SpreadsheetApp.insertSheet() contract. */
+  insertSheet(name) {
+    const sheet = new FakeSheet(name, []);
+    this.sheets[name] = sheet;
+    this.insertedSheets.push(name);
+    return sheet;
   }
 }
 
