@@ -1,5 +1,7 @@
 import type { ContactCategory } from '@axispoint/submission-client';
 
+import { FIRM } from '../profiles';
+
 /**
  * Contact Exchange model, built from `AxisPoint QR Contact Exchange.dc.html`
  * (design@2026-08-01): §x7 validation rules, §x9 contact-versus-lead rules, and the §x10
@@ -131,27 +133,19 @@ export function summaryTitle(count: number): string {
 }
 
 /**
- * Whose card this is, for the approved copy variants (§x4, §x10).
+ * The visible copy (§x4, §x10).
  *
- * The firm card is a distinct variant, not a partner with a different name: it has no first
- * name to address and its success copy says something different.
+ * ONE SUBJECT NOW, SO NO VARIANTS. These used to be functions of an `ExchangeSubject`,
+ * because a scan resolved to Zachary, Ethaniel, or the firm, and each needed its own name in
+ * the supporting and success lines. The owner-directed single-page collapse of 2026-08-17
+ * removed that choice: every scan lands on the same combined page, so every exchange is
+ * addressed to the firm and the strings are constants again.
+ *
+ * `FIRM.name` is read rather than restated, so the firm is named in exactly one place.
  */
-export interface ExchangeSubject {
-  /** First name for a partner, the firm name for the firm card. */
-  first: string;
-  /** Full display name. */
-  full: string;
-  /** The approved Save contact label, reused as the success primary action. */
-  saveLabel: string;
-  isFirm: boolean;
-}
-
 export const COPY = {
   heading: 'Share your contact',
-  supporting: (s: ExchangeSubject) =>
-    s.isFirm
-      ? 'Send your contact information directly to AxisPoint Partners.'
-      : `Send your contact information directly to ${s.first}.`,
+  supporting: `Send your contact information directly to ${FIRM.name}.`,
   submit: 'Share my contact',
   submitSending: 'Sending',
   submitRetry: 'Try again',
@@ -159,11 +153,10 @@ export const COPY = {
   failureHeading: 'Your details were not sent.',
   failureBody:
     'Nothing was lost. Everything you entered is still here. Try again, or use the Email action on the card.',
-  successHeading: (s: ExchangeSubject) => `Your details were shared with ${s.full}.`,
-  successBody: (s: ExchangeSubject) =>
-    s.isFirm
-      ? 'AxisPoint Partners has your contact information. Save the firm contact so you have us too.'
-      : `Save ${s.first}'s contact so you have both sides of the exchange.`,
+  successHeading: `Your details were shared with ${FIRM.name}.`,
+  /* Merges the two approved variants: the firm line's "so you have us too" and the partner
+     line's "both sides of the exchange", now that one action saves both partners. */
+  successBody: `${FIRM.name} has your contact information. Save our contacts so you have both sides of the exchange.`,
   successFoot: 'Nothing else was sent and you were not added to any mailing list.',
   close: 'Close',
   open: 'Share your details',

@@ -31,10 +31,11 @@ than recovering literals out of a git tag.
 
 Any future V2 work that needs current partner contact information should read it here:
 
-- The QR Contact Exchange described in
-  [`system-classification.md`](system-classification.md) → *Transitional QR system*. Its
-  partner profile and contact-file delivery are the immediate consumer, once the unresolved
-  values in [`design-sources.md`](design-sources.md) are decided.
+- **`apps/qr/src/profiles.ts`, which carries these values as of 2026-08-17.** No longer a
+  future consumer: the QR card is now one page showing both partners, it displays both direct
+  numbers and both direct addresses to anyone who scans it, and it writes them into the
+  two-record contact file that visitors save. **This document stays the source of record**,
+  and a change updates it and `profiles.ts` in the same pull request.
 - Email signatures.
 - Footer and contact-page content, if partner-level contact detail is ever surfaced there.
   The current `apps/web` contact page does not surface it.
@@ -45,6 +46,11 @@ These are people's real contact details, so they go stale in the real world rath
 diff. Confirm them with the owner again before relying on them for anything printed, anything
 that ships to visitors, or anything with a permanent address behind it, and update this file
 and its confirmation date in the same pull request when a value changes.
+
+**"Anything that ships to visitors" is no longer hypothetical.** Since 2026-08-17 these exact
+values are rendered on the QR card and written into the contact file people save to their
+phones, so a stale value here becomes a stale value in somebody's address book, which no
+deploy can reach back and correct.
 
 Do not reintroduce a `team.ts`-style module that duplicates these values in code. One tracked
 source, read at the point it is needed.

@@ -1,12 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { createServer, type ViteDevServer } from 'vite';
-import react from '@vitejs/plugin-react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { createElement } from 'react';
+import { installRenderGlobals, renderModule } from './helpers/render';
 
 /*
  * THE E2E WARNING BANNER IS ACTUALLY MOUNTED IN THIS APP.
@@ -24,21 +19,12 @@ import { createElement } from 'react';
  * The two are additive. The banner is a warning to whoever is driving the browser, not a
  * protection, and it does not replace a single one of those guards.
  *
- * HOW IT RENDERS JSX. Node's `--experimental-strip-types` erases types but does not
- * transform JSX, so a `.tsx` file cannot be imported here directly. Vite's programmatic SSR
- * API compiles it through the same `@vitejs/plugin-react` pipeline the app builds with,
- * which adds no dependency and no second toolchain. Same approach as
- * `apps/web/tests/render-baseline.mjs`.
- *
- * NO MACHINE-LOCAL ENV FILE IS READ. The server is created with an explicit inline config
- * rather than `apps/qr/vite.config.ts`, so `resolveEndpoint` never runs and `.env.e2e.local`
- * is never in scope. `__E2E_MODE__` is supplied directly, which is the point: this test
- * exercises both values of the flag without needing either mode's real preconditions.
+ * HOW IT RENDERS, AND WHY NO MACHINE-LOCAL ENV FILE IS READ, now live in
+ * `helpers/render.ts`, which `singlePage.test.ts` shares. The short version: Vite's
+ * programmatic SSR API compiles the real tree, and `__E2E_MODE__` is supplied directly
+ * rather than resolved, so both values of the flag are reachable without either mode's real
+ * preconditions.
  */
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const qrRoot = path.resolve(here, '..');
-const repoRoot = path.resolve(here, '../../..');
 
 /**
  * The banner's own words, as a reader would see them.
@@ -50,89 +36,16 @@ const repoRoot = path.resolve(here, '../../..');
  */
 const BANNER_SENTENCE = 'E2E MODE: a real backend is enabled';
 
-/**
- * A minimal browser shim.
- *
- * `App` reads `window.location.search` in a `useState` initialiser, which runs during render
- * rather than in an effect. Deliberately minimal: a fuller fake DOM would let the app quietly
- * depend on something a real render does not have. Effects do not run under
- * `renderToStaticMarkup`, so the `popstate` listener and Save Contact never execute.
- */
-function installRenderGlobals() {
-  if (typeof globalThis.window === 'undefined') {
-    (globalThis as Record<string, unknown>).window = {
-      location: { search: '', pathname: '/', href: 'http://localhost/' },
-    };
-  }
-}
-
-async function renderRoot(e2e: boolean): Promise<string> {
-  const server: ViteDevServer = await createServer({
-    configFile: false,
-    root: qrRoot,
-    appType: 'custom',
-    logLevel: 'error',
-    server: { middlewareMode: true, hmr: false, watch: null },
-    plugins: [react()],
-    resolve: {
-      alias: [
-        { find: '@', replacement: path.join(qrRoot, 'src') },
-        { find: '@brand', replacement: path.join(repoRoot, 'packages/brand/src') },
-      ],
-    },
-    define: {
-      __FORM_ENDPOINT__: JSON.stringify(''),
-      __E2E_MODE__: JSON.stringify(e2e),
-    },
-  });
-
-  try {
-    const { default: Root } = await server.ssrLoadModule('/src/Root.tsx');
-    return renderToStaticMarkup(createElement(Root));
-  } finally {
-    // Without this the Vite server keeps the process alive after the tests pass.
-    await server.close();
-  }
-}
-
-/** The card on its own, with no root wrapper, for the "nothing else moved" comparison. */
-async function renderAppOnly(): Promise<string> {
-  const server: ViteDevServer = await createServer({
-    configFile: false,
-    root: qrRoot,
-    appType: 'custom',
-    logLevel: 'error',
-    server: { middlewareMode: true, hmr: false, watch: null },
-    plugins: [react()],
-    resolve: {
-      alias: [
-        { find: '@', replacement: path.join(qrRoot, 'src') },
-        { find: '@brand', replacement: path.join(repoRoot, 'packages/brand/src') },
-      ],
-    },
-    define: {
-      __FORM_ENDPOINT__: JSON.stringify(''),
-      __E2E_MODE__: JSON.stringify(false),
-    },
-  });
-
-  try {
-    const { default: App } = await server.ssrLoadModule('/src/App.tsx');
-    return renderToStaticMarkup(createElement(App));
-  } finally {
-    await server.close();
-  }
-}
-
 let e2eHtml = '';
 let devHtml = '';
 let appOnlyHtml = '';
 
 before(async () => {
   installRenderGlobals();
-  e2eHtml = await renderRoot(true);
-  devHtml = await renderRoot(false);
-  appOnlyHtml = await renderAppOnly();
+  e2eHtml = await renderModule('/src/Root.tsx', { e2e: true });
+  devHtml = await renderModule('/src/Root.tsx');
+  /* The card on its own, with no root wrapper, for the "nothing else moved" comparison. */
+  appOnlyHtml = await renderModule('/src/App.tsx');
 });
 
 after(() => {

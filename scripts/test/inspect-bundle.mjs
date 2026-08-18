@@ -130,6 +130,23 @@ const FORBIDDEN = [
    * this same sentence is PRESENT when the flag is on, so the pair covers both directions.
    */
   'E2E MODE: a real backend is enabled',
+
+  /*
+   * The development website base URL.
+   *
+   * Both apps resolve their links from `import.meta.env.DEV ? 'http://localhost:3000' : ...`,
+   * which the bundler folds away only while `import.meta.env.DEV` stays in its LITERAL form.
+   * Read it through a variable, as in `const ENV = import.meta.env ?? {}`, and it becomes a
+   * runtime property read: both branches survive and this string ships inside the production
+   * bundle. That is not hypothetical. It was introduced during the 2026-08-17 QR single-page
+   * collapse, to make the module importable by the Node test runner, and was caught by hand
+   * from the built asset because nothing checked for it. The fix was to keep the env reads in
+   * their own module (`apps/qr/src/webLinks.ts`) rather than to soften them.
+   *
+   * A shipped localhost link is not merely dead weight: whichever branch wins, a visitor's
+   * route rows could point at a machine that is not theirs.
+   */
+  'localhost:3000',
 ];
 
 /** Must be present: the honest failure path a production build depends on. */

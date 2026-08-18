@@ -9,8 +9,9 @@ import type { ExchangeDraft } from './model';
  * only authority. Nothing here is inferred from a UI label.
  *
  * ATTRIBUTION IS THE SUBTLE PART. The browser sends only where the scan came from:
- * `sourceCategory: 'qr'` and `sourceDetail`, the card slug. The backend derives the rest and
- * keeps two facts deliberately apart (`scripts/gas-v2/src/core/Attribution.js`):
+ * `sourceCategory: 'qr'` and `sourceDetail`, the card slug, which since the 2026-08-17
+ * single-page collapse is always the firm slug. The backend derives the rest and keeps two
+ * facts deliberately apart (`scripts/gas-v2/src/core/Attribution.js`):
  *
  *   acquisitionSource / scannedPartner   which card produced this person. IMMUTABLE.
  *   ownerPartner                         who is responsible now. Starts EMPTY for everyone.
@@ -22,21 +23,27 @@ import type { ExchangeDraft } from './model';
  */
 
 /**
- * Card slugs the backend resolves.
+ * The one card slug this app can now send.
  *
- * These are the QR profile keys, which already match `SLUG_TO_PARTNER` in
- * `scripts/gas-v2/src/core/Tokens.js` exactly. The firm card has no profile key (it is the
- * `null` fallback), so it maps to the backend's `FIRM_SLUG`.
+ * WHAT THE COLLAPSE COST, DELIBERATELY. This used to be `cardSlug(profileKey)`: a scan of
+ * Zachary's card sent `zachary-russell`, Ethaniel's sent `ethaniel-vu`, and only the
+ * unresolved firm fallback sent this value. Those per-partner keys matched `SLUG_TO_PARTNER`
+ * in `scripts/gas-v2/src/core/Tokens.js` exactly, and the backend turned them into an
+ * immutable per-partner acquisition source.
  *
- * An unrecognised slug is NOT corrected here. The backend resolves anything it does not
- * know to `unknown`, which is a real and useful fact: it is evidence that a printed card is
- * wrong. Quietly rewriting it to the firm would hide exactly the signal worth having.
+ * There is one page now, so the browser has no partner-specific identifier to send and does
+ * not invent one. Every exchange carries the firm slug, the backend resolves it to
+ * `acquisitionSource: 'firm'` with `scannedPartner` empty, and the daily digest delivers
+ * those Contacts in its shared section to BOTH partners
+ * (`scripts/gas-v2/src/scheduled/Digest.js`). **Owner-directed decision, 2026-08-17: the
+ * per-partner attribution loss is accepted.**
+ *
+ * NOTHING CHANGED ON THE BACKEND, AND NOTHING NEEDED TO. `SLUG_TO_PARTNER` still resolves
+ * both partner slugs, the shared-section routing path already existed and is already tested,
+ * and an unrecognised slug still resolves to `unknown` rather than being quietly rewritten to
+ * the firm. This is purely a change in what the frontend sends.
  */
 export const FIRM_SLUG = 'axispoint-partners';
-
-export function cardSlug(profileKey: string | null): string {
-  return profileKey ?? FIRM_SLUG;
-}
 
 /**
  * Trims, and returns the key/value pair only when there is something to send.
@@ -52,8 +59,6 @@ function optional<K extends string>(key: K, value: string): Record<K, string> | 
 }
 
 export interface ExchangeContext {
-  /** The resolved profile key, or null for the firm fallback. */
-  profileKey: string | null;
   /** Page URL, advisory only. */
   landingPage?: string;
   /** Advisory anti-spam signals. Never treated by the backend as evidence of innocence. */
@@ -88,13 +93,13 @@ export function toContactExchangePayload(draft: ExchangeDraft): ContactExchangeP
  * copied from the page, because nobody was asked how they want to be answered, and
  * inventing that answer is worse than admitting it is unknown.
  */
-export function toEnvelopeDraft(draft: ExchangeDraft, context: ExchangeContext): EnvelopeDraft {
+export function toEnvelopeDraft(draft: ExchangeDraft, context: ExchangeContext = {}): EnvelopeDraft {
   return {
     submissionKind: 'contact_exchange',
     locale: { page: 'en', preferredFollowUp: null },
     attribution: {
       sourceCategory: 'qr',
-      sourceDetail: cardSlug(context.profileKey),
+      sourceDetail: FIRM_SLUG,
       landingPage: context.landingPage,
     },
     payload: toContactExchangePayload(draft),

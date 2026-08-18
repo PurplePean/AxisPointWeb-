@@ -48,7 +48,7 @@ truth, and a comparison against one proves nothing about the folder that is.
 | Intake: pathways, components, full state set | `AxisPoint Form Design.dc.html` | §6a–6e gateway/steps/states, §7a–7h pathway map, short intake, booking, language system, localization proofs, state checklist, handoff. Code Pass 10A connected the already-approved submitting, failed, and success states to a real transport; the fail-closed "unavailable" state is **not** from this source, see below |
 | Localization behaviour and layout | `AxisPointLangSystem.dc.html`, `AxisPointLocaleProof.dc.html` | Authoritative for behaviour, layout, and direction. Translated copy is a **proof, not approved translation** |
 | Shared footer | `AxisPointFooter.dc.html` | See correction 3 |
-| QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Seven values remain unresolved, see below |
+| QR business card | `AxisPoint QR Frontend.dc.html` | Authoritative for the surface. Four values remain unresolved, and the shipped card is **one combined page rather than the drawn three states** by owner direction, see both sections below |
 | Communications and email (Pass 2A) | `AxisPoint Communications System.dc.html`, `AxisPointEmail.dc.html` | Approved. Implemented in Code Pass 9A for the website acknowledgement, the internal notification, and the booking confirmation |
 | QR Contact Exchange form | `AxisPoint QR Contact Exchange.dc.html` | Approved at `design@2026-08-01`. Backend contract resolved in Code Pass 9B; the frontend is a later pass |
 | QR Contact emails and the daily digest | `AxisPoint QR Contact Emails.dc.html` | Approved at `design@2026-08-02`. Implemented in Code Pass 9A |
@@ -342,20 +342,29 @@ comps, which is consistent with licensing having happened, but the archive canno
 Production delivery rules (AVIF → WebP → JPEG, `srcset`, desktop and mobile crops, weight
 budgets) are in the archive's `image-slot-spec.md`.
 
-## QR: six unresolved values
+## QR: four unresolved values
 
 The QR design is complete and approved. The board's own §q13 lists seven values as unresolved
-**by design**. One of them, a verified phone for each partner, was resolved on 2026-08-15 by
-[`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md), which carries owner-confirmed current phone and
-email values for both partners. The remaining six **block production completion and
-physical-card cutover. They do not block frontend implementation.**
+**by design**. Three have since been resolved by owner decision:
 
-1. Verified email behaviour for each partner, or a decision to route Email to `info@axispoint.llc` with disclosure
-2. Whether a firm phone will ever exist
-3. The final permanent profile URL — **printed on the physical card and unrevisable after printing**
-4. The contact-file generation and delivery method
-5. Whether the organization note is set, and its exact wording
-6. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
+- **A verified phone for each partner**, resolved 2026-08-15 by
+  [`PARTNER_CONTACTS.md`](PARTNER_CONTACTS.md), which carries owner-confirmed current phone
+  and email values for both partners.
+- **Verified email behaviour for each partner**, resolved 2026-08-17 by the single-page
+  collapse recorded in the next section: both partners' direct addresses are shown on the
+  card, so the "route Email to `info@axispoint.llc` with disclosure" alternative is not taken.
+  The firm address remains the fallback in code if a partner value is ever cleared.
+- **The final permanent profile URL**, no longer three URLs to decide. One page needs one
+  address, so what remains is a hosting question rather than a design one. It is tracked as a
+  launch item in [`STATUS.md`](STATUS.md), not as an unresolved design value.
+
+The remaining four **block production completion and physical-card cutover. They do not block
+frontend implementation.**
+
+1. Whether a firm phone will ever exist
+2. The contact-file generation and delivery method
+3. Whether the organization note is set, and its exact wording
+4. Whether a mailing address appears anywhere (currently it does not; only "Houston, Texas")
 
 A QR implementation pass may proceed using **configurable local fixture data and simulated
 contact-download behaviour.** It must not silently select a permanent public URL or a
@@ -371,6 +380,71 @@ through `packages/submission-client` and resolves `VITE_V2_SUBMISSION_ENDPOINT`,
 order to be rejected. See [`system-classification.md`](system-classification.md) for the QR
 system's current classification. Any future vCard delivery endpoint is a separate, undecided
 contract.
+
+## QR single-page collapse, owner-directed deviation, 2026-08-17
+
+**This is a deliberate, documented departure from the approved board, not a correction to it
+and not a silent overwrite of it.** `AxisPoint QR Frontend.dc.html` remains the authoritative
+approved source and is unchanged; the archive is immutable and nothing in it was edited. Where
+the board and this section disagree about what ships, **this section wins, and it says why.**
+
+It follows the precedent set by the **owner-directed copy correction of 2026-07-31**, which
+replaced the board's unresolved-card sentence ("This card did not resolve to a partner
+profile. Reach the firm directly and we will route you to the right partner.") with copy that
+led with the action instead. That correction was recorded in the source it changed rather than
+here; this one is larger than a sentence, so it is recorded in this file where deviations
+belong.
+
+### What the board drew, and what ships instead
+
+| | Approved board | Shipped since 2026-08-17 |
+|---|---|---|
+| Pages | One template, three states, selected by `?profile=` | **One combined page.** No parameter, no states, nothing to select |
+| Identity | One partner per scan, or a firm fallback for a card that did not resolve | **Both partners together**, each with name, title, direct line, and direct address |
+| Save action | One contact record, the scanned partner or the firm | **Exactly two records, Zachary and Ethaniel individually.** No third combined or firm-level record |
+| Attribution | Per-partner: a scan of Zachary's card recorded `zachary_russell` | **Firm-level only.** Every exchange sends `axispoint-partners` |
+
+### Why, and what it cost
+
+The owner directed one page carrying both partners. Two consequences were weighed and
+**accepted explicitly**, and neither is a defect to be repaired later by somebody who reads
+this and assumes it was an oversight:
+
+1. **Per-partner attribution in the daily digest is lost.** The browser no longer has a
+   partner-specific identifier to send, so it sends the firm slug and does not invent one.
+   The backend resolves that to `acquisitionSource: 'firm'` with `scannedPartner` empty, and
+   the digest delivers those Contacts in its shared section **to both partners**. That routing
+   path already existed and was already tested; **no backend, digest, or contract change was
+   made or needed.** `SLUG_TO_PARTNER` still resolves both partner slugs, so restoring
+   per-partner cards later is a frontend change alone.
+   Pinned by `apps/qr/tests/exchange.wire.test.ts`, deliberately, so the cost reads as a
+   decision rather than as an absence.
+2. **The firm fallback state is gone, and its copy with it.** That includes the 2026-07-31
+   owner-directed replacement above: there is no unresolved card to describe when every scan
+   lands on the same page, and keeping the sentence would tell a visitor their card failed to
+   resolve when nothing failed. `FIRM.partnersLine` ("Partner-led from Houston by Zachary
+   Russell and Ethaniel Vu.") went with it as redundant, since the page now names both
+   partners in full, with their details, immediately below where that line used to sit.
+
+### What did not change
+
+No new component, colour, spacing, or type style was invented. The header, the 480px measure,
+the single column with no second breakpoint, the teal-filled Save control as the only 54px
+control, the outlined "Share your details" action, the quiet route rows, the footer, and the
+approved missing-data rules are all the board's, unchanged. The missing-data rules are still
+implemented rather than assumed away: a null phone omits its Call row, a null email falls back
+to the firm inbox with that disclosed. Both branches are currently unreachable, because both
+partners have confirmed values, which is the correct reason for a state to be unreachable.
+
+### Not verified on a real device
+
+The Save action builds the two-record file in memory and hands it to the browser as a `blob:`
+URL through a synthetic anchor click. **That delivery path has never been exercised on a real
+iPhone or a real Android handset, not even for the single-record case it replaces**, and a
+multi-record file adds a second unverified behaviour: some contact importers read only the
+first record in a stream. `apps/qr/tests/vcard.test.ts` pins the bytes of the file and says
+nothing about what a phone does with it. This is an open manual verification, tracked in
+[`STATUS.md`](STATUS.md), and it is a launch blocker rather than a finished item.
 
 ## Recording future design revisions
 

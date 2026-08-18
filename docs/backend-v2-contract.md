@@ -285,6 +285,14 @@ columns and never one.
 | anything else | `unknown` | Gathered through Unknown |
 | *(website submission)* | `""` | not applicable |
 
+**The QR frontend has sent only `axispoint-partners` since 2026-08-17.** Its three-state card
+was collapsed into one combined page by owner direction, so the browser has no
+partner-specific identifier to send and does not invent one. **The table above is unchanged
+and still correct:** the backend still resolves both partner slugs, and this is a statement
+about what one client currently emits, not a narrowing of the contract. Restoring per-partner
+cards later needs no backend change. See [`design-sources.md`](design-sources.md) for the
+decision and its accepted cost.
+
 `firm` and `unknown` stay distinguishable and neither is added to the partner enum.
 `firm` is a real, intentional scan of the firm card; `unknown` is evidence that a printed
 card is wrong, and hiding it inside `firm` would lose that. `scannedPartner` stays empty
