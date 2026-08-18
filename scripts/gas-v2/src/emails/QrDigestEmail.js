@@ -22,6 +22,29 @@ function renderQrDigest(model, config) {
   var headlineText = total + ' new QR ' + noun + '.';
   var subject = 'Daily QR contact digest, ' + total + ' new ' + noun + partSuffix;
 
+  var allRecords = [];
+  for (var gi = 0; gi < model.groups.length; gi++) {
+    for (var ri = 0; ri < model.groups[gi].records.length; ri++) {
+      allRecords.push(model.groups[gi].records[ri]);
+    }
+  }
+  var allUnassigned = allRecords.every(function (r) { return r.currentOwner === UNASSIGNED_LABEL; });
+  var noneContacted = allRecords.every(function (r) { return r.followUp === FOLLOW_UP_LABELS.not_contacted; });
+
+  var footerClauses = ['None is a Lead'];
+  if (allUnassigned) footerClauses.push('none is assigned');
+  if (noneContacted) footerClauses.push('none has been contacted');
+  var footerClaim = 'Every record above is a Contact. ' + (
+    footerClauses.length === 1 ? footerClauses[0] + '.' :
+    footerClauses.length === 2 ? footerClauses[0] + ', and ' + footerClauses[1] + '.' :
+    footerClauses[0] + ', ' + footerClauses[1] + ', and ' + footerClauses[2] + '.'
+  );
+
+  var preheaderSuffix = allUnassigned && noneContacted ? ' All unassigned, none contacted.'
+    : allUnassigned ? ' All unassigned.'
+    : noneContacted ? ' None contacted.'
+    : '';
+
   var body =
     block(eyebrow('Internal, QR contacts')) +
     block(headline(headlineText)) +
@@ -48,7 +71,7 @@ function renderQrDigest(model, config) {
 
   body += block('<div style="' + styleFont(13.5, 400, PALETTE.faint, 1.6) +
     'padding-top:16px;border-top:1px solid ' + PALETTE.hair + ';">' +
-    esc('Every record above is a Contact. None is a Lead, none is assigned, and none has been contacted.') +
+    esc(footerClaim) +
     '</div>', 'padding-top:24px;');
 
   return {
@@ -57,13 +80,13 @@ function renderQrDigest(model, config) {
     htmlBody: shell({
       title: subject,
       headerMeta: 'Internal, QR contacts',
-      preheader: total + ' new ' + noun + '. All unassigned, none contacted.',
+      preheader: total + ' new ' + noun + '.' + preheaderSuffix,
       body: body,
       footerNote: 'Internal distribution.',
       footerLegal: 'Sent at 8:00 AM America/Chicago. Nothing is sent on a day with no new contacts.',
       logoUrl: config.logoUrl
     }),
-    textBody: digestText(model, headlineText, subject)
+    textBody: digestText(model, headlineText, subject, footerClaim)
   };
 }
 
@@ -157,7 +180,7 @@ function digestRowsHtml(rows) {
   return out + '</table>';
 }
 
-function digestText(model, headlineText, subject) {
+function digestText(model, headlineText, subject, footerClaim) {
   var lines = [textRule('Daily QR contact digest'), headlineText, model.windowLine, ''];
 
   if (model.partCount > 1) {
@@ -196,7 +219,7 @@ function digestText(model, headlineText, subject) {
     });
   });
 
-  lines.push(textWrap('Every record above is a Contact. None is a Lead, none is assigned, and none has been contacted.'));
+  lines.push(textWrap(footerClaim || 'Every record above is a Contact. None is a Lead, none is assigned, and none has been contacted.'));
   lines.push('');
   lines.push(textWrap('Sent at 8:00 AM America/Chicago. Nothing is sent on a day with no new contacts.'));
   return lines.join('\n');
