@@ -19,9 +19,20 @@ function renderWebsiteAcknowledgement(lead, config) {
 
   var first = firstNameOf(lead.fullName);
   var isProposal = lead.pathway === 'management_proposal';
+  var isInvestor = lead.pathway === 'investor_services';
 
   var headlineText = (first ? 'Thank you, ' + first + '. ' : 'Thank you. ') +
     (isProposal ? 'We have your property details.' : 'We have your message.');
+
+  var headerMeta = labelFor(PATHWAY_LABELS, lead.pathway, 'Your inquiry');
+  var preheader = isProposal
+    ? 'We have your details. Here is what happens next.'
+    : 'We have your message. A Partner will be in touch.';
+  var footerNote = isProposal
+    ? 'You are receiving this because you contacted AxisPoint Partners about property management.'
+    : isInvestor
+      ? 'You are receiving this because you contacted AxisPoint Partners about investor services.'
+      : 'You are receiving this because you contacted AxisPoint Partners.';
 
   var rows = [];
   if (isProposal) {
@@ -77,10 +88,10 @@ function renderWebsiteAcknowledgement(lead, config) {
     subject: escSubject(subject),
     htmlBody: shell({
       title: subject,
-      headerMeta: 'Property Management',
-      preheader: 'We have your details. Here is what happens next.',
+      headerMeta: headerMeta,
+      preheader: preheader,
       body: body,
-      footerNote: 'You are receiving this because you contacted AxisPoint Partners about property management.',
+      footerNote: footerNote,
       footerLegal: 'Sent from Houston, Texas. You can reply to this message with anything you would like to add.',
       logoUrl: config.logoUrl
     }),

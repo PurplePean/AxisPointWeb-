@@ -155,6 +155,37 @@ test('current owner is NOT hardcoded: an assigned contact prints its owner', () 
   assert.equal(deps.submissions.findBySubmissionId(result.submissionId).acquisitionSource, 'zachary_russell');
 });
 
+test('the digest footer omits "none is assigned" when a contact is actually assigned', () => {
+  const deps = buildDeps({ templates: ctx.realTemplates() });
+  const result = seed(deps, 1, Z);
+
+  deps.contacts.updateContact({ contactId: result.contactId, ownerPartner: 'ethaniel_vu' });
+  run(deps);
+
+  // Normalize whitespace so textWrap line breaks don't mask multi-word phrases.
+  const flat = (s) => s.replace(/\s+/g, ' ');
+  const html = flat(deps.mail.sent[0].htmlBody);
+  const text = flat(deps.mail.sent[0].textBody);
+  assert.equal(/none is assigned/i.test(html), false, '"none is assigned" must not appear when a contact has an owner');
+  assert.equal(/none is assigned/i.test(text), false);
+  assert.match(html, /None is a Lead/);
+});
+
+test('an all-unassigned digest still shows the complete "none is assigned, none has been contacted" claim', () => {
+  const deps = buildDeps({ templates: ctx.realTemplates() });
+  seed(deps, 1, Z);
+  run(deps);
+
+  // Normalize whitespace so textWrap line breaks don't mask multi-word phrases.
+  const flat = (s) => s.replace(/\s+/g, ' ');
+  const html = flat(deps.mail.sent[0].htmlBody);
+  const text = flat(deps.mail.sent[0].textBody);
+  assert.match(html, /none is assigned/i);
+  assert.match(html, /none has been contacted/i);
+  assert.match(text, /none is assigned/i);
+  assert.match(text, /none has been contacted/i);
+});
+
 /* ── Delivery-bound state ─────────────────────────────────────────────────── */
 
 test('contacts advance to delivered only after a successful send', () => {

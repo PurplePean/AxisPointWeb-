@@ -293,6 +293,27 @@ test('missing optional property values disappear rather than reading empty', () 
   assert.equal(/Units or square footage/.test(out.htmlBody), false);
 });
 
+test('an investor services acknowledgement carries investor framing, not property management', () => {
+  const lead = storedLead(fx.investorServices());
+  const out = ctx.renderWebsiteAcknowledgement(lead, renderConfig());
+
+  assert.equal(out.ok, true);
+  // Check HTML only: textBody always contains FIRM_FOCUS ('Property Management, Houston, Texas').
+  assert.equal(/property management/i.test(out.htmlBody), false, 'investor ack HTML must not say "property management"');
+  assert.match(out.htmlBody, /Investor Services/);
+  assert.match(out.htmlBody, /investor services/i);
+});
+
+test('a general inquiry acknowledgement carries no property management framing', () => {
+  const lead = storedLead(fx.generalInquiry());
+  const out = ctx.renderWebsiteAcknowledgement(lead, renderConfig());
+
+  assert.equal(out.ok, true);
+  // Check HTML only: textBody always contains FIRM_FOCUS ('Property Management, Houston, Texas').
+  assert.equal(/property management/i.test(out.htmlBody), false, 'general inquiry ack HTML must not say "property management"');
+  assert.match(out.htmlBody, /General Inquiry/);
+});
+
 test('no template prints a raw wire token', () => {
   const lead = storedLead(fx.managementProposal());
   const ack = ctx.renderWebsiteAcknowledgement(lead, renderConfig());

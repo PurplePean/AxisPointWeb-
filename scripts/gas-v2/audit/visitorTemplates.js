@@ -563,8 +563,8 @@ function auditVisitorTemplateSets(ctx) {
          */
         const plan = [
           { find: 'A Partner will review what you sent and reply to you. This message confirms what reached us.', to: p.ackLead, required: true },
-          { find: 'You are receiving this because you contacted AxisPoint Partners about property management.', to: p.ackFooterNote, required: true },
-          { find: 'We have your details. Here is what happens next.', to: p.ackPreheader, required: true },
+          { find: 'You are receiving this because you contacted AxisPoint Partners about property management.', to: p.ackFooterNote, required: isProposal },
+          { find: 'We have your details. Here is what happens next.', to: p.ackPreheader, required: isProposal },
           { find: COMMON_EN.replyAdd, to: p.replyAdd, required: true },
           { find: 'We have your property details', to: p.ackSubjectProperty, required: isProposal },
           { find: 'We have your message', to: p.ackSubjectMessage, required: !isProposal },
