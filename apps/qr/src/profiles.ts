@@ -52,10 +52,21 @@ export const FIRM = {
   description:
     'AxisPoint manages multifamily and retail properties for owners across Texas, with an asset management layer when the property calls for it.',
   /**
-   * Organization note for the contact record. The board records its wording as
-   * "Needs approval", so nothing is written into either card until it is approved.
+   * Organization note for the contact record, written into both partners' records as `NOTE`.
+   *
+   * The board listed this as "Needs approval" and the code left it null until it was. **The
+   * owner supplied this exact wording on 2026-08-18**, resolving the third of the four
+   * unresolved QR values in `docs/design-sources.md`. It is a firm-level sentence, so both
+   * records carry the same one; it is not a per-partner value.
+   *
+   * It is 91 octets once escaped and prefixed, which is what put line folding into
+   * `useSaveContact.ts`. A change to this wording is a change to what lands in real people's
+   * address books: update `docs/design-sources.md` in the same commit.
    */
-  organizationNote: null as string | null,
+  organizationNote:
+    'Property management for multifamily and retail owners across Texas, based in Houston.' as
+      | string
+      | null,
 } as const;
 
 /**

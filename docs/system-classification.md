@@ -170,8 +170,11 @@ the QR acknowledgement, along with the two Script Properties that gated it.
 
 **The card surface is one combined page as of 2026-08-17.** The `?profile=` three-state
 template (Zachary, Ethaniel, firm fallback) was collapsed by owner direction into a single
-page showing both partners with their confirmed direct numbers and addresses, and its Save
-action produces two contact records. This is a **frontend-only** change:
+page showing both partners with their confirmed direct numbers and addresses. **Its Save
+action became two actions on 2026-08-18**, one per partner, each delivering a contact file
+holding exactly one record: a single file carrying both records cannot reach iOS Safari's
+"Add All 2 Contacts" import flow, because Safari ignores the `download` attribute on a
+`blob:` URL. Both are **frontend-only** changes:
 `scripts/gas-v2` was not touched, `SLUG_TO_PARTNER` still resolves both partner slugs, and the
 per-partner attribution the frontend no longer sends is an accepted loss rather than a
 regression. [`design-sources.md`](design-sources.md) records the full deviation and

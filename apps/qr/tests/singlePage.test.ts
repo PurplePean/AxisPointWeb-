@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { installRenderGlobals, renderModule } from './helpers/render';
 import { FIRM, PARTNERS } from '../src/profiles';
+import { saveActionLabel } from '../src/useSaveContact';
 
 /*
  * ONE PAGE, BOTH PARTNERS.
@@ -96,13 +97,49 @@ test('the unresolved-card fallback copy is gone with the state it described', ()
   assert.equal(html.includes('Partner-led from Houston'), false);
 });
 
-/* ── The save action describes two records ────────────────────────────────── */
+/* ── Two save actions, one per partner ────────────────────────────────────── */
 
-test('the save action is worded for both partners, not one', () => {
-  assert.ok(html.includes('Save our contacts'));
-  // The default supporting line tells the visitor what they are about to get, which is the
-  // page's only honest signal that the file holds two records rather than one.
-  assert.ok(html.includes('two separate records'));
+test('the page offers one clearly labelled save action per partner', () => {
+  /*
+   * THE SPLIT OF 2026-08-18. One action delivering one two-record file cannot reach iOS
+   * Safari's "Add All 2 Contacts" flow — Safari ignores the `download` attribute on a `blob:`
+   * URL and previews a single card instead — so the page asks the visitor which person they
+   * want and hands over one record at a time. Asserting the labels is what stops the two
+   * actions from silently collapsing back into one.
+   */
+  /*
+   * The labels are possessive ("Save Zachary's contact") and React escapes the apostrophe to
+   * `&#x27;` in the markup, so the comparison is made against a decoded copy. Decoding one
+   * entity, rather than asserting on the escaped form, keeps this test readable if the label
+   * wording ever changes and keeps it about the label rather than about HTML escaping.
+   */
+  const text = html.replace(/&#x27;/g, "'");
+  for (const partner of PARTNERS) {
+    assert.ok(
+      text.includes(saveActionLabel(partner)),
+      `${partner.displayName} has no save action of their own`,
+    );
+  }
+  // Two distinct labels, not one label rendered twice.
+  const labels = new Set(PARTNERS.map(saveActionLabel));
+  assert.equal(labels.size, PARTNERS.length);
+});
+
+test('the single combined save action is gone with the file it delivered', () => {
+  assert.equal(html.includes('Save our contacts'), false);
+  // The supporting line that promised one file holding two records went with it.
+  assert.equal(html.includes('two separate records'), false);
+});
+
+test('each save action says it produces one record', () => {
+  // The supporting line is the page's only honest signal about what the visitor is getting,
+  // and after the split what they are getting is one person per press.
+  for (const partner of PARTNERS) {
+    assert.ok(
+      html.includes(`Adds ${partner.displayName} to your contacts as one record.`),
+      `${partner.displayName}'s action does not say what it produces`,
+    );
+  }
 });
 
 test('no state on the page claims a contact was actually saved', () => {

@@ -1,36 +1,37 @@
 import { useCallback, useRef, useState } from 'react';
-import { FIRM, PARTNERS, type PartnerProfile } from './profiles';
+import { FIRM, type PartnerProfile } from './profiles';
 
 /**
- * Save our contacts, as specified in the approved board's q7 (design@2026-07-30), amended
- * by the owner-directed single-page collapse of 2026-08-17.
+ * Save one partner's contact, as specified in the approved board's q7 (design@2026-07-30),
+ * amended by the owner-directed single-page collapse of 2026-08-17 and by the owner-directed
+ * split of 2026-08-18.
  *
- * WHAT CHANGED. The board drew one Save Contact per partner page, because a scan resolved
- * to one partner. There is one combined page now, so there is one action, and it produces
- * **exactly two contact records, Zachary and Ethaniel individually**. There is deliberately
- * no third combined or firm-level record: a person's address book should end up with the two
- * people they met, not with two people and an organization stub they did not ask for. A
- * device presented with this file typically prompts to add 2 contacts.
+ * WHAT CHANGED, AND WHY IT CHANGED BACK. The board drew one Save Contact per partner page,
+ * because a scan resolved to one partner. The 2026-08-17 collapse replaced that with ONE
+ * action producing ONE file carrying TWO records. Real-device testing then established that
+ * this cannot work on the delivery path this app has: **iOS Safari ignores the `download`
+ * attribute on a `blob:` URL**, so it never sees a real named `.vcf`, never offers the
+ * "Add All 2 Contacts" import flow, and falls back to a single-item Quick Look preview. That
+ * is a platform limitation, not a defect in the file, and no amount of correcting the bytes
+ * reaches it.
  *
- * The honest ceiling, quoting the board: a web page can open or download a contact file, but
- * it cannot observe whether the visitor completed the operating system's save. Every state
- * below reports only what the page actually knows, and **no state claims a person was saved
- * to your contacts.**
+ * So the page now offers **two separate actions, one per partner, each producing a file that
+ * contains exactly one record.** Single-record delivery over this exact path is the proven
+ * case: it is what this project shipped for its entire life before 2026-08-17. There is still
+ * deliberately no combined or firm-level record: a person's address book should end up with
+ * the two people they met, not with an organization stub they did not ask for.
+ *
+ * The honest ceiling, quoting the board, is unchanged: a web page can open or download a
+ * contact file, but it cannot observe whether the visitor completed the operating system's
+ * save. Every state below reports only what the page actually knows, and **no state claims a
+ * person was saved to your contacts.**
  *
  * STILL LOCAL, STILL NOT A PRODUCTION DELIVERY ARCHITECTURE. The contact-file generation and
  * delivery method remains an unresolved owner value (`docs/design-sources.md`). No hosted
  * `.vcf` is fetched, no GAS endpoint is called, nothing is uploaded. The file is built in
  * memory from owner-confirmed values and handed to the browser as an object URL, which is
- * then revoked on a delay. When the real architecture is decided, `prepare()` is the single function to
- * replace.
- *
- * NOT VERIFIED ON A REAL DEVICE. The delivery mechanism below is a synthetic anchor click on
- * a `blob:` URL. That has never been exercised on a real iPhone or a real Android handset,
- * and a multi-record file adds a second unverified behaviour on top of it, because some
- * contact importers read only the first record in a stream. The tests in
- * `apps/qr/tests/vcard.test.ts` pin what the FILE contains; they cannot pin what a phone does
- * with it. Real-device import is an outstanding manual verification, recorded in
- * `docs/STATUS.md`.
+ * then revoked on a delay. When the real architecture is decided, `prepare()` is the single
+ * function to replace.
  */
 
 export type SaveState = 'default' | 'preparing' | 'handoffMobile' | 'handoffWide' | 'failed';
@@ -39,47 +40,6 @@ export type SaveState = 'default' | 'preparing' | 'handoffMobile' | 'handoffWide
 const PREPARE_TIMEOUT_MS = 6000;
 /** Simulated preparation time, short enough to feel real without being fake-slow. */
 const SIMULATED_PREPARE_MS = 450;
-
-export const SAVE_MESSAGES: Record<SaveState, string> = {
-  default: 'Adds Zachary and Ethaniel to your contacts as two separate records.',
-  preparing: 'Preparing contacts…',
-  handoffMobile: 'Contact cards opened. Finish saving them in Contacts.',
-  handoffWide: 'Contact file downloaded. It contains both partner records.',
-  failed: 'Contact file could not be prepared. Try again or use the verified details below.',
-};
-
-/**
- * The one Save action label.
- *
- * Exported on its own because the Contact Exchange's success screen reuses this exact
- * control as its primary action (approved §x10). One constant, read in both places, so the
- * card and the success screen cannot drift into calling the same button two things.
- */
-export const SAVE_ACTION_LABEL = 'Save our contacts';
-
-export const SAVE_LABELS: Record<SaveState, string> = {
-  default: SAVE_ACTION_LABEL,
-  preparing: 'Preparing contacts',
-  handoffMobile: SAVE_ACTION_LABEL,
-  handoffWide: SAVE_ACTION_LABEL,
-  failed: 'Try again',
-};
-
-/** The filename the browser is offered on a wide-screen download. */
-export const CONTACT_FILENAME = 'AxisPoint-Partners.vcf';
-
-/**
- * Escapes one vCard TEXT value.
- *
- * Backslash, comma, semicolon, and newline carry structural meaning inside a property value,
- * so a real name or note containing one would otherwise split the value or invent a field.
- * Backslash goes first, or it would double-escape the escapes added after it. Structured
- * properties (`N`, `ADR`) escape each COMPONENT and then join with a literal `;`, which is
- * why the separator is added by the caller rather than by this function.
- */
-function escapeText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
-}
 
 /**
  * Splits a display name into the family/given components `N` requires.
@@ -97,17 +57,122 @@ function nameComponents(displayName: string): { given: string; family: string } 
 }
 
 /**
+ * One partner's Save action label.
+ *
+ * THE GIVEN NAME IS WHAT DISTINGUISHES THEM. "Save Zachary's contact" beside "Save Ethaniel's
+ * contact" differs in the first word after the verb, which is where a thumb scanning two
+ * stacked controls at 15px actually looks. Two full names differ later and read as one
+ * repeated button. The accessible name on the control carries the full name, so nothing
+ * depends on a visitor already knowing which Zachary.
+ *
+ * Exported as a function rather than a constant because the Contact Exchange's success screen
+ * reuses these exact controls as its primary actions (approved §x10). One function, read in
+ * both places, so the card and the success screen cannot drift into calling the same button
+ * two different things.
+ */
+export function saveActionLabel(profile: PartnerProfile): string {
+  return `Save ${nameComponents(profile.displayName).given}'s contact`;
+}
+
+export function saveLabels(profile: PartnerProfile): Record<SaveState, string> {
+  const action = saveActionLabel(profile);
+  return {
+    default: action,
+    preparing: 'Preparing contact',
+    handoffMobile: action,
+    handoffWide: action,
+    failed: 'Try again',
+  };
+}
+
+export function saveMessages(profile: PartnerProfile): Record<SaveState, string> {
+  return {
+    default: `Adds ${profile.displayName} to your contacts as one record.`,
+    preparing: 'Preparing contact…',
+    handoffMobile: 'Contact card opened. Finish saving it in Contacts.',
+    handoffWide: `Contact file downloaded. It contains ${profile.displayName}'s record.`,
+    failed: 'Contact file could not be prepared. Try again or use the verified details below.',
+  };
+}
+
+/**
+ * The filename the browser is offered for one partner's file.
+ *
+ * It names the person, because the visitor now chooses a person before the file exists, and a
+ * downloads folder holding two files both called `AxisPoint-Partners.vcf` would be the worse
+ * outcome of the split. Spaces become hyphens: a space in a `download` attribute survives most
+ * browsers and is mangled by some, and there is no reason to find out which.
+ */
+export function contactFilename(profile: PartnerProfile): string {
+  return `AxisPoint-${profile.displayName.trim().replace(/\s+/g, '-')}.vcf`;
+}
+
+/**
+ * Escapes one vCard TEXT value.
+ *
+ * Backslash, comma, semicolon, and newline carry structural meaning inside a property value,
+ * so a real name or note containing one would otherwise split the value or invent a field.
+ * Backslash goes first, or it would double-escape the escapes added after it. Structured
+ * properties (`N`, `ADR`) escape each COMPONENT and then join with a literal `;`, which is
+ * why the separator is added by the caller rather than by this function.
+ */
+function escapeText(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+}
+
+/** Both specifications fold a content line longer than 75 octets. */
+const FOLD_LIMIT = 75;
+
+/**
+ * Folds one content line to the 75-octet limit, per RFC 2426 §2.6.
+ *
+ * WHY THIS EXISTS NOW. The owner-approved organization note is 91 octets once escaped and
+ * prefixed with `NOTE:`, so it is the first value this builder can emit that passes the limit.
+ * Folding is the specification's own answer to that, and the alternative — emitting a
+ * too-long line and hoping — is the kind of thing that works on one handset and not the other.
+ *
+ * The continuation marker is CRLF followed by a single space, which an unfolding parser strips
+ * to recover the original value. Measurement is in OCTETS, because the limit is stated in
+ * octets; iteration is by CODE POINT, so a multi-byte character can never be split across the
+ * fold into two invalid bytes. The first line spends the full 75 and each continuation spends
+ * 74, because its leading space is one of the octets.
+ */
+function foldLine(line: string): string {
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= FOLD_LIMIT) return line;
+
+  const out: string[] = [];
+  let current = '';
+  let used = 0;
+  let budget = FOLD_LIMIT;
+
+  for (const char of line) {
+    const size = encoder.encode(char).length;
+    if (used + size > budget) {
+      out.push(current);
+      current = '';
+      used = 0;
+      // Every continuation line starts with the space that marks it as one.
+      budget = FOLD_LIMIT - 1;
+    }
+    current += char;
+    used += size;
+  }
+  out.push(current);
+
+  return out.join('\r\n ');
+}
+
+/**
  * Builds ONE vCard record for one partner.
  *
  * Nothing unverified is ever written. A null phone, email, or profile URL simply produces no
- * line, which is why a record can never carry a placeholder. The organization note is omitted
- * until its wording is approved.
+ * line, which is why a record can never carry a placeholder.
  *
  * VERSION IS 3.0 ON PURPOSE. vCard 3.0 (RFC 2426) is what iOS Contacts and Android import
  * most reliably; 4.0 (RFC 6350) support is uneven across exactly the consumer apps this file
- * is aimed at. Since real-device import is the outstanding risk on this feature, this is not
- * the change to take that risk with. The record's grammar, escaping, CRLF line breaks, and
- * property ordering satisfy both specifications; only the version token differs.
+ * is aimed at. The record's grammar, escaping, folding, CRLF line breaks, and property
+ * ordering satisfy both specifications; only the version token differs.
  */
 export function buildPartnerRecord(profile: PartnerProfile): string {
   const { given, family } = nameComponents(profile.displayName);
@@ -133,19 +198,24 @@ export function buildPartnerRecord(profile: PartnerProfile): string {
   if (FIRM.organizationNote) lines.push(`NOTE:${escapeText(FIRM.organizationNote)}`);
   lines.push('END:VCARD');
 
-  return lines.join('\r\n');
+  return lines.map(foldLine).join('\r\n');
 }
 
 /**
- * Builds the contact file: one record per partner, concatenated.
+ * Builds the contact file for ONE partner: exactly one record, and never more.
  *
- * Both specifications define a vCard stream as one or more records back to back, so this is
- * the standard shape for "two contacts in one file" and not a trick. The file ends with a
- * trailing CRLF, so the last `END:VCARD` is a complete line; some parsers drop a final record
- * that is not newline-terminated.
+ * WHY THIS TAKES ONE PROFILE AND NOT A LIST. It used to take a list and concatenate the
+ * records, which is a valid vCard stream and was still the wrong file to hand this app's
+ * visitors. iOS Safari ignores the `download` attribute on a `blob:` URL, so a multi-record
+ * stream delivered this way never reaches the "Add All 2 Contacts" flow; it reaches a Quick
+ * Look preview showing one card. Taking a single profile makes the one-record guarantee a
+ * property of the signature rather than of a caller remembering to pass a one-element array.
+ *
+ * The file ends with a trailing CRLF, so `END:VCARD` is a complete line; some parsers drop a
+ * record that is not newline-terminated.
  */
-export function buildContactCard(partners: readonly PartnerProfile[] = PARTNERS): string {
-  return partners.map(buildPartnerRecord).join('\r\n') + '\r\n';
+export function buildContactCard(profile: PartnerProfile): string {
+  return buildPartnerRecord(profile) + '\r\n';
 }
 
 /**
@@ -164,6 +234,10 @@ export function buildContactCard(partners: readonly PartnerProfile[] = PARTNERS)
  * value, chosen against the same browsers for the same reason. Overshooting costs one ~1 KB
  * blob held a moment longer; undershooting costs the bug above, silently, on the device class
  * a QR card is most often scanned with.
+ *
+ * THE SPLIT MADE THIS MORE LOAD-BEARING, NOT LESS. A visitor who wants both partners now
+ * presses Save twice, so two reads overlapping inside the window is the EXPECTED case rather
+ * than an edge case. Each file's cleanup stays tied to that file; see `deliverContactFile`.
  */
 export const REVOKE_DELAY_MS = 40_000;
 
@@ -211,17 +285,15 @@ function browserDelivery(): DeliveryPort {
  * second press must not be governed by the first press's clock. Putting the revoke in that
  * list would mean a visitor who presses Save twice inside forty seconds cancels the first
  * file's cleanup and leaks that URL for the life of the document. Leaving it a plain window
- * timer keeps each file's cleanup tied to that file. The callback closes over a string and
- * touches no React state, so it is safe after an unmount, and a real page teardown releases
- * every outstanding object URL regardless.
+ * timer keeps each file's cleanup tied to that file. The split makes that ordinary rather than
+ * hypothetical: two controls, pressed seconds apart, and each hook instance also keeps its own
+ * timer list, so neither partner's save can cancel the other's. The callback closes over a
+ * string and touches no React state, so it is safe after an unmount, and a real page teardown
+ * releases every outstanding object URL regardless.
  *
  * Returns the URL it created, so a caller can name it in an assertion.
  */
-export function deliverContactFile(
-  card: string,
-  filename: string = CONTACT_FILENAME,
-  port: DeliveryPort = browserDelivery(),
-): string {
+export function deliverContactFile(card: string, filename: string, port: DeliveryPort = browserDelivery()): string {
   const blob = new Blob([card], { type: 'text/vcard;charset=utf-8' });
   const url = port.createObjectURL(blob);
   port.triggerDownload(url, filename);
@@ -236,7 +308,15 @@ function deliveredAsDownload(): boolean {
   return window.matchMedia('(min-width: 700px)').matches;
 }
 
-export function useSaveContact() {
+/**
+ * ONE partner's save action, with its own independent state.
+ *
+ * ONE HOOK INSTANCE PER PARTNER, WHICH IS THE WHOLE POINT OF THE SPLIT. Each call owns its own
+ * state machine, its own timers, and its own file. Zachary's save reaching a handoff or a
+ * failure says nothing about Ethaniel's control, and pressing one while the other is preparing
+ * cannot disturb it.
+ */
+export function useSaveContact(profile: PartnerProfile) {
   const [state, setState] = useState<SaveState>('default');
   const timers = useRef<number[]>([]);
 
@@ -255,13 +335,14 @@ export function useSaveContact() {
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('save') === 'fail') {
       throw new Error('simulated preparation failure');
     }
-    const card = buildContactCard();
-    // Counts terminators rather than checking for one: a file that lost a record on the way
-    // out is the failure mode worth catching, and it is the exact multi-record risk here.
+    const card = buildContactCard(profile);
+    // Counts terminators rather than checking for one. EXACTLY ONE is the reason this change
+    // exists: a file that picked up a second record would reach iOS Safari as a preview of a
+    // single card, which is the failure the split was made to leave behind.
     const records = card.split('END:VCARD').length - 1;
-    if (records !== PARTNERS.length) throw new Error('contact file incomplete');
+    if (records !== 1) throw new Error('contact file must hold exactly one record');
     return card;
-  }, []);
+  }, [profile]);
 
   const save = useCallback(async () => {
     clearTimers();
@@ -282,7 +363,7 @@ export function useSaveContact() {
         timers.current.push(t);
       });
 
-      deliverContactFile(card);
+      deliverContactFile(card, contactFilename(profile));
 
       window.clearTimeout(cap);
       // Chosen by how the file was delivered, not by guessing the device.
@@ -291,7 +372,7 @@ export function useSaveContact() {
       window.clearTimeout(cap);
       setState('failed');
     }
-  }, [prepare]);
+  }, [prepare, profile]);
 
-  return { state, save, message: SAVE_MESSAGES[state], label: SAVE_LABELS[state] };
+  return { state, save, message: saveMessages(profile)[state], label: saveLabels(profile)[state] };
 }
