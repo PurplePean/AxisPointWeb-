@@ -2,7 +2,7 @@
 
 Where the project actually stands right now.
 
-**Last verified:** August 16, 2026, against commit `28fb99b` on a clean `main`.
+**Last verified:** August 19, 2026.
 
 This file is a snapshot, not a history. It was rewritten from scratch on the date above
 because the previous version had grown by appending each correction underneath the paragraph
@@ -21,9 +21,12 @@ requires, [`backend-v2-contract.md`](backend-v2-contract.md) for the wire contra
 
 **Nothing in this repository is deployed anywhere, and nothing a visitor sees comes from it.**
 The public site at `axispoint.llc` is a separate, older, hand-uploaded build that was not
-produced from this git history. The V2 Apps Script backend is written, tested, and merged, but
-no Apps Script project, `.clasp.json`, Sheet, Script Property, trigger, or deployment exists
-for it: its status is `merged`, and no git action advances a backend past that. Both frontends
+produced from this git history. The V2 Apps Script backend is written, tested, and merged. As of 2026-08-19 the Apps Script
+project (`AxisPoint V2 STAGING`), spreadsheet, and staging calendar exist, the source has
+been pushed (`pushed to HEAD`), and ten of eleven planned Script Properties are set —
+`AXP_SHEET_ID` is the one remaining (it blocks the `intake` capability). Triggers and the
+web-app deployment have not yet been created. No git action advances a backend past `merged`;
+the current backend status is `pushed to HEAD`. Both frontends
 build clean and are wired to the V2 contract through `packages/submission-client`, but they
 have never successfully deployed through GitHub Actions, because the FTP secrets the two
 deploy workflows need are not configured. CI is green on every commit: `ci.yml` (type-check,
@@ -112,8 +115,8 @@ wording on 2026-08-18, and it is now written into both partners' contact records
 physical-card cutover; they do not block frontend implementation or anything currently in
 flight. They are not re-listed here, so that the list has one home.
 
-Provisioning is likewise unblocked: [`staging-provisioning.md`](staging-provisioning.md)
-records that nothing stands in its way.
+Staging provisioning is underway; [`staging-provisioning.md`](staging-provisioning.md)
+tracks current state and remaining steps.
 
 ## 5. Known risks and launch blockers
 
@@ -124,7 +127,7 @@ Each of these was verified against code or an authoritative document on the date
 | **FTP secrets are not configured** | Both deploy workflows fail at the FTP step with `Input required and not supplied: server`. Nothing has ever deployed from this repository |
 | **Both deploy workflows still pass `VITE_FORM_ENDPOINT`** | That is the retired V1 variable name. A deploy today would compile in **no endpoint** and ship a build that fails closed on every submission while looking correct. Must be corrected in the same change that adds the FTP secrets |
 | **No SPA rewrite is configured, and none is tracked here** | Deep links depend on the host returning `index.html`. All routing evidence comes from the dev server, which supplies the fallback automatically; that is not evidence about Apache. **Verifying and configuring the host's rewrite is a prerequisite for activating any non-English locale** |
-| **No V2 Apps Script project exists** | The backend cannot run until a project, Sheet, Script Properties, calendar, and triggers are created. Nothing blocks doing it; it simply has not been done |
+| **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed. `AXP_SHEET_ID` not yet set (blocks `intake`). Triggers and web-app deployment not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
 | **The QR subdomain's document root does not match the deploy target** | `qr.axispoint.llc` serves `/home/axisipak/public_html/qr`, while `deploy-qr.yml` targets `./qr.axispoint.llc/`. These must be reconciled at launch or the first deploy lands in the wrong place |
 | **Deploys add and overwrite but never delete** | `dangerous-clean-slate` is not passed, so stale files from the current hand-uploaded site would persist alongside a new build. The strategy is a cutover-time choice, recorded in [`deployment.md`](deployment.md) |
@@ -152,9 +155,9 @@ not a fallback**: read the tracked document, never the tag.
 
 Pointers, not plans. The detailed scope belongs in the task that does the work.
 
-- **Stand up the V2 backend in staging**, following
-  [`staging-provisioning.md`](staging-provisioning.md). Nothing blocks it. It is a sequence of
-  authorized external operations, none of them a merge.
+- **Complete staging provisioning**: set `AXP_SHEET_ID`, install the three triggers, and
+  create the web-app deployment. See [`staging-provisioning.md`](staging-provisioning.md) for
+  current state and the sequence.
 - **Fix the deploy path as one change**: correct both workflows to
   `VITE_V2_SUBMISSION_ENDPOINT`, add the FTP secrets, settle the mirror-delete strategy, and
   reconcile the QR document root. Doing any one of these alone ships a broken deploy.
