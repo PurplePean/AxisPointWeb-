@@ -23,10 +23,11 @@ requires, [`backend-v2-contract.md`](backend-v2-contract.md) for the wire contra
 The public site at `axispoint.llc` is a separate, older, hand-uploaded build that was not
 produced from this git history. The V2 Apps Script backend is written, tested, and merged. As of 2026-08-19 the Apps Script
 project (`AxisPoint V2 STAGING`), spreadsheet, and staging calendar exist, the source has
-been pushed (`pushed to HEAD`), and ten of eleven planned Script Properties are set —
-`AXP_SHEET_ID` is the one remaining (it blocks the `intake` capability). Triggers and the
-web-app deployment have not yet been created. No git action advances a backend past `merged`;
-the current backend status is `pushed to HEAD`. Both frontends
+been pushed (`pushed to HEAD`). Of eleven planned Script Properties, one is set
+(`AXP_CALENDAR_ID`); the remaining ten are not yet set — a wrapper is live in the project
+ready to set nine of them, and `AXP_SHEET_ID` requires the staging spreadsheet ID before it
+can be set. Triggers and the web-app deployment have not yet been created. No git action
+advances a backend past `merged`; the current backend status is `pushed to HEAD`. Both frontends
 build clean and are wired to the V2 contract through `packages/submission-client`, but they
 have never successfully deployed through GitHub Actions, because the FTP secrets the two
 deploy workflows need are not configured. CI is green on every commit: `ci.yml` (type-check,
@@ -127,7 +128,7 @@ Each of these was verified against code or an authoritative document on the date
 | **FTP secrets are not configured** | Both deploy workflows fail at the FTP step with `Input required and not supplied: server`. Nothing has ever deployed from this repository |
 | **Both deploy workflows still pass `VITE_FORM_ENDPOINT`** | That is the retired V1 variable name. A deploy today would compile in **no endpoint** and ship a build that fails closed on every submission while looking correct. Must be corrected in the same change that adds the FTP secrets |
 | **No SPA rewrite is configured, and none is tracked here** | Deep links depend on the host returning `index.html`. All routing evidence comes from the dev server, which supplies the fallback automatically; that is not evidence about Apache. **Verifying and configuring the host's rewrite is a prerequisite for activating any non-English locale** |
-| **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed. `AXP_SHEET_ID` not yet set (blocks `intake`). Triggers and web-app deployment not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
+| **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed. 1 of 11 Script Properties set. A wrapper is live in the project to set 9 more; `AXP_SHEET_ID` still needs the spreadsheet ID. Triggers and web-app deployment not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
 | **The QR subdomain's document root does not match the deploy target** | `qr.axispoint.llc` serves `/home/axisipak/public_html/qr`, while `deploy-qr.yml` targets `./qr.axispoint.llc/`. These must be reconciled at launch or the first deploy lands in the wrong place |
 | **Deploys add and overwrite but never delete** | `dangerous-clean-slate` is not passed, so stale files from the current hand-uploaded site would persist alongside a new build. The strategy is a cutover-time choice, recorded in [`deployment.md`](deployment.md) |
