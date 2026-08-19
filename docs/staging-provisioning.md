@@ -3,9 +3,12 @@
 The plan for standing up the V2 backend in staging. This is the **Staging** pass named in
 [`STATUS.md`](STATUS.md); it is not a numbered code pass.
 
-**Nothing in this document has been created.** No Apps Script project, Sheet, calendar,
-trigger, deployment, endpoint, email, or calendar event exists. Every value below is
-recorded so provisioning is one reviewed decision rather than a sequence of small ones.
+**Provisioning is underway.** As of 2026-08-19: the Apps Script project (`AxisPoint V2
+STAGING`), the staging spreadsheet with its six tabs, and the staging booking calendar
+(`AxisPoint Booking STAGING`) have been created. `AXP_CALENDAR_ID` is set as a Script
+Property. Triggers, the web-app deployment, and the remaining Script Properties are not yet
+created. Every value below is recorded so provisioning is one reviewed decision rather than
+a sequence of small ones.
 
 **Live V1 identifiers are deliberately not repeated here.** The V1 script id, bound
 spreadsheet id, deployment id, and `/exec` URL are not in any tracked file. They exist only at
@@ -187,6 +190,11 @@ New calendar `AxisPoint Booking STAGING`, owned by Zach, **not a personal calend
 Test events are isolated and bulk-deletable, and no test booking can land on a real day.
 
 One shared calendar remains the model: `AXP_CALENDAR_ID` is a single property, unchanged.
+
+**Status (2026-08-19): complete.** Calendar `AxisPoint Booking STAGING` created under
+`Zach@axispoint.llc`. `AXP_CALENDAR_ID` set as a Script Property via the temporary-wrapper
+pattern (`runSetCalendarId`, `setProperties` + `makePropertyWriter`). Calendar ID is not
+recorded here.
 
 ---
 
@@ -571,15 +579,15 @@ production run.
 
 ## What provisioning will create
 
-1. Apps Script project `AxisPoint V2 STAGING`
-2. Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above — 48, 8, 47, 28, 7, and
-   **11** columns respectively
-3. Calendar `AxisPoint Booking STAGING`
+1. ~~Apps Script project `AxisPoint V2 STAGING`~~ **Done (2026-08-19)**
+2. ~~Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above — 48, 8, 47, 28, 7, and
+   **11** columns respectively~~ **Done (2026-08-19)**
+3. ~~Calendar `AxisPoint Booking STAGING`~~ **Done (2026-08-19) — `AXP_CALENDAR_ID` set**
 4. **11** Script Properties set per §3, of the 13 names that exist; `AXP_FIRM_PHONE` and
-   `AXP_LOGO_URL` are deliberately left unset
+   `AXP_LOGO_URL` are deliberately left unset — **`AXP_CALENDAR_ID` set; others pending**
 5. 3 time-driven triggers per §5
 6. 1 Web app deployment
-7. Local `scripts/gas-v2/.clasp.json`, gitignored
+7. ~~Local `scripts/gas-v2/.clasp.json`, gitignored~~ **Done (2026-08-19)**
 
 ## Open before provisioning
 
