@@ -18,11 +18,13 @@
 
 | | `scripts/gas-v2` (V2) |
 |---|---|
-| Apps Script project | **None.** No `.clasp.json` |
-| Deployed | **No** |
-| Sheet, Script Properties, triggers | **None created** |
+| Apps Script project | **Staging project exists** (`AxisPoint V2 STAGING`). `.clasp.json` is gitignored, not committed |
+| Deployed | **No** — web-app deployment not yet created |
+| Sheet | **Created** (`AxisPoint V2 CRM STAGING`, six tabs) |
+| Script Properties | **1 of 11 set** (`AXP_CALENDAR_ID`); `AXP_SHEET_ID` and 9 others pending |
+| Triggers | **None installed** |
 | Frontend pointed at it | **No.** Both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a lone V1 value is rejected |
-| Status | `merged` |
+| Status | `pushed to HEAD` — see [`staging-provisioning.md`](staging-provisioning.md) for remaining steps |
 
 There were two until 2026-08-15. `scripts/gas` (V1) was an external Apps Script project,
 historically deployed at production version @28, already retired as a business system, and its
@@ -37,18 +39,20 @@ what a visitor sees, because nothing in this repository is what a visitor sees.
 V2's own rules live in [`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire
 contract in [`backend-v2-contract.md`](backend-v2-contract.md).
 
-### Bringing the V2 backend up (not done, not authorized by any merge)
+### Bringing the V2 backend up (staging underway — see [`staging-provisioning.md`](staging-provisioning.md))
 
-Each of these is a separate external mutation. None is implied by merging V2 code, and none
-has been performed.
+Each of these is a separate external mutation. None is implied by merging V2 code.
 
-1. Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).
-2. Create the Sheet with the six tabs `Submissions`, `Deliveries`, `Leads`, `Contacts`, `Log`,
+**Staging status as of 2026-08-19:** steps 1–4 (`clasp push`) are complete. Steps 5–6 are not yet done.
+
+1. ~~Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).~~ **Done.**
+2. ~~Create the Sheet with the six tabs `Submissions`, `Deliveries`, `Leads`, `Contacts`, `Log`,
    `Work`, tab names and header rows exactly as `expectedTabLayout()` returns them in
-   `src/platform/SheetRepository.js`.
+   `src/platform/SheetRepository.js`.~~ **Done.**
 3. Set the Script Properties named in `src/platform/Config.js`. **No value for any of these exists
    in this repository.** Leave `AXP_RUN_MODE` unset or `dry_run` until a live send is
-   intended; an unset mode is `dry_run`, never `live`.
+   intended; an unset mode is `dry_run`, never `live`. **Partially done: `AXP_CALENDAR_ID` set;
+   others pending.**
 
    Storage and routing: `AXP_SHEET_ID`, `AXP_CALENDAR_ID`, `AXP_PARTNER_NOTIFY_TO`,
    `AXP_PARTNER_EMAIL_MAP`, `AXP_REPLY_TO`, `AXP_FROM_NAME`, `AXP_RUN_MODE`.
@@ -62,9 +66,9 @@ has been performed.
    the email no longer promises them and there is nothing left to configure. If either
    name turns up in an older runbook or an already-provisioned project, it is stale;
    setting it does nothing.
-4. `cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
+4. ~~`cd scripts/gas-v2 && clasp push`, then verify `clasp status` lists exactly
    `appsscript.json` and the source files under `src/`. The `.claspignore` allowlist is the only thing
-   keeping the Node test suite out, and pushing it would take the backend down.
+   keeping the Node test suite out, and pushing it would take the backend down.~~ **Done (2026-08-19).**
 5. Install the time-driven triggers. **This repository installs none of them**, and none
    of the handlers has ever run:
    - `runWorkerTrigger`, every 5 minutes, for the delivery queue.

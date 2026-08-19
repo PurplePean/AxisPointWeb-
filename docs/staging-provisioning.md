@@ -210,7 +210,7 @@ verified: 0 occurrences). All three are created by hand in the Apps Script UI.
 |---|---|---|---|
 | Work queue | `runWorkerTrigger` | every 5 minutes | `src/entrypoints/Entry.js:192` |
 | QR digest | `runDailyQrDigestTrigger` | daily, 8:00 AM Central | `src/entrypoints/Entry.js:204` |
-| Retention | `runRetentionMaintenanceTrigger` | daily, off-peak | `src/entrypoints/Entry.js:214` |
+| Retention | `runRetentionMaintenanceTrigger` | daily, 3:00–4:00 AM Central | `src/entrypoints/Entry.js:214` |
 
 **Retry is not a fourth trigger, and looking for one is a provisioning mistake.** Retry
 happens *inside* the work-queue cycle: a failed item is written back with
@@ -584,23 +584,26 @@ production run.
    **11** columns respectively~~ **Done (2026-08-19)**
 3. ~~Calendar `AxisPoint Booking STAGING`~~ **Done (2026-08-19) — `AXP_CALENDAR_ID` set**
 4. **11** Script Properties set per §3, of the 13 names that exist; `AXP_FIRM_PHONE` and
-   `AXP_LOGO_URL` are deliberately left unset — **`AXP_CALENDAR_ID` set; others pending**
-5. 3 time-driven triggers per §5
-6. 1 Web app deployment
+   `AXP_LOGO_URL` are deliberately left unset — **`AXP_CALENDAR_ID` set; 9 more pending
+   (`runSetStagingProperties` ready to run in the editor); `AXP_SHEET_ID` pending (requires
+   staging spreadsheet ID from the sheet URL)**
+5. 3 time-driven triggers per §5 — **pending (browser steps documented above)**
+6. 1 Web app deployment — **pending (browser steps documented above)**
 7. ~~Local `scripts/gas-v2/.clasp.json`, gitignored~~ **Done (2026-08-19)**
 
 ## Open before provisioning
 
 ### Provisioning functions
 
-`src/platform/Provisioning.js` provides three administrative functions and two GAS entry points:
+`src/platform/Provisioning.js` provides three pure, testable administrative functions.
+`src/entrypoints/Entry.js` provides the GAS entry point that wraps one of them:
 
-| Function | What it does |
-|---|---|
-| `runSheetProvisioning(sheetId)` | Opens the spreadsheet by ID and runs `provisionSheet`. Entry point; calls `SpreadsheetApp` directly. |
-| `provisionSheet(book)` | Idempotent: creates any missing tab with the correct headers; reports `header_mismatch` (never auto-corrects) if a tab exists with wrong headers. |
-| `verifyProperties(reader)` | Reports all 13 Script Properties by tier (required/warning) and whether each is present. |
-| `setProperties(writer, values)` | Targeted write: only keys present in `values` are written; others are left untouched. |
+| Function | File | What it does |
+|---|---|---|
+| `runSheetProvisioning(sheetId)` | `entrypoints/Entry.js` | Opens the spreadsheet by ID and runs `provisionSheet`. Calls `SpreadsheetApp` directly; only runs in a real GAS runtime. |
+| `provisionSheet(book)` | `platform/Provisioning.js` | Idempotent: creates any missing tab with the correct headers; reports `header_mismatch` (never auto-corrects) if a tab exists with wrong headers. |
+| `verifyProperties(reader)` | `platform/Provisioning.js` | Reports all 13 Script Properties by tier (required/warning) and whether each is present. |
+| `setProperties(writer, values)` | `platform/Provisioning.js` | Targeted write: only keys present in `values` are written; others are left untouched. |
 
 `makePropertyWriter()` in `src/platform/GoogleServices.js` is the adapter that backs `setProperties`
 against the real Script Properties store. `makePropertyReader()` (same file) backs `verifyProperties`.
