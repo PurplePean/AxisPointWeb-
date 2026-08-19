@@ -461,6 +461,114 @@ Its identifiers are not in any tracked file; they exist only at the
 
 ---
 
+---
+
+## Invoking admin functions: the temporary wrapper pattern
+
+### Why a wrapper is needed
+
+`runSheetProvisioning(sheetId)` requires a `sheetId` argument. `setProperties(writer, values)`
+requires both a writer and a values object. The Apps Script editor's plain **Run** button calls
+functions with no arguments; there is no way to supply one through that interface. `clasp run`
+can pass arguments, but requires GCP Execution API linkage that has not been set up for this
+project, and the setup is non-trivial. The workaround is a temporary no-argument wrapper
+function added directly in the live Apps Script editor.
+
+**`clasp push` removes any function added only in the editor.** The push mechanism sends only the
+files that pass `.claspignore` — `appsscript.json` and `src/**/*.js` — by calling
+`projects.updateContent` with a complete replacement of the project's file set (clasp 3.3.0
+`build/src/core/files.js`, `push()` method). Any function added manually in the
+editor but absent from `scripts/gas-v2/src/` is erased on the next push. This is intentional and
+expected behavior; it is the same mechanism that keeps Node test files out of the live project.
+
+**The required sequence is: add wrapper → run → remove wrapper.** Never leave a wrapper with a
+hardcoded Sheet ID in the live project permanently.
+
+### Template
+
+Add a function like this directly in the Apps Script editor (as a new script file or appended to
+an existing one). Replace the placeholder with the real ID. Never commit this to source.
+
+```js
+// TEMPORARY — remove after use. Never commit.
+function runRehearsalProvisioning() {
+  var result = runSheetProvisioning('<SHEET_ID_HERE>');
+  Logger.log(JSON.stringify(result, null, 2));
+}
+```
+
+For setting Script Properties:
+
+```js
+// TEMPORARY — remove after use. Never commit.
+function runSetStagingProperties() {
+  var result = setProperties(makePropertyWriter(), {
+    AXP_SHEET_ID:                  '<SHEET_ID_HERE>',
+    AXP_CALENDAR_ID:               '<CALENDAR_ID_HERE>',
+    AXP_RUN_MODE:                  'dry_run',
+    AXP_REPLY_TO:                  'info@axispoint.llc',
+    AXP_FROM_NAME:                 'AxisPoint Partners [STAGING]',
+    AXP_PARTNER_NOTIFY_TO:         '<NOTIFY_TO_HERE>',
+    AXP_PARTNER_EMAIL_MAP:         '<JSON_OBJECT_HERE>',
+    AXP_FIRM_EMAIL:                'info@axispoint.llc',
+    AXP_WEBSITE_URL:               'https://axispoint.llc',
+  });
+  Logger.log(JSON.stringify(result, null, 2));
+}
+```
+
+For verifying Script Properties (`verifyProperties` needs a reader, not a Sheet ID, so the
+adapter is the whole wrapper):
+
+```js
+// TEMPORARY — remove after use. Never commit.
+function runVerifyProperties() {
+  var result = verifyProperties(makePropertyReader());
+  Logger.log(JSON.stringify(result, null, 2));
+}
+```
+
+### Step by step
+
+1. Open the live Apps Script project in the editor.
+2. Create a new script file (or append to an existing one) with the temporary wrapper above.
+   Replace `<SHEET_ID_HERE>` (or other placeholders) with the real values. Do not save the
+   wrapper to source control.
+3. Select the wrapper function from the function-name dropdown at the top of the editor.
+4. Click **Run**.
+5. Read the result in the **Execution log** panel.
+6. **Immediately delete the wrapper from the editor.** Do not leave it in place — a hardcoded
+   real Sheet ID sitting in the live project with no expiry is how a future push accidentally
+   loses it versus a future hand-edit accidentally keeps it.
+
+`JSON.stringify(result, null, 2)` renders the structured return value from `provisionSheet`
+and `setProperties` readably in the Execution log. The `null, 2` indent is optional; without it
+the output is still valid but not human-scanned as easily.
+
+### This pattern is needed again for the production run
+
+The production provisioning run uses the same wrapper approach. Sheet ID and property values
+will differ (no `[STAGING]` suffix on `AXP_FROM_NAME`, `AXP_RUN_MODE` starts `dry_run` and
+stays that way until a live send is explicitly authorized). The procedure is identical.
+
+### Why not build a permanent invocation method?
+
+**Property-reading wrapper** — a no-argument wrapper that reads `AXP_SHEET_ID` from Script
+Properties would avoid hardcoding a Sheet ID in editor code. The bootstrapping problem: at
+provisioning time `AXP_SHEET_ID` does not yet exist as a property, so you would need to set it
+manually in the Script Properties panel first, then run the wrapper. For a two-person team
+running provisioning exactly twice (staging, production), the temporary wrapper pattern costs
+less total effort than any wrapper-avoidance infrastructure.
+
+**GCP Execution API (`clasp run` with arguments)** — enabling `clasp run` would genuinely solve
+this problem for all current and future admin calls, not just this one. The one-time setup is
+real: you need a GCP project linked to the Apps Script project, an OAuth client configured for
+the CLI, and a local credential file. Worth revisiting if admin function frequency increases or
+if new admin capabilities require frequent invocation. Not worth the setup cost before the
+production run.
+
+---
+
 ## What provisioning will create
 
 1. Apps Script project `AxisPoint V2 STAGING`
@@ -475,47 +583,24 @@ Its identifiers are not in any tracked file; they exist only at the
 
 ## Open before provisioning
 
-### There is no reusable provisioning function, and every step above is manual
+### Provisioning functions
 
-**This is the one real gap.** Nothing in this repository can create or verify the structure
-described above against a given Sheet id. Provisioning is, today, entirely hand-typing:
-six tab names, 149 header cells, and 11 Script Properties, done once for the rehearsal
-Sheet and then done *again* for the production Sheet.
+`src/platform/Provisioning.js` provides three administrative functions and two GAS entry points:
 
-What exists is a **declaration**, not an application:
+| Function | What it does |
+|---|---|
+| `runSheetProvisioning(sheetId)` | Opens the spreadsheet by ID and runs `provisionSheet`. Entry point; calls `SpreadsheetApp` directly. |
+| `provisionSheet(book)` | Idempotent: creates any missing tab with the correct headers; reports `header_mismatch` (never auto-corrects) if a tab exists with wrong headers. |
+| `verifyProperties(reader)` | Reports all 13 Script Properties by tier (required/warning) and whether each is present. |
+| `setProperties(writer, values)` | Targeted write: only keys present in `values` are written; others are left untouched. |
 
-- `expectedTabLayout()` (`src/platform/SheetRepository.js:444-453`) returns the six tabs
-  and their header rows. Its own comment is explicit: *"Header rows a provisioning run
-  would write. Declared here, never applied here."*
-- `requireSheet()` (`src/platform/SheetRepository.js:104-108`) **throws** `missing tab:`
-  on an absent tab. It never creates one.
-- `insertSheet` appears **nowhere** in `src/`.
-- `makePropertyReader()` (`src/platform/GoogleServices.js:13-21`) exposes `get` only.
-  `setProperty` and `setProperties` appear **nowhere** in `src/`; the property layer is
-  read-only by construction.
-- No function named `provision`, `ensure`, `bootstrap`, `install`, or `scaffold` exists.
+`makePropertyWriter()` in `src/platform/GoogleServices.js` is the adapter that backs `setProperties`
+against the real Script Properties store. `makePropertyReader()` (same file) backs `verifyProperties`.
 
-So the answer to "could one function run against a rehearsal Sheet now and an empty
-production Sheet later, guaranteeing both are structurally identical" is **no**. The
-declaration that would make such a function trivial is already there and already
-test-pinned; only the writer is missing.
-
-**Why this matters before rehearsal rather than after.** Doing it twice by hand is not
-merely tedious, it is unverifiable: two hand-built Sheets that differ by one column are
-structurally different in a way nothing detects. `appendRecord` skips any field whose
-column is absent without erroring (`src/platform/SheetRepository.js:83-84`), so a
-production Sheet missing `idempotencyKey` would pass a rehearsal that used a correct one
-and then silently lose queue deduplication in production. That is the exact failure mode
-§2 describes, and hand-provisioning twice is how it arrives.
-
-**Not built in this pass — scoped as its own task.** Roughly: one function taking a target
-Sheet id, idempotent (create-if-absent, verify-and-report-if-present, never destructive to
-existing data rows), driven by `expectedTabLayout()` so the headers cannot drift from the
-constants; a companion that reports which of the 13 `PROP_KEYS` are set, missing, or
-blocking; and a dry-run/report mode so it can be pointed at a Sheet before it writes
-anything. It needs the `SpreadsheetApp` write path and a `setProperty` capability that
-`GoogleServices.js` does not currently expose, so it is a real code change with real
-tests, not a script.
+These functions cannot be called during normal request handling. Each is an administrative
+operation run by hand in the Apps Script editor. The invocation procedure is in
+[§ Invoking admin functions: the temporary wrapper pattern](#invoking-admin-functions-the-temporary-wrapper-pattern)
+below.
 
 ### Everything else
 
