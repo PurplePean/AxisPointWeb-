@@ -1,7 +1,7 @@
 /**
  * Idempotent provisioning for the V2 Apps Script backend.
  *
- * Two independent operations:
+ * Three pure, testable functions:
  *
  *   provisionSheet(book)          — creates or verifies all six tabs with correct headers
  *   verifyProperties(reader)      — reports the 13 Script Properties against their tiers
@@ -11,8 +11,10 @@
  * operations designed to be run once against a rehearsal Sheet and once against the
  * production Sheet, guaranteeing both end up byte-identical in structure.
  *
- * GAS entry points that open the real spreadsheet or property store are at the bottom
- * of this file. Tests call the pure functions directly with injected fakes.
+ * The GAS entry point that opens the real spreadsheet (runSheetProvisioning) lives in
+ * entrypoints/Entry.js alongside doPost, doGet, and the trigger functions, so that all
+ * Google service access from entry points stays in one allowed file.
+ * Tests call provisionSheet(book) with a fake book instead.
  */
 
 /**
@@ -163,13 +165,3 @@ function setProperties(writer, values) {
   return { ok: true, set: keys.slice() };
 }
 
-/**
- * GAS entry point. Opens a spreadsheet by ID and provisions its tabs.
- *
- * This function calls SpreadsheetApp directly and can only run in a real Apps
- * Script runtime. Tests call provisionSheet(book) with a fake book instead.
- */
-function runSheetProvisioning(sheetId) {
-  var book = SpreadsheetApp.openById(sheetId);
-  return provisionSheet(book);
-}

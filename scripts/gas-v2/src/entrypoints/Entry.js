@@ -214,3 +214,14 @@ function runDailyQrDigestTrigger() {
 function runRetentionMaintenanceTrigger(options) {
   return runRetentionMaintenance(buildProductionDeps(), options || {});
 }
+
+/**
+ * Administrative entry point. Opens a spreadsheet by ID and provisions its tabs.
+ *
+ * This function calls SpreadsheetApp directly and can only run in a real Apps Script
+ * runtime. Tests call provisionSheet(book) with a fake book instead.
+ */
+function runSheetProvisioning(sheetId) {
+  var book = SpreadsheetApp.openById(sheetId);
+  return provisionSheet(book);
+}
