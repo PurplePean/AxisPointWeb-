@@ -51,8 +51,11 @@ class FakeSheet {
 
   appendRow(row) {
     this.appended += 1;
-    const width = this.grid.length > 0 ? this.grid[0].length : row.length;
-    const padded = row.slice(0, width);
+    // Array.from normalizes VM-realm arrays to Node.js-realm so that assert.deepEqual
+    // does not fail on a prototype mismatch when tests compare headers to JS literals.
+    const native = Array.from(row);
+    const width = this.grid.length > 0 ? this.grid[0].length : native.length;
+    const padded = native.slice(0, width);
     while (padded.length < width) padded.push('');
     this.grid.push(padded);
     return this;
