@@ -443,17 +443,25 @@ Reply-To is `info@axispoint.llc` on every outbound message (`AXP_REPLY_TO`, §3)
 
 ### Phase 1: `dry_run`, no external effect
 
-| # | Case | Asserts |
-|---|---|---|
-| 1 | `doGet` health check | capabilities and blockers |
-| 2 | Management Proposal | Lead, SLA, `bookingEligible: true` |
-| 3 | Investor Services | Lead, `bookingEligible: false` |
-| 4 | General Inquiry | Lead, no property block |
-| 5 | QR Contact Exchange | Contact and **no** Lead |
-| 6 | Replay a used `submissionId` | replay, no second record |
-| 7 | Same id, changed data | `SUBMISSION_ID_CONFLICT` |
-| 8 | Booking | Lead calendar fields, queued confirmation |
-| 9 | Booking retry, same id | replay, no second hold |
+**Phase 1 run: 2026-08-21.** Cases 1-7 PASS. Cases 8 and 9 FAIL (two bugs found and fixed in PR #104 — requires `clasp push` + `clasp deploy -i` before re-verification).
+
+| # | Case | Asserts | Result (2026-08-21) |
+|---|---|---|---|
+| 1 | `doGet` health check | capabilities and blockers | **PASS** — all 6 capabilities true, runMode: dry_run, 2 expected warnings |
+| 2 | Management Proposal | Lead, SLA, `bookingEligible: true` | **PASS** — leadId returned, slaDueAt 5 PM CDT next business day, bookingEligible: true |
+| 3 | Investor Services | Lead, `bookingEligible: false` | **PASS** — leadId returned, bookingEligible: false, contactId: null |
+| 4 | General Inquiry | Lead, no property block | **PASS** — leadId returned, bookingEligible: false, contactId: null |
+| 5 | QR Contact Exchange | Contact and **no** Lead | **PASS** — contactId returned, leadId: null, bookingEligible: false, slaDueAt: null |
+| 6 | Replay a used `submissionId` | replay, no second record | **PASS** — same leadId, replay: true |
+| 7 | Same id, changed data | `SUBMISSION_ID_CONFLICT` | **PASS** — ok: false, SUBMISSION_ID_CONFLICT, no new record |
+| 8 | Booking | Lead calendar fields, queued confirmation | **FAIL** — CALENDAR_CREATE_FAILED in dry_run (bug: `!created.eventId` is true for empty string). Fixed in PR #104. Re-run after clasp push + deploy. |
+| 9 | Booking retry, same id | replay, no second hold | **FAIL** — error body missing `code` field on failed-booking replay (bug: replay return had no `code`, Entry.js serialised undefined to absent key). Fixed in PR #104. Re-run after clasp push + deploy. |
+
+**Wire notes from the run** (test harness observations, not documentation — delete after Cases 8-9 pass):
+
+- `attribution.sourceDetail` is validated as a required non-empty string. Website submissions must send the page pathname (e.g. `/en/contact`), not an empty string. The frontend already does this via `window.location.pathname`. No backend change needed; this is correct behaviour that the test harness initially got wrong.
+- `property.scale` must be a string, not a number. The frontend sends it as a string. No backend change needed.
+- SLA computed correctly: submissions at 04:00 UTC Thursday (23:00 CDT Wednesday/Thursday) resolve to 5:00 PM CDT next business day as expected.
 
 ### Phase 2: `live`, one narrow window, separately authorized
 
