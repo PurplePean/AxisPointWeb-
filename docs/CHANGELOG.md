@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-21 (E2E Phase 1 complete; two booking bugs found and fixed)
+
+- **fix(gas-v2): two bugs in the booking command found during Phase 1 dry_run rehearsal, fixed in PR #104.** (1) `Booking.js` check `!created.eventId` treated `''` (the documented dry_run return value) as a failure — every dry_run booking was being recorded as `CALENDAR_CREATE_FAILED` and `calendarStatus: 'failed'` on the Lead. Fix: allow the empty eventId when `status === 'dry_run'`. (2) The idempotent replay return for a non-booked lead had no `code` field, so `Entry.js` serialised `undefined` to an absent key — a contract violation. Fix: replay for failed and not_configured leads now carries the appropriate code. Two tests added in `booking.test.js` to pin both paths. Cases 1–7 of Phase 1 PASS; Cases 8–9 require `clasp push` + `clasp deploy -i` to re-verify after the fix.
+
 ## 2026-08-20 (GAS web app anonymous-access gotcha documented)
 
 - **docs(docs): root cause of V2 staging deployment forcing Google sign-in identified and documented.** The V2 web app was deployed with "Who has access: Anyone" (`ANYONE`) rather than "Anyone, even anonymous" (`ANYONE_ANONYMOUS`) — two distinct access levels in the Apps Script deploy dialog. `ANYONE` requires a Google account; `ANYONE_ANONYMOUS` is truly public. The "Anyone, even anonymous" option is suppressed by the Workspace Admin Console "Allow users to publish files publicly" setting when it is off; enabling it makes the correct option appear. Confirmed by `curl`: both the domain-branded URL and the plain URL format for the V2 deployment return HTTP 302 → Google sign-in, while V1 (correctly set to `ANYONE_ANONYMOUS`) serves directly. Fix is: Deploy → Manage deployments → edit deployment → change access to "Anyone, even anonymous." URL format has no bearing on anonymous access. Documented with full details in [`staging-provisioning.md` §6](staging-provisioning.md).
