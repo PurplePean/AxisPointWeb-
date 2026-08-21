@@ -281,6 +281,45 @@ Sequence: `clasp push`, then **Deploy → New deployment → Web app**, then rec
 Afterwards `clasp deploy -i <staging-deployment-id>` updates the pinned version. `push`
 alone does not change what `/exec` serves.
 
+### Critical gotcha: "Anyone" ≠ "Anyone, even anonymous" in the deploy dialog
+
+The Apps Script deploy dialog presents two distinct access levels that look similar but
+behave completely differently:
+
+| Dialog label | Manifest value | Behavior |
+|---|---|---|
+| **"Anyone"** | `ANYONE` | Requires a Google account — anonymous visitors are redirected to sign-in |
+| **"Anyone, even anonymous"** | `ANYONE_ANONYMOUS` | Truly public — no Google account required |
+
+**"Anyone, even anonymous" is what you must select.** Choosing "Anyone" produces a web app
+that silently requires authentication: both the domain-branded URL format
+(`/a/axispoint.llc/macros/s/.../exec`) and the plain format (`/macros/s/.../exec`) return
+HTTP 302 to Google sign-in when accessed without a session. The two URL formats differ only
+in *which* sign-in page the redirect targets (org-specific vs. generic), not in whether
+auth is required. The URL format has no effect on anonymous access.
+
+**This was the root cause of the V2 staging deployment blocking anonymous access.** The
+V2 deployment was initially created with "Anyone" selected, while V1 used "Anyone, even
+anonymous."
+
+**Why the correct option may not appear in the dialog:** In a Google Workspace org, the
+"Anyone, even anonymous" option is hidden from the deployment UI unless the Admin Console
+setting "Allow users in organization to publish files on the web or make them visible to
+the world as public or unlisted files" is enabled. To fix: Admin Console → Apps → Google
+Workspace → Drive and Docs → Sharing settings → Sharing outside of organization → enable
+"Allow users to publish files on the web." After saving, open the deployment dialog again
+— the "Anyone, even anonymous" option should now appear. If it still does not appear,
+allow 10–30 minutes for the setting to propagate before retrying.
+
+**To fix an existing deployment that used the wrong access level:** Deploy → Manage
+deployments → edit the deployment → change "Who has access" to "Anyone, even anonymous" →
+Save. Editing in-place keeps the same `/exec` URL; no `VITE_V2_SUBMISSION_ENDPOINT` update
+is needed. Verify with:
+```
+curl -L "https://script.google.com/macros/s/<deployment-id>/exec"
+```
+The response should be the `doGet` health check directly — no redirect to accounts.google.com.
+
 ### What `clasp push` is allowed to send
 
 `clasp` runs from `scripts/gas-v2/`, against a gitignored `scripts/gas-v2/.clasp.json`
