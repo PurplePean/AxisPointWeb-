@@ -99,6 +99,24 @@ test('a busy slot returns unavailable and creates nothing', () => {
   assert.equal(calendar.created.length, 0);
 });
 
+test('a dry_run booking succeeds even though createEvent returns an empty eventId', () => {
+  // In dry_run mode the platform layer returns { ok: true, status: 'dry_run', eventId: '' }.
+  // The empty string is intentional (documented in staging-provisioning.md §7.2 — the hold
+  // cannot be cancelled by id, but the booking must still succeed so Phase 1 exercises the
+  // full post-createEvent path).
+  const dryRunCalendar = {
+    ...fakeCalendarService(),
+    createEvent: () => ({ ok: true, status: 'dry_run', eventId: '' }),
+  };
+  const deps = buildDeps({ calendar: dryRunCalendar });
+  const lead = seedLead(deps);
+  const result = book(deps, lead.leadId);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.status, 'confirmed');
+  assert.equal(deps.leads.findLeadById(lead.leadId).calendarStatus, 'booked');
+});
+
 test('nothing is queued that could confirm later without the calendar', () => {
   // The only queued item on the happy path is the confirmation EMAIL, and its handler
   // re-checks the stored calendar state before sending.
@@ -190,6 +208,22 @@ test('the same bookingRequestId replays the recorded outcome', () => {
   assert.equal(second.replay, true);
   assert.equal(second.status, 'confirmed');
   assert.equal(deps.calendar.created.length, 1, 'no second hold');
+});
+
+test('a replay of a failed booking carries a code in the wire response', () => {
+  // A failed booking sets activeBookingRequestId on the Lead. The same bookingRequestId
+  // on a retry replays the failure. The wire layer calls errorBody(booking.code), so the
+  // replay return must include a code — an absent code becomes undefined, which JSON drops,
+  // and the client receives an error object without a code field.
+  const deps = buildDeps({ calendar: fakeCalendarService({ createFails: true }) });
+  const lead = seedLead(deps);
+  book(deps, lead.leadId);
+
+  const replay = book(deps, lead.leadId);
+  assert.equal(replay.status, 'failed');
+  assert.equal(replay.replay, true);
+  assert.equal(typeof replay.code, 'string');
+  assert.ok(replay.code.length > 0, 'code must be non-empty on a failed replay');
 });
 
 test('a different booking while one is confirmed is refused', () => {
