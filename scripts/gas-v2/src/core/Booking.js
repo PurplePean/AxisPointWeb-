@@ -69,11 +69,15 @@ function executeBookingCommand(request, deps) {
   // Idempotent replay. A retried request with the same id is the SAME booking, so it
   // reports the outcome already recorded rather than creating a second calendar hold.
   if (lead.activeBookingRequestId === request.bookingRequestId) {
-    return {
-      ok: lead.calendarStatus === 'booked',
-      status: lead.calendarStatus === 'booked' ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.FAILED,
-      replay: true
-    };
+    if (lead.calendarStatus === 'booked') {
+      return { ok: true, status: BOOKING_STATUS.CONFIRMED, replay: true };
+    }
+    // Every failed or not_configured replay must carry a code so the wire response
+    // satisfies the contract (every error body has a non-empty string code field).
+    if (lead.calendarStatus === 'not_configured') {
+      return { ok: false, status: BOOKING_STATUS.NOT_CONFIGURED, code: 'CALENDAR_NOT_CONFIGURED', replay: true };
+    }
+    return { ok: false, status: BOOKING_STATUS.FAILED, code: 'CALENDAR_CREATE_FAILED', replay: true };
   }
 
   // One active booking at a time. A previously failed attempt does not lock the lead
@@ -119,7 +123,11 @@ function executeBookingCommand(request, deps) {
     attendeeName: lead.fullName
   });
 
-  if (!created || !created.ok || !created.eventId) {
+  // Allow dry_run: createEvent returns { ok: true, status: 'dry_run', eventId: '' }.
+  // The empty eventId is intentional (documented in staging-provisioning.md §7.2) — a
+  // dry-run booking cannot be cancelled by id, but the booking itself must succeed so
+  // Phase 1 exercises the full post-createEvent path (Lead fields, queued confirmation).
+  if (!created || !created.ok || (created.status !== 'dry_run' && !created.eventId)) {
     // The Lead is untouched apart from recording that the attempt failed. Nothing is
     // deleted and nothing is rolled back.
     deps.leads.updateLeadFields(lead.leadId, {
