@@ -391,13 +391,14 @@ Google:
 | Call | Dry-run return | Guard |
 |---|---|---|
 | `MailApp.sendEmail` | `{ok: true, status: 'dry_run'}` | `src/platform/GoogleServices.js:87-89` |
-| `createEvent` | `{ok: true, status: 'dry_run', eventId: ''}` | `src/platform/GoogleServices.js:142-143` |
+| `createEvent` | `{ok: true, status: 'dry_run', eventId: 'dry_run_evt'}` | `src/platform/GoogleServices.js:142-143` |
 | `deleteEvent` | `{ok: true, status: 'dry_run'}` | `src/platform/GoogleServices.js:166` |
 
 Records are still written and the queue still runs, so Phase 1 exercises the real logic.
-Nothing leaves the project and no calendar event is created. Note that `createEvent`
-returns an **empty** `eventId` in dry run, so a dry-run booking cannot be cancelled by id —
-that is expected, not a defect to chase.
+Nothing leaves the project and no calendar event is created. `createEvent` returns the
+clearly-fake placeholder id `dry_run_evt` rather than a real calendar id; a dry-run
+booking cannot be cancelled by id, but the booking command still reaches `confirmed` status
+and queues the confirmation email work item.
 
 ### 7.3 Calendar — a dedicated staging calendar, never a personal one
 

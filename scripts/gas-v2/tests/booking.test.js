@@ -99,14 +99,17 @@ test('a busy slot returns unavailable and creates nothing', () => {
   assert.equal(calendar.created.length, 0);
 });
 
-test('a dry_run booking succeeds even though createEvent returns an empty eventId', () => {
-  // In dry_run mode the platform layer returns { ok: true, status: 'dry_run', eventId: '' }.
-  // The empty string is intentional (documented in staging-provisioning.md §7.2 — the hold
-  // cannot be cancelled by id, but the booking must still succeed so Phase 1 exercises the
-  // full post-createEvent path).
+test('a dry_run booking (placeholder eventId) correctly reaches confirmed status and queues the email', () => {
+  // In dry_run mode GoogleServices.createEvent returns { ok: true, status: 'dry_run', eventId: 'dry_run_evt' }.
+  // 'dry_run_evt' is a clearly-fake non-empty placeholder so the success check (!created.eventId)
+  // passes without any special-casing in Booking.js. The Lead must reach calendarStatus: 'booked'
+  // and the confirmation email work item must be queued.
   const dryRunCalendar = {
     ...fakeCalendarService(),
-    createEvent: () => ({ ok: true, status: 'dry_run', eventId: '' }),
+    createEvent(spec) {
+      this.created.push({ ...spec });
+      return { ok: true, status: 'dry_run', eventId: 'dry_run_evt' };
+    },
   };
   const deps = buildDeps({ calendar: dryRunCalendar });
   const lead = seedLead(deps);
@@ -114,7 +117,11 @@ test('a dry_run booking succeeds even though createEvent returns an empty eventI
 
   assert.equal(result.ok, true);
   assert.equal(result.status, 'confirmed');
-  assert.equal(deps.leads.findLeadById(lead.leadId).calendarStatus, 'booked');
+  assert.equal(result.eventId, 'dry_run_evt');
+  const stored = deps.leads.findLeadById(lead.leadId);
+  assert.equal(stored.calendarStatus, 'booked');
+  assert.equal(stored.calendarEventId, 'dry_run_evt');
+  assert.equal(deps.work.items.filter((i) => i.kind === 'send_booking_confirmation').length, 1);
 });
 
 test('nothing is queued that could confirm later without the calendar', () => {

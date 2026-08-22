@@ -123,11 +123,7 @@ function executeBookingCommand(request, deps) {
     attendeeName: lead.fullName
   });
 
-  // Allow dry_run: createEvent returns { ok: true, status: 'dry_run', eventId: '' }.
-  // The empty eventId is intentional (documented in staging-provisioning.md §7.2) — a
-  // dry-run booking cannot be cancelled by id, but the booking itself must succeed so
-  // Phase 1 exercises the full post-createEvent path (Lead fields, queued confirmation).
-  if (!created || !created.ok || (created.status !== 'dry_run' && !created.eventId)) {
+  if (!created || !created.ok || !created.eventId) {
     // The Lead is untouched apart from recording that the attempt failed. Nothing is
     // deleted and nothing is rolled back.
     deps.leads.updateLeadFields(lead.leadId, {

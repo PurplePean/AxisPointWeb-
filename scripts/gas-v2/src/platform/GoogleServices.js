@@ -156,7 +156,7 @@ function makeCalendarService(config) {
         return { ok: false, permanent: true, reason: 'calendar_not_configured' };
       }
       if (config.runMode !== RUN_MODE_LIVE) {
-        return { ok: true, status: 'dry_run', eventId: '' };
+        return { ok: true, status: 'dry_run', eventId: 'dry_run_evt' };
       }
       try {
         var cal = CalendarApp.getCalendarById(config.calendarId);
