@@ -444,9 +444,9 @@ Reply-To is `info@axispoint.llc` on every outbound message (`AXP_REPLY_TO`, §3)
 
 ### Phase 1: `dry_run`, no external effect
 
-**Phase 1 run: 2026-08-21.** Cases 1-7 PASS. Cases 8 and 9 FAIL (two bugs found and fixed in PR #104 — requires `clasp push` + `clasp deploy -i` before re-verification).
+**Phase 1 run: 2026-08-21.** Cases 1-7 PASS. Cases 8 and 9 initially FAIL — two bugs found and fixed in PR #104 and PR #106. Cases 8 and 9 re-verified PASS on 2026-08-23 (post-PR #106 deploy, behavioural confirmation via live endpoint).
 
-| # | Case | Asserts | Result (2026-08-21) |
+| # | Case | Asserts | Result |
 |---|---|---|---|
 | 1 | `doGet` health check | capabilities and blockers | **PASS** — all 6 capabilities true, runMode: dry_run, 2 expected warnings |
 | 2 | Management Proposal | Lead, SLA, `bookingEligible: true` | **PASS** — leadId returned, slaDueAt 5 PM CDT next business day, bookingEligible: true |
@@ -455,49 +455,55 @@ Reply-To is `info@axispoint.llc` on every outbound message (`AXP_REPLY_TO`, §3)
 | 5 | QR Contact Exchange | Contact and **no** Lead | **PASS** — contactId returned, leadId: null, bookingEligible: false, slaDueAt: null |
 | 6 | Replay a used `submissionId` | replay, no second record | **PASS** — same leadId, replay: true |
 | 7 | Same id, changed data | `SUBMISSION_ID_CONFLICT` | **PASS** — ok: false, SUBMISSION_ID_CONFLICT, no new record |
-| 8 | Booking | Lead calendar fields, queued confirmation | **FAIL** — CALENDAR_CREATE_FAILED in dry_run (bug: `!created.eventId` is true for empty string). Fixed in PR #104. Re-run after clasp push + deploy. |
-| 9 | Booking retry, same id | replay, no second hold | **FAIL** — error body missing `code` field on failed-booking replay (bug: replay return had no `code`, Entry.js serialised undefined to absent key). Fixed in PR #104. Re-run after clasp push + deploy. |
+| 8 | Booking | Lead calendar fields, queued confirmation | **PASS** — bookingStatus: confirmed, calendarEventId: dry_run_evt (initial run: CALENDAR_CREATE_FAILED; fixed PR #104 + #106; re-verified 2026-08-23) |
+| 9 | Booking retry, same id | replay, no second hold | **PASS** — same bookingRequestId returns bookingStatus: confirmed, replay: true (initial run: missing `code` field on failed-booking replay; fixed PR #104; re-verified 2026-08-23) |
 
-**Wire notes from the run** (test harness observations, not documentation — delete after Cases 8-9 pass):
+**Wire notes (confirmed, permanent):**
 
-- `attribution.sourceDetail` is validated as a required non-empty string. Website submissions must send the page pathname (e.g. `/en/contact`), not an empty string. The frontend already does this via `window.location.pathname`. No backend change needed; this is correct behaviour that the test harness initially got wrong.
-- `property.scale` must be a string, not a number. The frontend sends it as a string. No backend change needed.
+- `attribution.sourceDetail` is validated as a required non-empty string. Website submissions must send the page pathname (e.g. `/en/contact`), not an empty string. The frontend already does this via `window.location.pathname`.
+- `property.scale` must be a string, not a number. The frontend sends it as a string.
 - SLA computed correctly: submissions at 04:00 UTC Thursday (23:00 CDT Wednesday/Thursday) resolve to 5:00 PM CDT next business day as expected.
 
 ### Phase 2: `live`, one narrow window, separately authorized
 
-| # | Case | Real effect |
+**Phase 2 run: 2026-08-23. Two cases run; both PASS. Verified directly by owner.**
+
+The original Phase 2 matrix listed four cases (10–13). This run covered the two that prove
+the live path works end-to-end — email delivery and calendar creation — which is the scope
+the owner authorised. Cases 11 (QR digest) and 13 (slot-taken refusal) were not run; they
+are not pre-production blockers and can be verified separately if needed.
+
+| # | Case | Real effect | Result (2026-08-23) |
+|---|---|---|---|
+| 10 | `service_inquiry` to `Zach@axispoint.llc` | acknowledgement + partner notification | **PASS** — acknowledgement and partner notification both arrived at `Zach@axispoint.llc`; confirmed by owner directly |
+| 11 | QR exchange to Ethaniel's address | acknowledgement; digest next morning | not run this pass |
+| 12 | `booking_request` — 30-min slot on `AxisPoint Booking STAGING` | real calendar event + confirmation email | **PASS** — event created on `AxisPoint Booking STAGING` for 2026-08-26 10:00–10:30 AM CDT; confirmation email arrived; Sheet shows `calendarStatus: booked`; all confirmed by owner directly |
+| 13 | Slot-taken refusal | `SLOT_UNAVAILABLE` with neutral copy | not run this pass |
+
+**Submission IDs used (Phase 2 live window):**
+
+| Submission | submissionId | leadId |
 |---|---|---|
-| 10 | Inquiry to Zach's address | one acknowledgement, one partner notification |
-| 11 | QR exchange to Ethaniel's address | one acknowledgement; digest next morning, **in the shared section** |
-| 12 | Booking | one real event on the staging calendar |
-| 13 | Slot-taken refusal | see below |
+| Case 10 inquiry | `f0e1d2c3-b4a5-4697-8f8e-d9c0b1a2f3e4` | `32a5cc8b-0d83-4835-ae9d-0e80ec259668` |
+| Case 12 booking | bookingRequestId `a9b8c7d6-e5f4-4321-9abc-1234567890ab` | same lead |
 
-**Case 11 lands in the digest's shared section, not in a partner's own group.** Since the
-2026-08-17 single-page collapse the QR card sends the firm slug for every exchange, so the
-Contact resolves to `acquisitionSource: 'firm'` and both partners receive it identically. A
-verifier expecting to see it under "Gathered through Ethaniel Vu" would read correct behaviour
-as a bug. See [`design-sources.md`](design-sources.md) for why per-partner attribution was
-given up.
+**Deployed version at time of Phase 2 run:** version @2 (post-PR #106, `clasp deploy -i` run 2026-08-23). Verified behaviourally before flipping to `live`: a dry_run booking returned `bookingStatus: confirmed` (not `CALENDAR_CREATE_FAILED`), confirming the PR #106 fix was deployed.
 
-**Case 13 requires a deliberately seeded event.** The backend returns `SLOT_UNAVAILABLE`
-only when `listBusy` reports the slot occupied, so the refusal cannot be produced by the
-form alone. Before the case: create a **manually seeded blocking event** on the staging
-calendar covering the exact slot to be requested. Then submit a booking for that slot and
-confirm the neutral copy, "That time is no longer available. Please choose another.",
-appears with no retry offered. **Delete the seeded event as part of cleanup**; it is a
-fixture, not a booking, and leaving it behind would silently block that slot in every later
-test.
+**Post-run state (confirmed 2026-08-23):**
+- `AXP_RUN_MODE` reverted to `dry_run` immediately after both cases completed; confirmed via `verifyProperties()` in the editor and via health-check endpoint (`runMode: "dry_run"`).
+- `tmp_phase2_admin.js` removed from the live Apps Script project via two-pass clasp push; confirmed via `clasp pull` (33 files, no stray files).
+- Phase 2 calendar event on `AxisPoint Booking STAGING` remains (test artefact — delete manually as part of data cleanup before the next test pass).
 
-### Cleanup
+**Note on Case 11 vs. the original plan.** The original plan said Case 11 would use a QR submission to Ethaniel's address. Since 2026-08-17 the QR card sends the firm slug for every exchange, so any QR submission resolves to `acquisitionSource: 'firm'` and lands in the digest's shared section (not under "Gathered through Ethaniel Vu"). This is correct behaviour, not a bug.
 
-1. Delete every Phase-2 calendar event, **including the seeded blocking event**.
-2. Clear data rows in all six tabs, keeping row 1.
-3. Set `AXP_RUN_MODE` back to `dry_run`.
-4. Confirm no `Work` rows remain pending.
+### Cleanup (after Phase 2)
 
-Email already sent cannot be recalled, which is why Phase 2 is small, partner-only, and
-separately authorized.
+1. Delete the Phase-2 calendar event from `AxisPoint Booking STAGING` (2026-08-26 10:00–10:30 AM).
+2. Clear data rows in all six tabs, keeping row 1, before the next full test pass.
+3. `AXP_RUN_MODE` is already `dry_run` — confirmed above.
+4. Confirm no `Work` rows remain pending before clearing the Work tab.
+
+Email already sent cannot be recalled. The acknowledgement and notification emails from Case 10 and the confirmation email from Case 12 are permanent artefacts of this run.
 
 ---
 
