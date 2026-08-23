@@ -385,24 +385,35 @@ test('scopes for APIs the code does not call are absent', () => {
   );
 });
 
-test('no advanced service is enabled, because none is used', () => {
+test('the Advanced Calendar service is enabled and its symbol is used', () => {
   /*
-   * The manifest enabled the advanced Calendar service (`Calendar` v3) while the code
-   * used only `CalendarApp`. An enabled advanced service is a real cost even when unused:
-   * it must be turned on in the Cloud project, it widens the consent screen, and it
-   * invites future code to depend on it without anyone deciding to.
+   * Calendar.Events.insert (the Advanced Calendar API v3) is required to request a
+   * Google Meet link via conferenceData.createRequest. The service is enabled here and
+   * used in GoogleServices.js; the old test asserted the opposite, when the manifest
+   * had enabled it while the code still used only CalendarApp. That inverse is now wrong.
+   *
+   * The rule that remains: an advanced service must be enabled if its symbol appears,
+   * and its symbol must appear if it is enabled. Both directions are checked.
    */
   const manifest = JSON.parse(readRoot('appsscript.json'));
   const advanced = (manifest.dependencies || {}).enabledAdvancedServices || [];
-  assert.deepEqual(advanced, [], `no advanced service should be enabled, found: ${JSON.stringify(advanced)}`);
-
-  // `Calendar.` is the advanced-service symbol; `CalendarApp` is the built-in service.
   const allSource = SOURCES.map(readSrc).join('\n');
+
+  // The Advanced Calendar service must be in the manifest.
+  const calService = advanced.find((s) => s.serviceId === 'calendar');
+  assert.ok(calService, 'the Advanced Calendar service (calendar v3) must be enabled in appsscript.json');
+  assert.equal(calService.userSymbol, 'Calendar', 'userSymbol must be "Calendar"');
+  assert.equal(calService.version, 'v3', 'version must be "v3"');
+
+  // The symbol must also appear in source — enabled-but-unused is its own failure.
   assert.equal(
     /\bCalendar\s*\.\s*[A-Z]/.test(allSource),
-    false,
-    'the advanced Calendar service symbol is used but no advanced service is enabled',
+    true,
+    'the Advanced Calendar service is enabled but its symbol is not used in any source file',
   );
+
+  // No other advanced service is enabled; widening it further is a deliberate decision.
+  assert.equal(advanced.length, 1, `only the Calendar advanced service should be enabled, found: ${JSON.stringify(advanced)}`);
 });
 
 /* ── V1 is untouched ──────────────────────────────────────────────────────── */

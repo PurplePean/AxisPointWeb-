@@ -105,14 +105,20 @@ function makeMailService(config) {
         return { ok: true, status: 'dry_run' };
       }
       try {
-        MailApp.sendEmail({
+        var opts = {
           to: message.to,
           replyTo: message.replyTo || undefined,
           name: message.fromName || undefined,
           subject: message.subject,
           htmlBody: message.htmlBody,
           body: message.textBody || ''
-        });
+        };
+        if (message.icsContent && message.icsFilename) {
+          opts.attachments = [
+            Utilities.newBlob(message.icsContent, 'text/calendar; method=PUBLISH', message.icsFilename)
+          ];
+        }
+        MailApp.sendEmail(opts);
         return { ok: true, status: 'sent' };
       } catch (e) {
         var name = e && e.name ? String(e.name) : 'Error';
@@ -156,20 +162,41 @@ function makeCalendarService(config) {
         return { ok: false, permanent: true, reason: 'calendar_not_configured' };
       }
       if (config.runMode !== RUN_MODE_LIVE) {
-        return { ok: true, status: 'dry_run', eventId: 'dry_run_evt' };
+        return { ok: true, status: 'dry_run', eventId: 'dry_run_evt', meetLink: null };
       }
       try {
-        var cal = CalendarApp.getCalendarById(config.calendarId);
-        if (!cal) return { ok: false, permanent: true, reason: 'calendar_not_found' };
-
-        var title = spec.mode === 'video_meeting' ? 'AxisPoint video meeting' : 'AxisPoint call';
-        var event = cal.createEvent(
-          title + ' with ' + (spec.attendeeName || 'inquiry'),
-          new Date(spec.startIso),
-          new Date(spec.endIso),
-          { description: 'leadId: ' + spec.leadId }
-        );
-        return { ok: true, eventId: event.getId() };
+        var isVideo = spec.mode === 'video_meeting';
+        var title = isVideo ? 'AxisPoint video meeting' : 'AxisPoint call';
+        var resource = {
+          summary: title + ' with ' + (spec.attendeeName || 'inquiry'),
+          description: 'leadId: ' + spec.leadId,
+          start: { dateTime: spec.startIso },
+          end: { dateTime: spec.endIso }
+        };
+        if (isVideo) {
+          resource.conferenceData = {
+            createRequest: { requestId: spec.leadId + '-meet' }
+          };
+        }
+        // No attendees, no sendUpdates: this event exists solely to block the slot and
+        // obtain a Meet link. Adding attendees would trigger Google's own invite email,
+        // which runs alongside AxisPoint's and creates a duplicate confirmation.
+        var event = Calendar.Events.insert(resource, config.calendarId, {
+          conferenceDataVersion: 1,
+          sendUpdates: 'none'
+        });
+        var meetLink = null;
+        if (isVideo && event.conferenceData) {
+          var entries = event.conferenceData.entryPoints || [];
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].entryPointType === 'video') {
+              meetLink = entries[i].uri || null;
+              break;
+            }
+          }
+          if (!meetLink) meetLink = event.hangoutLink || null;
+        }
+        return { ok: true, eventId: event.id, meetLink: meetLink };
       } catch (e) {
         return { ok: false, reason: 'calendar_error:' + safeErrorCode(e) };
       }

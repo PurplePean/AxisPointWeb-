@@ -329,3 +329,52 @@ test('the confirmation template refuses to render an unconfirmed booking', () =>
   assert.equal(rendered.ok, false);
   assert.equal(rendered.reason, 'booking_not_confirmed');
 });
+
+/* ── Meet link and ICS threading ──────────────────────────────────────────── */
+
+test('a video_meeting booking threads the meet link into the work item payload', () => {
+  const deps = buildDeps();
+  const lead = seedLead(deps);
+  book(deps, lead.leadId, { mode: 'video_meeting' });
+
+  const item = deps.work.items.find((i) => i.kind === 'send_booking_confirmation');
+  assert.equal(item.payload.meetLink, 'https://meet.google.com/fake-abc-def');
+});
+
+test('a phone_call booking carries null meetLink in the work item payload', () => {
+  const deps = buildDeps();
+  const lead = seedLead(deps);
+  book(deps, lead.leadId, { mode: 'phone_call' });
+
+  const item = deps.work.items.find((i) => i.kind === 'send_booking_confirmation');
+  assert.equal(item.payload.meetLink, null);
+});
+
+test('the confirmation email handler passes icsContent and icsFilename to mail.send', () => {
+  // Full path: calendar confirms → email work item queued → worker runs → mail.send called with ICS.
+  // The worker also processes the acknowledgement and partner notification queued by processSubmission,
+  // so deps.mail.sent may contain more than one message; find the one carrying an ICS attachment.
+  const deps = buildDeps();
+  const lead = seedLead(deps);
+  book(deps, lead.leadId);
+
+  ctx.runWorkerCycle(deps, ctx.defaultWorkHandlers());
+
+  const confirmation = deps.mail.sent.find((m) => m.icsContent);
+  assert.ok(confirmation, 'a mail.send call carrying icsContent must exist after the worker cycle');
+  assert.ok(confirmation.icsFilename, 'icsFilename must accompany icsContent');
+});
+
+test('the calendar event spec from Booking.js never includes attendees or sendUpdates', () => {
+  // These fields, if present, would reach the Calendar API and trigger Google's native
+  // invite email — a duplicate alongside AxisPoint's. The spec Booking.js passes contains
+  // attendeeName and attendeeEmail for the event title only; they must not become API attendees.
+  const deps = buildDeps();
+  const lead = seedLead(deps);
+  book(deps, lead.leadId, { mode: 'video_meeting' });
+
+  assert.equal(deps.calendar.created.length, 1);
+  const spec = deps.calendar.created[0];
+  assert.equal(spec.attendees, undefined, 'attendees must never appear in the calendar spec');
+  assert.equal(spec.sendUpdates, undefined, 'sendUpdates must never appear in the calendar spec');
+});

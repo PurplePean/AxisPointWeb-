@@ -187,7 +187,7 @@ test('the booking confirmation handler passes the resolved locale', () => {
   const deps = depsWith(templates, ['en'], { lead: leadRecord('ur') });
 
   const item = {
-    leadId: 'l-1',
+    subjectId: 'l-1',
     payload: {
       bookingRequestId: 'b-1',
       slotStart: '2026-08-12T10:30:00-05:00',
@@ -210,7 +210,7 @@ test('a launch-ready preference reaches the booking renderer unchanged', () => {
   const deps = depsWith(templates, ['en', 'ur'], { lead: leadRecord('ur') });
 
   ctx.handleSendBookingConfirmation({
-    leadId: 'l-1',
+    subjectId: 'l-1',
     payload: {
       bookingRequestId: 'b-1',
       slotStart: '2026-08-12T10:30:00-05:00',
