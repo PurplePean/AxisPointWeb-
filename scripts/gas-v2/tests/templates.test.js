@@ -281,6 +281,8 @@ test('the website acknowledgement repeats the property back', () => {
   assert.match(out.htmlBody, /Dallas, TX/);
   assert.match(out.htmlBody, /Multifamily/);
   assert.match(out.htmlBody, /Within 30 days/);
+  assert.match(out.htmlBody, /Ownership group/);
+  assert.match(out.htmlBody, /Whitfield Holdings/);
 });
 
 test('missing optional property values disappear rather than reading empty', () => {
@@ -293,6 +295,16 @@ test('missing optional property values disappear rather than reading empty', () 
   assert.equal(/Units or square footage/.test(out.htmlBody), false);
 });
 
+test('ownership group row is omitted entirely when the visitor left it blank', () => {
+  const lead = storedLead(fx.managementProposal({
+    payload: { contact: { organization: '' } },
+  }));
+  const out = ctx.renderWebsiteAcknowledgement(lead, renderConfig());
+
+  assert.equal(/Ownership group/.test(out.htmlBody), false, 'empty string org must produce no row, not an empty row');
+  assert.equal(/Ownership group/.test(out.textBody), false);
+});
+
 test('an investor services acknowledgement carries investor framing, not property management', () => {
   const lead = storedLead(fx.investorServices());
   const out = ctx.renderWebsiteAcknowledgement(lead, renderConfig());
@@ -302,6 +314,8 @@ test('an investor services acknowledgement carries investor framing, not propert
   assert.equal(/property management/i.test(out.htmlBody), false, 'investor ack HTML must not say "property management"');
   assert.match(out.htmlBody, /Investor Services/);
   assert.match(out.htmlBody, /investor services/i);
+  assert.match(out.htmlBody, /Ownership group/);
+  assert.match(out.htmlBody, /Alvarez Capital/);
 });
 
 test('a general inquiry acknowledgement carries no property management framing', () => {
@@ -312,6 +326,7 @@ test('a general inquiry acknowledgement carries no property management framing',
   // Check HTML only: textBody always contains FIRM_FOCUS ('Property Management, Houston, Texas').
   assert.equal(/property management/i.test(out.htmlBody), false, 'general inquiry ack HTML must not say "property management"');
   assert.match(out.htmlBody, /General Inquiry/);
+  assert.equal(/Ownership group/.test(out.htmlBody), false, 'general inquiry with no org must not show ownership group row');
 });
 
 test('no template prints a raw wire token', () => {
