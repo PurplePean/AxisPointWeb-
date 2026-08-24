@@ -550,17 +550,17 @@ STAGING` (2026-08-28 10:00–10:30 AM CDT). Owner-verified via screenshot.
 
 ### Cleanup (after Phase 2 and live @5 verification)
 
-Three test calendar events exist on `AxisPoint Booking STAGING` and must be deleted manually:
+**Completed 2026-08-24. Owner-confirmed.**
 
-1. 2026-08-26 10:00–10:30 AM CDT — Phase 2 live booking (Case 12, 2026-08-23)
-2. 2026-08-27 10:00–10:30 AM CDT — `phone_call` live E2E at @5 (2026-08-24)
-3. 2026-08-28 10:00–10:30 AM CDT — `video_meeting` live E2E at @5 (2026-08-24)
+Three test calendar events were deleted from `AxisPoint Booking STAGING`:
 
-After deleting those:
+1. 2026-08-26 10:00–10:30 AM CDT — Phase 2 live booking (Case 12, 2026-08-23) ✓
+2. 2026-08-27 10:00–10:30 AM CDT — `phone_call` live E2E at @5 (2026-08-24) ✓
+3. 2026-08-28 10:00–10:30 AM CDT — `video_meeting` live E2E at @5 (2026-08-24) ✓
 
-4. Clear data rows in all six tabs, keeping row 1, before the next full test pass.
-5. `AXP_RUN_MODE` is already `dry_run` — confirmed above.
-6. Confirm no `Work` rows remain pending before clearing the Work tab.
+Data rows in all six Sheet tabs cleared (row 1 headers kept). ✓  
+`AXP_RUN_MODE` is `dry_run` — confirmed. ✓  
+No `Work` rows remain pending. ✓
 
 Email already sent cannot be recalled. The acknowledgement and notification emails from Case 10,
 the confirmation email from Case 12, and the two confirmation emails from the live @5 runs are
