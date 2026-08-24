@@ -21,13 +21,15 @@ requires, [`backend-v2-contract.md`](backend-v2-contract.md) for the wire contra
 
 **Nothing in this repository is deployed anywhere, and nothing a visitor sees comes from it.**
 The public site at `axispoint.llc` is a separate, older, hand-uploaded build that was not
-produced from this git history. The V2 Apps Script backend is written, tested, and merged through PR #108 (2026-08-24). The
+produced from this git history. The V2 Apps Script backend is written, tested, and merged through PR #110 (2026-08-24). The
 Apps Script project (`AxisPoint V2 STAGING`), spreadsheet, and staging calendar exist. The
-web-app deployment exists and is at version @4 (deployed 2026-08-24 after PR #108 merge). Of
+web-app deployment exists and is at version @5 (deployed 2026-08-24 after PR #110 merge). Of
 eleven planned Script Properties, one is set (`AXP_CALENDAR_ID`); the remaining ten are not
-yet set. Triggers have not been created. `AXP_RUN_MODE` is `dry_run`; a post-merge dry-run
-booking test confirmed `bookingStatus: confirmed` at @4. Current backend status: `pushed to HEAD`,
-`deployed` (staging @4, `AXP_RUN_MODE: dry_run`). Both frontends
+yet set. Triggers have not been created. `AXP_RUN_MODE` is `dry_run`; post-merge dry-run
+bookings confirmed `bookingStatus: confirmed` at @5. Booking confirmations now include a
+Google Meet link (for `video_meeting` mode), an RFC 5545 .ics calendar attachment (both
+modes), and partner attendees on the calendar event with real Google Calendar invitations.
+Current backend status: `pushed to HEAD`, `deployed` (staging @5, `AXP_RUN_MODE: dry_run`). Both frontends
 build clean and are wired to the V2 contract through `packages/submission-client`, but they
 have never successfully deployed through GitHub Actions, because the FTP secrets the two
 deploy workflows need are not configured. CI is green on every commit: `ci.yml` (type-check,
@@ -52,9 +54,11 @@ deploys anything. See [`deployment.md`](deployment.md).
   email template as a pure function under `src/emails/`. Storage is the six-tab model
   (`Submissions`, `Deliveries`, `Leads`, `Contacts`, `Log`, `Work`). Twenty-two test files
   run under `pnpm test:gas-v2` (520 tests). PR #108 (merged 2026-08-24) adds a Google Meet
-  link to `video_meeting` confirmations and a RFC 5545 .ics attachment to both booking modes;
-  it also fixes a pre-existing `item.leadId` vs `item.subjectId` bug that caused every
-  confirmation send to return `lead_not_found`.
+  link to `video_meeting` confirmations and a RFC 5545 .ics attachment to both booking modes,
+  and fixes a pre-existing `item.leadId` vs `item.subjectId` bug that caused every
+  confirmation send to return `lead_not_found`. PR #110 (merged 2026-08-24) adds both partners
+  as attendees on every booking calendar event with `sendUpdates: "all"` so they receive real
+  Google Calendar invitations.
 
 **V1 is fully retired.** It was deleted on 2026-08-15; nothing in `main` is V1, and the only
 V1 artefacts are the archived documents under `docs/archive/`. The external V1 Apps Script

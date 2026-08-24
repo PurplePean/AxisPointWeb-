@@ -528,14 +528,43 @@ description "PR #110 merged -- partner attendees on booking events". Verificatio
 
 Current deployment: version @5, `AXP_RUN_MODE: dry_run`.
 
-### Cleanup (after Phase 2)
+### Live E2E verification at @5 (2026-08-24)
 
-1. Delete the Phase-2 calendar event from `AxisPoint Booking STAGING` (2026-08-26 10:00–10:30 AM).
-2. Clear data rows in all six tabs, keeping row 1, before the next full test pass.
-3. `AXP_RUN_MODE` is already `dry_run` — confirmed above.
-4. Confirm no `Work` rows remain pending before clearing the Work tab.
+`AXP_RUN_MODE` flipped to `live` for two cases against version @5; reverted to `dry_run`
+immediately after both completed. Both verified by owner via screenshot.
 
-Email already sent cannot be recalled. The acknowledgement and notification emails from Case 10 and the confirmation email from Case 12 are permanent artefacts of this run.
+| Case | submissionId | leadId | bookingRequestId | slotStart (UTC) |
+|---|---|---|---|---|
+| `phone_call` | `b366143a-8880-4eee-8625-bb1b8a5311b9` | `38cc610a-7ec8-4407-b379-b4bfc7dcdef2` | `0558ec3a-5c08-4f1d-bbe8-07d8e66df3d8` | `2026-08-27T15:00:00.000Z` |
+| `video_meeting` | `006dd8f0-47ef-4d13-8538-b6653186ea69` | `2daa4c23-…` (truncated; confirm full UUID from Sheet Leads tab) | `e84ee0cd-f0c5-4bc6-b933-e556f9e0b5cf` | `2026-08-28T15:00:00.000Z` |
+
+**`phone_call` result:** Confirmation email arrived with .ics attachment; real calendar event
+created on `AxisPoint Booking STAGING` (2026-08-27 10:00–10:30 AM CDT) with both partners
+(`Zach@axispoint.llc`, `Ethaniel@axispoint.llc`) as attendees; `sendUpdates: "all"` confirmed.
+Owner-verified via screenshot.
+
+**`video_meeting` result:** Confirmation email arrived with Google Meet link
+(`https://meet.google.com/caq-osot-yyj`) rendered in the "Join Google Meet" section and .ics
+attachment (495 bytes); Meet link also present in the calendar event on `AxisPoint Booking
+STAGING` (2026-08-28 10:00–10:30 AM CDT). Owner-verified via screenshot.
+
+### Cleanup (after Phase 2 and live @5 verification)
+
+Three test calendar events exist on `AxisPoint Booking STAGING` and must be deleted manually:
+
+1. 2026-08-26 10:00–10:30 AM CDT — Phase 2 live booking (Case 12, 2026-08-23)
+2. 2026-08-27 10:00–10:30 AM CDT — `phone_call` live E2E at @5 (2026-08-24)
+3. 2026-08-28 10:00–10:30 AM CDT — `video_meeting` live E2E at @5 (2026-08-24)
+
+After deleting those:
+
+4. Clear data rows in all six tabs, keeping row 1, before the next full test pass.
+5. `AXP_RUN_MODE` is already `dry_run` — confirmed above.
+6. Confirm no `Work` rows remain pending before clearing the Work tab.
+
+Email already sent cannot be recalled. The acknowledgement and notification emails from Case 10,
+the confirmation email from Case 12, and the two confirmation emails from the live @5 runs are
+permanent artefacts of these runs.
 
 ---
 
