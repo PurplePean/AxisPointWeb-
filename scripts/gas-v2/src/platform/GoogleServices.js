@@ -178,12 +178,16 @@ function makeCalendarService(config) {
             createRequest: { requestId: spec.leadId + '-meet' }
           };
         }
-        // No attendees, no sendUpdates: this event exists solely to block the slot and
-        // obtain a Meet link. Adding attendees would trigger Google's own invite email,
-        // which runs alongside AxisPoint's and creates a duplicate confirmation.
+        // Add partners as attendees so they receive a calendar invite when a booking is made.
+        // The visitor is deliberately excluded: they already receive AxisPoint's own confirmation
+        // email, and an attendee invite on top would produce a duplicate.
+        var partnerEmails = (config.partnerNotifyTo || []).filter(function (e) { return e; });
+        if (partnerEmails.length > 0) {
+          resource.attendees = partnerEmails.map(function (email) { return { email: email }; });
+        }
         var event = Calendar.Events.insert(resource, config.calendarId, {
           conferenceDataVersion: 1,
-          sendUpdates: 'none'
+          sendUpdates: 'all'
         });
         var meetLink = null;
         if (isVideo && event.conferenceData) {
