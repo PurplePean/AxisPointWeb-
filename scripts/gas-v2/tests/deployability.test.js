@@ -21,6 +21,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { execSync } = require('node:child_process');
 const { load, listSourceFiles, SRC_DIR } = require('./helpers/load.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -229,10 +230,29 @@ test('no source file contains a Google resource id or a script URL', () => {
   });
 });
 
-test('the project has no .clasp.json', () => {
-  // That file points at a real Apps Script project. Creating one is a deliberate
-  // operation, not a side effect of scaffolding.
-  assert.equal(fs.existsSync(path.join(ROOT, '.clasp.json')), false);
+test('.clasp.json is gitignored and never tracked', () => {
+  /*
+   * The problem is not filesystem presence — during active staging work the file
+   * legitimately exists on disk. The actual failure mode is accidental commitment:
+   * a committed .clasp.json would expose the Script ID in the public repository and
+   * lock every clasp operation to the staging project.
+   *
+   * Two conditions must hold:
+   *   1. The .gitignore pattern exists. Without it, `git add .` would silently track
+   *      the file the next time anyone stages a broad set of changes.
+   *   2. The file is not currently tracked. A tracked file is not subject to .gitignore,
+   *      so the pattern alone is not sufficient once the file has been added.
+   */
+  const repoRoot = execSync('git rev-parse --show-toplevel', { cwd: ROOT, encoding: 'utf8' }).trim();
+
+  const gitignore = fs.readFileSync(path.join(repoRoot, '.gitignore'), 'utf8');
+  assert.ok(
+    gitignore.includes('scripts/gas-v2/.clasp.json'),
+    'scripts/gas-v2/.clasp.json must be listed in the root .gitignore — without this, a broad git add would track it',
+  );
+
+  const tracked = execSync('git ls-files -- scripts/gas-v2/.clasp.json', { cwd: repoRoot, encoding: 'utf8' }).trim();
+  assert.equal(tracked, '', '.clasp.json must not be tracked by git (git ls-files returned a result)');
 });
 
 test('configuration is read by property name, with no defaults standing in', () => {
