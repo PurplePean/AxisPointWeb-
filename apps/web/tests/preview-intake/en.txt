@@ -620,7 +620,7 @@ Length
 30 minutes
 With
 AxisPoint Partners
-A calendar invitation goes to your email. Reply to it if you need to move the time.
+A confirmation email is on its way to your email, with a calendar file attached. Reply to it if you need to move the time.
 Development preview. The booking command ran against the simulator, so no calendar event was created and no invitation was sent.
 Back to AxisPoint
 

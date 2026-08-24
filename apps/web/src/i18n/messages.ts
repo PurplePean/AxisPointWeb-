@@ -956,7 +956,7 @@ export const EN: Messages = {
    * be a different meeting. */
   scheduledWhenValue: '{day}, {time} Central',
   scheduledInviteNote:
-    'A calendar invitation goes to {email}. Reply to it if you need to move the time.',
+    'A confirmation email is on its way to {email}, with a calendar file attached. Reply to it if you need to move the time.',
   scheduledDevNote:
     'Development preview. The booking command ran against the simulator, so no calendar event was created and no invitation was sent.',
 
