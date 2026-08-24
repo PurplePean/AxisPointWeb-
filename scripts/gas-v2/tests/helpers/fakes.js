@@ -304,7 +304,8 @@ function fakeCalendarService(options = {}) {
     createEvent(spec) {
       if (this.createFails) return { ok: false, reason: 'calendar_error:Test' };
       this.created.push({ ...spec });
-      return { ok: true, eventId: `evt-${this.created.length}` };
+      const meetLink = spec.mode === 'video_meeting' ? 'https://meet.google.com/fake-abc-def' : null;
+      return { ok: true, eventId: `evt-${this.created.length}`, meetLink };
     },
     deleteEvent(eventId) {
       this.deleted.push(eventId);
@@ -353,8 +354,15 @@ function fakeTemplates() {
       return { ok: true, subject: 'digest', htmlBody: '<p>digest</p>', textBody: 'digest' };
     },
     renderBookingConfirmation(lead, booking) {
-      this.bookings.push({ leadId: lead.leadId, status: booking.status });
-      return { ok: true, subject: 'booked', htmlBody: '<p>b</p>', textBody: 'b' };
+      this.bookings.push({ leadId: lead.leadId, status: booking.status, meetLink: booking.meetLink || null });
+      return {
+        ok: true,
+        subject: 'booked',
+        htmlBody: '<p>b</p>',
+        textBody: 'b',
+        icsContent: 'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n',
+        icsFilename: 'booking.ics',
+      };
     },
   };
 }

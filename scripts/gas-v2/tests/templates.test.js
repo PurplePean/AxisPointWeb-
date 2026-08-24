@@ -425,3 +425,105 @@ test('there is no external request of any kind beyond an optional configured log
 
   assert.equal(/https?:\/\//.test(out.htmlBody), false);
 });
+
+/* ── Booking confirmation template ────────────────────────────────────────── */
+
+const CONFIRMED_SLOT = '2026-08-04T15:00:00.000Z';
+const CONFIRMED_LEAD = { fullName: 'Dana Whitfield', email: 'dana@example.test', leadId: 'aabbccdd-0000-4000-8000-000000000001' };
+const FAKE_MEET = 'https://meet.google.com/abc-def-ghi';
+
+function confirmBooking(mode, meetLink) {
+  return ctx.renderBookingConfirmation(
+    CONFIRMED_LEAD,
+    { status: 'confirmed', slotStart: CONFIRMED_SLOT, durationMinutes: 30, mode, meetLink: meetLink || null },
+    renderConfig(),
+  );
+}
+
+test('the booking confirmation renders ok for a phone_call', () => {
+  const out = confirmBooking('phone_call', null);
+  assert.equal(out.ok, true);
+  assert.match(out.htmlBody, /You are on the calendar/);
+  assert.match(out.htmlBody, /Phone call/);
+});
+
+test('the booking confirmation renders ok for a video_meeting', () => {
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  assert.equal(out.ok, true);
+  assert.match(out.htmlBody, /You are on the calendar/);
+  assert.match(out.htmlBody, /Video meeting/);
+});
+
+test('a video_meeting confirmation shows the Meet link in the email body', () => {
+  // esc() encodes '/' as '&#47;' in HTML attributes and text nodes; slashes are safe in textBody.
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  assert.match(out.htmlBody, /Join Google Meet/);
+  assert.match(out.htmlBody, /meet\.google\.com/);
+  assert.match(out.textBody, /meet\.google\.com\/abc-def-ghi/);
+});
+
+test('a phone_call confirmation does not show a Meet link section', () => {
+  const out = confirmBooking('phone_call', null);
+  assert.equal(/Join Google Meet/.test(out.htmlBody), false);
+  assert.equal(/meet\.google\.com/.test(out.htmlBody), false);
+});
+
+test('every booking confirmation includes an icsContent string and filename', () => {
+  const phone = confirmBooking('phone_call', null);
+  const video = confirmBooking('video_meeting', FAKE_MEET);
+
+  assert.ok(typeof phone.icsContent === 'string' && phone.icsContent.length > 0, 'phone_call must have icsContent');
+  assert.equal(phone.icsFilename, 'booking.ics');
+  assert.ok(typeof video.icsContent === 'string' && video.icsContent.length > 0, 'video_meeting must have icsContent');
+  assert.equal(video.icsFilename, 'booking.ics');
+});
+
+test('the ICS content has all required RFC 5545 fields', () => {
+  const out = confirmBooking('phone_call', null);
+  const ics = out.icsContent;
+
+  assert.match(ics, /BEGIN:VCALENDAR/);
+  assert.match(ics, /VERSION:2\.0/);
+  assert.match(ics, /PRODID:/);
+  assert.match(ics, /CALSCALE:GREGORIAN/);
+  assert.match(ics, /METHOD:PUBLISH/);
+  assert.match(ics, /BEGIN:VEVENT/);
+  assert.match(ics, /UID:/);
+  assert.match(ics, /DTSTAMP:/);
+  assert.match(ics, /DTSTART:20260804T150000Z/);
+  assert.match(ics, /DTEND:20260804T153000Z/);
+  assert.match(ics, /SUMMARY:/);
+  assert.match(ics, /END:VEVENT/);
+  assert.match(ics, /END:VCALENDAR/);
+});
+
+test('the ICS uses CRLF line endings throughout', () => {
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  // Every line must end with CRLF, and there must be no bare LF.
+  const linesWithBareNewline = out.icsContent.split('\r\n').some((line) => line.includes('\n'));
+  assert.equal(linesWithBareNewline, false, 'ICS must use CRLF, not bare LF');
+});
+
+test('the ICS for a video_meeting embeds the Meet link in DESCRIPTION, LOCATION, and URL', () => {
+  // ICS property values are NOT HTML-escaped; they use icsEscapeValue which only escapes
+  // the RFC 5545 TEXT special chars (\ ; , and newlines). Slashes are literal.
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  assert.match(out.icsContent, /DESCRIPTION:.*meet\.google\.com/);
+  assert.match(out.icsContent, /LOCATION:https:\/\/meet\.google\.com/);
+  assert.match(out.icsContent, /URL:https:\/\/meet\.google\.com/);
+});
+
+test('the ICS for a phone_call contains no Meet URL', () => {
+  const out = confirmBooking('phone_call', null);
+  assert.equal(/meet\.google\.com/.test(out.icsContent), false);
+});
+
+test('the ICS UID includes the lead id', () => {
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  assert.match(out.icsContent, /UID:aabbccdd/);
+});
+
+test('the booking confirmation contains no em dash', () => {
+  const out = confirmBooking('video_meeting', FAKE_MEET);
+  assert.equal((out.htmlBody + out.textBody).indexOf('—'), -1, 'an em dash reached the booking confirmation');
+});

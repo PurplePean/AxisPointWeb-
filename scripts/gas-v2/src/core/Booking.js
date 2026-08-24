@@ -151,7 +151,8 @@ function executeBookingCommand(request, deps) {
     bookingRequestId: request.bookingRequestId,
     slotStart: request.slotStart,
     durationMinutes: request.durationMinutes,
-    mode: request.mode
+    mode: request.mode,
+    meetLink: created.meetLink || null
   }, {
     workId: deps.ids.newId(),
     now: now,
@@ -215,7 +216,7 @@ function isWithinBusinessHours(start, durationMinutes, offsetResolver) {
  * confirmation for a meeting that no longer exists.
  */
 function handleSendBookingConfirmation(item, deps) {
-  var lead = deps.leads.findLeadById(item.leadId);
+  var lead = deps.leads.findLeadById(item.subjectId);
   if (!lead) return { ok: false, permanent: true, reason: 'lead_not_found' };
 
   if (lead.calendarStatus !== 'booked' ||
@@ -237,7 +238,8 @@ function handleSendBookingConfirmation(item, deps) {
     status: 'confirmed',
     slotStart: item.payload.slotStart,
     durationMinutes: item.payload.durationMinutes,
-    mode: item.payload.mode
+    mode: item.payload.mode,
+    meetLink: item.payload.meetLink || null
   }, withOffsetResolver(deps.config, deps.offsetResolver), outbound.locale);
 
   if (!rendered || !rendered.ok) {
@@ -254,7 +256,9 @@ function handleSendBookingConfirmation(item, deps) {
     fromName: deps.config.fromName,
     subject: rendered.subject,
     htmlBody: rendered.htmlBody,
-    textBody: rendered.textBody
+    textBody: rendered.textBody,
+    icsContent: rendered.icsContent || null,
+    icsFilename: rendered.icsFilename || null
   });
 
   if (!sent || !sent.ok) return { ok: false, reason: (sent && sent.reason) || 'mail_send_failed' };
