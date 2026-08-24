@@ -89,7 +89,8 @@ throws for every request if the order is not what the author assumed. Cross-file
 values are read inside function bodies. A test loads `src` in reverse order to prove it.
 
 **Google services live behind ports.** `platform/GoogleServices.js` is the only file that names
-`SpreadsheetApp`, `MailApp`, `CalendarApp`, `LockService`, or `PropertiesService`
+`SpreadsheetApp`, `MailApp`, `CalendarApp`, `Calendar` (the Advanced Calendar API, used for
+`Calendar.Events.insert` with `conferenceDataVersion`), `LockService`, or `PropertiesService`
 (`entrypoints/Entry.js` additionally uses `ContentService` to shape its response). Everything else
 is plain JavaScript, which is why the suite runs the real decision code under Node
 rather than a parallel reimplementation of it.
