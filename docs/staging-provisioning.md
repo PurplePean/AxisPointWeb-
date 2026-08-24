@@ -506,7 +506,27 @@ immediately after merge, creating version @4 with description "PR #108 merged --
 - **Health check (GET):** `{"ok":true,"runMode":"dry_run","capabilities":{"intake":true,"acknowledge":true,"qrAcknowledge":true,"notify":true,"digest":true,"booking":true},"promisesKeepable":true,"blockers":[],"warnings":[logo_absent, firm_phone_absent]}` — identical to Phase 1 baseline.
 - **Dry-run booking (POST):** `submissionId a1b2c3d4-e5f6-4789-8abc-def012345678` (management_proposal inquiry, replay) → `leadId b0fbeca5-4e3e-4307-bae3-1545a0085f74`; then `bookingRequestId c1d2e3f4-a5b6-4789-8abc-0123456789ab`, `slotStart 2026-08-25T15:00:00Z`, `mode: phone_call` → `{"ok":true,"bookingStatus":"confirmed","replay":false}`.
 
-Current deployment: version @4, `AXP_RUN_MODE: dry_run`.
+### Post-PR #110 deployment (2026-08-24)
+
+PR #110 (partner attendees on booking events) merged to `main` 2026-08-24. `clasp push` from
+the feature worktree updated HEAD to 33 files. `clasp deploy -i` created version @5 with
+description "PR #110 merged -- partner attendees on booking events". Verifications against @5:
+
+- **Health check (GET):** `{"ok":true,"runMode":"dry_run","capabilities":{all true},"promisesKeepable":true,"blockers":[],"warnings":[logo_absent,firm_phone_absent]}` — identical baseline.
+- **Dry-run booking (POST):** `submissionId f7a8b9c0-d1e2-4345-af56-789012345678` (fresh management_proposal) → `leadId 546d0360-7d08-4fa6-888e-0bd90573930b`, `bookingEligible: true`; then `bookingRequestId a1b2c3d4-e5f6-4789-8abc-098765432110`, `slotStart 2026-08-25T16:00:00Z`, `mode: phone_call` → `{"ok":true,"bookingStatus":"confirmed","replay":false}`.
+- **Calendar.Events.insert capture (Node, real source, staging config):** `createEvent` in live mode sends to the Calendar API (captured by loading the real GAS source under Node with the staging `partnerNotifyTo` values):
+  ```json
+  {
+    "resource": {
+      "summary": "AxisPoint call with TEST Attendee Verification",
+      "attendees": [{ "email": "Zach@axispoint.llc" }, { "email": "Ethaniel@axispoint.llc" }]
+    },
+    "options": { "conferenceDataVersion": 1, "sendUpdates": "all" }
+  }
+  ```
+  Visitor email is NOT in the attendees array. Verified 2026-08-24.
+
+Current deployment: version @5, `AXP_RUN_MODE: dry_run`.
 
 ### Cleanup (after Phase 2)
 
