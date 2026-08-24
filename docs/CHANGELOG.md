@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-24 (PR #108 merged; Google Meet link and .ics attachment added to booking confirmations)
+
+- **feat(gas-v2): `video_meeting` bookings now generate a Google Meet link and all confirmed bookings (both `phone_call` and `video_meeting`) attach a valid RFC 5545 .ics file to the confirmation email.** `GoogleServices.js` switches from `CalendarApp.createEvent` to `Calendar.Events.insert` (Advanced Calendar API) with `conferenceDataVersion: 1`; the Meet link threads from the `createEvent` result through the work-queue payload to `BookingConfirmation.js`, which renders it in the HTML/text body for `video_meeting` and generates the .ics via `buildIcs` for both modes. `phone_call` .ics omits LOCATION/URL; `video_meeting` .ics includes them. A pre-existing bug is also fixed: `handleSendBookingConfirmation` was reading `item.leadId` but `buildWorkItem` stores the lead ID as `item.subjectId`, causing every confirmation send to return `lead_not_found`. Deployed to staging at version @4 (2026-08-24); post-merge dry-run booking confirmed `bookingStatus: confirmed`. 520/520 tests pass.
+
 ## 2026-08-21 (E2E Phase 1 complete; two booking bugs found and fixed)
 
 - **fix(gas-v2): two bugs in the booking command found during Phase 1 dry_run rehearsal, fixed in PR #104.** (1) `Booking.js` check `!created.eventId` treated `''` (the documented dry_run return value) as a failure — every dry_run booking was being recorded as `CALENDAR_CREATE_FAILED` and `calendarStatus: 'failed'` on the Lead. Fix: allow the empty eventId when `status === 'dry_run'`. (2) The idempotent replay return for a non-booked lead had no `code` field, so `Entry.js` serialised `undefined` to an absent key — a contract violation. Fix: replay for failed and not_configured leads now carries the appropriate code. Two tests added in `booking.test.js` to pin both paths. Cases 1–7 of Phase 1 PASS; Cases 8–9 require `clasp push` + `clasp deploy -i` to re-verify after the fix.

@@ -496,6 +496,18 @@ are not pre-production blockers and can be verified separately if needed.
 
 **Note on Case 11 vs. the original plan.** The original plan said Case 11 would use a QR submission to Ethaniel's address. Since 2026-08-17 the QR card sends the firm slug for every exchange, so any QR submission resolves to `acquisitionSource: 'firm'` and lands in the digest's shared section (not under "Gathered through Ethaniel Vu"). This is correct behaviour, not a bug.
 
+### Post-PR #108 deployment (2026-08-24)
+
+PR #108 (Meet link + .ics attachment) merged to `main` 2026-08-24. `clasp push` was a no-op
+(the worktree push from the same session had already updated HEAD). `clasp deploy -i` was run
+immediately after merge, creating version @4 with description "PR #108 merged -- Meet link +
+.ics attachment". Two verifications run against @4:
+
+- **Health check (GET):** `{"ok":true,"runMode":"dry_run","capabilities":{"intake":true,"acknowledge":true,"qrAcknowledge":true,"notify":true,"digest":true,"booking":true},"promisesKeepable":true,"blockers":[],"warnings":[logo_absent, firm_phone_absent]}` — identical to Phase 1 baseline.
+- **Dry-run booking (POST):** `submissionId a1b2c3d4-e5f6-4789-8abc-def012345678` (management_proposal inquiry, replay) → `leadId b0fbeca5-4e3e-4307-bae3-1545a0085f74`; then `bookingRequestId c1d2e3f4-a5b6-4789-8abc-0123456789ab`, `slotStart 2026-08-25T15:00:00Z`, `mode: phone_call` → `{"ok":true,"bookingStatus":"confirmed","replay":false}`.
+
+Current deployment: version @4, `AXP_RUN_MODE: dry_run`.
+
 ### Cleanup (after Phase 2)
 
 1. Delete the Phase-2 calendar event from `AxisPoint Booking STAGING` (2026-08-26 10:00–10:30 AM).
