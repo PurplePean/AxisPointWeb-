@@ -58,11 +58,13 @@ module.exports = {
            The approved QR board states this explicitly: "#F7F5FB was inherited from
            an older brief and is superseded here." */
         'v2-surface': '#F6F2EA', // Warm page field
+        'v2-field-warm': '#FFFCF6', // Warm off-white for form fields and alternating section backgrounds
         'v2-ink': '#1C1628', // Primary text
         'v2-teal': '#24A5BC', // Primary action
         'v2-teal-support': '#1B8DA2', // Hover / supporting teal
         'v2-purple': '#38285D', // Structure, rules, focus ring
         'v2-magenta': '#9F328C', // Accent, used sparingly
+        'v2-magenta-bg': '#FDF2F9', // Very light magenta tint for match/highlight backgrounds
         'v2-action-label': '#0F1F27', // Label on the teal action, 8.1:1
         'v2-footer': '#141020', // Footer field, from AxisPointFooter.dc.html
       },
@@ -72,10 +74,15 @@ module.exports = {
         sans: ['Figtree', 'sans-serif'],
       },
 
-      /* Approved default radius. The existing card/button/chip radii are kept for
-         the current QR app and the V1 pages that still reference them. */
+      /* Approved radii. v2 (2px) is the approved default for the V2 public site.
+         card/button/chip are kept for the QR app and any surfaces that reference them.
+         Previously these were two separate borderRadius keys; JavaScript object literals
+         keep only the last key, which silently dropped v2. They are merged here. */
       borderRadius: {
         v2: '2px',
+        card: '13px',
+        button: '10px',
+        chip: '100px',
       },
 
       maxWidth: {
@@ -91,12 +98,6 @@ module.exports = {
 
       spacing: {
         nav: '68px', // Navigation height
-      },
-
-      borderRadius: {
-        card: '13px',
-        button: '10px',
-        chip: '100px',
       },
 
       fontSize: {
