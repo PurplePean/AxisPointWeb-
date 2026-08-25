@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Signature — Zachary Russell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1C1628;
+    --sub: #5A5270;
+    --hint: #9490A8;
+    --border: #E8E4F0;
+    --surface: #F6F2EA;
+    --card: #FFFFFF;
+    --teal: #24A5BC;
+    --purple: #38285D;
+    --magenta-bg: #FDF2F9;
+    --magenta-border: #DDB8D9;
+    --bg-code: #EEEAF5;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #EDE9F8;
+      --sub: #A89EC0;
+      --hint: #7A7290;
+      --border: #2E2848;
+      --surface: #1A1628;
+      --card: #231F35;
+      --teal: #2DB5CE;
+      --purple: #8574B8;
+      --magenta-bg: #2A1F2E;
+      --magenta-border: #5C3A58;
+      --bg-code: #2A2440;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #EDE9F8;
+    --sub: #A89EC0;
+    --hint: #7A7290;
+    --border: #2E2848;
+    --surface: #1A1628;
+    --card: #231F35;
+    --teal: #2DB5CE;
+    --purple: #8574B8;
+    --magenta-bg: #2A1F2E;
+    --magenta-border: #5C3A58;
+    --bg-code: #2A2440;
+  }
+
+  body {
+    font-family: 'Figtree', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--surface);
+    padding: 40px 24px 80px;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 660px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .page-header h1 { font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .page-header p { font-size: 13px; color: var(--sub); }
+
+  section { margin-bottom: 36px; }
+
+  h2 {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hint);
+    margin-bottom: 14px;
+  }
+
+  /* Preview card — outer frame */
+  .preview-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px 24px 16px;
+  }
+
+  /* The signature block itself — click to auto-select */
+  #sig-preview {
+    user-select: all;
+    cursor: pointer;
+    display: inline-block;
+  }
+
+  .preview-hint {
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--hint);
+    user-select: none;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Install steps */
+  .steps { list-style: none; counter-reset: steps; }
+  .steps li {
+    counter-increment: steps;
+    display: flex;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--sub);
+    line-height: 1.55;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(steps);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .steps b { color: var(--ink); font-weight: 600; }
+  .steps em { font-style: normal; color: var(--teal); }
+
+  /* Spark / Gmail headers */
+  .client-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .client-head::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--teal);
+    flex-shrink: 0;
+  }
+
+  /* Source textarea */
+  textarea {
+    width: 100%;
+    height: 200px;
+    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    resize: vertical;
+    color: var(--sub);
+    background: var(--card);
+    outline-color: var(--teal);
+  }
+
+  /* Note block */
+  .note {
+    background: var(--magenta-bg);
+    border: 1px solid var(--magenta-border);
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--sub);
+    line-height: 1.65;
+  }
+  .note strong { color: var(--ink); }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-size: 11px;
+    background: var(--bg-code);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--purple);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>Email Signature &mdash; Zachary Russell</h1>
+    <p>AxisPoint Partners &middot; Open in a browser and follow the steps below to install in Spark or Gmail.</p>
+  </div>
+
+  <!-- ── PREVIEW ────────────────────────────────────────────── -->
+  <section>
+    <h2>Preview</h2>
+    <div class="preview-card">
+      <!--
+        Click once inside the signature block below to auto-select it,
+        then press Cmd+C (Mac) or Ctrl+C (Windows) to copy.
+        Paste directly into Gmail's signature editor or Spark's Rich Text mode.
+      -->
+      <div id="sig-preview">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             SIGNATURE — table-based, all inline styles, no flexbox/grid.
+             Compatible with Gmail webmail, Spark macOS, and most mail clients.
+             Logo URL: https://axispoint.llc/images/logo-signature.svg
+             (Must be uploaded to server before it renders — see note below.)
+             ═══════════════════════════════════════════════════════════════ -->
+        <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt;">
+          <tbody>
+            <tr>
+              <!-- Mark logo -->
+              <td style="vertical-align:middle; padding:0 12px 0 0; width:30px;">
+                <img src="https://axispoint.llc/images/logo-signature.svg"
+                     width="30" height="40" alt="AxisPoint"
+                     style="display:block; border:0; outline:0; text-decoration:none; width:30px; height:40px;">
+              </td>
+              <!-- Purple accent bar -->
+              <td style="width:2px; background-color:#38285D; padding:0; font-size:0; line-height:0;">&nbsp;</td>
+              <!-- Info block -->
+              <td style="vertical-align:top; padding:0 0 0 14px;">
+                <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                  <tbody>
+                    <tr>
+                      <td style="font-family:'Figtree',Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#1C1628; line-height:1.1; padding:0 0 4px 0; white-space:nowrap;">Zachary Russell</td>
+                    </tr>
+                    <tr>
+                      <td style="font-family:'Figtree',Arial,Helvetica,sans-serif; font-size:12px; color:#5A5270; line-height:1.1; padding:0 0 11px 0; white-space:nowrap;">Partner</td>
+                    </tr>
+                    <tr>
+                      <td style="font-family:'Figtree',Arial,Helvetica,sans-serif; font-size:11px; color:#9490A8; line-height:1.2; padding:0 0 8px 0; white-space:nowrap;">AxisPoint Partners &nbsp;&middot;&nbsp; Houston, TX</td>
+                    </tr>
+                    <tr>
+                      <td style="height:1px; background-color:#E8E4F0; font-size:0; line-height:0; padding:0;"></td>
+                    </tr>
+                    <tr>
+                      <td style="height:8px; font-size:0; line-height:0; padding:0;"></td>
+                    </tr>
+                    <tr>
+                      <td style="font-family:'Figtree',Arial,Helvetica,sans-serif; font-size:12px; line-height:1.4; padding:0 0 3px 0;">
+                        <a href="mailto:zach@axispoint.llc" style="color:#24A5BC; text-decoration:none; font-style:normal;">zach@axispoint.llc</a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="font-family:'Figtree',Arial,Helvetica,sans-serif; font-size:12px; line-height:1.4; padding:0;">
+                        <a href="tel:+18325802815" style="color:#1C1628; text-decoration:none; font-style:normal;">832-580-2815</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- ══════════════════════════════════════════════════════════════ -->
+
+      </div>
+      <p class="preview-hint">Click once inside the signature above to select it &mdash; then copy (Cmd+C on Mac, Ctrl+C on Windows).</p>
+    </div>
+  </section>
+
+  <!-- ── INSTALL: SPARK ─────────────────────────────────────── -->
+  <section>
+    <h2>Install in Spark</h2>
+    <p class="client-head">For Zachary (Spark on macOS)</p>
+    <ol class="steps">
+      <li><span>Click once inside the preview box above to auto-select the signature.</span></li>
+      <li><span>Copy: <b>Cmd+C</b>.</span></li>
+      <li><span>In Spark: <b>Spark &rarr; Settings &rarr; Accounts</b>, select <em>zach@axispoint.llc</em>.</span></li>
+      <li><span>Click <b>Signature</b>, then click into the signature editor and paste: <b>Cmd+V</b>. Save.</span></li>
+      <li><span><b>Alternative &mdash; HTML mode:</b> in Spark&rsquo;s signature settings, switch to <b>HTML</b>, copy all text from the HTML source box below, paste directly.</span></li>
+    </ol>
+  </section>
+
+  <!-- ── INSTALL: GMAIL ─────────────────────────────────────── -->
+  <section>
+    <h2>Install in Gmail</h2>
+    <p class="client-head">General Gmail instructions (also works for Ethaniel)</p>
+    <ol class="steps">
+      <li><span>Click once inside the preview box above to auto-select the signature.</span></li>
+      <li><span>Copy: <b>Cmd+C</b> (Mac) or <b>Ctrl+C</b> (Windows).</span></li>
+      <li><span>In Gmail: click the <b>gear icon</b> (top right) &rarr; <b>See all settings</b>.</span></li>
+      <li><span>On the <b>General</b> tab, scroll to <b>Signature</b> &rarr; click <b>+ Create new</b>, give it a name, then click inside the editor.</span></li>
+      <li><span>Paste: <b>Cmd+V</b> / <b>Ctrl+V</b>. The formatted signature should appear. Click <b>Save Changes</b> at the bottom.</span></li>
+    </ol>
+  </section>
+
+  <!-- ── HTML SOURCE ────────────────────────────────────────── -->
+  <section>
+    <h2>HTML source (for Spark HTML mode)</h2>
+    <textarea id="sig-code" spellcheck="false" readonly aria-label="Signature HTML source"></textarea>
+  </section>
+
+  <!-- ── LOGO NOTE ──────────────────────────────────────────── -->
+  <section>
+    <div class="note">
+      <strong>Logo upload required.</strong>
+      The mark image (<code>https://axispoint.llc/images/logo-signature.svg</code>) does not yet exist on the server.
+      Upload <code>apps/web/public/images/logo-signature.svg</code> from the repository via FTP or cPanel File Manager
+      to <code>public_html/images/logo-signature.svg</code> on the axispoint.llc server.
+      Until then, the alt text &ldquo;AxisPoint&rdquo; shows in place of the mark &mdash; the rest of the signature is fully functional.
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var preview = document.getElementById('sig-preview');
+    var ta = document.getElementById('sig-code');
+    var table = preview && preview.querySelector('table');
+    if (table && ta) {
+      ta.value = table.outerHTML.replace(/>\s+</g, '>\n<').trim();
+    }
+  }());
+</script>
+</body>
+</html>
