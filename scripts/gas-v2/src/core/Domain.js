@@ -35,7 +35,7 @@ var DELIVERY_STATUSES = [
   'deferred_to_digest'
 ];
 
-var CALENDAR_STATUSES = ['none', 'pending', 'booked', 'failed', 'not_configured'];
+var CALENDAR_STATUSES = ['none', 'booked', 'failed', 'not_configured'];
 
 /**
  * Google Contacts sync states.
