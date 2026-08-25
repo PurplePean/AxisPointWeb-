@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 85.45" role="img" aria-label="AxisPoint">
+  <!--
+    AxisPoint mark — email signature variant.
+    Geometry copied exactly from AxisPointMark.dc.html (design@2026-07-30):
+    same viewBox (0 0 64 85.45), same translate(-17.44 -11.66) group transform,
+    same eight shapes in the same order, fullcolor palette.
+
+    This file is the logo asset for outgoing email signatures. It is hosted at
+    https://axispoint.llc/images/logo-signature.svg and referenced by the
+    signature HTML files in docs/signatures/. It must be manually uploaded to the
+    server (FTP to public_html/images/) before it renders in outgoing mail.
+
+    Display size in the signature HTML: width="30" height="40".
+    No intrinsic width/height attributes — the viewBox is the authority.
+  -->
+  <g transform="translate(-17.44 -11.66)">
+    <polyline fill="#24A5BC" points="56.72 66.36 57.49 65.95 57.36 15.97 67.15 11.66 67.06 69.26 63.66 71.46"/>
+    <polyline fill="#38285D" points="63.66 71.46 53.48 78.08 44.27 71.3 44.27 28.89 53.93 24.56 53.93 67.85 56.72 66.36"/>
+    <polyline fill="#24A5BC" points="68.33 74.9 70.91 73.18 70.91 35.03 80.36 31.05 80.51 79.35 77.31 81.5"/>
+    <polyline fill="#38285D" points="68.33 74.9 58.67 81.45 67.62 88.02 77.31 81.5"/>
+    <path fill="#38285D" d="m27.31 66c.05.28 21.32 15.35 21.32 15.35l-8.71 5.82-22.48-16.33.04-12.47 9.84-4.86V66Z"/>
+    <polygon fill="#9F328C" points="40.53 41.67 40.53 71.9 30.91 65.04 30.95 46.88"/>
+    <polygon fill="#9F328C" points="51.76 83.55 62.65 91.37 54.15 97.11 43.53 89.24"/>
+    <polygon fill="#4A3A72" points="66.43 73.5 68.33 74.9 58.67 81.45 56.64 79.97"/>
+  </g>
+</svg>
