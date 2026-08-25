@@ -26,7 +26,7 @@ var PALETTE = {
   faint: 'rgba(28,22,40,0.52)',
   hair: 'rgba(28,22,40,0.16)',
   surface: '#FFFFFF',
-  panel: '#F7F5FB',
+  panel: '#F6F2EA', // Warm page field (v2-surface). Was #F7F5FB, the older cool value superseded by design@2026-07-30.
   canvas: '#EDEAF3',
   teal: '#24A5BC',
   tealDeep: '#1B8DA2',

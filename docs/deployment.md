@@ -60,6 +60,17 @@ Each of these is a separate external mutation. None is implied by merging V2 cod
    Email identity: `AXP_PARTNER_DIRECT_EMAIL_MAP`, `AXP_PARTNER_DIRECT_PHONE_MAP`,
    `AXP_FIRM_EMAIL`, `AXP_FIRM_PHONE`, `AXP_WEBSITE_URL`, `AXP_LOGO_URL`.
 
+   **`AXP_LOGO_URL` and `apps/web/public/images/logo-email.png`:** The email
+   templates embed a logo via this property. There is no code that references the
+   PNG by filename — the connection is purely by deployment convention: once the
+   frontend is hosted, set `AXP_LOGO_URL` to the public URL of that file
+   (e.g. `https://axispoint.llc/images/logo-email.png`). The GAS backend never
+   reads the file itself; it only interpolates whatever URL is stored in the
+   property into the `<img src>` attribute. If the URL is absent, the email header
+   degrades gracefully (no `<img>` is emitted). A future reader who notices that
+   nothing in the source code imports the PNG and wonders if it is an orphan: it is
+   not — its path is the configured value, not a build import.
+
    **There are no promise flags to set.** `AXP_REPLY_TO_MONITORED` and
    `AXP_REMOVAL_PROCEDURE_CONFIGURED` were removed on 2026-08-15 along with the QR
    acknowledgement copy they gated: correction and removal on request are not offered, so

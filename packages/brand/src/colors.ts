@@ -63,11 +63,13 @@ export const colors = {
  */
 export const v2 = {
   surface: '#F6F2EA', // Warm page field
+  fieldWarm: '#FFFCF6', // Warm off-white for form fields and alternating section backgrounds
   ink: '#1C1628', // Primary text
   teal: '#24A5BC', // Primary action
   tealSupport: '#1B8DA2', // Hover / supporting teal
   purple: '#38285D', // Structure, rules, focus ring
   magenta: '#9F328C', // Accent, used sparingly
+  magentaBg: '#FDF2F9', // Very light magenta tint for match/highlight backgrounds
   actionLabel: '#0F1F27', // Label on the teal action, 8.1:1 against #24A5BC
   footer: '#141020', // Footer field, from AxisPointFooter.dc.html
   radius: '2px',
