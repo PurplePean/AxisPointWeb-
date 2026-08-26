@@ -166,17 +166,13 @@ code.
 
 ## Front-end — GitHub Actions → Namecheap FTP
 
-**The two deploy workflows still pass the V1 variable, and that is now a defect.** They set
-`VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}`, which described the world when there was
-one V1 endpoint and a single shared form component reading it. Neither is true now: the form is gone,
-both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a build given only the V1 name compiles in no
-endpoint at all. It would deploy a site that fails closed on every submission while looking
-correct.
+The V1 endpoint variable defect (workflows passing `VITE_FORM_ENDPOINT`/`FORM_ENDPOINT`)
+was corrected in PR #122. Both workflows now pass `VITE_V2_SUBMISSION_ENDPOINT` /
+`V2_SUBMISSION_ENDPOINT`. The QR `server-dir` contradiction (incorrect path set by PR
+#122) was corrected in the same PR as this document.
 
-It has not broken anything, because neither workflow has ever succeeded past its FTP step. **It
-must be corrected in the same change that adds the FTP secrets**, together with the deployment
-gate and the mirror-delete question below. It was deliberately not corrected in the 2026-08-15
-safety pass, which touched CI but left deployment configuration alone.
+For the current, authoritative workflow configuration, secrets list, and full cutover
+procedure, see **[`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md)**.
 
 ### Workflows
 
@@ -184,56 +180,32 @@ safety pass, which touched CI but left deployment configuration alone.
 |---|---|---|---|
 | `.github/workflows/ci.yml` | PR to `main` + push to `main` | Three jobs. **build:** type-check, lint across all four packages, both production builds with `VITE_V2_SUBMISSION_ENDPOINT: ''`, and `inspect-bundle.mjs` against each `dist`. **test-frontend:** `pnpm test:frontend`. **verify-rendered:** route baseline, ARIA assertions, and the 20-state intake baseline in a headless browser. No deploy. | ✅ **passing** |
 | `.github/workflows/test-gas.yml` | PR to `main` + push to `main` | One step, `pnpm test:gas-v2`. It used to run two suites; the V1 step was removed with the V1 backend at retirement | ✅ **passing** |
-| `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with the **wrong (V1) variable** → FTP `./apps/web/dist/` to `./public_html/` | ❌ **failing** |
-| `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with the **wrong (V1) variable** → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` | ❌ **failing** |
+| `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/web/dist/` to `./public_html/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
+| `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
 
-### SPA rewrite: not configured, and required before any locale is activated
+### SPA rewrite: not yet tracked — required before first deploy
 
-The site is a single-page app whose routes are client-side. Deep links only work if the host
-returns `index.html` for a path that has no matching file on disk.
+The site is a single-page app. Deep links require the host to return `index.html` for
+any path that has no matching file on disk. Neither app ships an `.htaccess` yet.
 
-**This repository contains no rewrite configuration of any kind.** There is no `.htaccess`, no
-`_redirects`, no `vercel.json`, no `netlify.toml`, and no `web.config` anywhere in the tree.
-The deploy target is FTP into Apache `public_html/`, so whatever rewrite exists (or does not)
-lives on the host and is not tracked here.
-
-This has not mattered so far, because the existing English routes are reached by in-app
-navigation from `/`. It starts mattering with locale prefixes: `/es/contact` typed directly, or
-hard-refreshed, is exactly the case that needs the fallback. All routing evidence gathered
-during the Multilingual Content Rollout comes from the **dev server**, where Vite supplies the
-SPA fallback automatically. That is not evidence about Apache.
-
-No rewrite file was invented to close this gap, because guessing at the host's configuration is
-how a 404 reaches production. **Verifying the host's rewrite behaviour, and configuring it if
-absent, is a prerequisite for activating any non-English locale.** It is owner work on the
-hosting account, not a code change, and no merge performs it.
+Adding `.htaccess` to `apps/web/public/` and `apps/qr/public/` is a tracked code
+change that must land before the FTP secrets are added. See
+[`PRODUCTION_CUTOVER_PLAN.md` §3](PRODUCTION_CUTOVER_PLAN.md) for the required
+content. Until that PR merges, activating any non-English locale or hard-refreshing
+any deep link in production will return a 404.
 
 ### Why the two deploy workflows fail
 
-The build step succeeds; the **FTP step** fails with:
+The build step succeeds; the **FTP step** fails with `Error: Input required and not
+supplied: server`. The FTP secrets are not configured. Populate the 7 secrets listed
+in [`PRODUCTION_CUTOVER_PLAN.md` §4](PRODUCTION_CUTOVER_PLAN.md) to make deploys go
+green. (Runners also emit a non-fatal Node 20 deprecation warning — informational only.)
 
-```
-Error: Input required and not supplied: server
-```
+### GitHub secrets
 
-i.e. the FTP secrets (`FTP_SERVER` / `FTP_SERVER_QR` and their username/password
-counterparts) are **not configured** in the repository, so
-`SamKirkland/FTP-Deploy-Action` receives an empty `server`. CI (which needs no
-secrets) passes on the same commits. Populate the FTP secrets to make deploys go
-green. (Runners also emit a non-fatal Node 20 deprecation warning — informational
-only.)
-
-### GitHub secrets (names only)
-
-| Secret | Used by | Purpose |
-|---|---|---|
-| `FORM_ENDPOINT` | both deploy workflows | The **V1** GAS Web App `/exec` URL, piped into the V1 variable name. Both apps ignore it. See the defect noted above |
-| `FTP_SERVER` | deploy-web | main-site FTP host |
-| `FTP_USERNAME` | deploy-web | main-site FTP user |
-| `FTP_PASSWORD` | deploy-web | main-site FTP password |
-| `FTP_SERVER_QR` | deploy-qr | QR-subdomain FTP host |
-| `FTP_USERNAME_QR` | deploy-qr | QR FTP user |
-| `FTP_PASSWORD_QR` | deploy-qr | QR FTP password |
+See [`PRODUCTION_CUTOVER_PLAN.md` §4](PRODUCTION_CUTOVER_PLAN.md) for the complete,
+current secrets table. The table that used to live here listed `FORM_ENDPOINT` (V1,
+now removed from both workflows) and is superseded.
 
 ## Hosting automation and hosting inventory
 
@@ -255,40 +227,10 @@ This pointer is deliberately kept here as well: the constraint is the
 highest-stakes fact in either document and must stay visible to anyone reading
 about deployment, not only to whoever opens the hosting scripts.
 
-## Production migration plan (not yet executed — current site is still in active use)
+## Production migration plan
 
-When the new monorepo project actually goes live (explicit go-ahead required, not
-yet given):
-
-1. **Standardize subdomain structure:** each subdomain gets its own top-level
-   sibling folder under `/home/axisipak/` (e.g. `qr.axispoint.llc/`,
-   `crm.axispoint.llc/`) rather than nesting inside `public_html`. Main site
-   (`axispoint.llc`) stays in `public_html` since it's the account's primary
-   domain root.
-2. **Migrate qr specifically:** move files from `public_html/qr` to a new
-   top-level `qr.axispoint.llc/` folder, update the cPanel subdomain's document
-   root to match, and update `deploy-qr.yml`'s FTP target path accordingly —
-   otherwise the next auto-deploy uploads to the old, now-wrong path. (Nested
-   placement inside `public_html` also means qr's files may currently be
-   unintentionally reachable at `axispoint.llc/qr` as an unplanned side door.)
-3. **Wipe `crm.axispoint.llc` clean** (confirmed old/stale, not needed) — ready
-   to receive the real dashboard whenever that gets built later.
-4. **`api` and `staging`:** leave un-provisioned (no folder created) until those
-   are actually being built — DNS is already pointed and ready whenever needed.
-5. **RESOLVED 2026-07-30 — mirror-delete is NOT configured.** Neither
-   `deploy-web.yml` nor `deploy-qr.yml` passes `dangerous-clean-slate` to
-   `SamKirkland/FTP-Deploy-Action`, and the action does not mirror-delete by
-   default. **Current behavior: a deploy adds and overwrites files, and never
-   removes stale ones.** Old site files that are not part of the new build would
-   sit alongside it indefinitely.
-
-   This is not a bug to fix today — nothing deploys at all yet — but it must be
-   decided before the migration, alongside the FTP secrets and the deployment-gate
-   question. Two options when that time comes: enable `dangerous-clean-slate` for a
-   true mirror (destructive, and it wipes anything hand-uploaded to the same
-   directory), or wipe the target directory once manually at cutover and rely on
-   add/overwrite afterwards. The second is safer given that the live sites are
-   currently a separate hand-uploaded build.
+**Superseded by [`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md) (2026-08-26).**
+All decisions are made and documented there. Read that file, not this section.
 
 ## One-time GAS setup
 

@@ -36,4 +36,5 @@ jobs:
           username: ${{ secrets.FTP_USERNAME_QR }}
           password: ${{ secrets.FTP_PASSWORD_QR }}
           local-dir: ./apps/qr/dist/
-          server-dir: ./public_html/qr/
+          server-dir: ./qr.axispoint.llc/
+          dangerous-clean-slate: true
