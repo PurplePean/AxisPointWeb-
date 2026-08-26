@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: pnpm --filter @axispoint/web run build
         env:
-          VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}
+          VITE_V2_SUBMISSION_ENDPOINT: ${{ secrets.V2_SUBMISSION_ENDPOINT }}
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4

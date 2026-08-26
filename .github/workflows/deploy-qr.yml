@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: pnpm --filter @axispoint/qr run build
         env:
-          VITE_FORM_ENDPOINT: ${{ secrets.FORM_ENDPOINT }}
+          VITE_V2_SUBMISSION_ENDPOINT: ${{ secrets.V2_SUBMISSION_ENDPOINT }}
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -36,4 +36,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME_QR }}
           password: ${{ secrets.FTP_PASSWORD_QR }}
           local-dir: ./apps/qr/dist/
-          server-dir: ./qr.axispoint.llc/
+          server-dir: ./public_html/qr/
