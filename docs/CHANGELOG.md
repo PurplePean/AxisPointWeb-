@@ -7,6 +7,12 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-26 (PR #124 merged; cutover blockers resolved, plan consolidated to issue)
+
+- **fix(infra): SPA `.htaccess` added to both apps.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` now ship with each build (Vite copies `public/` verbatim). Apache will serve `index.html` for unmatched paths; hard refreshes, direct links, and locale-prefixed routes (`/es/contact`, etc.) no longer return 404. This was the final tracked code change required before the production cutover.
+- **fix(infra): GitHub branch protection configured on `main`.** Four required status checks (`Type-check, lint & build`, `Frontend tests`, `Rendered baselines and assertions`, `Test Apps Script backend`), `enforce_admins: true`, force-push and deletion blocked. Verified via GitHub API after configuration.
+- **docs(infra): `docs/PRODUCTION_CUTOVER_PLAN.md` deleted; plan consolidated to [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124).** The issue is now the single, permanent source of truth for the production hosting cutover — complete with the full 10-finding investigation record, corrected build inventory (`images/photos/` 48 files), hard-sequenced QR doc root update as a Step 3 prerequisite before any deploy fires, and evidence for both resolved blockers.
+
 ## 2026-08-24 (PR #110 merged; partner attendees added to booking calendar events)
 
 - **feat(gas-v2): every booking calendar event now includes both partners as attendees, and `sendUpdates` is set to `"all"` so they receive real Google Calendar invitations.** `GoogleServices.js` `createEvent` previously passed no attendees list and `sendUpdates: "none"`; it now passes `attendees: [{ email: partnerA }, { email: partnerB }]` using the resolved `partnerNotifyTo` addresses from `Config.js`, with `sendUpdates: "all"` so the Calendar API delivers the invitation. The visitor's email is deliberately **not** included in the attendees array — only the internal partners. Deployed to staging at version @5 (2026-08-24). Verified by capturing the `Calendar.Events.insert` call in a Node test against staging config: attendees `Zach@axispoint.llc` and `Ethaniel@axispoint.llc` present, visitor email absent, `sendUpdates: "all"` confirmed. 520/520 tests pass.

@@ -133,11 +133,10 @@ Each of these was verified against code or an authoritative document on the date
 | Risk | State |
 |---|---|
 | **FTP secrets are not configured** | Both deploy workflows fail at the FTP step with `Input required and not supplied: server`. Nothing has ever deployed from this repository |
-| **Both deploy workflows still pass `VITE_FORM_ENDPOINT`** | That is the retired V1 variable name. A deploy today would compile in **no endpoint** and ship a build that fails closed on every submission while looking correct. Must be corrected in the same change that adds the FTP secrets |
-| **No SPA rewrite is configured, and none is tracked here** | Deep links depend on the host returning `index.html`. All routing evidence comes from the dev server, which supplies the fallback automatically; that is not evidence about Apache. **Verifying and configuring the host's rewrite is a prerequisite for activating any non-English locale** |
+| **SPA rewrite is now tracked** — `.htaccess` added to both `public/` dirs | **Resolved 2026-08-26.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` ship with the build (PR #124). Apache will serve `index.html` for unmatched paths; hard refreshes and locale-prefixed routes will work once the first deploy completes. |
 | **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed; web-app deployment created and at version @5 (2026-08-24, `AXP_RUN_MODE: dry_run`). 1 of 11 Script Properties set; `AXP_SHEET_ID` and 9 others pending. Triggers not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
-| **QR document root vs deploy target** | **Resolved 2026-08-26.** `deploy-qr.yml` targets `./qr.axispoint.llc/` (correct final path). The cPanel document root update from `/home/axisipak/public_html/qr` to `/home/axisipak/qr.axispoint.llc` is an owner step at cutover. Decision and procedure in [`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md) |
+| **QR document root vs deploy target** | **Resolved 2026-08-26.** `deploy-qr.yml` targets `./qr.axispoint.llc/` (correct final path). The cPanel document root update (from `public_html/qr` to `qr.axispoint.llc`) is Step 3 of the cutover procedure and **must complete before the deploy fires** — see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124). |
 | **Deploys add and overwrite but never delete** | **Resolved 2026-08-26.** `dangerous-clean-slate: true` is now set in both deploy workflows. First deploy wipes old hand-uploaded content automatically. |
 | **The header overflows 390px by 3px on all seven routes** | Re-measured in a headless browser at 390x844 on 2026-08-16: `scrollWidth` 393 against `clientWidth` 390 on every route. The culprit is the mobile control cluster in `apps/web/src/components/Nav.tsx:193`. Every page therefore scrolls horizontally on a small phone |
 | **No `og:image` is emitted** | Deliberate. `src/lib/meta.ts` omits it until the 1200x630 social image exists, rather than pointing at a missing file |
@@ -166,15 +165,9 @@ Pointers, not plans. The detailed scope belongs in the task that does the work.
 - **Complete staging provisioning**: set `AXP_SHEET_ID`, install the three triggers, and
   create the web-app deployment. See [`staging-provisioning.md`](staging-provisioning.md) for
   current state and the sequence.
-- **Add `.htaccess` SPA rewrite to both apps** — `apps/web/public/.htaccess` and
-  `apps/qr/public/.htaccess`. Required before adding FTP secrets. See
-  [`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md) §3.
 - **Add FTP secrets and execute cutover** — full procedure in
-  [`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md) §5. Variables and
-  `dangerous-clean-slate` are already correct; only secrets and the `.htaccess`
-  PR remain before the cutover can proceed.
+  [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124). All pre-cutover code changes are complete; only the 7 GitHub secrets remain before the cutover can proceed.
 - **Test the QR contact file on a real iPhone and a real Android handset**, per the launch
   blocker in section 5. It needs a person and two phones, not a commit.
-- **Verify and configure the host's SPA rewrite**, before any non-English locale is activated.
 - **Fluent review of the eight unreviewed locale catalogs**, one language at a time.
 - **Fix the 3px mobile overflow** in the header's mobile control cluster.
