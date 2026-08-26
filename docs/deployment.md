@@ -172,7 +172,7 @@ was corrected in PR #122. Both workflows now pass `VITE_V2_SUBMISSION_ENDPOINT` 
 #122) was corrected in the same PR as this document.
 
 For the current, authoritative workflow configuration, secrets list, and full cutover
-procedure, see **[`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md)**.
+procedure, see **[GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124)**.
 
 ### Workflows
 
@@ -183,28 +183,25 @@ procedure, see **[`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md)**.
 | `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/web/dist/` to `./public_html/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
 | `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
 
-### SPA rewrite: not yet tracked — required before first deploy
+### SPA rewrite: tracked and ships with the build (PR #124)
 
 The site is a single-page app. Deep links require the host to return `index.html` for
-any path that has no matching file on disk. Neither app ships an `.htaccess` yet.
-
-Adding `.htaccess` to `apps/web/public/` and `apps/qr/public/` is a tracked code
-change that must land before the FTP secrets are added. See
-[`PRODUCTION_CUTOVER_PLAN.md` §3](PRODUCTION_CUTOVER_PLAN.md) for the required
-content. Until that PR merges, activating any non-English locale or hard-refreshing
-any deep link in production will return a 404.
+any path that has no matching file on disk. `apps/web/public/.htaccess` and
+`apps/qr/public/.htaccess` were added in PR #124; Vite copies them verbatim into
+`dist/` and the FTP deploy places them on the server. No further Apache configuration
+is required.
 
 ### Why the two deploy workflows fail
 
 The build step succeeds; the **FTP step** fails with `Error: Input required and not
 supplied: server`. The FTP secrets are not configured. Populate the 7 secrets listed
-in [`PRODUCTION_CUTOVER_PLAN.md` §4](PRODUCTION_CUTOVER_PLAN.md) to make deploys go
+in [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124) to make deploys go
 green. (Runners also emit a non-fatal Node 20 deprecation warning — informational only.)
 
 ### GitHub secrets
 
-See [`PRODUCTION_CUTOVER_PLAN.md` §4](PRODUCTION_CUTOVER_PLAN.md) for the complete,
-current secrets table. The table that used to live here listed `FORM_ENDPOINT` (V1,
+See [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124) for the complete,
+current secrets table (7 secrets). The table that used to live here listed `FORM_ENDPOINT` (V1,
 now removed from both workflows) and is superseded.
 
 ## Hosting automation and hosting inventory
@@ -229,8 +226,8 @@ about deployment, not only to whoever opens the hosting scripts.
 
 ## Production migration plan
 
-**Superseded by [`PRODUCTION_CUTOVER_PLAN.md`](PRODUCTION_CUTOVER_PLAN.md) (2026-08-26).**
-All decisions are made and documented there. Read that file, not this section.
+**Superseded by [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124) (2026-08-26).**
+All decisions are made and documented there. Read that issue, not this section.
 
 ## One-time GAS setup
 
