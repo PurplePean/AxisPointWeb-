@@ -1,7 +1,7 @@
 # Email Signatures — Installation Guide
 
 **Partners:** Zachary Russell (Spark) · Ethaniel Vu (Gmail)
-**Last updated:** 2026-08-26
+**Last updated:** 2026-08-27
 
 ## Files
 
@@ -12,13 +12,7 @@
 
 Both files are Option A (left teal rule, single-column stacked content). All styles are inline. No `<div>`, no flexbox, no grid.
 
-## Step 0 — Swap in the logo URL (one-time, before installing)
-
-Both files contain the placeholder `YOUR_HOSTED_LOGO_URL_HERE` as the `src` on the logo `<img>`. Replace it with the real hosted URL before installing. Suggested display size: 90 x 28 px — adjust width/height attributes to match the actual asset dimensions.
-
-**To replace:** open the `.html` file in a text editor, find `YOUR_HOSTED_LOGO_URL_HERE`, and replace it with the full URL (e.g. `https://axispoint.llc/images/logo-signature.png`). Save the file before proceeding to the install steps below.
-
-Until replaced, the alt text "AxisPoint Partners" appears in place of the mark. The rest of the signature renders correctly before this step.
+The logo (`mark-color.png`) is live at `https://axispoint.llc/images/mark-color.png` — no placeholder swap needed.
 
 ## Installing in Spark — Zachary Russell
 
@@ -32,7 +26,7 @@ Until replaced, the alt text "AxisPoint Partners" appears in place of the mark. 
 6. Paste: **Cmd+V**.
 7. Click **Save** (or the checkmark).
 
-Verify the signature renders: logo (once uploaded), name, teal rule on the left, company info, and contact details.
+Verify the signature renders: logo, name, teal rule on the left, company info, and contact details.
 
 ### HTML mode (alternative)
 
@@ -79,7 +73,6 @@ Figtree will not load inside Gmail's or Spark's email renderer — Arial is the 
 
 ## Troubleshooting
 
-- **Logo not showing:** the URL has not been swapped in yet (see Step 0), or the hosted file has not been uploaded.
+- **Logo not showing:** verify `https://axispoint.llc/images/mark-color.png` is reachable (HTTP 200).
 - **Layout broken in Gmail after paste:** Gmail's editor sometimes strips table attributes. Try copying again from a freshly opened browser window. If the issue persists, use Gmail's "Insert HTML" approach: compose a new email, switch to plain text and back to rich text, then paste.
 - **Spark Rich Text paste loses the teal bar:** use Spark HTML mode instead (see above).
-- **Logo appears distorted:** the `width` and `height` attributes in the `<img>` tag are set to 90x28 as an estimate. Edit the file to match your actual logo dimensions.
