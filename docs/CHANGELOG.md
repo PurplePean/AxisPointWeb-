@@ -7,9 +7,9 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
-## 2026-08-26 (first production deploy; all 7 FTP secrets configured)
+## 2026-08-26 (first production deploy; all 7 GitHub secrets configured)
 
-- **chore(infra): first successful production deploy.** All 7 GitHub secrets (`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_DIR`, `FTP_SERVER_QR`, `FTP_PORT`, and the QR path secret) were added to the repository. Merging this PR triggered `deploy-web.yml` and `deploy-qr.yml` for the first time with real credentials — the first time anything in this repository deployed to a real server. The cPanel document root for QR (`public_html/qr` → `qr.axispoint.llc`) is the remaining manual cutover step before the QR deploy URL resolves correctly; see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124).
+- **chore(infra): first successful production deploy.** All 7 GitHub secrets (`V2_SUBMISSION_ENDPOINT`, `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_QR`, `FTP_USERNAME_QR`, `FTP_PASSWORD_QR`) were added to the repository. Merging this PR triggered `deploy-web.yml` and `deploy-qr.yml` for the first time with real credentials — the first time anything in this repository deployed to a real server. The cPanel document root for QR (`public_html/qr` → `qr.axispoint.llc`) is the remaining manual cutover step before the QR deploy URL resolves correctly; see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124).
 
 ## 2026-08-26 (PR #124 merged; cutover blockers resolved, plan consolidated to issue)
 
