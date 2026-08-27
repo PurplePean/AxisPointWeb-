@@ -10,9 +10,17 @@
 | `zach-signature.html` | Zachary Russell — open in browser, select all, copy, paste into Spark |
 | `ethaniel-signature.html` | Ethaniel Vu — open in browser, select all, copy, paste into Gmail |
 
-Both files are Option A (left teal rule, single-column stacked content). All styles are inline. No `<div>`, no flexbox, no grid.
+Both files use a two-column table layout: logo left (42×56px), teal vertical divider, content right. All styles are inline. No `<div>`, no flexbox, no grid.
 
-The logo (`mark-color.png`) is live at `https://axispoint.llc/images/mark-color.png` — no placeholder swap needed.
+## Live URLs
+
+| Resource | URL | Status |
+|---|---|---|
+| Logo | `https://axispoint.llc/images/mark-color.png` | Live — 200 OK |
+| Zach's vCard | `https://axispoint.llc/contacts/zach.vcf` | Live after deploy |
+| Ethaniel's vCard | `https://axispoint.llc/contacts/ethaniel.vcf` | Live after deploy |
+
+No placeholder swap needed. The logo URL is already live. The vCard URLs go live once `apps/web/public/contacts/` is deployed to production.
 
 ## Installing in Spark — Zachary Russell
 
@@ -26,7 +34,7 @@ The logo (`mark-color.png`) is live at `https://axispoint.llc/images/mark-color.
 6. Paste: **Cmd+V**.
 7. Click **Save** (or the checkmark).
 
-Verify the signature renders: logo, name, teal rule on the left, company info, and contact details.
+Verify the signature renders: logo on the left, teal vertical bar, then name, PARTNER label, company, tagline, phone/email, website, address, and "Save my contact" link.
 
 ### HTML mode (alternative)
 
@@ -49,7 +57,7 @@ Use this if the Rich Text paste loses formatting.
 4. In Gmail: click the **gear icon** (top right) > **See all settings**.
 5. On the **General** tab, scroll to **Signature** > click **+ Create new**.
 6. Name it (e.g. "AxisPoint Partners"), then click inside the editor box.
-7. Paste: **Cmd+V** / **Ctrl+V**. The formatted signature should appear with the teal rule on the left.
+7. Paste: **Cmd+V** / **Ctrl+V**. The formatted signature should appear with the logo, teal bar, and contact details.
 8. Scroll to the bottom of the Settings page and click **Save Changes**.
 
 Set the new signature as the default for new emails and replies under the "Signature defaults" section on the same tab.
@@ -58,21 +66,23 @@ Set the new signature as the default for new emails and replies under the "Signa
 
 | Property | Value |
 |---|---|
-| Layout | Option A: 3px teal left rule, single content column |
-| Teal rule | `#24A5BC`, 3px wide |
-| Name | 15px bold, `#1C1628` |
-| Title | 12px, `#5A5270` |
-| Company | 11px semibold, `#1C1628` |
-| Tagline / address | 11px, `#9490A8` |
-| Email link | `#24A5BC`, no underline |
-| Phone link | `#1C1628`, no underline |
+| Layout | Two-column: logo (42×56px) · 1px teal divider · content |
+| Teal divider | `#24A5BC`, 1px wide |
+| Name | 18px, weight 600, `#1C1628` |
+| PARTNER label | 10px, weight 700, uppercase, letter-spacing 0.16em, `#24A5BC` |
+| Company name | 13px, weight 600, `#1C1628` |
+| Tagline | 11px, weight 400, `#6B6577` |
+| Phone/email line | 11px, `#24A5BC`, underlined, pipe-separated, on one line |
+| Website | 11px, `#24A5BC`, underlined, `https://axispoint.llc` |
+| Address | 11px, `#6B6577`, plain text (not a link) |
+| Save my contact | 11px, `#24A5BC`, underlined, links to person's `.vcf` URL |
 | Font stack | `'Figtree', Arial, Helvetica, sans-serif` |
-| Hairline rule | 1px, `#E8E4F0` |
 
 Figtree will not load inside Gmail's or Spark's email renderer — Arial is the correct fallback and is expected behavior.
 
 ## Troubleshooting
 
-- **Logo not showing:** verify `https://axispoint.llc/images/mark-color.png` is reachable (HTTP 200).
-- **Layout broken in Gmail after paste:** Gmail's editor sometimes strips table attributes. Try copying again from a freshly opened browser window. If the issue persists, use Gmail's "Insert HTML" approach: compose a new email, switch to plain text and back to rich text, then paste.
+- **Logo not showing:** verify `https://axispoint.llc/images/mark-color.png` returns HTTP 200.
+- **vCard link 404:** the `contacts/` directory deploys with the next `apps/web` production push. Verify `apps/web/public/contacts/zach.vcf` and `ethaniel.vcf` are present in the repo.
+- **Layout broken in Gmail after paste:** Gmail's editor sometimes strips table attributes. Try copying again from a freshly opened browser window.
 - **Spark Rich Text paste loses the teal bar:** use Spark HTML mode instead (see above).
