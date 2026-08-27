@@ -1,14 +1,26 @@
-# Staging provisioning plan
+# V2 backend provisioning — promoted to production 2026-08-26
 
-The plan for standing up the V2 backend in staging. This is the **Staging** pass named in
-[`STATUS.md`](STATUS.md); it is not a numbered code pass.
+> **This environment is now production.** Originally stood up as STAGING, it was promoted
+> by evidence-based rename on 2026-08-26 after a direct audit confirmed zero data rows across
+> all six Sheet tabs, zero calendar events in the booking calendar, and all required Script
+> Properties correctly set (`AXP_RUN_MODE: dry_run` confirmed by direct property read).
+> The three Google resources were renamed in-place — no rebuild, no data migration:
+> `AxisPoint V2 STAGING` → `AxisPoint V2 PRODUCTION`,
+> `AxisPoint V2 CRM STAGING` → `AxisPoint V2 CRM PRODUCTION`,
+> `AxisPoint Booking STAGING` → `AxisPoint Booking PRODUCTION`.
+> The Script ID, Sheet ID, Calendar ID, and all other identifiers are unchanged.
+>
+> **One Script Property update still required before going live:** `AXP_FROM_NAME` is
+> currently `AxisPoint Partners [STAGING]`. Change it to `AxisPoint Partners` (drop the
+> `[STAGING]` suffix) before `AXP_RUN_MODE` is ever flipped to `live`.
 
-**Provisioning is underway.** As of 2026-08-19: the Apps Script project (`AxisPoint V2
-STAGING`), the staging spreadsheet with its six tabs, and the staging booking calendar
-(`AxisPoint Booking STAGING`) have been created. `AXP_CALENDAR_ID` is set as a Script
-Property. Triggers, the web-app deployment, and the remaining Script Properties are not yet
-created. Every value below is recorded so provisioning is one reviewed decision rather than
-a sequence of small ones.
+The plan for standing up the V2 backend, originally documented as the **Staging** pass.
+Provisioning was completed through the full E2E matrix and production promotion; this file
+is now the authoritative record of the production environment's configuration and history.
+
+**Provisioning complete.** All three resources created 2026-08-19; full E2E matrix run
+2026-08-21 through 2026-08-24 (Phases 1 and 2, plus live verification at @5); environment
+cleaned and confirmed zero-data on 2026-08-24; promoted to production 2026-08-26.
 
 **Live V1 identifiers are deliberately not repeated here.** The V1 script id, bound
 spreadsheet id, deployment id, and `/exec` URL are not in any tracked file. They exist only at
@@ -23,7 +35,7 @@ wrong field.
 
 | Item | Value |
 |---|---|
-| Project | `AxisPoint V2 STAGING`, standalone |
+| Project | `AxisPoint V2 PRODUCTION`, standalone (renamed from `AxisPoint V2 STAGING` 2026-08-26) |
 | Owner | Zach@axispoint.llc |
 | Runtime | V8 |
 | Time zone | `America/Chicago` |
@@ -39,7 +51,7 @@ by anything else here.
 
 ## 2. Spreadsheet: six tabs and exact headers
 
-One new spreadsheet, `AxisPoint V2 CRM STAGING`.
+One new spreadsheet, `AxisPoint V2 CRM PRODUCTION` (renamed from `AxisPoint V2 CRM STAGING` 2026-08-26).
 
 Tab names are case-sensitive (`TAB_NAMES`, `src/platform/SheetRepository.js`). Header text is matched
 case- and whitespace-insensitively but **must occupy row 1**.
@@ -140,13 +152,13 @@ actually do with an absent value:
   the feature degrades in a defined way.
 - **Fails safe** — absence is not an error at all, because the safe value is the default.
 
-| Property | Staging value | Status | Source |
+| Property | Production value | Status | Source |
 |---|---|---|---|
-| `AXP_SHEET_ID` | new staging spreadsheet id | Blocker — `intake` | created in §2 |
-| `AXP_CALENDAR_ID` | new staging calendar id | Blocker — `booking` | created in §4 |
-| `AXP_RUN_MODE` | `dry_run` | Fails safe — anything but `live` is `dry_run` | flipped to `live` only for the §8 window |
+| `AXP_SHEET_ID` | production spreadsheet id (`AxisPoint V2 CRM PRODUCTION`) | Blocker — `intake` | created in §2 |
+| `AXP_CALENDAR_ID` | production calendar id (`AxisPoint Booking PRODUCTION`) | Blocker — `booking` | created in §4 |
+| `AXP_RUN_MODE` | `dry_run` (confirmed by direct read 2026-08-26) | Fails safe — anything but `live` is `dry_run` | flipped to `live` only for the §8 window; must remain `dry_run` until frontend deploy is authorized |
 | `AXP_REPLY_TO` | `info@axispoint.llc` | Blocker — `acknowledge`, `qr_acknowledge` | settled |
-| `AXP_FROM_NAME` | `AxisPoint Partners [STAGING]` | Blocker — all four sending capabilities | brand + §7.4 test label; drop the suffix for production |
+| `AXP_FROM_NAME` | `AxisPoint Partners [STAGING]` ⚠️ **update required before live** | Blocker — all four sending capabilities | must be changed to `AxisPoint Partners` (remove `[STAGING]` suffix) before `AXP_RUN_MODE` is ever flipped to `live` |
 | `AXP_PARTNER_NOTIFY_TO` | `Zach@axispoint.llc,Ethaniel@axispoint.llc` | Blocker — `notify` | settled |
 | `AXP_PARTNER_EMAIL_MAP` | `{"zachary_russell":"Zach@axispoint.llc","ethaniel_vu":"Ethaniel@axispoint.llc"}` | Blocker — `digest` | tokens from `PARTNERS` |
 | `AXP_FIRM_EMAIL` | `info@axispoint.llc` | Blocker — `qr_acknowledge` | settled |
@@ -184,17 +196,17 @@ No automated removal system exists and none is planned in this pass.
 
 ---
 
-## 4. Dedicated staging booking calendar
+## 4. Production booking calendar
 
-New calendar `AxisPoint Booking STAGING`, owned by Zach, **not a personal calendar**.
-Test events are isolated and bulk-deletable, and no test booking can land on a real day.
+Calendar `AxisPoint Booking PRODUCTION` (renamed from `AxisPoint Booking STAGING` 2026-08-26),
+owned by Zach, **not a personal calendar**. Created as a dedicated calendar so test events were
+isolated and bulk-deletable during the E2E phase. Promoted alongside the other two resources.
 
 One shared calendar remains the model: `AXP_CALENDAR_ID` is a single property, unchanged.
 
-**Status (2026-08-19): complete.** Calendar `AxisPoint Booking STAGING` created under
-`Zach@axispoint.llc`. `AXP_CALENDAR_ID` set as a Script Property via the temporary-wrapper
-pattern (`runSetCalendarId`, `setProperties` + `makePropertyWriter`). Calendar ID is not
-recorded here.
+**Status: complete.** Calendar created under `Zach@axispoint.llc` 2026-08-19;
+`AXP_CALENDAR_ID` set as a Script Property via the temporary-wrapper pattern. Renamed to
+`AxisPoint Booking PRODUCTION` 2026-08-26. Calendar ID is not recorded in this file.
 
 ---
 
@@ -400,19 +412,19 @@ clearly-fake placeholder id `dry_run_evt` rather than a real calendar id; a dry-
 booking cannot be cancelled by id, but the booking command still reaches `confirmed` status
 and queues the confirmation email work item.
 
-### 7.3 Calendar — a dedicated staging calendar, never a personal one
+### 7.3 Calendar — dedicated calendar, never a personal one
 
-Rehearsal bookings land on `AxisPoint Booking STAGING` (§4), never on a partner's personal
-calendar and never on a production booking calendar. This is enforced by one property,
+During the E2E phases, rehearsal bookings landed on `AxisPoint Booking PRODUCTION` (then
+named STAGING, §4), never on a partner's personal calendar. This is enforced by one property,
 `AXP_CALENDAR_ID`, read per call (`src/platform/GoogleServices.js:146`,
 `src/platform/GoogleServices.js:168`).
 
 The point is bulk cleanup. A test event on a dedicated calendar can be deleted by
 selecting everything on that calendar; a test event on a personal calendar has to be
 picked out from real appointments by hand, and one missed event is a partner being held at
-a time nobody booked. **Before Phase 2, confirm `AXP_CALENDAR_ID` is the staging calendar
-id and not a personal one** — the code cannot tell the difference and will use whatever it
-is given.
+a time nobody booked. `AXP_CALENDAR_ID` points at the production calendar; confirm this
+before any future authorized live test — the code cannot tell the difference and will use
+whatever it is given.
 
 ### 7.4 Labels — every test artifact must be identifiable as a test
 
@@ -432,9 +444,10 @@ email, or event as a test, so it has to be carried in the fields a tester contro
 overrides them. `AXP_FROM_NAME` is the one lever that marks every message, which is why it
 carries the label rather than the subject.
 
-**Reset `AXP_FROM_NAME` to `AxisPoint Partners` before production.** It carries the
-`[STAGING]` suffix in §3 because this is the staging plan; shipping that suffix to a real
-visitor is the obvious way this guardrail turns into an embarrassment.
+**Reset `AXP_FROM_NAME` to `AxisPoint Partners` before going live.** It still carries the
+`[STAGING]` suffix as of 2026-08-26 promotion. This MUST be changed before `AXP_RUN_MODE`
+is ever flipped to `live` — shipping the suffix to a real visitor is the obvious way this
+guardrail turns into an embarrassment. See also the warning at the top of this file.
 
 Reply-To is `info@axispoint.llc` on every outbound message (`AXP_REPLY_TO`, §3).
 
@@ -492,7 +505,7 @@ are not pre-production blockers and can be verified separately if needed.
 **Post-run state (confirmed 2026-08-23):**
 - `AXP_RUN_MODE` reverted to `dry_run` immediately after both cases completed; confirmed via `verifyProperties()` in the editor and via health-check endpoint (`runMode: "dry_run"`).
 - `tmp_phase2_admin.js` removed from the live Apps Script project via two-pass clasp push; confirmed via `clasp pull` (33 files, no stray files).
-- Phase 2 calendar event on `AxisPoint Booking STAGING` remains (test artefact — delete manually as part of data cleanup before the next test pass).
+- Phase 2 calendar event on `AxisPoint Booking PRODUCTION` (then STAGING) remains (test artefact — deleted as part of data cleanup 2026-08-24; see Cleanup section below).
 
 **Note on Case 11 vs. the original plan.** The original plan said Case 11 would use a QR submission to Ethaniel's address. Since 2026-08-17 the QR card sends the firm slug for every exchange, so any QR submission resolves to `acquisitionSource: 'firm'` and lands in the digest's shared section (not under "Gathered through Ethaniel Vu"). This is correct behaviour, not a bug.
 
@@ -539,20 +552,20 @@ immediately after both completed. Both verified by owner via screenshot.
 | `video_meeting` | `006dd8f0-47ef-4d13-8538-b6653186ea69` | `2daa4c23-…` (truncated; confirm full UUID from Sheet Leads tab) | `e84ee0cd-f0c5-4bc6-b933-e556f9e0b5cf` | `2026-08-28T15:00:00.000Z` |
 
 **`phone_call` result:** Confirmation email arrived with .ics attachment; real calendar event
-created on `AxisPoint Booking STAGING` (2026-08-27 10:00–10:30 AM CDT) with both partners
+created on `AxisPoint Booking PRODUCTION` (then STAGING) (2026-08-27 10:00–10:30 AM CDT) with both partners
 (`Zach@axispoint.llc`, `Ethaniel@axispoint.llc`) as attendees; `sendUpdates: "all"` confirmed.
 Owner-verified via screenshot.
 
 **`video_meeting` result:** Confirmation email arrived with Google Meet link
 (`https://meet.google.com/caq-osot-yyj`) rendered in the "Join Google Meet" section and .ics
 attachment (495 bytes); Meet link also present in the calendar event on `AxisPoint Booking
-STAGING` (2026-08-28 10:00–10:30 AM CDT). Owner-verified via screenshot.
+PRODUCTION` (then STAGING) (2026-08-28 10:00–10:30 AM CDT). Owner-verified via screenshot.
 
 ### Cleanup (after Phase 2 and live @5 verification)
 
 **Completed 2026-08-24. Owner-confirmed.**
 
-Three test calendar events were deleted from `AxisPoint Booking STAGING`:
+Three test calendar events were deleted from `AxisPoint Booking PRODUCTION` (then named STAGING):
 
 1. 2026-08-26 10:00–10:30 AM CDT — Phase 2 live booking (Case 12, 2026-08-23) ✓
 2. 2026-08-27 10:00–10:30 AM CDT — `phone_call` live E2E at @5 (2026-08-24) ✓
@@ -568,15 +581,15 @@ permanent artefacts of these runs.
 
 ---
 
-## 9. Rollback and separation from live V1
+## 9. Rollback
 
 | Failure | Rollback |
 |---|---|
-| Bad code deployed | `clasp deploy -i <staging-deployment-id>` to a prior version |
+| Bad code deployed | `clasp deploy -i <production-deployment-id>` to a prior version |
 | Bad data | clear tab data rows, keep headers |
 | Runaway sending | set `AXP_RUN_MODE=dry_run`, one property, immediate |
 | Runaway triggers | delete the three triggers |
-| Abandon staging | delete the staging project, spreadsheet, and calendar |
+| Abandon production | delete the production project, spreadsheet, and calendar |
 
 **V1 is unaffected by all of them.** Separate script, spreadsheet, calendar, and deployment.
 Its identifiers are not in any tracked file; they exist only at the
@@ -668,11 +681,12 @@ function runVerifyProperties() {
 and `setProperties` readably in the Execution log. The `null, 2` indent is optional; without it
 the output is still valid but not human-scanned as easily.
 
-### This pattern is needed again for the production run
+### This pattern was used throughout staging and remains the method for future admin operations
 
-The production provisioning run uses the same wrapper approach. Sheet ID and property values
-will differ (no `[STAGING]` suffix on `AXP_FROM_NAME`, `AXP_RUN_MODE` starts `dry_run` and
-stays that way until a live send is explicitly authorized). The procedure is identical.
+The staging E2E phases used this approach for provisioning, property verification, and the
+2026-08-26 pre-promotion audit. For any future admin operations (e.g. updating `AXP_FROM_NAME`
+to remove the `[STAGING]` suffix, installing triggers, verifying properties), use the same
+write-locally → push → run-in-editor → remove sequence.
 
 ### Why not build a permanent invocation method?
 
@@ -692,18 +706,15 @@ production run.
 
 ---
 
-## What provisioning will create
+## What provisioning created
 
-1. ~~Apps Script project `AxisPoint V2 STAGING`~~ **Done (2026-08-19)**
-2. ~~Spreadsheet `AxisPoint V2 CRM STAGING` with the six tabs above — 48, 8, 47, 28, 7, and
-   **11** columns respectively~~ **Done (2026-08-19)**
-3. ~~Calendar `AxisPoint Booking STAGING`~~ **Done (2026-08-19) — `AXP_CALENDAR_ID` set**
-4. **11** Script Properties set per §3, of the 13 names that exist; `AXP_FIRM_PHONE` and
-   `AXP_LOGO_URL` are deliberately left unset — **`AXP_CALENDAR_ID` set; 9 more pending
-   (`runSetStagingProperties` ready to run in the editor); `AXP_SHEET_ID` pending (requires
-   staging spreadsheet ID from the sheet URL)**
-5. 3 time-driven triggers per §5 — **pending (browser steps documented above)**
-6. 1 Web app deployment — **pending (browser steps documented above)**
+1. ~~Apps Script project `AxisPoint V2 PRODUCTION` (originally STAGING)~~ **Done (2026-08-19); renamed to PRODUCTION 2026-08-26**
+2. ~~Spreadsheet `AxisPoint V2 CRM PRODUCTION` (originally STAGING) with the six tabs above — 48, 8, 47, 28, 7, and
+   **11** columns respectively~~ **Done (2026-08-19); renamed to PRODUCTION 2026-08-26**
+3. ~~Calendar `AxisPoint Booking PRODUCTION` (originally STAGING)~~ **Done (2026-08-19) — `AXP_CALENDAR_ID` set; renamed to PRODUCTION 2026-08-26**
+4. ~~**11** Script Properties set per §3~~ **Done** — all 11 required properties set; `AXP_FIRM_PHONE` and `AXP_LOGO_URL` deliberately left unset. **⚠️ `AXP_FROM_NAME` must be updated from `AxisPoint Partners [STAGING]` to `AxisPoint Partners` before going live.**
+5. 3 time-driven triggers per §5 — **pending (not yet installed; required before `AXP_RUN_MODE` is flipped to `live`)**
+6. 1 Web app deployment — **Done (version @5, 2026-08-24); endpoint URL not recorded in this file**
 7. ~~Local `scripts/gas-v2/.clasp.json`, gitignored~~ **Done (2026-08-19)**
 
 ## Open before provisioning
