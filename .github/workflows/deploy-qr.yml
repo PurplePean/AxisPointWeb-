@@ -3,6 +3,13 @@ name: Deploy — qr.axispoint.llc
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      dangerous_clean_slate:
+        description: 'Wipe the remote directory before deploying — DESTRUCTIVE, cutover-only. Do not enable for routine deploys.'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   deploy:
@@ -37,4 +44,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD_QR }}
           local-dir: ./apps/qr/dist/
           server-dir: ./qr.axispoint.llc/
-          dangerous-clean-slate: true
+          dangerous-clean-slate: ${{ github.event_name == 'workflow_dispatch' && inputs.dangerous_clean_slate == true }}

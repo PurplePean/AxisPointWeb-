@@ -18,13 +18,13 @@
 
 | | `scripts/gas-v2` (V2) |
 |---|---|
-| Apps Script project | **Staging project exists** (`AxisPoint V2 STAGING`). `.clasp.json` is gitignored, not committed |
-| Deployed | **No** — web-app deployment not yet created |
-| Sheet | **Created** (`AxisPoint V2 CRM STAGING`, six tabs) |
-| Script Properties | **1 of 11 set** (`AXP_CALENDAR_ID`); `AXP_SHEET_ID` and 9 others pending |
-| Triggers | **None installed** |
+| Apps Script project | **`AxisPoint V2 PRODUCTION`** (renamed from STAGING 2026-08-26). `.clasp.json` is gitignored, not committed |
+| Deployed | **Yes** — version @5, deployed 2026-08-24. `ANYONE_ANONYMOUS`. Endpoint URL not recorded in this file |
+| Sheet | **`AxisPoint V2 CRM PRODUCTION`** (renamed from STAGING 2026-08-26), six tabs, zero data rows |
+| Script Properties | **11 of 11 required set**; `AXP_FIRM_PHONE` and `AXP_LOGO_URL` deliberately unset. `AXP_RUN_MODE: dry_run` confirmed 2026-08-26. `AXP_FROM_NAME` still has `[STAGING]` suffix — update before going live |
+| Triggers | **None installed** — required before `AXP_RUN_MODE` is flipped to `live` |
 | Frontend pointed at it | **No.** Both apps read `VITE_V2_SUBMISSION_ENDPOINT`, and a lone V1 value is rejected |
-| Status | `pushed to HEAD` — see [`staging-provisioning.md`](staging-provisioning.md) for remaining steps |
+| Status | `pushed to HEAD`, `deployed` (@5, `dry_run`) — see [`staging-provisioning.md`](staging-provisioning.md) for remaining go-live steps |
 
 There were two until 2026-08-15. `scripts/gas` (V1) was an external Apps Script project,
 historically deployed at production version @28, already retired as a business system, and its
@@ -43,7 +43,7 @@ contract in [`backend-v2-contract.md`](backend-v2-contract.md).
 
 Each of these is a separate external mutation. None is implied by merging V2 code.
 
-**Staging status as of 2026-08-19:** steps 1–4 (`clasp push`) are complete. Steps 5–6 are not yet done.
+**Production status as of 2026-08-26:** steps 1–4 and 6 are complete. Step 5 (triggers) is not yet done and is required before going live.
 
 1. ~~Create an Apps Script project and its `.clasp.json` (gitignored, as V1's is).~~ **Done.**
 2. ~~Create the Sheet with the six tabs `Submissions`, `Deliveries`, `Leads`, `Contacts`, `Log`,

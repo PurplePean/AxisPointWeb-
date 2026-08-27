@@ -7,6 +7,20 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-26 (staging environment promoted to production by evidence-based rename)
+
+- **chore(gas-v2): V2 backend environment promoted from staging to production.** Direct audit
+  (2026-08-26) confirmed zero data rows in all six Sheet tabs (`Submissions`, `Deliveries`,
+  `Leads`, `Contacts`, `Log`, `Work`), zero calendar events on `AxisPoint Booking STAGING`,
+  and all required Script Properties set with `AXP_RUN_MODE: dry_run` (confirmed by direct
+  property read, not inferred). Three Google resources renamed in-place:
+  `AxisPoint V2 STAGING` → `AxisPoint V2 PRODUCTION`;
+  `AxisPoint V2 CRM STAGING` → `AxisPoint V2 CRM PRODUCTION`;
+  `AxisPoint Booking STAGING` → `AxisPoint Booking PRODUCTION`.
+  Script ID, Sheet ID, Calendar ID, and all Script Properties are unchanged. Remaining before
+  live: update `AXP_FROM_NAME` (drop `[STAGING]` suffix), install 3 triggers, authorize
+  `AXP_RUN_MODE: live`.
+
 ## 2026-08-26 (first production deploy; all 7 GitHub secrets configured)
 
 - **chore(infra): first successful production deploy.** All 7 GitHub secrets (`V2_SUBMISSION_ENDPOINT`, `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_QR`, `FTP_USERNAME_QR`, `FTP_PASSWORD_QR`) were added to the repository. Merging this PR triggered `deploy-web.yml` and `deploy-qr.yml` for the first time with real credentials — the first time anything in this repository deployed to a real server. The cPanel document root for QR (`public_html/qr` → `qr.axispoint.llc`) is the remaining manual cutover step before the QR deploy URL resolves correctly; see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124).

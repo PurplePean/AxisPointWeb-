@@ -22,20 +22,22 @@ requires, [`backend-v2-contract.md`](backend-v2-contract.md) for the wire contra
 **Nothing in this repository is deployed anywhere, and nothing a visitor sees comes from it.**
 The public site at `axispoint.llc` is a separate, older, hand-uploaded build that was not
 produced from this git history. The V2 Apps Script backend is written, tested, and merged through PR #110 (2026-08-24). The
-Apps Script project (`AxisPoint V2 STAGING`), spreadsheet, and staging calendar exist. The
-web-app deployment exists and is at version @5 (deployed 2026-08-24 after PR #110 merge). Of
-eleven planned Script Properties, one is set (`AXP_CALENDAR_ID`); the remaining ten are not
-yet set. Triggers have not been created. `AXP_RUN_MODE` is `dry_run`; post-merge dry-run
-bookings confirmed `bookingStatus: confirmed` at @5. Booking confirmations now include a
-Google Meet link (for `video_meeting` mode), an RFC 5545 .ics calendar attachment (both
-modes), and partner attendees on the calendar event with real Google Calendar invitations.
-Current backend status: `pushed to HEAD`, `deployed` (staging @5, `AXP_RUN_MODE: dry_run`). Both frontends
-build clean and are wired to the V2 contract through `packages/submission-client`, but they
-have never successfully deployed through GitHub Actions, because the FTP secrets the two
-deploy workflows need are not configured. CI is green on every commit: `ci.yml` (type-check,
-lint, both production builds with bundle inspection, the frontend test suite, and the rendered
-route, ARIA, and 20-state intake baselines) and `test-gas.yml` (`pnpm test:gas-v2`). Neither
-deploys anything. See [`deployment.md`](deployment.md).
+Apps Script project (`AxisPoint V2 PRODUCTION`, renamed from STAGING 2026-08-26), spreadsheet
+(`AxisPoint V2 CRM PRODUCTION`), and booking calendar (`AxisPoint Booking PRODUCTION`) all
+exist and are production-named. The web-app deployment exists and is at version @5 (deployed
+2026-08-24 after PR #110 merge). All 11 required Script Properties are set; `AXP_RUN_MODE`
+is `dry_run` (confirmed by direct read 2026-08-26). Triggers have not been created.
+**`AXP_FROM_NAME` is still `AxisPoint Partners [STAGING]` — must be updated to
+`AxisPoint Partners` before `AXP_RUN_MODE` is flipped to `live`.** Booking confirmations
+include a Google Meet link (`video_meeting`), RFC 5545 .ics attachment (both modes), and
+partner attendees on calendar events. Current backend status: `pushed to HEAD`, `deployed`
+(production @5, `AXP_RUN_MODE: dry_run`). Both frontends
+build clean and are wired to the V2 contract through `packages/submission-client`. All 7
+GitHub secrets are now configured; the first production deploy triggered on 2026-08-26 when
+this PR merged to `main`. CI is green on every commit: `ci.yml` (type-check, lint, both
+production builds with bundle inspection, the frontend test suite, and the rendered route,
+ARIA, and 20-state intake baselines) and `test-gas.yml` (`pnpm test:gas-v2`). See
+[`deployment.md`](deployment.md).
 
 ## 2. What is built and merged
 
@@ -123,8 +125,9 @@ wording on 2026-08-18, and it is now written into both partners' contact records
 physical-card cutover; they do not block frontend implementation or anything currently in
 flight. They are not re-listed here, so that the list has one home.
 
-Staging provisioning is underway; [`staging-provisioning.md`](staging-provisioning.md)
-tracks current state and remaining steps.
+The V2 backend environment was promoted from staging to production 2026-08-26 by evidence-based
+rename. [`staging-provisioning.md`](staging-provisioning.md) is the authoritative record of
+the production environment's configuration, E2E history, and remaining steps before live.
 
 ## 5. Known risks and launch blockers
 
@@ -134,7 +137,7 @@ Each of these was verified against code or an authoritative document on the date
 |---|---|
 | **FTP secrets are not configured** | **Resolved 2026-08-26.** All 7 GitHub secrets now configured. First production deploy triggered by PR merge to `main` today; both `deploy-web.yml` and `deploy-qr.yml` ran for the first time with real credentials. |
 | **SPA rewrite is now tracked** — `.htaccess` added to both `public/` dirs | **Resolved 2026-08-26.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` ship with the build (PR #124). Apache will serve `index.html` for unmatched paths; hard refreshes and locale-prefixed routes will work once the first deploy completes. |
-| **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed; web-app deployment created and at version @5 (2026-08-24, `AXP_RUN_MODE: dry_run`). 1 of 11 Script Properties set; `AXP_SHEET_ID` and 9 others pending. Triggers not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
+| **V2 backend triggers not yet installed** | All three Google resources created 2026-08-19, full E2E matrix passed 2026-08-21–2026-08-24, environment promoted to production 2026-08-26. Version @5 deployed; all 11 required Script Properties set; `AXP_RUN_MODE: dry_run`. Remaining before live: (1) update `AXP_FROM_NAME` to remove `[STAGING]` suffix, (2) install 3 time-driven triggers, (3) flip `AXP_RUN_MODE` to `live` (separate authorized step). See [`staging-provisioning.md`](staging-provisioning.md) |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
 | **QR document root vs deploy target** | **Resolved 2026-08-26.** `deploy-qr.yml` targets `./qr.axispoint.llc/` (correct final path). The cPanel document root update (from `public_html/qr` to `qr.axispoint.llc`) is Step 3 of the cutover procedure and **must complete before the deploy fires** — see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124). |
 | **Deploys add and overwrite but never delete** | **Resolved 2026-08-26.** `dangerous-clean-slate: true` is now set in both deploy workflows. First deploy wipes old hand-uploaded content automatically. |
@@ -162,9 +165,7 @@ not a fallback**: read the tracked document, never the tag.
 
 Pointers, not plans. The detailed scope belongs in the task that does the work.
 
-- **Complete staging provisioning**: set `AXP_SHEET_ID`, install the three triggers, and
-  create the web-app deployment. See [`staging-provisioning.md`](staging-provisioning.md) for
-  current state and the sequence.
+- **Complete production go-live steps**: update `AXP_FROM_NAME` (remove `[STAGING]` suffix), install the three time-driven triggers, then flip `AXP_RUN_MODE` to `live` as a separately authorized step. See [`staging-provisioning.md`](staging-provisioning.md).
 - **Add FTP secrets and execute cutover** — full procedure in
   [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124). All pre-cutover code changes are complete; only the 7 GitHub secrets remain before the cutover can proceed.
 - **Test the QR contact file on a real iPhone and a real Android handset**, per the launch
