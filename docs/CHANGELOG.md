@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-27 (QR deploy server-dir corrected; FTP jail investigation)
+
+- **fix(infra): correct `deploy-qr.yml` `server-dir` from `./qr.axispoint.llc/` to `/`.** Live cPanel API investigation confirmed `Deploy@axispoint.llc` FTP account is jailed at `/home/axisipak/public_html`. The QR Apache document root is `/home/axisipak/qr.axispoint.llc/` — a sibling of `public_html/`, unreachable from that jail. The first production deploy therefore landed QR build files at `public_html/qr.axispoint.llc/` rather than the Apache-served location. `server-dir: /` (jail root) is the correct pattern, matching the web deploy. **Pending cPanel action:** `FTP_USERNAME_QR` must be updated to credentials of an FTP account jailed at `qr.axispoint.llc/` (create a new account; the existing `Deploy@axispoint.llc` account is the web deploy's account and cannot be repurposed).
+
 ## 2026-08-26 (staging environment promoted to production by evidence-based rename)
 
 - **chore(gas-v2): V2 backend environment promoted from staging to production.** Direct audit

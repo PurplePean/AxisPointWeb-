@@ -43,5 +43,5 @@ jobs:
           username: ${{ secrets.FTP_USERNAME_QR }}
           password: ${{ secrets.FTP_PASSWORD_QR }}
           local-dir: ./apps/qr/dist/
-          server-dir: ./qr.axispoint.llc/
+          server-dir: /
           dangerous-clean-slate: ${{ github.event_name == 'workflow_dispatch' && inputs.dangerous_clean_slate == true }}
