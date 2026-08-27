@@ -2,7 +2,7 @@
 
 Where the project actually stands right now.
 
-**Last verified:** August 19, 2026.
+**Last verified:** August 26, 2026.
 
 This file is a snapshot, not a history. It was rewritten from scratch on the date above
 because the previous version had grown by appending each correction underneath the paragraph
@@ -132,7 +132,7 @@ Each of these was verified against code or an authoritative document on the date
 
 | Risk | State |
 |---|---|
-| **FTP secrets are not configured** | Both deploy workflows fail at the FTP step with `Input required and not supplied: server`. Nothing has ever deployed from this repository |
+| **FTP secrets are not configured** | **Resolved 2026-08-26.** All 7 GitHub secrets now configured. First production deploy triggered by PR merge to `main` today; both `deploy-web.yml` and `deploy-qr.yml` ran for the first time with real credentials. |
 | **SPA rewrite is now tracked** — `.htaccess` added to both `public/` dirs | **Resolved 2026-08-26.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` ship with the build (PR #124). Apache will serve `index.html` for unmatched paths; hard refreshes and locale-prefixed routes will work once the first deploy completes. |
 | **V2 backend staging provisioning is incomplete** | Project, spreadsheet, and calendar created 2026-08-19; source pushed; web-app deployment created and at version @5 (2026-08-24, `AXP_RUN_MODE: dry_run`). 1 of 11 Script Properties set; `AXP_SHEET_ID` and 9 others pending. Triggers not yet created. See [`staging-provisioning.md`](staging-provisioning.md) |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
