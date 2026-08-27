@@ -7,6 +7,20 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-08-26 (staging environment promoted to production by evidence-based rename)
+
+- **chore(gas-v2): V2 backend environment promoted from staging to production.** Direct audit
+  (2026-08-26) confirmed zero data rows in all six Sheet tabs (`Submissions`, `Deliveries`,
+  `Leads`, `Contacts`, `Log`, `Work`), zero calendar events on `AxisPoint Booking STAGING`,
+  and all required Script Properties set with `AXP_RUN_MODE: dry_run` (confirmed by direct
+  property read, not inferred). Three Google resources renamed in-place:
+  `AxisPoint V2 STAGING` → `AxisPoint V2 PRODUCTION`;
+  `AxisPoint V2 CRM STAGING` → `AxisPoint V2 CRM PRODUCTION`;
+  `AxisPoint Booking STAGING` → `AxisPoint Booking PRODUCTION`.
+  Script ID, Sheet ID, Calendar ID, and all Script Properties are unchanged. Remaining before
+  live: update `AXP_FROM_NAME` (drop `[STAGING]` suffix), install 3 triggers, authorize
+  `AXP_RUN_MODE: live`.
+
 ## 2026-08-26 (PR #124 merged; cutover blockers resolved, plan consolidated to issue)
 
 - **fix(infra): SPA `.htaccess` added to both apps.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` now ship with each build (Vite copies `public/` verbatim). Apache will serve `index.html` for unmatched paths; hard refreshes, direct links, and locale-prefixed routes (`/es/contact`, etc.) no longer return 404. This was the final tracked code change required before the production cutover.
