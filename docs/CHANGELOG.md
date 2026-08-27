@@ -21,6 +21,10 @@ afterwards. For what is current V2, retired V1, transitional QR, or external, re
   live: update `AXP_FROM_NAME` (drop `[STAGING]` suffix), install 3 triggers, authorize
   `AXP_RUN_MODE: live`.
 
+## 2026-08-26 (first production deploy; all 7 GitHub secrets configured)
+
+- **chore(infra): first successful production deploy.** All 7 GitHub secrets (`V2_SUBMISSION_ENDPOINT`, `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_QR`, `FTP_USERNAME_QR`, `FTP_PASSWORD_QR`) were added to the repository. Merging this PR triggered `deploy-web.yml` and `deploy-qr.yml` for the first time with real credentials — the first time anything in this repository deployed to a real server. The cPanel document root for QR (`public_html/qr` → `qr.axispoint.llc`) is the remaining manual cutover step before the QR deploy URL resolves correctly; see [issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124).
+
 ## 2026-08-26 (PR #124 merged; cutover blockers resolved, plan consolidated to issue)
 
 - **fix(infra): SPA `.htaccess` added to both apps.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` now ship with each build (Vite copies `public/` verbatim). Apache will serve `index.html` for unmatched paths; hard refreshes, direct links, and locale-prefixed routes (`/es/contact`, etc.) no longer return 404. This was the final tracked code change required before the production cutover.
