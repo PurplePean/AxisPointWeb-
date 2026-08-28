@@ -168,8 +168,16 @@ code.
 
 The V1 endpoint variable defect (workflows passing `VITE_FORM_ENDPOINT`/`FORM_ENDPOINT`)
 was corrected in PR #122. Both workflows now pass `VITE_V2_SUBMISSION_ENDPOINT` /
-`V2_SUBMISSION_ENDPOINT`. The QR `server-dir` contradiction (incorrect path set by PR
-#122) was corrected in the same PR as this document.
+`V2_SUBMISSION_ENDPOINT`. The QR `server-dir` was set to `./qr.axispoint.llc/` in PR #123
+and changed to `/` in the same PR as this note, after live investigation confirmed the QR
+FTP account is jailed at `public_html/` — making the subdirectory form unreachable.
+
+**The QR FTP account (`FTP_USERNAME_QR`) must be jailed at `/home/axisipak/qr.axispoint.llc/`.**
+With `server-dir: /`, the deploy writes to the jail root, which must equal the Apache document
+root for `qr.axispoint.llc`. The existing `Deploy@axispoint.llc` account is jailed at
+`public_html/` and is used for the web deploy — it cannot serve double duty here. Create a
+dedicated account jailed at `qr.axispoint.llc/` (matching the pattern of `deploy@crm.axispoint.llc`)
+and set `FTP_USERNAME_QR` / `FTP_PASSWORD_QR` to its credentials.
 
 For the current, authoritative workflow configuration, secrets list, and full cutover
 procedure, see **[GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124)**.
@@ -180,8 +188,8 @@ procedure, see **[GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-
 |---|---|---|---|
 | `.github/workflows/ci.yml` | PR to `main` + push to `main` | Three jobs. **build:** type-check, lint across all four packages, both production builds with `VITE_V2_SUBMISSION_ENDPOINT: ''`, and `inspect-bundle.mjs` against each `dist`. **test-frontend:** `pnpm test:frontend`. **verify-rendered:** route baseline, ARIA assertions, and the 20-state intake baseline in a headless browser. No deploy. | ✅ **passing** |
 | `.github/workflows/test-gas.yml` | PR to `main` + push to `main` | One step, `pnpm test:gas-v2`. It used to run two suites; the V1 step was removed with the V1 backend at retirement | ✅ **passing** |
-| `.github/workflows/deploy-web.yml` | push to `main` | build `@axispoint/web` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/web/dist/` to `./public_html/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
-| `.github/workflows/deploy-qr.yml` | push to `main` | build `@axispoint/qr` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/qr/dist/` to `./qr.axispoint.llc/` with `dangerous-clean-slate` | ❌ **failing** (FTP secrets not configured) |
+| `.github/workflows/deploy-web.yml` | push to `main` + `workflow_dispatch` | build `@axispoint/web` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/web/dist/` to `/` (jail root = `public_html/`); `dangerous-clean-slate` only on manual dispatch with input checked | ✅ **running** (secrets configured 2026-08-26); web FTP account jailed at `public_html/` |
+| `.github/workflows/deploy-qr.yml` | push to `main` + `workflow_dispatch` | build `@axispoint/qr` with `VITE_V2_SUBMISSION_ENDPOINT` → FTP `./apps/qr/dist/` to `/` (jail root, must be `qr.axispoint.llc/`); `dangerous-clean-slate` only on manual dispatch | ⚠️ **running but deploying to wrong path** — `FTP_USERNAME_QR` must use an account jailed at `qr.axispoint.llc/`, not `public_html/` (see note above) |
 
 ### SPA rewrite: tracked and ships with the build (PR #124)
 
