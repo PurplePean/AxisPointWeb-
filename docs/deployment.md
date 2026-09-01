@@ -39,7 +39,7 @@ what a visitor sees, because nothing in this repository is what a visitor sees.
 V2's own rules live in [`scripts/gas-v2/README.md`](../scripts/gas-v2/README.md) and its wire
 contract in [`backend-v2-contract.md`](backend-v2-contract.md).
 
-### Bringing the V2 backend up (staging underway — see [`staging-provisioning.md`](staging-provisioning.md))
+### Bringing the V2 backend up (see [`staging-provisioning.md`](staging-provisioning.md))
 
 Each of these is a separate external mutation. None is implied by merging V2 code.
 
@@ -51,8 +51,7 @@ Each of these is a separate external mutation. None is implied by merging V2 cod
    `src/platform/SheetRepository.js`.~~ **Done.**
 3. Set the Script Properties named in `src/platform/Config.js`. **No value for any of these exists
    in this repository.** Leave `AXP_RUN_MODE` unset or `dry_run` until a live send is
-   intended; an unset mode is `dry_run`, never `live`. **Partially done: `AXP_CALENDAR_ID` set;
-   others pending.**
+   intended; an unset mode is `dry_run`, never `live`. **Done: all 11 required properties set as of 2026-08-26. `AXP_FROM_NAME` corrected to `AxisPoint Partners` (confirmed 2026-08-27; `[STAGING]` suffix removed).**
 
    Storage and routing: `AXP_SHEET_ID`, `AXP_CALENDAR_ID`, `AXP_PARTNER_NOTIFY_TO`,
    `AXP_PARTNER_EMAIL_MAP`, `AXP_REPLY_TO`, `AXP_FROM_NAME`, `AXP_RUN_MODE`.
@@ -199,12 +198,13 @@ any path that has no matching file on disk. `apps/web/public/.htaccess` and
 `dist/` and the FTP deploy places them on the server. No further Apache configuration
 is required.
 
-### Why the two deploy workflows fail
+### QR deploy: FTP account must be jailed at `qr.axispoint.llc/`
 
-The build step succeeds; the **FTP step** fails with `Error: Input required and not
-supplied: server`. The FTP secrets are not configured. Populate the 7 secrets listed
-in [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124) to make deploys go
-green. (Runners also emit a non-fatal Node 20 deprecation warning — informational only.)
+`deploy-qr.yml` uses `server-dir: /` (the FTP jail root). For the deploy to land in the
+correct document root, `FTP_USERNAME_QR` / `FTP_PASSWORD_QR` must be credentials for an
+account jailed at `/home/axisipak/qr.axispoint.llc/`. The `Deploy@axispoint.llc` web account
+is jailed at `public_html/` and cannot serve double duty. Create a dedicated QR FTP account
+jailed at `qr.axispoint.llc/` in cPanel and update the secrets accordingly.
 
 ### GitHub secrets
 

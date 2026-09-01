@@ -33,9 +33,8 @@ Server: `premium171.web-hosting.com`, IP `162.0.209.114`, cPanel account: `axisi
 
 Current cPanel subdomains:
 
-- `qr.axispoint.llc`, document root `/home/axisipak/public_html/qr` (nested inside
-  `public_html`, a known issue, see the production migration plan in
-  [`/docs/deployment.md`](../docs/deployment.md))
+- `qr.axispoint.llc`, document root `/home/axisipak/qr.axispoint.llc` (correct final
+  path, updated at cutover — see [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124))
 - `crm.axispoint.llc`, document root `/home/axisipak/crm.axispoint.llc`, OLD/STALE
   project, safe to wipe when reset
 
