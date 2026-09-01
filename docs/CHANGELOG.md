@@ -11,6 +11,11 @@ afterwards. For what is current V2, retired V1, transitional QR, or external, re
 
 - **fix(infra): correct `deploy-qr.yml` `server-dir` from `./qr.axispoint.llc/` to `/`.** Live cPanel API investigation confirmed `Deploy@axispoint.llc` FTP account is jailed at `/home/axisipak/public_html`. The QR Apache document root is `/home/axisipak/qr.axispoint.llc/` — a sibling of `public_html/`, unreachable from that jail. The first production deploy therefore landed QR build files at `public_html/qr.axispoint.llc/` rather than the Apache-served location. `server-dir: /` (jail root) is the correct pattern, matching the web deploy. **Pending cPanel action:** `FTP_USERNAME_QR` must be updated to credentials of an FTP account jailed at `qr.axispoint.llc/` (create a new account; the existing `Deploy@axispoint.llc` account is the web deploy's account and cannot be repurposed).
 
+## 2026-08-27 (deploy server-dir bugs fixed; SSL pki-validation tracked)
+
+- **fix(infra): both deploy workflows had incorrect `server-dir` values.** `deploy-web.yml` targeted `./public_html/`, which the FTP account (jailed to `public_html/`) resolved as `public_html/public_html/` — every deploy was landing V2 in a nested subdirectory Apache never served. Corrected to `./` (PR #131). `deploy-qr.yml` targeted `./qr.axispoint.llc/` but the QR FTP account must be jailed at `/home/axisipak/qr.axispoint.llc/`; corrected to `./` (PR #132). Both errors left orphaned directories on the server (`public_html/public_html/` and `public_html/qr.axispoint.llc/`) that require manual cleanup.
+- **feat(infra): SSL pki-validation file tracked in `apps/web/public/`.** A Let's Encrypt PKI-validation file required by Namecheap for SSL certificate renewal was hand-placed on the server and erased by each deploy. `apps/web/public/.well-known/pki-validation/` is now tracked in the repo; Vite copies it into `dist/` and the FTP deploy carries it forward. (PR #133)
+
 ## 2026-08-26 (staging environment promoted to production by evidence-based rename)
 
 - **chore(gas-v2): V2 backend environment promoted from staging to production.** Direct audit
