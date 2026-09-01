@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# AI crawlers — AxisPoint wants to be found and cited by AI systems.
+# Allowing all four here is the recommendation; confirm with the owner before changing.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://axispoint.llc/sitemap.xml
