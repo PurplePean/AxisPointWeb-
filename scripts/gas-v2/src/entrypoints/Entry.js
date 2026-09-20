@@ -225,3 +225,27 @@ function runSheetProvisioning(sheetId) {
   var book = SpreadsheetApp.openById(sheetId);
   return provisionSheet(book);
 }
+
+/**
+ * TEMPORARY GO-LIVE TOOLS. Run once, then delete.
+ *
+ * setRunModeLive() writes AXP_RUN_MODE = "live" via Properties Service (exact bytes,
+ * no whitespace). readRunMode() reads the value back and logs it with a verdict.
+ *
+ * WHY HERE. The deployability test confines PropertiesService calls to
+ * platform/GoogleServices.js and entrypoints/Entry.js. These are admin entry points,
+ * so Entry.js is the right home.
+ */
+function setRunModeLive() {
+  PropertiesService.getScriptProperties().setProperty('AXP_RUN_MODE', 'live');
+  Logger.log('AXP_RUN_MODE written.');
+  Logger.log('Call readRunMode() to confirm the stored value before proceeding.');
+}
+
+function readRunMode() {
+  var value = PropertiesService.getScriptProperties().getProperty('AXP_RUN_MODE');
+  Logger.log('AXP_RUN_MODE = ' + JSON.stringify(value));
+  Logger.log(value === 'live'
+    ? 'CONFIRMED LIVE — real emails and calendar events will fire.'
+    : 'NOT live — current value is ' + JSON.stringify(value));
+}
