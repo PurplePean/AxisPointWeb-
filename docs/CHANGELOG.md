@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-09-20 (permanent go-live: AXP_RUN_MODE set to live, all three triggers installed)
+
+- **chore(gas-v2): V2 backend promoted to live mode — permanent, not a test flip.** Pre-go-live audit run 2026-09-20 confirmed zero non-TEST rows in the Leads tab and zero pending or failed Work items across the six-tab Sheet (clean slate). `AXP_RUN_MODE` set from `dry_run` to `live` via `setRunModeLive()` and confirmed by direct `readRunMode()` property read in the Apps Script execution log (2026-09-20). All three time-driven triggers installed in the Apps Script Triggers panel: `runWorkerTrigger` (time-driven, every 5 minutes, function: `src/entrypoints/Entry.js:192`); `runDailyQrDigestTrigger` (time-driven, day timer, 8–9 AM, time zone: America/Chicago, function: `src/entrypoints/Entry.js:204`); `runRetentionMaintenanceTrigger` (time-driven, day timer, 3–4 AM, time zone: America/Chicago, function: `src/entrypoints/Entry.js:214`). The V2 backend is now live: real website service-inquiry submissions reach the Sheet, acknowledgement and partner notification emails are sent to real addresses, and real calendar events are created on `AxisPoint Booking PRODUCTION` for confirmed bookings. The QR Contact Exchange path (Contact, not Lead) also live: exchanges are stored and the daily digest fires.
+
 ## 2026-08-27 (deploy server-dir bugs fixed; SSL pki-validation tracked)
 
 - **fix(infra): `deploy-web.yml` `server-dir` corrected from `./public_html/` to `./`.** (PR #131) The `Deploy@axispoint.llc` FTP account is jailed at `/home/axisipak/public_html/`. Targeting `./public_html/` from that jail resolved to `public_html/public_html/` — every web deploy was landing V2 files in a nested subdirectory Apache never served. Corrected to `./` so files land in the FTP jail root, which is the actual web root. Left orphan directory `public_html/public_html/` on the server requiring manual cleanup.
