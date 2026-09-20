@@ -2,7 +2,7 @@
 
 Where the project actually stands right now.
 
-**Last verified:** August 27, 2026.
+**Last verified:** September 20, 2026.
 
 This file is a snapshot, not a history. It was rewritten from scratch on the date above
 because the previous version had grown by appending each correction underneath the paragraph
@@ -26,12 +26,15 @@ Apps Script project (`AxisPoint V2 PRODUCTION`, renamed from STAGING 2026-08-26)
 (`AxisPoint V2 CRM PRODUCTION`), and booking calendar (`AxisPoint Booking PRODUCTION`) all
 exist and are production-named. The web-app deployment exists and is at version @5 (deployed
 2026-08-24 after PR #110 merge). All 11 required Script Properties are set; `AXP_RUN_MODE`
-is `dry_run` (confirmed by direct read 2026-08-26). Triggers have not been created.
-`AXP_FROM_NAME` has been corrected to `AxisPoint Partners` (confirmed 2026-08-27 via direct
-property read in the execution log; the `[STAGING]` suffix is gone). Booking confirmations
-include a Google Meet link (`video_meeting`), RFC 5545 .ics attachment (both modes), and
-partner attendees on calendar events. Current backend status: `pushed to HEAD`, `deployed`
-(production @5, `AXP_RUN_MODE: dry_run`). Both frontends
+is `live` (confirmed by direct property read 2026-09-20, after pre-go-live audit confirmed
+zero non-TEST rows in the Leads tab and zero pending or failed Work items). All three
+time-driven triggers installed 2026-09-20: `runWorkerTrigger` (every 5 minutes),
+`runDailyQrDigestTrigger` (daily, 8–9 AM Central), `runRetentionMaintenanceTrigger` (daily,
+3–4 AM Central). `AXP_FROM_NAME` is `AxisPoint Partners` (confirmed 2026-08-27; the
+`[STAGING]` suffix is gone). Booking confirmations include a Google Meet link
+(`video_meeting`), RFC 5545 .ics attachment (both modes), and partner attendees on calendar
+events. Current backend status: `pushed to HEAD`, `deployed` (production @5,
+`AXP_RUN_MODE: live`). Both frontends
 build clean and are wired to the V2 contract through `packages/submission-client`. All 7
 GitHub secrets are now configured; the first production deploy triggered on 2026-08-26 when
 this PR merged to `main`. CI is green on every commit: `ci.yml` (type-check, lint, both
@@ -137,7 +140,7 @@ Each of these was verified against code or an authoritative document on the date
 |---|---|
 | **FTP secrets are not configured** | **Resolved 2026-08-26.** All 7 GitHub secrets now configured. First production deploy triggered by PR merge to `main` today; both `deploy-web.yml` and `deploy-qr.yml` ran for the first time with real credentials. |
 | **SPA rewrite is now tracked** — `.htaccess` added to both `public/` dirs | **Resolved 2026-08-26.** `apps/web/public/.htaccess` and `apps/qr/public/.htaccess` ship with the build (PR #124). Apache will serve `index.html` for unmatched paths; hard refreshes and locale-prefixed routes will work once the first deploy completes. |
-| **V2 backend triggers not yet installed** | All three Google resources created 2026-08-19, full E2E matrix passed 2026-08-21–2026-08-24, environment promoted to production 2026-08-26. Version @5 deployed; all 11 required Script Properties set; `AXP_RUN_MODE: dry_run`; `AXP_FROM_NAME` corrected 2026-08-27. Remaining before live: (1) install 3 time-driven triggers, (2) flip `AXP_RUN_MODE` to `live` (separate authorized step). See [`staging-provisioning.md`](staging-provisioning.md) |
+| **V2 backend triggers and live mode** | **Resolved 2026-09-20.** Pre-go-live audit (2026-09-20) confirmed zero non-TEST rows in Leads and zero pending or failed Work items — clean slate. `AXP_RUN_MODE` set to `live` via `setRunModeLive()` and confirmed by direct property read. All three time-driven triggers installed in the Apps Script Triggers panel: `runWorkerTrigger` (every 5 minutes), `runDailyQrDigestTrigger` (daily, 8–9 AM Central), `runRetentionMaintenanceTrigger` (daily, 3–4 AM Central). The V2 backend is live. |
 | **The QR Save-contact file has never been opened on a real phone** | **Launch blocker, and the only one on this feature.** **Narrowed on 2026-08-18, not closed.** Real-device testing that day established what does NOT work: a single action delivering one file with both records cannot reach iOS Safari's "Add All 2 Contacts" flow, because Safari ignores the `download` attribute on a `blob:` URL and previews one card instead. The card was changed to **two actions, each delivering a single-record file** — the shape that worked for this project's whole life before 2026-08-17 — but **the two-action flow itself has not been walked end to end** on a real iPhone (Safari, Contacts) or a real Android handset (Chrome, Contacts), because it did not exist until that change. `apps/qr/tests/vcard.test.ts` pins the bytes of the file, which is everything automated testing can establish here; it proves nothing about the device. **Manual verification by the owner on both platforms is required before this ships.** The expected result is that each button, pressed on its own, saves exactly that one partner with the right name, title, direct number, direct address, and note — and that pressing both saves both people |
 | **QR FTP jail mismatch — deploy landing wrong directory** | **Code fix merged 2026-08-27** (this PR). Investigation confirmed `Deploy@axispoint.llc` FTP account is jailed at `/home/axisipak/public_html`; `qr.axispoint.llc/` is a sibling of `public_html/`, not inside it, so `server-dir: ./qr.axispoint.llc/` from that jail placed files at `public_html/qr.axispoint.llc/` — confirmed by the misplaced build artifacts there. `server-dir` changed to `/` (jail root), matching the web deploy's pattern. **Pending cPanel action before the QR deploy is added as a GitHub secret:** create a dedicated FTP account (or repurpose a suitable one) jailed at `/home/axisipak/qr.axispoint.llc/` and use its credentials as `FTP_USERNAME_QR` / `FTP_PASSWORD_QR`. The cPanel doc root change (from `public_html/qr` to `qr.axispoint.llc`) was already completed. |
 | **Deploys add and overwrite but never delete** | **Resolved 2026-08-26/27.** Both deploy workflows now gate `dangerous-clean-slate` behind a manual `workflow_dispatch` with `dangerous_clean_slate: true` explicitly checked (PR #131). Push-to-main deploys are non-destructive. The cutover wipe requires deliberate manual dispatch. |
@@ -165,7 +168,6 @@ not a fallback**: read the tracked document, never the tag.
 
 Pointers, not plans. The detailed scope belongs in the task that does the work.
 
-- **Complete production go-live steps**: install the three time-driven triggers, then flip `AXP_RUN_MODE` to `live` as a separately authorized step. See [`staging-provisioning.md`](staging-provisioning.md).
 - **Trigger the manual clean-slate cutover deploy** — full procedure in [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124). FTP secrets are configured, code is correct, and the QR doc root is updated. Execute via GitHub Actions → "Deploy — axispoint.llc" → Run workflow with "Wipe the remote directory" checked, then repeat for "Deploy — qr.axispoint.llc".
 - **Test the QR contact file on a real iPhone and a real Android handset**, per the launch
   blocker in section 5. It needs a person and two phones, not a commit.
