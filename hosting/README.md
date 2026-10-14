@@ -115,6 +115,21 @@ node hosting/add-subdomain.js book
 node hosting/add-subdomain.js book public_html/book --yes
 ```
 
+**`run-autossl.js`** — start an AutoSSL check now (UAPI `SSL::start_autossl_check`).
+
+```bash
+node hosting/run-autossl.js [--verify=<hostname>] [--yes]
+
+# example: after creating leasing.axispoint.llc and adding its A record
+node hosting/run-autossl.js --verify=leasing.axispoint.llc
+```
+
+AutoSSL runs on its own schedule; this just avoids waiting after a new subdomain. It only
+covers domains whose DNS already resolves to this server, so add the A record first. With
+`--verify` it polls the hostname over TLS (full certificate verification) for up to five
+minutes and reports whether a valid certificate is now served. Not yet run against the live
+account; first run is the real test.
+
 **`add-redirect.js`** — create a redirect (UAPI `Redirects::add_redirect`).
 
 ```bash
