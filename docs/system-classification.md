@@ -192,6 +192,20 @@ V2 surfaces:
 
 Do not make QR retirement part of V1 retirement, and do not reduce QR functionality.
 
+## Leasing site (new, V2-era, not deployed)
+
+`apps/leasing` is the retail leasing site planned for `leasing.axispoint.llc`: Home, Listings
+and Contact, built from the owner-approved leasing draft with the brand tokens in
+`packages/brand`. It is **current V2-era code, not V1 and not transitional**.
+
+- **It does not use the Apps Script backend.** The backend contract has no leasing pathway, so
+  the Contact form composes a pre-filled mailto to the firm inbox (`src/lib/contact.ts`) and
+  never claims a message was delivered. Adding a pathway is a contract change plus a manual
+  `clasp push` and `clasp deploy -i`, and is an open owner decision.
+- **It has no deploy workflow.** CI builds, bundle-inspects (`--no-submission`) and tests it,
+  but merging deploys nothing. See [`deployment.md`](deployment.md) for the launch checklist.
+- **The Listings page is a placeholder** until Crexi confirms embed access.
+
 ## Confirmed language scope
 
 AxisPoint intends to support all nine registered languages. This is a settled product requirement, not an optional wishlist.

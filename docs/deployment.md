@@ -212,6 +212,20 @@ See [GitHub issue #124](https://github.com/PurplePean/AxisPointWeb-/issues/124) 
 current secrets table (7 secrets). The table that used to live here listed `FORM_ENDPOINT` (V1,
 now removed from both workflows) and is superseded.
 
+## Leasing site (`apps/leasing`): not deployed, launch checklist
+
+No workflow deploys it and none should be added until the hosting vendor is chosen. Before it
+goes live:
+
+1. Remove the `robots` `noindex, nofollow` tag from `apps/leasing/index.html`.
+2. Provide SPA fallback on the host (`public/.htaccess` ships for Apache; other hosts need an
+   equivalent rewrite to `index.html`).
+3. Confirm the canonical URL `https://leasing.axispoint.llc/` and add a sitemap if wanted.
+4. Give its document root its own deploy account, outside the `public_html` jail used by the web deploy.
+5. Replace the Listings placeholder once Crexi confirms embed access, and confirm lead recipients.
+6. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
+   then `node hosting/add-subdomain.js` and `node hosting/run-autossl.js --verify=<host>`.
+
 ## Hosting automation and hosting inventory
 
 The cPanel + Namecheap automation library, its credentials, per-command usage, and

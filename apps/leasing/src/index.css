@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: #fffcf6;
+  color: #1c1628;
+  font-family: 'Figtree', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Approved focus contract: 3px #38285D ring at a 3px offset, never removed. */
+:focus-visible {
+  outline: 3px solid #38285d;
+  outline-offset: 3px;
+}
+
+/* Footer links sit on #141020, where the purple ring disappears. */
+footer :focus-visible {
+  outline-color: #ffffff;
+}
+
+a,
+button {
+  transition-duration: 120ms;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
