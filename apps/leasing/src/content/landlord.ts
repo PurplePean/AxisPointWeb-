@@ -6,15 +6,21 @@
  * before launch. See the launch checklist in docs/deployment.md.
  */
 
-// UNCONFIRMED: Agreement terms and commission rates.
-export const AGREEMENT_OPTIONS = [
-  { days: 90, ratePercent: 6 },
-  { days: 120, ratePercent: 5 },
-] as const;
+// UNCONFIRMED: Agreement structure. One 90-day listing agreement whose
+// commission rate depends on when the lease is signed. The reading that the
+// rate steps down based on the lease signing date (not the listing start date)
+// needs owner confirmation.
+export const AGREEMENT = {
+  totalDays: 90,
+  phases: [
+    { fromDay: 1, toDay: 60, ratePercent: 6 },
+    { fromDay: 61, toDay: 90, ratePercent: 5 },
+  ],
+} as const;
 
 // UNCONFIRMED: Controls whether commission rates are shown on the page.
 // Set to false to hide every percentage until the rates are confirmed.
-// When false the page shows only the term choice and never mentions a
+// When false the page shows only the agreement term and never mentions a
 // percentage anywhere.
 export const SHOW_RATES = true;
 
@@ -29,19 +35,34 @@ export const SPEED_PROMISES = [
 // UNCONFIRMED: confirm wording with the owner.
 export const HOME_STRIP_PROMISES = [
   'Same business day reply',
-  'You choose the term',
+  'One 90 day agreement',
   'Nothing hidden',
 ] as const;
 
 /**
- * Returns the display label for an agreement option card.
- * When showRates is false the percentage is omitted entirely.
+ * Returns display labels for each phase of the agreement.
+ * When showRates is true: "Days 1 to 60: 6%", "Days 61 to 90: 5%"
+ * When showRates is false: "Days 1 to 90" (single collapsed label, no percentages)
  */
-export function formatAgreementLabel(
-  option: (typeof AGREEMENT_OPTIONS)[number],
-  showRates: boolean,
-): string {
-  return showRates
-    ? `${option.days} day agreement, ${option.ratePercent}%`
-    : `${option.days} day agreement`;
+export function agreementPhaseLabels(showRates: boolean): string[] {
+  if (!showRates) {
+    const first = AGREEMENT.phases[0];
+    const last = AGREEMENT.phases[AGREEMENT.phases.length - 1];
+    return [`Days ${first.fromDay} to ${last.toDay}`];
+  }
+  return AGREEMENT.phases.map((p) => `Days ${p.fromDay} to ${p.toDay}: ${p.ratePercent}%`);
+}
+
+/**
+ * Returns a summary sentence for the agreement.
+ * When showRates is true includes a sentence about the rate depending on when
+ * the lease is signed.
+ * TODO: owner to supply the commission basis wording (e.g., "of gross lease value").
+ */
+export function agreementSummary(showRates: boolean): string {
+  const base = `One ${AGREEMENT.totalDays} day agreement.`;
+  if (!showRates) return base;
+  // UNCONFIRMED: the reading that the commission rate depends on when the
+  // lease is signed (not the listing start date) needs owner confirmation.
+  return `${base} The commission rate depends on when the lease is signed.`;
 }

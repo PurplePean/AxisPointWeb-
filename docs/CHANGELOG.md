@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (leasing agreement restructured to single 90-day term with phase rates)
+
+- **feat(leasing): `AGREEMENT_OPTIONS` / `formatAgreementLabel` replaced with `AGREEMENT` (one 90-day term, two rate phases) and helpers `agreementPhaseLabels` / `agreementSummary` in `apps/leasing/src/content/landlord.ts`.** The landlord page agreement section now shows a two-segment phase timeline instead of option cards. Home promise strip updated to "One 90 day agreement". All values remain UNCONFIRMED; the 60/30-day rate step and the reading that the rate depends on the lease signing date need owner confirmation.
+
 ## 2026-10-15 (leasing dev server auto-restart on git change)
 
 - **chore(leasing): `restartOnGitChange` Vite plugin added to `apps/leasing/vite.config.ts`.** Dev-only (`apply:'serve'`); never included in builds. Watches `.git/HEAD`, `.git/ORIG_HEAD` and `pnpm-lock.yaml` at the repo root; debounces 400ms then calls `server.restart()`. Closes watchers on http server close.

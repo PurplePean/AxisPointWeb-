@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { GUTTER, Eyebrow, TealButton } from '@/components/ui';
 import {
-  AGREEMENT_OPTIONS,
   SHOW_RATES,
   SPEED_PROMISES,
-  formatAgreementLabel,
+  agreementPhaseLabels,
+  agreementSummary,
 } from '@/content/landlord';
 import { calcVacancyCost } from '@/lib/vacancy';
 
@@ -151,29 +151,25 @@ export default function LandlordPage() {
                 We earn the listing every day, not once.
               </h2>
               <p className="mb-0 mt-4 max-w-[52ch] text-[16.5px] leading-relaxed text-v2-ink/[0.68]">
-                You choose the term. If the listing is not producing, talk to us. A short
+                {agreementSummary(SHOW_RATES)} If the listing is not producing, talk to us. A short
                 agreement keeps us accountable.
               </p>
             </div>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-4">
-              {AGREEMENT_OPTIONS.map((opt) => (
+            {/* Two-segment timeline: one row per phase */}
+            <div className="flex flex-col gap-2">
+              {agreementPhaseLabels(SHOW_RATES).map((label) => (
                 <div
-                  key={opt.days}
-                  className="flex flex-col gap-2 rounded-v2 border border-v2-ink/[0.14] bg-v2-field-warm p-6"
+                  key={label}
+                  className="flex items-center gap-4 rounded-v2 border border-v2-ink/[0.14] bg-v2-field-warm px-6 py-4"
                 >
-                  <span className="text-[13px] font-bold uppercase tracking-[0.1em] text-v2-purple/[0.7]">
-                    Option
-                  </span>
-                  <span className="text-[22px] font-semibold tracking-[-0.02em] text-v2-ink">
-                    {formatAgreementLabel(opt, SHOW_RATES)}
+                  <span aria-hidden="true" className="h-2 w-2 flex-none rounded-full bg-v2-purple" />
+                  <span className="text-[17px] font-semibold tracking-[-0.02em] text-v2-ink">
+                    {label}
                   </span>
                   {/* TODO: owner to supply commission basis wording (e.g., "of gross lease value") */}
                 </div>
               ))}
             </div>
-            <p className="m-0 max-w-[52ch] text-[13px] leading-normal text-v2-ink/[0.5]">
-              Longer term, lower rate. Both options are short by design.
-            </p>
           </div>
 
           {/* Vacancy cost calculator */}
@@ -200,10 +196,21 @@ export default function LandlordPage() {
                   <span aria-hidden="true" className="text-v2-purple text-xl font-light">+</span>
                 </summary>
                 <p className={FAQ_BODY}>
-                  90 or 120 days. You choose. Both are short enough that you are never locked
-                  in for a long stretch, and the rate is lower on the longer term.
+                  90 days.
                 </p>
               </details>
+
+              {SHOW_RATES && (
+                <details className={FAQ_ITEM}>
+                  <summary className={FAQ_SUMMARY}>
+                    How does the rate work?
+                    <span aria-hidden="true" className="text-v2-purple text-xl font-light">+</span>
+                  </summary>
+                  <p className={FAQ_BODY}>
+                    {agreementSummary(true)}
+                  </p>
+                </details>
+              )}
 
               <details className={FAQ_ITEM}>
                 <summary className={FAQ_SUMMARY}>
