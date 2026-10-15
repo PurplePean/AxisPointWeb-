@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (leasing dev server auto-restart on git change)
+
+- **chore(leasing): `restartOnGitChange` Vite plugin added to `apps/leasing/vite.config.ts`.** Dev-only (`apply:'serve'`); never included in builds. Watches `.git/HEAD`, `.git/ORIG_HEAD` and `pnpm-lock.yaml` at the repo root; debounces 400ms then calls `server.restart()`. Closes watchers on http server close.
+
 ## 2026-10-15 (leasing landlord content and vacancy calculator)
 
 - **feat(leasing): landlord page rebuilt with speed and no-lock-in spine.** `src/content/landlord.ts` added as single source for all UNCONFIRMED landlord claims (agreement terms, commission rates, speed promises). `src/lib/vacancy.ts` adds a pure vacancy cost calculator. `LandlordPage` rebuilt with speed section, agreement option cards (rates gated by `SHOW_RATES`), vacancy calculator, FAQ, and closing CTA. Home page gains a three-item promise strip for landlords. "Also from AxisPoint" strip and footer link to `axispoint.llc`. Launch checklist updated with two new items.
