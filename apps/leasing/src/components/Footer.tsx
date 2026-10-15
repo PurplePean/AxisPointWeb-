@@ -26,6 +26,14 @@ export default function Footer() {
           <span className={heading}>Firm</span>
           <Link className={linkClass} to="/">AxisPoint Partners</Link>
           <Link className={linkClass} to="/contact">Contact</Link>
+          <a
+            className={linkClass}
+            href="https://axispoint.llc"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            axispoint.llc &#8599;
+          </a>
         </div>
         <div className="flex flex-col">
           <span className={heading}>Contact</span>

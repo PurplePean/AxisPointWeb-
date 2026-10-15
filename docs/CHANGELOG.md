@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (leasing landlord content and vacancy calculator)
+
+- **feat(leasing): landlord page rebuilt with speed and no-lock-in spine.** `src/content/landlord.ts` added as single source for all UNCONFIRMED landlord claims (agreement terms, commission rates, speed promises). `src/lib/vacancy.ts` adds a pure vacancy cost calculator. `LandlordPage` rebuilt with speed section, agreement option cards (rates gated by `SHOW_RATES`), vacancy calculator, FAQ, and closing CTA. Home page gains a three-item promise strip for landlords. "Also from AxisPoint" strip and footer link to `axispoint.llc`. Launch checklist updated with two new items.
+
 ## 2026-10-15 (PR template and conventions)
 
 - **docs(docs): PR template gains Summary and Apps affected sections; PR conventions added to `docs/branching.md`.** `leasing` added to allowed commit scopes in `CLAUDE.md`. GitHub labels `app:web`, `app:qr`, `app:leasing`, `packages`, `gas`, `infra`, `held`, `unconfirmed-content` created.

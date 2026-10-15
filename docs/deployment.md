@@ -223,7 +223,9 @@ goes live:
 3. Confirm the canonical URL `https://leasing.axispoint.llc/` and add a sitemap if wanted.
 4. Give its document root its own deploy account, outside the `public_html` jail used by the web deploy.
 5. Confirm lead recipients for the leasing contact form (currently `info@axispoint.llc`; open owner decision). The Listings page links to Ethaniel Vu's Crexi profile and requires no further action for launch. Crexi Fuse (automated feed) is a possible later option; it needs no code change today.
-6. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
+6. **Confirm or remove the commission rates and speed promises in `apps/leasing/src/content/landlord.ts` with Ethaniel and Theophanes.** All values are marked UNCONFIRMED. Set `SHOW_RATES = false` to hide percentages until they are confirmed. Supply the exit terms for the "What if it is not working?" FAQ answer and the commission basis wording (e.g., "of gross lease value") for the agreement cards.
+7. After leasing is live, add links from the main site (`axispoint.llc`) and the QR card to `leasing.axispoint.llc`.
+8. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
    then `node hosting/add-subdomain.js` and `node hosting/run-autossl.js --verify=<host>`.
 
 ## Hosting automation and hosting inventory
