@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (PR template and conventions)
+
+- **docs(docs): PR template gains Summary and Apps affected sections; PR conventions added to `docs/branching.md`.** `leasing` added to allowed commit scopes in `CLAUDE.md`. GitHub labels `app:web`, `app:qr`, `app:leasing`, `packages`, `gas`, `infra`, `held`, `unconfirmed-content` created.
+
 ## 2026-10-15 (leasing site finished: /landlord, /tenant, Listings links to Crexi)
 
 - **feat(leasing): /landlord and /tenant pages added.** Header and footer navigation updated from hash anchors (`/#landlord`, `/#tenant`) to dedicated routes. Home page lane CTAs now point to those routes. Both pages end in the mailto contact flow with `?role=` preselected.

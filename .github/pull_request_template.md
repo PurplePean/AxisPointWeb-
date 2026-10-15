@@ -1,3 +1,20 @@
+## Summary
+
+<!-- One plain sentence for a reader with no context: what does this PR do and why does it matter? -->
+
+## Apps affected
+
+<!-- Tick every one the diff touches. If a PR touches more than one app, say why in What changed. -->
+
+- [ ] main site (`apps/web`)
+- [ ] QR card (`apps/qr`)
+- [ ] leasing site (`apps/leasing`)
+- [ ] `packages/brand`
+- [ ] `packages/submission-client`
+- [ ] `scripts/gas-v2`
+- [ ] CI and infra
+- [ ] docs only
+
 ## What changed
 
 ## Why

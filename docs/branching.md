@@ -100,6 +100,37 @@ email, calendar event, or Contact change, not a GitHub secret, FTP, cPanel, or D
 not a frontend deployment. Every one of those is separate and separately authorized. See
 [`deployment.md`](deployment.md).
 
+## PR conventions
+
+This section is the single home for PR title and label rules. The PR template prompts for each; this is where the rules live.
+
+### Title
+
+- The title must describe what the diff actually does, not the goal or the ticket. "feat(leasing): add /landlord and /tenant pages" is correct; "leasing improvements" is not.
+- A PR that introduces something new says so with `feat`. A fix says `fix`. Documentation-only says `docs`. Infra/CI says `chore`.
+- Scope in the title is the primary area touched: `web`, `qr`, `leasing`, `brand`, `gas-v2`, `infra`, `docs`. Use the area that the bulk of the diff is in. If a single PR genuinely touches two areas equally, use the more specific one and explain the cross-area touch in "What changed".
+- When a PR replaces or supersedes another, reference its number in "What changed" and in the title if the connection is not obvious.
+
+### Labels
+
+Apply every label that fits. Do not remove existing labels.
+
+| Label | Meaning |
+|---|---|
+| `app:web` | Touches `apps/web` |
+| `app:qr` | Touches `apps/qr` |
+| `app:leasing` | Touches `apps/leasing` |
+| `packages` | Touches `packages/brand` or `packages/submission-client` |
+| `gas` | Touches `scripts/gas-v2` |
+| `infra` | Touches CI workflows, hosting scripts, or deployment config |
+| `documentation` | Touches `docs/` or `CLAUDE.md` (existing label) |
+| `held` | PR is intentionally open; reason must be in the body |
+| `unconfirmed-content` | Contains copy, contact values, or facts not yet confirmed by the owner |
+
+### Held PRs
+
+A held PR gets the `held` label and states the reason in "Deferred" or at the top of the body. The two cases that require holding are documented in "When a PR may auto-merge" above.
+
 ## Tags
 
 `v1-stable` remains only as a harmless historical bookmark. No special branch handling is
