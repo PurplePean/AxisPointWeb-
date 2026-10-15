@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Eyebrow, GUTTER, PurpleButton, TealButton, TextLink } from '@/components/ui';
+import { HOME_STRIP_PROMISES } from '@/content/landlord';
 
 const LANDLORD = [
   'Listing and marketing, including Crexi',
@@ -77,6 +78,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className={`border-y border-v2-ink/10 bg-v2-field-warm py-9 ${GUTTER}`}>
+        <div className="mx-auto max-w-v2">
+          <div className="grid gap-4">
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+              <Eyebrow className="!text-v2-purple/[0.85]">For landlords</Eyebrow>
+              {HOME_STRIP_PROMISES.map((p) => (
+                <span key={p} className="flex items-center gap-2 text-[15px] font-medium text-v2-ink/[0.72]">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 flex-none bg-v2-teal" />
+                  {p}
+                </span>
+              ))}
+            </div>
+            <Link to="/landlord" className={STRIP}>
+              <span>How we work with landlords</span>
+              <span aria-hidden="true" className="flex-none text-xl">&#8594;</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section id="lanes" className={`bg-v2-surface py-[72px] ${GUTTER}`}>
         <div className="mx-auto flex max-w-v2 flex-col gap-14">
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-start gap-x-14 gap-y-10">
@@ -124,9 +145,15 @@ export default function HomePage() {
       <section className={`border-b border-v2-ink/[0.14] bg-v2-surface py-11 ${GUTTER}`}>
         <div className="mx-auto grid max-w-v2 grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] items-center gap-x-14 gap-y-5">
           <Eyebrow className="!text-v2-purple/[0.85]">Also from AxisPoint</Eyebrow>
-          <span className={STRIP}>
+          <a
+            href="https://axispoint.llc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={STRIP}
+          >
             <span>Property management for multifamily and retail owners across Texas</span>
-          </span>
+            <span aria-hidden="true" className="flex-none text-xl">&#8599;</span>
+          </a>
         </div>
       </section>
     </>
