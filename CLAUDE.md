@@ -89,6 +89,8 @@ here; keep this section terse and let those two files carry the detail.
 
 Never run the web or qr dev servers in the same terminal tab as a Claude Code session — starting Claude Code requires interrupting whatever's running in that tab, which kills the dev server. If you need to verify something live, ask the user to confirm a dev server is running in its own tab first, or check before assuming one is up.
 
+The leasing dev server (`pnpm dev:leasing`) restarts itself automatically when `.git/HEAD` or `pnpm-lock.yaml` changes, covering branch switches and pulls. It does not run `pnpm install`; run that separately if a pull adds new packages. A browser refresh may be needed after the server restarts.
+
 ## Dev vs e2e run modes (form endpoint safety)
 
 The frontend talks to a real backend only when you deliberately opt in. This is enforced
