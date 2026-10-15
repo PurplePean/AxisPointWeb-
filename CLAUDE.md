@@ -44,13 +44,13 @@ If /docs doesn't cover something you need to know, investigate the real current 
 
 ## Git workflow
 
-Every task: create a feature branch (never commit directly to main), stage changes, commit with message format "type(scope): short description" where type is feat, fix, refactor, chore, or docs, and scope is the area actually touched (brand, web, qr, gas, gas-v2, infra, docs) — match to what really changed, not what the task description said, if they differ.
+Every task: create a feature branch (never commit directly to main), stage changes, commit with message format "type(scope): short description" where type is feat, fix, refactor, chore, or docs, and scope is the area actually touched (brand, web, qr, leasing, gas, gas-v2, infra, docs) — match to what really changed, not what the task description said, if they differ.
 
 Branch names use the same shape: `type/short-kebab-description`. Start every branch from an updated `main`. If the working tree is dirty with changes you did not make, stop and report rather than stashing, committing, or discarding them.
 
 **Branch-first is a HARD rule, not a preference — create the branch BEFORE the first commit, not after.** Real incident, recorded so it is not repeated: during the unified-schema migration, a stage's commit was made **directly to `main`** because the feature branch had not been created first, and it was then pushed to `origin/main`. It was caught immediately; the fix was to (1) create the intended feature branch pointing at the new commit so the work was preserved, (2) `git reset --hard` `main` back to the previous commit, (3) `git push --force-with-lease origin main` to restore the remote, then (4) proceed with the normal branch → PR flow. No work was lost — but for a brief window `main` carried an unreviewed commit and shared remote history had to be force-rewritten, which is exactly the outcome branch-first exists to prevent. **If this rule is ever violated: preserve the work on a branch, reset the shared branch, force-push to restore it, and disclose the whole sequence immediately — never quietly paper over it.** The cost of the recovery is precisely why you create the branch first.
 
-Push the branch, open a PR (title matches the commit format, description uses sections "What changed", "Why", "Testing").
+Push the branch, open a PR (title matches the commit format, description uses sections "What changed", "Why", "Testing"). PR title and label conventions are in [`docs/branching.md` §PR conventions](docs/branching.md).
 
 **Auto-merge is the default.** Routine, self-contained, completed code merges normally once checks pass. After opening the PR, merge it yourself (squash merge, delete the branch), then switch the local repo back to main and pull, leaving no local/remote branches behind. This includes locally tested GAS code: a passing `pnpm test:gas-v2` run is a normal completion signal, not a reason to hold.
 
