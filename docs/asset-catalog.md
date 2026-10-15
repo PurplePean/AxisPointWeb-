@@ -94,7 +94,7 @@ on a 2560px display.
 | | |
 |---|---|
 | **Route and slot** | `/` on `leasing.axispoint.llc`, hero. LCP image, loaded eagerly |
-| **Source** | **PLACEHOLDER** — `apps/leasing/public/hero.jpg` is a mockup. Must be replaced before launch with a licensed or owner-supplied photograph |
+| **Source** | **PLACEHOLDER.** `apps/leasing/public/hero.jpg` is a mockup. Must be replaced before launch with a licensed or owner-supplied photograph |
 | **Licence** | **Uncleared.** Do not publish until a licensed image is in place |
 | **Alt text** | "Retail storefront with an AxisPoint For Lease banner" |
 | **Derivatives** | None yet (placeholder is a single JPEG) |

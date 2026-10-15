@@ -12,8 +12,7 @@ export default function ListingsPage() {
         <div className="mx-auto max-w-v2">
           <PageIntro title="Available space">
             <p className="m-0 max-w-[54ch] text-[17.5px] leading-relaxed text-v2-ink/[0.7]">
-              Every space we are marketing right now is listed on Crexi, with photos, rates and
-              property details.
+              Our current retail listings are on Crexi, with photos, rates and property details.
             </p>
           </PageIntro>
         </div>
