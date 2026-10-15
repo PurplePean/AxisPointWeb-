@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { calcVacancyCost } from '../src/lib/vacancy.ts';
-import { AGREEMENT_OPTIONS, formatAgreementLabel } from '../src/content/landlord.ts';
+import { AGREEMENT, agreementPhaseLabels, agreementSummary } from '../src/content/landlord.ts';
 
 // --- vacancy.ts ---
 
@@ -55,23 +56,60 @@ test('absurdly large rent throws', () => {
   assert.throws(() => calcVacancyCost(2000, 10_000_001), RangeError);
 });
 
-// --- SHOW_RATES / formatAgreementLabel ---
+// --- AGREEMENT structure ---
 
-test('rates render (contain %) when showRates is true', () => {
-  for (const opt of AGREEMENT_OPTIONS) {
-    const label = formatAgreementLabel(opt, true);
+test('phases are contiguous: each fromDay is the previous toDay + 1', () => {
+  const { phases } = AGREEMENT;
+  for (let i = 1; i < phases.length; i++) {
+    assert.equal(
+      phases[i].fromDay,
+      phases[i - 1].toDay + 1,
+      `phase ${i} fromDay should be ${phases[i - 1].toDay + 1}, got ${phases[i].fromDay}`,
+    );
+  }
+});
+
+test('last phase toDay equals totalDays', () => {
+  const { phases, totalDays } = AGREEMENT;
+  const last = phases[phases.length - 1];
+  assert.equal(last.toDay, totalDays);
+});
+
+// --- agreementPhaseLabels ---
+
+test('labels contain "%" when showRates is true', () => {
+  for (const label of agreementPhaseLabels(true)) {
     assert.ok(label.includes('%'), `expected % in "${label}"`);
   }
 });
 
-test('no percent sign in any agreement label when showRates is false', () => {
-  for (const opt of AGREEMENT_OPTIONS) {
-    const label = formatAgreementLabel(opt, false);
+test('labels contain no "%" and no "rate" when showRates is false', () => {
+  for (const label of agreementPhaseLabels(false)) {
     assert.ok(!label.includes('%'), `expected no % in "${label}"`);
+    assert.ok(!label.toLowerCase().includes('rate'), `expected no "rate" in "${label}"`);
   }
 });
 
-test('agreement label without rates still shows the day count', () => {
-  const label = formatAgreementLabel(AGREEMENT_OPTIONS[0], false);
-  assert.ok(label.includes('90'), `expected day count in "${label}"`);
+// --- agreementSummary ---
+
+test('agreementSummary always starts with "One 90 day agreement"', () => {
+  assert.ok(agreementSummary(true).startsWith('One 90 day agreement'));
+  assert.ok(agreementSummary(false).startsWith('One 90 day agreement'));
+});
+
+test('agreementSummary contains rate sentence only when showRates is true', () => {
+  assert.ok(agreementSummary(true).toLowerCase().includes('rate'));
+  assert.ok(!agreementSummary(false).toLowerCase().includes('rate'));
+});
+
+// --- no leftover 120 ---
+
+test('no "120" appears in landlord.ts source', () => {
+  const src = readFileSync(new URL('../src/content/landlord.ts', import.meta.url), 'utf8');
+  assert.ok(!src.includes('120'), 'found "120" in landlord.ts');
+});
+
+test('no "120" appears in LandlordPage.tsx source', () => {
+  const src = readFileSync(new URL('../src/pages/LandlordPage.tsx', import.meta.url), 'utf8');
+  assert.ok(!src.includes('120'), 'found "120" in LandlordPage.tsx');
 });
