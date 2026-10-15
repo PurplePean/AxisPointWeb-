@@ -204,7 +204,12 @@ and Contact, built from the owner-approved leasing draft with the brand tokens i
   `clasp push` and `clasp deploy -i`, and is an open owner decision.
 - **It has no deploy workflow.** CI builds, bundle-inspects (`--no-submission`) and tests it,
   but merging deploys nothing. See [`deployment.md`](deployment.md) for the launch checklist.
-- **The Listings page is a placeholder** until Crexi confirms embed access.
+- **The Listings page links out to Ethaniel Vu's Crexi broker profile** (`CREXI_BROKER_URL`
+  in `src/lib/site.ts`). There is no embed, no scraping, and no automated data pull from
+  Crexi. The Crexi Fuse integration (automated property feed via API) was evaluated and
+  deferred: it is a possible later option if Crexi confirms it is included in the Pro plan
+  and the owner decides to pursue it. No Fuse dependency or placeholder code exists in the
+  current implementation.
 
 ## Confirmed language scope
 

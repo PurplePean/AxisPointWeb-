@@ -3,6 +3,9 @@
  * Recipients for leasing leads are an OPEN OWNER DECISION: until it is made, inquiries go
  * to the shared firm inbox.
  */
+
+export const CREXI_BROKER_URL = 'https://www.crexi.com/profile/ethaniel-vu-ethanielvu0';
+
 export const SITE = {
   phoneDisplay: '832-269-8891',
   phoneHref: 'tel:+18322698891',

@@ -95,7 +95,7 @@ export default function HomePage() {
               title="Landlord representation"
               body="We market your vacancy, qualify the prospects, negotiate the deal, and keep you informed until the lease is signed."
               items={LANDLORD}
-              to="/contact?role=landlord"
+              to="/landlord"
               cta="Talk about your property"
             />
             <Lane
@@ -104,7 +104,7 @@ export default function HomePage() {
               title="Tenant representation"
               body="Tell us what you need. We find the spaces, tour them with you, and negotiate the lease on your side of the table."
               items={TENANT}
-              to="/contact?role=tenant"
+              to="/tenant"
               cta="Tell us what you need"
             />
           </div>

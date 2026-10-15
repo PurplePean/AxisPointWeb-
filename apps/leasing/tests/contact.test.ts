@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildInquiryMailto, parseAttribution, parseRole } from '../src/lib/contact.ts';
+import { CREXI_BROKER_URL } from '../src/lib/site.ts';
 
 const base = {
   role: 'tenant' as const,
@@ -53,4 +54,13 @@ test('attribution keeps only allowed keys and caps length', () => {
   assert.ok(out.startsWith('utm_source=a, src='));
   assert.ok(!out.includes('evil'));
   assert.ok(out.length < 100);
+});
+
+test('CREXI_BROKER_URL uses https and is on crexi.com or a subdomain', () => {
+  const url = new URL(CREXI_BROKER_URL);
+  assert.equal(url.protocol, 'https:');
+  assert.ok(
+    url.hostname === 'crexi.com' || url.hostname.endsWith('.crexi.com'),
+    `expected crexi.com host, got ${url.hostname}`,
+  );
 });

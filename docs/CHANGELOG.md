@@ -7,6 +7,11 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (leasing site finished: /landlord, /tenant, Listings links to Crexi)
+
+- **feat(leasing): /landlord and /tenant pages added.** Header and footer navigation updated from hash anchors (`/#landlord`, `/#tenant`) to dedicated routes. Home page lane CTAs now point to those routes. Both pages end in the mailto contact flow with `?role=` preselected.
+- **feat(leasing): Listings page replaced placeholder with Crexi outbound link.** `CREXI_BROKER_URL` added to `src/lib/site.ts` pointing to Ethaniel Vu's Crexi profile. No embed, no scrape, no automated feed. Crexi Fuse deferred pending Pro-plan confirmation. `docs/asset-catalog.md` notes the hero image as a PLACEHOLDER requiring replacement before launch.
+
 ## 2026-10-14 (leasing site added to the monorepo)
 
 - **feat(leasing): `apps/leasing` added** (Vite + React Router, brand preset, port 3002). Three pages from the approved draft, a mobile menu, and a mailto-based inquiry form with source tagging; no backend change and no deploy workflow. `scripts/test/inspect-bundle.mjs` gained `--no-submission` for apps without a submission client. CI builds, inspects and tests the app. Not deployed anywhere; hosting is a separate decision.

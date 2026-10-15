@@ -222,7 +222,7 @@ goes live:
    equivalent rewrite to `index.html`).
 3. Confirm the canonical URL `https://leasing.axispoint.llc/` and add a sitemap if wanted.
 4. Give its document root its own deploy account, outside the `public_html` jail used by the web deploy.
-5. Replace the Listings placeholder once Crexi confirms embed access, and confirm lead recipients.
+5. Confirm lead recipients for the leasing contact form (currently `info@axispoint.llc`; open owner decision). The Listings page links to Ethaniel Vu's Crexi profile and requires no further action for launch. Crexi Fuse (automated feed) is a possible later option; it needs no code change today.
 6. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
    then `node hosting/add-subdomain.js` and `node hosting/run-autossl.js --verify=<host>`.
 

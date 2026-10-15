@@ -4,8 +4,8 @@ import { Mark } from '@axispoint/brand';
 import { GUTTER } from './ui';
 
 const LINKS = [
-  { to: '/#landlord', label: 'Landlord Rep' },
-  { to: '/#tenant', label: 'Tenant Rep' },
+  { to: '/landlord', label: 'Landlord Rep' },
+  { to: '/tenant', label: 'Tenant Rep' },
   { to: '/listings', label: 'Listings' },
 ];
 

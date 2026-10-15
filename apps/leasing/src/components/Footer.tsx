@@ -18,8 +18,8 @@ export default function Footer() {
         </div>
         <div className="flex flex-col">
           <span className={heading}>Services</span>
-          <Link className={linkClass} to="/#landlord">Landlord Rep</Link>
-          <Link className={linkClass} to="/#tenant">Tenant Rep</Link>
+          <Link className={linkClass} to="/landlord">Landlord Rep</Link>
+          <Link className={linkClass} to="/tenant">Tenant Rep</Link>
           <Link className={linkClass} to="/listings">Listings</Link>
         </div>
         <div className="flex flex-col">
