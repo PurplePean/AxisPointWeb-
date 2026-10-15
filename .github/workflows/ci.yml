@@ -73,6 +73,15 @@ jobs:
       - name: Inspect QR production bundle
         run: node scripts/test/inspect-bundle.mjs apps/qr/dist
 
+      # Leasing site (leasing.axispoint.llc). It has no submission client, so the inspector
+      # runs with --no-submission: every forbidden-string check still applies, only the
+      # "fail-closed path is present" requirement is skipped.
+      - name: Build leasing app
+        run: pnpm --filter @axispoint/leasing run build
+
+      - name: Inspect leasing production bundle
+        run: node scripts/test/inspect-bundle.mjs apps/leasing/dist --no-submission
+
   test-frontend:
     name: Frontend tests (submission-client, web, qr)
     runs-on: ubuntu-latest
@@ -95,7 +104,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # `pnpm test:frontend` is `test:client && test:web && test:qr`. These tests were
+      # `pnpm test:frontend` is `test:client && test:web && test:qr && test:leasing`. These tests were
       # written, committed, and green locally for several passes without any CI job
       # running them, which meant nothing stopped a regression reaching main.
       - name: Run frontend test suite

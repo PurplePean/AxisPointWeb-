@@ -149,8 +149,14 @@ const FORBIDDEN = [
   'localhost:3000',
 ];
 
-/** Must be present: the honest failure path a production build depends on. */
-const REQUIRED = ['NOT_CONFIGURED'];
+/**
+ * Must be present: the honest failure path a production build depends on.
+ *
+ * `--no-submission` is for an app that has no submission client at all (apps/leasing opens a
+ * pre-filled mailto instead). It has no fail-closed path to find. Every FORBIDDEN check
+ * still runs, so such an app still cannot ship a compiled-in backend endpoint.
+ */
+const REQUIRED = process.argv.includes('--no-submission') ? [] : ['NOT_CONFIGURED'];
 
 const findings = [];
 
