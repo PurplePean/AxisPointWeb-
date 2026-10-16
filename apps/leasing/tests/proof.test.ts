@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { formatManagedSqft, managedStatText } from '../src/content/proof.ts';
+import { formatManagedSqft, managedStatParts, managedStatText } from '../src/content/proof.ts';
 
 test('formatManagedSqft returns "100,000 sq ft managed"', () => {
   assert.equal(formatManagedSqft(), '100,000 sq ft managed');
@@ -20,4 +20,9 @@ test('proof.ts contains no "%" or "$"', () => {
   const src = readFileSync(new URL('../src/content/proof.ts', import.meta.url), 'utf8');
   assert.ok(!src.includes('%'), 'found "%" in proof.ts');
   assert.ok(!src.includes('$'), 'found "$" in proof.ts');
+});
+
+test('managedStatParts splits the figure and label, and is null when hidden', () => {
+  assert.deepEqual(managedStatParts(true), { value: '100,000', label: 'sq ft managed' });
+  assert.equal(managedStatParts(false), null);
 });

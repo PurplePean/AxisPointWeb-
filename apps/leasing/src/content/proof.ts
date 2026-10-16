@@ -26,3 +26,13 @@ export function formatManagedSqft(): string {
 export function managedStatText(show: boolean = SHOW_PROOF): string | null {
   return show ? formatManagedSqft() : null;
 }
+
+/**
+ * Returns the stat split into a large figure and a small label, or null when
+ * proof stats are switched off.
+ */
+export function managedStatParts(
+  show: boolean = SHOW_PROOF,
+): { value: string; label: string } | null {
+  return show ? { value: MANAGED_SQFT.toLocaleString('en-US'), label: 'sq ft managed' } : null;
+}

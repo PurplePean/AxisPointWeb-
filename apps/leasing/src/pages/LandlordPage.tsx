@@ -1,30 +1,27 @@
 import { useState } from 'react';
-import { GUTTER, Eyebrow, TealButton } from '@/components/ui';
+import {
+  BAND,
+  BigHeading,
+  ClosingBand,
+  Eyebrow,
+  GUTTER,
+  PageHero,
+  QuietAnchor,
+  SECTION_Y,
+  Strong,
+  TealButton,
+} from '@/components/ui';
 import {
   SHOW_RATES,
   SPEED_PROMISES,
-  agreementPhaseLabels,
+  agreementPhases,
   agreementSummary,
   salesCycleFaqEntries,
   whoToTalkAnswer,
 } from '@/content/landlord';
 import { calcVacancyCost, parseNumericInput } from '@/lib/vacancy';
 
-const SECTION = `bg-v2-surface ${GUTTER}`;
 const DIVIDER = 'border-t border-v2-ink/20 pt-[18px]';
-
-function Bullets({ items }: { items: readonly string[] }) {
-  return (
-    <ul className="m-0 grid list-none gap-3 p-0">
-      {items.map((t) => (
-        <li key={t} className="grid grid-cols-[12px_1fr] items-start gap-3">
-          <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 bg-v2-teal" />
-          <span className="text-base leading-normal text-v2-ink/[0.72]">{t}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 const fmt = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -62,7 +59,7 @@ function VacancyCalculator() {
   const LABEL = 'flex flex-col gap-1.5 text-sm font-semibold';
 
   return (
-    <div className="flex flex-col gap-6 rounded-v2 border border-v2-ink/[0.14] bg-v2-field-warm p-6 min-[821px]:p-9">
+    <div className="flex flex-col gap-6 rounded-v2 border border-v2-ink/[0.14] bg-v2-surface p-6 min-[821px]:p-9">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(200px,100%),1fr))] gap-4">
         <label className={LABEL}>
           Square feet
@@ -129,63 +126,84 @@ const FAQ_BODY = 'pb-4 text-[16px] leading-relaxed text-v2-ink/[0.68]';
 export default function LandlordPage() {
   return (
     <>
-      {/* Intro */}
-      <section className={`${SECTION} pb-12 pt-16`}>
+      <PageHero
+        eyebrow="Landlord representation"
+        title="Leasing that moves fast, with no strings."
+        lede={
+          <>
+            We answer in <Strong>hours, not days</Strong>, and we never trap you in a listing
+            agreement you cannot leave.
+          </>
+        }
+      >
+        <TealButton to="/contact?role=landlord">Talk about your property</TealButton>
+        <QuietAnchor href="#agreement">See how the agreement works</QuietAnchor>
+      </PageHero>
+
+      {/* Speed */}
+      <section className={`${BAND} ${GUTTER} ${SECTION_Y}`}>
         <div className="mx-auto max-w-v2">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-start gap-x-14 gap-y-8">
-            <h1 className="m-0 border-t-[3px] border-v2-purple pt-4 text-[clamp(34px,4vw,48px)] font-semibold leading-[1.1] tracking-[-0.03em]">
-              Leasing that moves fast, with no strings.
-            </h1>
-            <p className="m-0 font-serif text-[26px] font-medium leading-[1.42] text-v2-ink/[0.68] [text-wrap:pretty]">
-              We answer in hours, not days, and we never trap you in a listing agreement you
-              cannot leave.
+          <Eyebrow>Why speed matters</Eyebrow>
+          <div className="mb-8 mt-4 min-[821px]:mb-[52px]">
+            <BigHeading>Every week a space sits empty is rent you do not collect.</BigHeading>
+          </div>
+          <ol className="m-0 grid list-none gap-[34px] p-0 min-[821px]:grid-cols-3 min-[821px]:gap-12">
+            {SPEED_PROMISES.map((p, i) => (
+              <li key={p} className="border-t-[3px] border-v2-purple pt-4">
+                <span className="text-[15px] font-bold tracking-[0.1em] text-v2-teal-support">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <p className="mb-0 mt-3 text-[clamp(19px,1.7vw,23px)] font-semibold leading-[1.25] tracking-[-0.02em]">
+                  {p}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Agreement */}
+      <section id="agreement" className={`${GUTTER} ${SECTION_Y} scroll-mt-4`}>
+        <div className="mx-auto flex max-w-v2 flex-col gap-10">
+          <div>
+            <Eyebrow>No hostage listings</Eyebrow>
+            <div className="mt-4">
+              <BigHeading>We earn the listing every day, not once.</BigHeading>
+            </div>
+            <p className="mb-0 mt-5 max-w-[56ch] text-[clamp(16px,1.3vw,18px)] leading-[1.6] text-v2-ink/[0.7]">
+              <Strong>{agreementSummary(SHOW_RATES)}</Strong> If the listing is not producing, talk
+              to us. A short agreement keeps us accountable.
             </p>
+          </div>
+          {/* Timeline: segment widths follow the number of days in each phase */}
+          <div className="flex flex-col gap-3 min-[821px]:flex-row">
+            {agreementPhases(SHOW_RATES).map((ph, i) => (
+              <div
+                key={ph.range}
+                style={{ flexGrow: ph.days }}
+                className={`flex flex-col gap-1 rounded-v2 p-6 min-[821px]:basis-0 ${
+                  i === 0
+                    ? 'bg-v2-purple text-white'
+                    : 'border border-v2-ink/[0.14] bg-v2-field-warm text-v2-ink'
+                }`}
+              >
+                {ph.rate && (
+                  <span className="text-[clamp(40px,5vw,64px)] font-semibold leading-none tracking-[-0.04em]">
+                    {ph.rate}
+                  </span>
+                )}
+                <span className={`text-[15px] font-bold ${i === 0 ? 'text-white/[0.85]' : 'text-v2-purple'}`}>
+                  {ph.range}
+                </span>
+                {/* TODO: owner to supply commission basis wording (e.g., "of gross lease value") */}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className={`${SECTION} pb-[72px]`}>
+      <section className={`${BAND} ${GUTTER} ${SECTION_Y}`}>
         <div className="mx-auto flex max-w-v2 flex-col gap-14">
-
-          {/* Speed section */}
-          <div className="flex flex-col gap-5">
-            <div className={DIVIDER}>
-              <Eyebrow>Why speed matters</Eyebrow>
-              <p className="mb-0 mt-4 text-[19px] font-semibold leading-snug tracking-[-0.02em]">
-                Every week a space sits empty is rent you do not collect.
-              </p>
-            </div>
-            <Bullets items={SPEED_PROMISES} />
-          </div>
-
-          {/* Agreement section */}
-          <div className="flex flex-col gap-5">
-            <div className={DIVIDER}>
-              <Eyebrow>No hostage listings</Eyebrow>
-              <h2 className="mb-0 mt-4 text-[30px] font-semibold leading-[1.1] tracking-[-0.03em]">
-                We earn the listing every day, not once.
-              </h2>
-              <p className="mb-0 mt-4 max-w-[52ch] text-[16.5px] leading-relaxed text-v2-ink/[0.68]">
-                {agreementSummary(SHOW_RATES)} If the listing is not producing, talk to us. A short
-                agreement keeps us accountable.
-              </p>
-            </div>
-            {/* Two-segment timeline: one row per phase */}
-            <div className="flex flex-col gap-2">
-              {agreementPhaseLabels(SHOW_RATES).map((label) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-4 rounded-v2 border border-v2-ink/[0.14] bg-v2-field-warm px-6 py-4"
-                >
-                  <span aria-hidden="true" className="h-2 w-2 flex-none rounded-full bg-v2-purple" />
-                  <span className="text-[17px] font-semibold tracking-[-0.02em] text-v2-ink">
-                    {label}
-                  </span>
-                  {/* TODO: owner to supply commission basis wording (e.g., "of gross lease value") */}
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Vacancy cost calculator */}
           <div className="flex flex-col gap-5">
@@ -260,16 +278,16 @@ export default function LandlordPage() {
             </div>
           </div>
 
-          {/* Closing CTA */}
-          <div className={DIVIDER}>
-            <p className="mb-6 max-w-[44ch] text-[16.5px] leading-relaxed text-v2-ink/[0.68]">
-              Ready to put the space to work? Send a few details and we will call you back.
-            </p>
-            <TealButton to="/contact?role=landlord">Talk about your property</TealButton>
-          </div>
 
         </div>
       </section>
+
+      <ClosingBand
+        title="Ready to put the space to work?"
+        body="Send a few details and we will call you back."
+        ctaLabel="Talk about your property"
+        ctaTo="/contact?role=landlord"
+      />
     </>
   );
 }

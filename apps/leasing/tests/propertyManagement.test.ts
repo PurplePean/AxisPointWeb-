@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { SERVICES, visibleSections } from '../src/content/propertyManagement.ts';
+import { SERVICES, SERVICE_GROUPS, visibleSections } from '../src/content/propertyManagement.ts';
 
 // --- SERVICES ---
 
@@ -53,4 +53,10 @@ test('visibleSections does not include "agreement" while AGREEMENT is null', () 
 test('visibleSections does not include "reporting" while REPORTING is null', () => {
   const sections = visibleSections();
   assert.ok(!sections.includes('reporting'), '"reporting" should not render while null');
+});
+
+test('SERVICES is the flat list of every SERVICE_GROUPS item', () => {
+  const flat = SERVICE_GROUPS.flatMap((g) => [...g.items]);
+  assert.deepEqual([...SERVICES], flat);
+  for (const g of SERVICE_GROUPS) assert.ok(g.title.trim().length > 0);
 });
