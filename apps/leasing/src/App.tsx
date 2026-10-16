@@ -5,6 +5,7 @@ import LandlordPage from './pages/LandlordPage';
 import TenantPage from './pages/TenantPage';
 import ListingsPage from './pages/ListingsPage';
 import ContactPage from './pages/ContactPage';
+import PropertyManagementPage from './pages/PropertyManagementPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="tenant" element={<TenantPage />} />
         <Route path="listings" element={<ListingsPage />} />
         <Route path="contact" element={<ContactPage />} />
+        <Route path="property-management" element={<PropertyManagementPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
