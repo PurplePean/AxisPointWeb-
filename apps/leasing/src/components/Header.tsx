@@ -6,6 +6,7 @@ import { GUTTER } from './ui';
 const LINKS = [
   { to: '/landlord', label: 'Landlord Rep' },
   { to: '/tenant', label: 'Tenant Rep' },
+  { to: '/sell', label: 'Sell' },
   { to: '/listings', label: 'Listings' },
   { to: '/property-management', label: 'Property Mgmt' },
 ];

@@ -1,3 +1,4 @@
+import BovStrip from '@/components/BovStrip';
 import {
   BAND,
   BigHeading,
@@ -88,6 +89,8 @@ export default function PropertyManagementPage() {
           </a>
         </div>
       </section>
+
+      <BovStrip heading="Is your rent at market?" />
 
       <ClosingBand
         title="Put your property under management."

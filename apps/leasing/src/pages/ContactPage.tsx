@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { GUTTER } from '@/components/ui';
 import { SITE } from '@/lib/site';
-import { ROLE_LABELS, buildInquiryMailto, parseAttribution, parseRole, type Role } from '@/lib/contact';
+import { ROLES, ROLE_LABELS, buildInquiryMailto, parseAttribution, parseRole, type Role } from '@/lib/contact';
 
 const FIELD =
   'h-12 w-full rounded-v2 border border-[#CFC6B6] bg-v2-field-warm px-3 text-base';
@@ -39,7 +39,7 @@ export default function ContactPage() {
             Start a conversation
           </h1>
           <p className="mb-0 mt-6 max-w-[30ch] font-serif text-[26px] font-medium leading-[1.42] text-v2-ink/[0.68] [text-wrap:pretty]">
-            Landlord or tenant, send a few details and we will call you back. The first
+            Landlord, tenant or owner, send a few details and we will call you back. The first
             conversation is free.
           </p>
           <a
@@ -75,8 +75,11 @@ export default function ContactPage() {
               onChange={(e) => setRole(parseRole(e.target.value))}
               className={FIELD}
             >
-              <option value="landlord">{ROLE_LABELS.landlord}</option>
-              <option value="tenant">{ROLE_LABELS.tenant}</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r]}
+                </option>
+              ))}
             </select>
           </label>
           <label className={LABEL}>
@@ -94,7 +97,7 @@ export default function ContactPage() {
             </label>
           </div>
           <label className={LABEL}>
-            {role === 'landlord' ? 'Property address or area' : 'Area or space needed'}
+            {role === 'tenant' ? 'Area or space needed' : 'Property address or area'}
             <input name="place" type="text" className={FIELD} />
           </label>
           <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[14.5px] font-medium">

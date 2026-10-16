@@ -20,6 +20,7 @@ export default function Footer() {
           <span className={heading}>Services</span>
           <Link className={linkClass} to="/landlord">Landlord Rep</Link>
           <Link className={linkClass} to="/tenant">Tenant Rep</Link>
+          <Link className={linkClass} to="/sell">Sell and BOV</Link>
           <Link className={linkClass} to="/listings">Listings</Link>
           <Link className={linkClass} to="/property-management">Property Mgmt</Link>
         </div>

@@ -10,11 +10,23 @@ import { SITE } from './site';
  * was delivered when it was not.
  */
 
-export type Role = 'landlord' | 'tenant';
+export type Role = 'landlord' | 'tenant' | 'bov-rent' | 'bov-sale';
+
+export const ROLES: readonly Role[] = ['landlord', 'tenant', 'bov-rent', 'bov-sale'];
 
 export const ROLE_LABELS: Record<Role, string> = {
   landlord: 'Landlord or owner',
   tenant: 'Tenant looking for space',
+  'bov-rent': 'Owner requesting a rent BOV',
+  'bov-sale': 'Owner requesting a sale BOV',
+};
+
+/** Subject prefix per role, so each kind of inquiry sorts itself in the inbox. */
+export const SUBJECT_LABELS: Record<Role, string> = {
+  landlord: 'Leasing inquiry (landlord)',
+  tenant: 'Leasing inquiry (tenant)',
+  'bov-rent': 'Rent BOV request',
+  'bov-sale': 'Sale BOV request',
 };
 
 export interface InquiryInput {
@@ -27,7 +39,7 @@ export interface InquiryInput {
 }
 
 export function parseRole(value: string | null | undefined): Role {
-  return value === 'tenant' ? 'tenant' : 'landlord';
+  return ROLES.find((r) => r === value) ?? 'landlord';
 }
 
 /** Keeps only the attribution parameters we deliberately accept, trimmed and length-capped. */
@@ -44,7 +56,7 @@ export function parseAttribution(search: string): string {
 
 export function buildInquiryMailto(input: InquiryInput, attribution = ''): string {
   const roleLabel = ROLE_LABELS[input.role];
-  const placeLabel = input.role === 'landlord' ? 'Property address' : 'Area or space needed';
+  const placeLabel = input.role === 'tenant' ? 'Area or space needed' : 'Property address';
   const lines = [
     `I am a: ${roleLabel}`,
     `Name: ${input.name.trim()}`,
@@ -55,6 +67,6 @@ export function buildInquiryMailto(input: InquiryInput, attribution = ''): strin
     '',
     `Source: leasing.axispoint.llc${attribution ? ` (${attribution})` : ''}`,
   ];
-  const subject = `Leasing inquiry (${input.role === 'landlord' ? 'landlord' : 'tenant'}) from ${input.name.trim() || 'website'}`;
+  const subject = `${SUBJECT_LABELS[input.role]} from ${input.name.trim() || 'website'}`;
   return `mailto:${SITE.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`;
 }
