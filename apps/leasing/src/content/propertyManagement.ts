@@ -7,17 +7,28 @@
  */
 
 // UNCONFIRMED: Service scope and descriptions.
-export const SERVICES = [
-  // Core services
-  'Rent collection and disbursement.',
-  'Maintenance coordination and vendor management.',
-  'Periodic property inspections and condition reporting.',
-  'Owner reporting and financial summaries.',
-  // NNN-specific services
-  'CAM reconciliation and tenant billing.',
-  'Tax and insurance pass-through tracking.',
-  'Lease compliance and renewal tracking.',
+export const SERVICE_GROUPS = [
+  {
+    title: 'Core management',
+    items: [
+      'Rent collection and disbursement.',
+      'Maintenance coordination and vendor management.',
+      'Periodic property inspections and condition reporting.',
+      'Owner reporting and financial summaries.',
+    ],
+  },
+  {
+    title: 'NNN administration',
+    items: [
+      'CAM reconciliation and tenant billing.',
+      'Tax and insurance pass-through tracking.',
+      'Lease compliance and renewal tracking.',
+    ],
+  },
 ] as const;
+
+// Flat list of every service, derived from the groups above.
+export const SERVICES: readonly string[] = SERVICE_GROUPS.flatMap((g) => g.items);
 
 // UNCONFIRMED: Management fee and agreement term. Set to null until Ethaniel
 // confirms the fee structure and term. No fee or percentage renders while null.

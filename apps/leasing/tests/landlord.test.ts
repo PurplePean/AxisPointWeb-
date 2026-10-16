@@ -10,6 +10,7 @@ import {
   SALES_CYCLE_FAQ,
   salesCycleFaqEntries,
   whoToTalkAnswer,
+  agreementPhases,
   SPEED_PROMISES,
 } from '../src/content/landlord.ts';
 
@@ -200,4 +201,21 @@ test('LandlordPage has no <dl>, no invented sentence and no hardcoded reply time
   assert.ok(!src.includes('<dl'), 'found <dl>');
   assert.ok(!src.includes('make it right'), 'found invented sentence');
   assert.ok(!src.toLowerCase().includes('same business day'), 'hardcoded reply time');
+});
+
+// --- agreementPhases ---
+
+test('agreementPhases has rates and day weights when showRates is true', () => {
+  const phases = agreementPhases(true);
+  assert.equal(phases.length, AGREEMENT.phases.length);
+  for (const p of phases) assert.ok(p.rate !== null && p.rate.includes('%'));
+  assert.equal(phases.reduce((n, p) => n + p.days, 0), AGREEMENT.totalDays);
+});
+
+test('agreementPhases collapses to one range with no rate when showRates is false', () => {
+  const phases = agreementPhases(false);
+  assert.equal(phases.length, 1);
+  assert.equal(phases[0].rate, null);
+  assert.equal(phases[0].days, AGREEMENT.totalDays);
+  assert.ok(!phases[0].range.includes('%'));
 });

@@ -105,3 +105,22 @@ export function agreementSummary(showRates: boolean): string {
 export function whoToTalkAnswer(): string {
   return `Use the button below and tell us about your property. ${SPEED_PROMISES[0]}`;
 }
+
+/**
+ * Structured phases for the agreement timeline. `rate` is null when showRates
+ * is false, and the phases collapse into one range with no percentage.
+ */
+export function agreementPhases(
+  showRates: boolean,
+): { range: string; rate: string | null; days: number }[] {
+  if (!showRates) {
+    const first = AGREEMENT.phases[0];
+    const last = AGREEMENT.phases[AGREEMENT.phases.length - 1];
+    return [{ range: `Days ${first.fromDay} to ${last.toDay}`, rate: null, days: AGREEMENT.totalDays }];
+  }
+  return AGREEMENT.phases.map((p) => ({
+    range: `Days ${p.fromDay} to ${p.toDay}`,
+    rate: `${p.ratePercent}%`,
+    days: p.toDay - p.fromDay + 1,
+  }));
+}
