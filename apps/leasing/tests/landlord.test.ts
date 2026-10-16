@@ -2,13 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { calcVacancyCost } from '../src/lib/vacancy.ts';
+import { calcVacancyCost, parseNumericInput } from '../src/lib/vacancy.ts';
 import {
   AGREEMENT,
   agreementPhaseLabels,
   agreementSummary,
   SALES_CYCLE_FAQ,
   salesCycleFaqEntries,
+  whoToTalkAnswer,
+  SPEED_PROMISES,
 } from '../src/content/landlord.ts';
 
 // --- vacancy.ts ---
@@ -167,4 +169,35 @@ test('no "120" appears in landlord.ts source', () => {
 test('no "120" appears in LandlordPage.tsx source', () => {
   const src = readFileSync(new URL('../src/pages/LandlordPage.tsx', import.meta.url), 'utf8');
   assert.ok(!src.includes('120'), 'found "120" in LandlordPage.tsx');
+});
+
+// --- parseNumericInput ---
+
+test('parseNumericInput handles commas, dollar sign and leading dot', () => {
+  assert.equal(parseNumericInput('2,000'), 2000);
+  assert.equal(parseNumericInput('$24.50'), 24.5);
+  assert.equal(parseNumericInput('.5'), 0.5);
+  assert.equal(parseNumericInput('  1,250.75  '), 1250.75);
+});
+
+test('parseNumericInput rejects non-numeric input', () => {
+  for (const bad of ['abc', '', '1e3', '12.', '-5', '1,2,x', '$', '2 000']) {
+    assert.equal(parseNumericInput(bad), null, `expected null for "${bad}"`);
+  }
+});
+
+// --- FAQ wording comes from content ---
+
+test('whoToTalkAnswer says "button", never "form", and uses SPEED_PROMISES', () => {
+  const a = whoToTalkAnswer();
+  assert.ok(a.includes('button'));
+  assert.ok(!a.toLowerCase().includes('form'));
+  assert.ok(a.includes(SPEED_PROMISES[0]));
+});
+
+test('LandlordPage has no <dl>, no invented sentence and no hardcoded reply time', () => {
+  const src = readFileSync(new URL('../src/pages/LandlordPage.tsx', import.meta.url), 'utf8');
+  assert.ok(!src.includes('<dl'), 'found <dl>');
+  assert.ok(!src.includes('make it right'), 'found invented sentence');
+  assert.ok(!src.toLowerCase().includes('same business day'), 'hardcoded reply time');
 });

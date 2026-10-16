@@ -6,8 +6,9 @@ import {
   agreementPhaseLabels,
   agreementSummary,
   salesCycleFaqEntries,
+  whoToTalkAnswer,
 } from '@/content/landlord';
-import { calcVacancyCost } from '@/lib/vacancy';
+import { calcVacancyCost, parseNumericInput } from '@/lib/vacancy';
 
 const SECTION = `bg-v2-surface ${GUTTER}`;
 const DIVIDER = 'border-t border-v2-ink/20 pt-[18px]';
@@ -36,15 +37,23 @@ function VacancyCalculator() {
   const [rent, setRent] = useState('');
 
   let result: { monthly: string; ninety: string } | null = null;
-  if (sqft && rent) {
-    try {
-      const { monthlyCost, ninetyDayCost } = calcVacancyCost(
-        parseFloat(sqft),
-        parseFloat(rent),
-      );
-      result = { monthly: fmt.format(monthlyCost), ninety: fmt.format(ninetyDayCost) };
-    } catch {
-      // invalid inputs: show nothing
+  let invalid = false;
+  if (sqft.trim() || rent.trim()) {
+    const sqftNum = parseNumericInput(sqft);
+    const rentNum = parseNumericInput(rent);
+    if (sqft.trim() && rent.trim()) {
+      if (sqftNum === null || rentNum === null) {
+        invalid = true;
+      } else {
+        try {
+          const { monthlyCost, ninetyDayCost } = calcVacancyCost(sqftNum, rentNum);
+          result = { monthly: fmt.format(monthlyCost), ninety: fmt.format(ninetyDayCost) };
+        } catch {
+          invalid = true;
+        }
+      }
+    } else if ((sqft.trim() && sqftNum === null) || (rent.trim() && rentNum === null)) {
+      invalid = true;
     }
   }
 
@@ -79,8 +88,13 @@ function VacancyCalculator() {
         </label>
       </div>
       <div aria-live="polite" className="min-h-[56px]">
+        {invalid && (
+          <p className="m-0 text-[14px] leading-normal text-v2-ink/[0.7]">
+            Enter numbers only, like 2,000 and 24.50.
+          </p>
+        )}
         {result && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <p className="m-0 text-[12px] font-bold uppercase tracking-[0.1em] text-v2-ink/[0.5]">
                 Monthly base rent
@@ -190,7 +204,7 @@ export default function LandlordPage() {
             <div className={DIVIDER}>
               <Eyebrow>Common questions</Eyebrow>
             </div>
-            <dl>
+            <div>
               <details className={FAQ_ITEM}>
                 <summary className={FAQ_SUMMARY}>
                   How long is the agreement?
@@ -229,7 +243,7 @@ export default function LandlordPage() {
                   <span aria-hidden="true" className="text-v2-purple text-xl font-light">+</span>
                 </summary>
                 <p className={FAQ_BODY}>
-                  Talk to us. We would rather make it right than lose a client.
+                  Talk to us.
                   {/* TODO: owner to supply specific exit terms here */}
                 </p>
               </details>
@@ -240,11 +254,10 @@ export default function LandlordPage() {
                   <span aria-hidden="true" className="text-v2-purple text-xl font-light">+</span>
                 </summary>
                 <p className={FAQ_BODY}>
-                  Use the contact form below. Tell us about your property and we will call
-                  you back the same business day.
+                  {whoToTalkAnswer()}
                 </p>
               </details>
-            </dl>
+            </div>
           </div>
 
           {/* Closing CTA */}
