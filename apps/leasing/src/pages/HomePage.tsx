@@ -54,14 +54,32 @@ const STRIP =
 export default function HomePage() {
   return (
     <>
-      <section className="relative overflow-hidden bg-v2-surface min-[1181px]:flex min-[1181px]:min-h-[540px] min-[1181px]:items-center">
-        <div className="aspect-[1366/920] overflow-hidden min-[600px]:aspect-[21/9] min-[1181px]:absolute min-[1181px]:right-[72px] min-[1181px]:top-1/2 min-[1181px]:w-[52%] min-[1181px]:-translate-y-1/2 min-[1181px]:rounded-v2 min-[1181px]:[aspect-ratio:1366/920]">
+      <section className="relative overflow-hidden bg-v2-surface min-[1181px]:flex min-[1181px]:min-h-[600px] min-[1181px]:items-center">
+        {/* Photo: stacked above the text below 1181px, a right-hand panel that bleeds to the
+            edge above it. Gradients fade it into the page color instead of a hard box. */}
+        <div className="relative aspect-[1366/920] overflow-hidden min-[600px]:aspect-[21/9] min-[1181px]:absolute min-[1181px]:inset-y-0 min-[1181px]:right-0 min-[1181px]:aspect-auto min-[1181px]:w-[60%]">
           <img
             src="/hero.jpg"
             alt="Retail storefront with an AxisPoint For Lease banner"
             width={1366}
             height={920}
             className="block h-full w-full object-cover"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 min-[1181px]:hidden"
+            style={{
+              background:
+                'linear-gradient(180deg, #F6F2EA 0%, rgba(246,242,234,0.25) 22%, rgba(246,242,234,0.1) 55%, #F6F2EA 100%)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 hidden min-[1181px]:block"
+            style={{
+              background:
+                'linear-gradient(90deg, #F6F2EA 0%, rgba(246,242,234,0.88) 14%, rgba(246,242,234,0.3) 38%, rgba(246,242,234,0) 60%), linear-gradient(180deg, #F6F2EA 0%, rgba(246,242,234,0) 14%, rgba(246,242,234,0) 82%, #F6F2EA 100%)',
+            }}
           />
         </div>
         <div className="relative z-10 px-5 pb-12 pt-9 min-[821px]:px-10 min-[821px]:pb-14 min-[821px]:pt-11 min-[1181px]:max-w-[600px] min-[1181px]:px-[72px] min-[1181px]:py-[72px]">
