@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Eyebrow, GUTTER, PurpleButton, TealButton, TextLink } from '@/components/ui';
 import { HOME_STRIP_PROMISES } from '@/content/landlord';
+import ManagedStat from '@/components/ManagedStat';
 
 const LANDLORD = [
   'Listing and marketing, including Crexi',
@@ -90,6 +91,7 @@ export default function HomePage() {
                 </span>
               ))}
             </div>
+            <ManagedStat />
             <Link to="/landlord" className={STRIP}>
               <span>How we work with landlords</span>
               <span aria-hidden="true" className="flex-none text-xl">&#8594;</span>

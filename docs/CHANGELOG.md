@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-16 (leasing managed square footage proof stat)
+
+- **feat(leasing): `src/content/proof.ts` and `ManagedStat` component added to `apps/leasing`.** One shared "100,000 sq ft managed" stat shown on the Home promise strip and under the Property Management intro. `SHOW_PROOF` hides it everywhere. Figure supplied by the owner; its scope and as-of date are UNCONFIRMED.
+
 ## 2026-10-16 (leasing landlord FAQ: sales-cycle context for pad sites and STNL)
 
 - **feat(leasing): `SALES_CYCLE_FAQ`, `EXTENSION_FAQ` (null), and `salesCycleFaqEntries()` added to `apps/leasing/src/content/landlord.ts`.** Two FAQ entries explain that inline space moves faster than pad sites, large suites and STNL properties, and why. `EXTENSION_FAQ` is null; that entry does not render and no extension language appears on the page while it is null. Content UNCONFIRMED pending owner review.
