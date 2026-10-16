@@ -240,10 +240,10 @@ leasing tests, builds, inspects the bundle, then FTPs `apps/leasing/dist/` to `/
 
 1. Finish the launch checklist above (content confirmations, phone, hero photo licence, remove the
    noindex tag in `apps/leasing/index.html` in its own PR).
-2. Subdomain: `node hosting/add-subdomain.js leasing` (document root `/home/axisipak/leasing.axispoint.llc`).
+2. Subdomain: `node hosting/add-subdomain.js leasing` (cPanel set the document root to `/home/axisipak/leasing`; use that path below).
 3. DNS: add the `leasing` A record to `162.0.209.114` by hand in Namecheap Advanced DNS. Do not touch
    the 8 Google email records.
-4. FTP: in cPanel create an FTP account jailed at `/home/axisipak/leasing.axispoint.llc/`. Add repo
+4. FTP: in cPanel create an FTP account jailed at `/home/axisipak/leasing/`. Add repo
    secrets `FTP_SERVER_LEASING`, `FTP_USERNAME_LEASING`, `FTP_PASSWORD_LEASING`.
 5. SSL: `node hosting/run-autossl.js --verify=leasing.axispoint.llc`.
 6. Run the **Deploy leasing.axispoint.llc** workflow from the Actions tab (leave clean-slate off).
