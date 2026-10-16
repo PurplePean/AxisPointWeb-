@@ -232,6 +232,23 @@ goes live:
 12. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
    then `node hosting/add-subdomain.js` and `node hosting/run-autossl.js --verify=<host>`.
 
+## Leasing go-live runbook (leasing.axispoint.llc)
+
+`deploy-leasing.yml` is **manual only** (`workflow_dispatch`). Merging deploys nothing. It runs the
+leasing tests, builds, inspects the bundle, then FTPs `apps/leasing/dist/` to `/`. The apps/leasing
+`.htaccess` (React Router fallback) ships in `dist/`. Do these in order:
+
+1. Finish the launch checklist above (content confirmations, phone, hero photo licence, remove the
+   noindex tag in `apps/leasing/index.html` in its own PR).
+2. Subdomain: `node hosting/add-subdomain.js leasing` (cPanel set the document root to `/home/axisipak/leasing`; use that path below).
+3. DNS: add the `leasing` A record to `162.0.209.114` by hand in Namecheap Advanced DNS. Do not touch
+   the 8 Google email records.
+4. FTP: in cPanel create an FTP account jailed at `/home/axisipak/leasing/`. Add repo
+   secrets `FTP_SERVER_LEASING`, `FTP_USERNAME_LEASING`, `FTP_PASSWORD_LEASING`.
+5. SSL: `node hosting/run-autossl.js --verify=leasing.axispoint.llc`.
+6. Run the **Deploy leasing.axispoint.llc** workflow from the Actions tab (leave clean-slate off).
+7. Check the live site at 390px, then submit one test inquiry to confirm the mailto opens.
+
 ## Hosting automation and hosting inventory
 
 The cPanel + Namecheap automation library, its credentials, per-command usage, and

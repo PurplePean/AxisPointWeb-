@@ -1,0 +1,52 @@
+name: Deploy leasing.axispoint.llc
+
+# Manual only, on purpose. Merging to main must not publish the leasing site.
+# Go-live is: finish the launch checklist in docs/deployment.md, add the FTP
+# secrets, then run this workflow by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      dangerous_clean_slate:
+        description: 'Wipe the remote directory before deploying. DESTRUCTIVE. Leave off for routine deploys.'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    name: Build & deploy leasing app
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test:leasing
+
+      - name: Build
+        run: pnpm --filter @axispoint/leasing run build
+
+      - name: Inspect production bundle
+        run: node scripts/test/inspect-bundle.mjs apps/leasing/dist --no-submission
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER_LEASING }}
+          username: ${{ secrets.FTP_USERNAME_LEASING }}
+          password: ${{ secrets.FTP_PASSWORD_LEASING }}
+          local-dir: ./apps/leasing/dist/
+          server-dir: /
+          dangerous-clean-slate: ${{ inputs.dangerous_clean_slate == true }}

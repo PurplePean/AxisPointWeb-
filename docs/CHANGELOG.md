@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-16 (leasing deploy ready)
+
+- **chore(leasing): manual-only `deploy-leasing.yml` and go-live runbook.** No push trigger, so a merge deploys nothing. Needs the three `FTP_*_LEASING` secrets and an FTP account jailed at the leasing document root. No external system was changed.
+
 ## 2026-10-16 (leasing sell and BOV)
 
 - **feat(leasing): `/sell` page, rent and sale BOV roles, Property Management lane on Home.** Contact roles `bov-rent` and `bov-sale` tag the mailto subject so the two BOV types sort apart; real routing stays in the deferred backend pass. Content in `src/content/sell.ts`, all UNCONFIRMED.
