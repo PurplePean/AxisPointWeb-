@@ -21,6 +21,7 @@ export default function Footer() {
           <Link className={linkClass} to="/landlord">Landlord Rep</Link>
           <Link className={linkClass} to="/tenant">Tenant Rep</Link>
           <Link className={linkClass} to="/listings">Listings</Link>
+          <Link className={linkClass} to="/property-management">Property Mgmt</Link>
         </div>
         <div className="flex flex-col">
           <span className={heading}>Firm</span>
