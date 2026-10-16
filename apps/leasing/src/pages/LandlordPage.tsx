@@ -5,6 +5,7 @@ import {
   SPEED_PROMISES,
   agreementPhaseLabels,
   agreementSummary,
+  salesCycleFaqEntries,
 } from '@/content/landlord';
 import { calcVacancyCost } from '@/lib/vacancy';
 
@@ -199,6 +200,16 @@ export default function LandlordPage() {
                   90 days.
                 </p>
               </details>
+
+              {salesCycleFaqEntries().map((entry) => (
+                <details key={entry.question} className={FAQ_ITEM}>
+                  <summary className={FAQ_SUMMARY}>
+                    {entry.question}
+                    <span aria-hidden="true" className="text-v2-purple text-xl font-light">+</span>
+                  </summary>
+                  <p className={FAQ_BODY}>{entry.answer}</p>
+                </details>
+              ))}
 
               {SHOW_RATES && (
                 <details className={FAQ_ITEM}>

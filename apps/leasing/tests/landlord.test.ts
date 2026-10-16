@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { calcVacancyCost } from '../src/lib/vacancy.ts';
-import { AGREEMENT, agreementPhaseLabels, agreementSummary } from '../src/content/landlord.ts';
+import {
+  AGREEMENT,
+  agreementPhaseLabels,
+  agreementSummary,
+  SALES_CYCLE_FAQ,
+  salesCycleFaqEntries,
+} from '../src/content/landlord.ts';
 
 // --- vacancy.ts ---
 
@@ -100,6 +106,55 @@ test('agreementSummary always starts with "One 90 day agreement"', () => {
 test('agreementSummary contains rate sentence only when showRates is true', () => {
   assert.ok(agreementSummary(true).toLowerCase().includes('rate'));
   assert.ok(!agreementSummary(false).toLowerCase().includes('rate'));
+});
+
+// --- SALES_CYCLE_FAQ ---
+
+test('every SALES_CYCLE_FAQ entry has non-empty question and answer', () => {
+  assert.ok(SALES_CYCLE_FAQ.length > 0, 'SALES_CYCLE_FAQ must not be empty');
+  for (const entry of SALES_CYCLE_FAQ) {
+    assert.ok(typeof entry.question === 'string' && entry.question.trim().length > 0,
+      `empty question in entry`);
+    assert.ok(typeof entry.answer === 'string' && entry.answer.trim().length > 0,
+      `empty answer in entry: "${entry.question}"`);
+  }
+});
+
+test('no SALES_CYCLE_FAQ answer contains "%"', () => {
+  for (const entry of SALES_CYCLE_FAQ) {
+    assert.ok(!entry.answer.includes('%'), `"%" found in answer: "${entry.question}"`);
+  }
+});
+
+test('no SALES_CYCLE_FAQ answer contains "$"', () => {
+  for (const entry of SALES_CYCLE_FAQ) {
+    assert.ok(!entry.answer.includes('$'), `"$" found in answer: "${entry.question}"`);
+  }
+});
+
+test('no SALES_CYCLE_FAQ answer contains a digit followed by "days" or "months"', () => {
+  const pattern = /\d+\s*(days|months)/i;
+  for (const entry of SALES_CYCLE_FAQ) {
+    assert.ok(!pattern.test(entry.answer),
+      `invented timeline found in answer: "${entry.question}"`);
+  }
+});
+
+// --- salesCycleFaqEntries / EXTENSION_FAQ null ---
+
+test('salesCycleFaqEntries returns all SALES_CYCLE_FAQ entries', () => {
+  const entries = salesCycleFaqEntries();
+  assert.equal(entries.length, SALES_CYCLE_FAQ.length,
+    'expected only SALES_CYCLE_FAQ entries when EXTENSION_FAQ is null');
+});
+
+test('salesCycleFaqEntries does not include an extension entry while EXTENSION_FAQ is null', () => {
+  const entries = salesCycleFaqEntries();
+  const hasExtension = entries.some((e) =>
+    e.question.toLowerCase().includes('extension') ||
+    e.answer.toLowerCase().includes('extension'),
+  );
+  assert.ok(!hasExtension, 'extension FAQ must not appear while EXTENSION_FAQ is null');
 });
 
 // --- no leftover 120 ---

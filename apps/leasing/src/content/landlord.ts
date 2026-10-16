@@ -53,6 +53,36 @@ export function agreementPhaseLabels(showRates: boolean): string[] {
   return AGREEMENT.phases.map((p) => `Days ${p.fromDay} to ${p.toDay}: ${p.ratePercent}%`);
 }
 
+// UNCONFIRMED: Sales-cycle FAQ entries. Wording must be reviewed by Ethaniel
+// and Theophanes before launch.
+export const SALES_CYCLE_FAQ = [
+  {
+    question: 'Does every space lease at the same speed?',
+    answer:
+      'No. Inline shop space usually moves fastest because the process is straightforward and the tenant pool is large. Pad sites, large suites and single-tenant net lease (STNL) properties usually take longer because there are more steps and more decision makers involved. The speed we promise is how fast we reply, tour and update you, not a guaranteed lease date.',
+  },
+  {
+    question: 'Why do pad sites and STNL properties take longer?',
+    answer:
+      'Pad sites often involve site plans, municipal approvals or build-to-suit negotiation before a tenant commits. Large suites have a smaller pool of qualified tenants, so it takes longer to find the right fit. National STNL tenants run their own real estate committee and credit approval processes, which are outside anyone\'s control.',
+  },
+] as const;
+
+// UNCONFIRMED: Owner to decide whether the 90-day agreement extends for pad
+// sites, large suites and STNL properties, and at what rate.
+// TODO: owner to supply extension terms before this entry can be enabled.
+export const EXTENSION_FAQ: { question: string; answer: string } | null = null;
+
+/**
+ * Returns the sales-cycle FAQ entries to render. Includes EXTENSION_FAQ only
+ * when it is non-null.
+ */
+export function salesCycleFaqEntries(): ReadonlyArray<{ question: string; answer: string }> {
+  const out: { question: string; answer: string }[] = [...SALES_CYCLE_FAQ];
+  if (EXTENSION_FAQ !== null) out.push(EXTENSION_FAQ);
+  return out;
+}
+
 /**
  * Returns a summary sentence for the agreement.
  * When showRates is true includes a sentence about the rate depending on when
