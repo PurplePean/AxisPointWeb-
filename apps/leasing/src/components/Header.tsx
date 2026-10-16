@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/landlord', label: 'Landlord Rep' },
   { to: '/tenant', label: 'Tenant Rep' },
   { to: '/listings', label: 'Listings' },
+  { to: '/property-management', label: 'Property Mgmt' },
 ];
 
 const linkClass = 'inline-flex min-h-[44px] items-center hover:text-v2-teal-support';

@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-15 (leasing property management page added)
+
+- **feat(leasing): `/property-management` page added to `apps/leasing`.** New content file `src/content/propertyManagement.ts` with `SERVICES`, `AGREEMENT` (null), `REPORTING` (null), and `visibleSections()` helper. `AGREEMENT` and `REPORTING` sections do not render while null; no fee or percentage appears in the page. Route, header nav entry, and footer entry added. All content UNCONFIRMED pending Ethaniel's review.
+
 ## 2026-10-15 (leasing agreement restructured to single 90-day term with phase rates)
 
 - **feat(leasing): `AGREEMENT_OPTIONS` / `formatAgreementLabel` replaced with `AGREEMENT` (one 90-day term, two rate phases) and helpers `agreementPhaseLabels` / `agreementSummary` in `apps/leasing/src/content/landlord.ts`.** The landlord page agreement section now shows a two-segment phase timeline instead of option cards. Home promise strip updated to "One 90 day agreement". All values remain UNCONFIRMED; the 60/30-day rate step and the reading that the rate depends on the lease signing date need owner confirmation.
