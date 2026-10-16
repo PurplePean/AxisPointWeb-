@@ -1,5 +1,6 @@
 import { GUTTER, Eyebrow, TealButton } from '@/components/ui';
 import { SERVICES, visibleSections } from '@/content/propertyManagement';
+import ManagedStat from '@/components/ManagedStat';
 
 const SECTION = `bg-v2-surface ${GUTTER}`;
 const DIVIDER = 'border-t border-v2-ink/20 pt-[18px]';
@@ -34,6 +35,7 @@ export default function PropertyManagementPage() {
               you collect rent without managing tenants.
             </p>
           </div>
+          <ManagedStat className="mt-8" />
         </div>
       </section>
 
