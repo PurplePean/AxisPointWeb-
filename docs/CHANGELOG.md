@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-16 (leasing landlord FAQ: sales-cycle context for pad sites and STNL)
+
+- **feat(leasing): `SALES_CYCLE_FAQ`, `EXTENSION_FAQ` (null), and `salesCycleFaqEntries()` added to `apps/leasing/src/content/landlord.ts`.** Two FAQ entries explain that inline space moves faster than pad sites, large suites and STNL properties, and why. `EXTENSION_FAQ` is null; that entry does not render and no extension language appears on the page while it is null. Content UNCONFIRMED pending owner review.
+
 ## 2026-10-15 (leasing property management page added)
 
 - **feat(leasing): `/property-management` page added to `apps/leasing`.** New content file `src/content/propertyManagement.ts` with `SERVICES`, `AGREEMENT` (null), `REPORTING` (null), and `visibleSections()` helper. `AGREEMENT` and `REPORTING` sections do not render while null; no fee or percentage appears in the page. Route, header nav entry, and footer entry added. All content UNCONFIRMED pending Ethaniel's review.
