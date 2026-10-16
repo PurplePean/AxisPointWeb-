@@ -228,7 +228,8 @@ goes live:
 8. **Confirm the property management services, fee, term and reporting with Ethaniel before the `/property-management` page goes live.** All content in `apps/leasing/src/content/propertyManagement.ts` is marked UNCONFIRMED. `AGREEMENT` and `REPORTING` are currently `null` (those sections do not render); supply confirmed values before launch. Confirm service scope in `SERVICES`, the management fee structure (no fee or percentage renders until set), the agreement term, and the reporting cadence and format.
 9. **Confirm the "100,000 sq ft managed" figure in `apps/leasing/src/content/proof.ts` with Ethaniel and Theophanes.** Confirm what it covers (AxisPoint total or Ethaniel's book, retail only or all property types), add an as-of date, and decide whether the stat should say retail. Set `SHOW_PROOF = false` to hide it everywhere until confirmed.
 10. After leasing is live, add links from the main site (`axispoint.llc`) and the QR card to `leasing.axispoint.llc`.
-11. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
+11. Confirm the Sell and BOV page content in `apps/leasing/src/content/sell.ts`: who handles rent BOV requests (Ethaniel?) and who handles sale BOV requests (Theophanes?), how each is routed once the real backend exists (today the mailto subject is tagged `Rent BOV request` or `Sale BOV request`), BOV turnaround and cost (`BOV_TERMS`), and any sales track record (`TRACK_RECORD`). Both are `null` and do not render until supplied.
+12. DNS: add the `leasing` A record by hand in Advanced DNS (the Namecheap API is read-only here),
    then `node hosting/add-subdomain.js` and `node hosting/run-autossl.js --verify=<host>`.
 
 ## Hosting automation and hosting inventory

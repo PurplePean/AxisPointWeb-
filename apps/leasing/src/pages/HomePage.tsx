@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { Eyebrow, GUTTER, PurpleButton, TealButton, TextLink } from '@/components/ui';
 import { HOME_STRIP_PROMISES } from '@/content/landlord';
 import ManagedStat from '@/components/ManagedStat';
+import BovStrip from '@/components/BovStrip';
+import { HOME_LANE_ITEMS } from '@/content/propertyManagement';
 
 const LANDLORD = [
   'Listing and marketing, including Crexi',
@@ -122,11 +124,11 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-v2 flex-col gap-14">
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-start gap-x-14 gap-y-10">
             <h2 className="m-0 border-t-[3px] border-v2-purple pt-4 text-[34px] font-semibold leading-[1.1] tracking-[-0.03em]">
-              Two ways we work
+              How we work with you
             </h2>
             <p className="m-0 font-serif text-[26px] font-medium leading-[1.42] text-v2-ink/[0.68] [text-wrap:pretty]">
-              Whether you own the space or need it, you deal with the same people from the first
-              call to the signed lease.
+              Whether you own the space, need it, or want it managed, you deal with the same people
+              from the first call to the signed lease.
             </p>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-x-14 gap-y-12">
@@ -148,9 +150,20 @@ export default function HomePage() {
               to="/tenant"
               cta="Tell us what you need"
             />
+            <Lane
+              id="property-management"
+              eyebrow="For owners"
+              title="Property management"
+              body="Day-to-day retail management, including NNN administration, so you are not running the property yourself."
+              items={[...HOME_LANE_ITEMS]}
+              to="/property-management"
+              cta="See management services"
+            />
           </div>
         </div>
       </section>
+
+      <BovStrip />
 
       <section className={`border-y border-v2-ink/10 bg-v2-field-warm py-11 ${GUTTER}`}>
         <div className="mx-auto grid max-w-v2 grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] items-center gap-x-14 gap-y-5">
@@ -171,7 +184,7 @@ export default function HomePage() {
             rel="noopener noreferrer"
             className={STRIP}
           >
-            <span>Property management for multifamily and retail owners across Texas</span>
+            <span>Property management for multifamily owners across Texas</span>
             <span aria-hidden="true" className="flex-none text-xl">&#8599;</span>
           </a>
         </div>

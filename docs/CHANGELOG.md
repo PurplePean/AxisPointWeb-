@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-16 (leasing sell and BOV)
+
+- **feat(leasing): `/sell` page, rent and sale BOV roles, Property Management lane on Home.** Contact roles `bov-rent` and `bov-sale` tag the mailto subject so the two BOV types sort apart; real routing stays in the deferred backend pass. Content in `src/content/sell.ts`, all UNCONFIRMED.
+
 ## 2026-10-16 (leasing design foundations)
 
 - **feat(leasing): shared page pieces added to `apps/leasing/src/components/ui.tsx` and applied to Landlord, Tenant and Property Management.** `PageHero`, `SectionHeading`, `BigHeading`, `RuledList`/`RuledRow`, `BigStat`, `ClosingBand`, `Strong`, `QuietAnchor` and the `SECTION_Y`/`BAND` rhythm tokens, modeled on the main site's Property Management page. Home, Listings and Contact are unchanged. No content or claims changed; `SERVICE_GROUPS` and `agreementPhases` are structure only.

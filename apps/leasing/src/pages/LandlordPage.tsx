@@ -1,3 +1,4 @@
+import BovStrip from '@/components/BovStrip';
 import { useState } from 'react';
 import {
   BAND,
@@ -281,6 +282,8 @@ export default function LandlordPage() {
 
         </div>
       </section>
+
+      <BovStrip heading="Is your rent at market?" />
 
       <ClosingBand
         title="Ready to put the space to work?"

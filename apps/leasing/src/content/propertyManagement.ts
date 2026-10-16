@@ -48,3 +48,11 @@ export function visibleSections(): ('services' | 'agreement' | 'reporting')[] {
   if (REPORTING !== null) out.push('reporting');
   return out;
 }
+
+// UNCONFIRMED: Short list shown on the Home page lane. Keep in step with
+// SERVICE_GROUPS above.
+export const HOME_LANE_ITEMS = [
+  'Rent collection and vendor coordination',
+  'NNN administration and CAM reconciliation',
+  'Inspections and owner reporting',
+] as const;

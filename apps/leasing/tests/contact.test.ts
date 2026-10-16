@@ -64,3 +64,14 @@ test('CREXI_BROKER_URL uses https and is on crexi.com or a subdomain', () => {
     `expected crexi.com host, got ${url.hostname}`,
   );
 });
+
+test('BOV roles are recognised and tag the subject so rent and sale sort apart', () => {
+  assert.equal(parseRole('bov-rent'), 'bov-rent');
+  assert.equal(parseRole('bov-sale'), 'bov-sale');
+  assert.equal(parseRole('nonsense'), 'landlord');
+  const rent = decode(buildInquiryMailto({ ...base, role: 'bov-rent' }, ''));
+  const sale = decode(buildInquiryMailto({ ...base, role: 'bov-sale' }, ''));
+  assert.match(rent.subject, /^Rent BOV request/);
+  assert.match(sale.subject, /^Sale BOV request/);
+  assert.match(rent.body, /Property address/);
+});
