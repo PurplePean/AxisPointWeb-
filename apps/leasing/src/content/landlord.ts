@@ -96,3 +96,12 @@ export function agreementSummary(showRates: boolean): string {
   // lease is signed (not the listing start date) needs owner confirmation.
   return `${base} The commission rate depends on when the lease is signed.`;
 }
+
+/**
+ * Answer for the "Who do I talk to?" FAQ item. The reply-time wording comes
+ * from SPEED_PROMISES so it is never hardcoded in the page.
+ * UNCONFIRMED: confirm wording with the owner.
+ */
+export function whoToTalkAnswer(): string {
+  return `Use the button below and tell us about your property. ${SPEED_PROMISES[0]}`;
+}

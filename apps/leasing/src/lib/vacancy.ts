@@ -28,3 +28,15 @@ export function calcVacancyCost(sqft: number, annualRentPerSqft: number): Vacanc
     ninetyDayCost: annualTotal * (90 / 365),
   };
 }
+
+/**
+ * Parses a user-typed number such as "2,000", "$24.50" or ".5".
+ * Trims whitespace, strips one leading "$" and all commas, then accepts only
+ * plain decimal digits. Returns null for anything else (letters, exponents,
+ * signs, trailing dots, empty input).
+ */
+export function parseNumericInput(raw: string): number | null {
+  const cleaned = raw.trim().replace(/^\$/, '').replace(/,/g, '');
+  if (!/^\d+(\.\d+)?$|^\.\d+$/.test(cleaned)) return null;
+  return Number(cleaned);
+}
