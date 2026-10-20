@@ -7,6 +7,10 @@ Architecture-level changes only — one line each. Routine copy/content edits do
 afterwards. For what is current V2, retired V1, transitional QR, or external, read
 [`system-classification.md`](system-classification.md).
 
+## 2026-10-20 (leasing deploy workflow)
+
+- **fix(leasing): `deploy-leasing.yml` uses Node 22.** The leasing tests run with `--experimental-strip-types`, which Node 20 rejects, so the first manual run failed before any upload. No files reached the host.
+
 ## 2026-10-16 (leasing deploy ready)
 
 - **chore(leasing): manual-only `deploy-leasing.yml` and go-live runbook.** No push trigger, so a merge deploys nothing. Needs the three `FTP_*_LEASING` secrets and an FTP account jailed at the leasing document root. No external system was changed.
